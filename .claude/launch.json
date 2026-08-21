@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "findatalk-docs",
+      "runtimeExecutable": "/Users/smoothop/Downloads/FindATalk files/.claude/serve.sh",
+      "runtimeArgs": [],
+      "port": 8934
+    }
+  ]
+}

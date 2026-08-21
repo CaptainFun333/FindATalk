@@ -22,6 +22,15 @@ Open `conference-draw.html` directly in a browser to see current behavior.
 path with the old `files` folder name shows up anywhere (old scratch
 scripts, memory, etc.), it's stale.
 
+**⚠️ As of the mobile-packaging Phase 1 refactor (see the dedicated section
+below), `conference-draw.html` is no longer the live app.** It's kept
+unmodified as a legacy/reference standalone copy (still fully working if
+opened directly). **The current app lives in `docs/`** —
+`docs/index.html` (shell + logic, same UI) and `docs/data.json` (all six
+data structures, fetched at runtime). Any future feature work or data
+edits should target `docs/`, not `conference-draw.html`, unless
+specifically doing a one-off legacy-file fix.
+
 ## Current data state
 - **2052 real, verified talks** across **57 conferences**, pulled directly
   from the Church's own session listing pages (not invented/hallucinated —
@@ -577,6 +586,107 @@ transitions researched and confirmed via search, not assumed:
   April 2009). Don't retag his older talks by pattern-matching from his
   later apostolic ones.
 
+## ✅ Done: Phase 1 of mobile packaging — fetch-at-runtime data architecture
+The user wants to (a) eventually catalog every conference/talk ever, (b)
+keep adding *future* conferences after the app ships, and (c) package this
+as an Apple App Store / Google Play app (planned via **Capacitor**). Before
+any mobile work, the open question was "how do new talks reach people who
+already installed the app?" — the user explicitly chose **"fetch data at
+runtime"** over baking all data into each store build. This section is
+that architecture.
+
+**New folder: `docs/`** (chosen over Capacitor's default `www/` name so it
+doubles as a GitHub Pages source — GitHub Pages has a built-in "serve from
+`/docs`" option needing no GitHub Actions — and Capacitor's `webDir` is
+configurable, so the same folder can later serve as its web root too):
+- **`docs/data.json`** (745,308 bytes) — the six data structures
+  (`talks`, `roleLookup`, `roleLabels`, `topicLookup`, `topicLabels`,
+  `kickerLookup`) that used to be inline `const` blocks in
+  `conference-draw.html`, now as one JSON object plus a `generatedAt`
+  timestamp. Extracted via a Python script that parsed the original file's
+  `const` blocks and re-serialized them; verified **byte-for-byte
+  equivalent** (as parsed structures, via Python `==`) to what was in
+  `conference-draw.html` — zero data loss.
+- **`docs/index.html`** (44,619 bytes) — same HTML/CSS as
+  `conference-draw.html`. The six `const TALKS = {...}` etc. blocks became
+  bare `let TALKS;` declarations (assigned later at runtime); every
+  function that reads them (`talkRole`, `talkTopics`, `talkKicker`,
+  `talkUrl`, `draw`, `showList`, `shareTalk`, etc.) is **byte-for-byte
+  unchanged** — they still work via closures once the `let`s are assigned.
+  Everything from building the filter panels through the final event
+  listener wiring got wrapped in a new `function initApp(){...}` (called
+  only after data is ready, instead of running at parse time).
+
+**Bootstrap logic** (appended after `initApp()`, drives the whole load):
+`LOCAL_DATA_URL` = `'./data.json'` (bundled copy, always available —
+including fully offline in a packaged app, since it reads from the app's
+own bundle rather than the network); `REMOTE_DATA_URL` (currently `''`,
+**a pending placeholder** — needs the real GitHub Pages URl once that repo
+exists, see "Pending before Phase 1 is fully live" below); `DATA_CACHE_KEY
+= 'findATalkData'` (the `localStorage` key). Flow, in `loadData()`:
+1. Check `localStorage` for a cached copy. If present, use it immediately
+   (`applyData()`) — instant load on every relaunch, no network wait.
+2. If no cache (first-ever launch), `fetch(LOCAL_DATA_URL)`. On success,
+   apply it and cache it. On failure (offline + never launched before, or
+   — expected and correct — opened directly via `file://`, which browsers
+   block local fetches from), show a plain-text fatal error
+   (`showFatalLoadError()`) instead of a broken blank page.
+3. Call `initApp()` (only reached once data — cached or fetched — is
+   actually ready).
+4. If `REMOTE_DATA_URL` is set, kick off a **background** fetch of it.
+   Deliberately does **not** hot-swap the running session's data or
+   re-wire the UI — it just silently updates the `localStorage` cache, so
+   a fresher copy (new conferences, fixes) is picked up on the **next**
+   app launch/reload, not mid-session. This avoids needing idempotent
+   UI-rewiring logic.
+
+**Verification** (no visual browser pass was possible/needed — see
+below): a Node.js test harness
+(`/private/tmp/.../scratchpad/bootstrap-test.js`, scratch-only, not part
+of the repo) extracted this exact bootstrap block from `docs/index.html`
+via regex (verbatim, unmodified) and ran it inside a Node `vm` sandbox
+with mocked `fetch`/`localStorage`/`document`, covering 4 scenarios — all
+passed: fresh install (fetch succeeds → data applied, `initApp()` called
+once, cached), returning visit (cache short-circuits the fetch, still
+calls `initApp()` once), fetch failure (fatal error shown, `initApp()`
+never called — separately also confirmed **live** via the Browser pane by
+opening `docs/index.html` directly as `file://`, which correctly hits
+this exact path since local fetches are blocked under `file://`), and
+cache-present-plus-remote-configured (renders old cached data this
+session, silently refreshes the cache in the background for next time).
+**Node is now installed in this environment** (confirmed `v24.19.0` this
+session) — prefer it over the old `python3`-based checks below for any
+future JS-behavior testing; the file-size-ceiling problem that forced the
+verbatim-harness-in-a-browser workaround for earlier features doesn't
+apply to Node-based tests at all.
+
+**Git**: a local repo was initialized (not yet pushed anywhere) with
+`.gitignore` (`.DS_Store`, `node_modules/` — deliberately **not**
+ignoring `ios/`/`android/`, since Capacitor's own guidance is to commit
+those native folders, they can hold manual customizations `cap sync`
+won't regenerate). `git config user.name`/`user.email` were empty, so a
+**placeholder identity** (`"FindATalk"` / `"placeholder@local"`) was set
+just to unblock the local commit — **replace this with the user's real
+name/email before any push**, and don't push anywhere publicly without
+asking first (that's an outward-facing action).
+
+**Pending before Phase 1 is fully live** (none of this is done yet):
+1. Get the user's real git name/email (replace the placeholder identity).
+2. Get their GitHub username + desired repo name.
+3. Create the GitHub repo, push the local commit (confirm with the user
+   first — pushing/publishing is explicit-permission-required).
+4. Enable GitHub Pages, serving from `/docs`.
+5. Fill in the real `REMOTE_DATA_URL` in `docs/index.html` (the
+   `https://<user>.github.io/<repo>/data.json` URL) once Pages is live.
+
+A local HTTP server for more realistic fetch testing (`.claude/launch.json`
++ `.claude/serve.sh`, `python3 -m http.server` on port 8934) was attempted
+but hit a `PermissionError`/`getcwd()`-related sandbox issue in the
+Browser-pane's `preview_start` process launcher — left in place
+unused in case it's transient in a future session, but don't rely on it;
+the Node-`vm`-harness and direct `file://` techniques above are the
+proven fallbacks.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
 there's now a **standing gap between April 1996 and April 1999** (7
@@ -600,8 +710,13 @@ accidentally pasted inside the `ROLE_LOOKUP` object literal instead of the
 real talk, checking for duplicate talk rows) before shipping.
 **Always run an equivalent validation pass after bulk-editing this file.**
 
-**Node is not available in this environment** — use `python3` instead
-(present at `/usr/bin/python3`). A JS object/array literal with
+**Node.js is now installed** (`v24.19.0`, confirmed during the Phase 1
+mobile-packaging refactor) — prefer it for any new JS-behavior testing
+(no file-size ceiling, no browser-tool flakiness; see the Phase 1 section
+above for the pattern). The validation pass below predates Node being
+available and still works fine via `python3` (present at
+`/usr/bin/python3`) for pure data checks — no need to redo it in Node. A
+JS object/array literal with
 double-quoted keys and no trailing comma on the final entry parses fine
 with `json.loads` after stripping `//` comment lines; a trailing comma
 before the closing `}`/`]` is valid JS but breaks `json.loads`, so match
