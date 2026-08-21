@@ -537,18 +537,6 @@
 
   <div class="filters">
     <div class="field">
-      <label id="speakerLabel">Speaker</label>
-      <button type="button" class="ms-trigger" id="speakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="speakerLabel speakerTriggerText">
-        <span class="ms-trigger-text" id="speakerTriggerText">Any speaker</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="speakerPanel" hidden>
-        <input type="text" class="ms-search" id="speakerSearch" placeholder="Search speakers…" autocomplete="off">
-        <div class="ms-options" id="speakerOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
       <label id="roleLabel">Calling at the Time of the Talk</label>
       <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
         <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
@@ -557,17 +545,6 @@
       <div class="ms-panel" id="rolePanel" hidden>
         <div class="ms-options" id="roleOptions"></div>
         <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="yearLabel">General Conference</label>
-      <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
-        <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="yearPanel" hidden>
-        <div class="ms-options" id="yearOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
       </div>
     </div>
     <div class="field">
@@ -580,6 +557,29 @@
         <input type="text" class="ms-search" id="topicSearch" placeholder="Search topics…" autocomplete="off">
         <div class="ms-options" id="topicOptions"></div>
         <div class="ms-panel-footer"><button type="button" class="ms-clear" id="topicClear">Clear</button></div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="speakerLabel">Speaker</label>
+      <button type="button" class="ms-trigger" id="speakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="speakerLabel speakerTriggerText">
+        <span class="ms-trigger-text" id="speakerTriggerText">Any speaker</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="speakerPanel" hidden>
+        <input type="text" class="ms-search" id="speakerSearch" placeholder="Search speakers…" autocomplete="off">
+        <div class="ms-options" id="speakerOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="yearLabel">General Conference</label>
+      <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
+        <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="yearPanel" hidden>
+        <div class="ms-options" id="yearOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
       </div>
     </div>
     <div class="field">
@@ -1404,7 +1404,7 @@ function subsetLabelFor(dim, val){
   return ROLE_LABELS[val];
 }
 
-const SUBSET_DIM_ORDER = ['speaker','role','year','topic'];
+const SUBSET_DIM_ORDER = ['role','topic','speaker','year'];
 const SUBSET_DIM_LABEL = { speaker:'Speaker', role:'Calling at the Time of the Talk', year:'General Conference', topic:'Topic' };
 const SUBSET_DIM_ANY = { speaker:'Any speaker', role:'Any Calling', year:'Any Conference', topic:'Any topic' };
 const SUBSET_DIM_NOUN = { speaker:'speakers', role:'callings', year:'conferences', topic:'topics' };
