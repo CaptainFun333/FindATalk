@@ -660,24 +660,45 @@ future JS-behavior testing; the file-size-ceiling problem that forced the
 verbatim-harness-in-a-browser workaround for earlier features doesn't
 apply to Node-based tests at all.
 
-**Git**: a local repo was initialized (not yet pushed anywhere) with
-`.gitignore` (`.DS_Store`, `node_modules/` — deliberately **not**
-ignoring `ios/`/`android/`, since Capacitor's own guidance is to commit
-those native folders, they can hold manual customizations `cap sync`
-won't regenerate). `git config user.name`/`user.email` were empty, so a
-**placeholder identity** (`"FindATalk"` / `"placeholder@local"`) was set
-just to unblock the local commit — **replace this with the user's real
-name/email before any push**, and don't push anywhere publicly without
-asking first (that's an outward-facing action).
+**Git**: local repo, real identity `CaptainFun333` /
+`b.christensen333@gmail.com` (replaced the temporary placeholder used to
+unblock the very first local commit). No credential helper / `gh` CLI /
+Homebrew were available in this environment, so **SSH** was set up
+instead of HTTPS+token: generated a fresh `ed25519` keypair
+(`~/.ssh/id_ed25519`), the user added the public key at
+github.com/settings/keys, confirmed with `ssh -T git@github.com`, then
+`git remote set-url origin git@github.com:CaptainFun333/find-a-talk.git`.
+(GitHub's "don't add a README" checkbox didn't take — the new repo showed
+up with a one-line `README.md` already committed; fixed with `git pull
+--rebase` before pushing, no data lost.)
 
-**Pending before Phase 1 is fully live** (none of this is done yet):
-1. Get the user's real git name/email (replace the placeholder identity).
-2. Get their GitHub username + desired repo name.
-3. Create the GitHub repo, push the local commit (confirm with the user
-   first — pushing/publishing is explicit-permission-required).
-4. Enable GitHub Pages, serving from `/docs`.
-5. Fill in the real `REMOTE_DATA_URL` in `docs/index.html` (the
-   `https://<user>.github.io/<repo>/data.json` URL) once Pages is live.
+**✅ Phase 1 is now fully live, as of this session:**
+1. ✅ Real git identity set (see above).
+2. ✅ Repo created: **github.com/CaptainFun333/find-a-talk** (public).
+3. ✅ Local commits pushed to `main`.
+4. ✅ GitHub Pages enabled, serving from `/docs` — live at
+   **https://captainfun333.github.io/find-a-talk/**.
+5. ✅ `REMOTE_DATA_URL` in `docs/index.html` filled in with the real Pages
+   URL (`https://captainfun333.github.io/find-a-talk/data.json`),
+   committed and pushed.
+
+**End-to-end live verification** (real browser, real hosted site, not a
+mock/harness): navigated to the live Pages URL, confirmed
+`GET /find-a-talk/data.json → 200`, "2052 talks match right now," the
+full real 364-speaker list rendered in the Speaker filter, and a real
+`drawBtn.click()` produced a correct ticket (title, speaker, and a role
+tag matching the hand-researched data in this doc — D. Todd Christofferson's
+Oct 2006 talk correctly showed "Member of the Seventy," pre-dating his
+2008 apostle call). **This confirms the entire fetch-at-runtime
+architecture works for real, hosted over HTTPS, not just in the Node/
+browser-harness tests described above.**
+
+**To publish future data updates** (new conferences, fixes) without a new
+app-store build: edit `docs/data.json` in the repo (or wherever it's
+regenerated from), commit, push to `main` — GitHub Pages redeploys
+automatically. Already-installed users pick it up automatically the
+*next* time they relaunch the app (see the background-refresh-then-cache
+design above — it deliberately doesn't hot-swap mid-session).
 
 A local HTTP server for more realistic fetch testing (`.claude/launch.json`
 + `.claude/serve.sh`, `python3 -m http.server` on port 8934) was attempted
@@ -685,7 +706,8 @@ but hit a `PermissionError`/`getcwd()`-related sandbox issue in the
 Browser-pane's `preview_start` process launcher — left in place
 unused in case it's transient in a future session, but don't rely on it;
 the Node-`vm`-harness and direct `file://` techniques above are the
-proven fallbacks.
+proven fallbacks (and, as of this session, so is just testing directly
+against the real live Pages URL — no local server needed at all).
 
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
