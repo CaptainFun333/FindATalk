@@ -963,6 +963,89 @@ filters (Speaker, Calling, Conference, Topic — **not** the 5th
   worth remembering as a pattern to watch for in any future "return an
   object with a settable callback" code.
 
+## ✅ Done: Filter reorder (Calling, Topic, Speaker, Conference, Recent/Favorites)
+User-reported friction: the Speaker list had gotten long enough (364
+names) that it was pushing Calling out of easy reach, and Calling gets
+used more. Reordered both the home page's `.filters` grid (plain HTML
+reorder) and the Recently Viewed/Favorites pages' own copies
+(`SUBSET_DIM_ORDER = ['role','topic','speaker','year']`, one shared
+constant driving both pages via `createSubsetFilterPanel`'s dim-iteration
+loop). Purely a display-order change — `DIM_CONFIG`'s object-key order
+was left alone since nothing about the AND/cascading logic depends on it.
+
+## ✅ Done: Talk of the Day, keyword search, adjustable list size
+Three independent features added together this session:
+
+- **Talk of the Day** — a card at the top of the home page (always
+  visible, unaffected by whatever filters are set) showing one
+  deterministic pick, seeded by the device's local calendar date so it's
+  the same for everyone on a given day and changes at midnight. Reuses
+  `buildListItemRow()` (same star/share/open behavior as every other talk
+  row). `talkOfTheDay()` sorts a copy of `TALKS` by `talkKey()` first,
+  then picks `hashString(dateSeed) % sorted.length` — sorting first means
+  today's pick stays reasonably stable even as `data.json` gets new
+  conferences appended later, rather than shifting for every talk if the
+  raw array order ever changed.
+- **Keyword search** (`SEARCH TITLES & SUMMARIES`, above the four
+  filters) — free-text, matches substring (case-insensitive) against a
+  talk's title OR its kicker sentence. Implemented as `filterState.query`
+  (a plain string, not an array like the other dims) with its own
+  `matchesSearch(t)` predicate ANDed into `currentPool()`/`poolExcept()`
+  alongside the `Object.keys(DIM_CONFIG)` dim loop — deliberately kept
+  separate from `DIM_CONFIG` rather than shoehorned in, since it has no
+  checkbox panel/"available values" concept. Catches talks a Topic filter
+  would miss entirely — e.g. searching "gratitude" surfaces talks whose
+  *kicker* mentions it even when the title doesn't and it's not the
+  talk's tagged Topic (confirmed live: 18 real matches, including "The
+  Divine Gift of Gratitude" by title and "Reverence For Sacred Things" by
+  kicker text alone).
+- **Adjustable "Show a List" size** — 5/10/25/50 pill buttons under the
+  draw buttons (was a hardcoded `LIST_SIZE = 10`, now `let LIST_SIZE`).
+  Persists across relaunches via `localStorage` (`findATalkListSize`). If
+  a list is already showing when the size changes, it re-rolls
+  immediately at the new size rather than waiting for another "Show a
+  List" click.
+
+**A real bug found and fixed before shipping — same "temporal dead zone"
+family as the earlier `onChange`-callback bug, worth watching for
+specifically whenever a new feature's setup code is added near the very
+top of `initApp()` rather than the bottom**: the first version called
+`renderTalkOfTheDay()` immediately, right where the function was defined
+— which is *before* `initApp()` had reached the Share section further
+down where `SHARE_ICON_SVG`/`STAR_ICON_SVG` are declared. Since
+`buildListItemRow()` → `createFavoriteButton()` reads `STAR_ICON_SVG`,
+calling it that early threw an uncaught `ReferenceError`, which silently
+halted **all** of `initApp()`'s remaining top-to-bottom execution —
+including the `listBtn` click-handler registration. Symptom in the
+Simulator: "Show a List" visually responded to taps (hover/focus CSS
+still worked, since that's browser-native) but nothing ever rendered,
+and the Talk of the Day card stayed empty. Fixed by moving just the
+`renderTalkOfTheDay();` *call* (not the function definitions, which are
+hoisted and were never the problem) to the very end of `initApp()`, after
+everything it transitively depends on. Caught via the same
+Simulator-log-stream + bisection process used earlier in this project,
+not a static check — **a good argument for always testing a genuinely
+fresh app launch after adding any new top-level (not just
+inside-a-function) code**, since eager top-level statements are exactly
+where this class of bug hides and a static syntax check (`node --check`)
+cannot catch it.
+
+**Verification**: all three fully live-tested in the iOS Simulator after
+the fix — Talk of the Day rendering real content with working
+star/share/open-and-record-recent; typed "gratitude" into the search box
+and confirmed the pool count narrowed 2052 → 18, "Reset filters"
+correctly became enabled, and "Show a List" honored the narrowed pool
+("Showing all 18 talks"); list-size buttons switching and the choice
+surviving an app relaunch. One tooling note for future sessions: locating
+a plain `<input>` box's tap coordinates by scanning for its border color
+needs care about which border is being measured — a `box-shadow`-casting
+card sitting directly above an input can produce a color band in the gap
+between them that looks like a plausible box edge but is actually just
+shadow bleed; cropping the actual screenshot region and reading it
+visually (not just color-scanning) resolved several minutes of
+mis-tapping in this session and is the more reliable technique going
+forward for any element that isn't a solid-fill button.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
 there's now a **standing gap between April 1996 and April 1999** (7

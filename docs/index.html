@@ -80,6 +80,45 @@
   }
   .divider svg{ width:16px; height:16px; color:var(--brass); flex-shrink:0; }
 
+  /* ---------- talk of the day ---------- */
+  .totd-zone{ margin-bottom:36px; }
+  .totd-eyebrow{ margin-bottom:12px; }
+
+  /* ---------- keyword search ---------- */
+  .search-field{ margin-bottom:20px; }
+  .search-field label{
+    display:block;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:7px;
+    font-weight:600;
+  }
+  .search-input-wrap{ position:relative; }
+  #querySearch{
+    width:100%;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:12px 40px 12px 14px;
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    color:var(--ink);
+    transition:border-color .15s;
+  }
+  #querySearch:hover{ border-color:var(--brass); }
+  #querySearch:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
+  #queryClear{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    width:26px; height:26px; line-height:1;
+    border:none; background:none; cursor:pointer;
+    font-size:20px; color:var(--ink-soft);
+    border-radius:50%;
+  }
+  #queryClear:hover{ color:var(--burgundy); background:#efe8d3; }
+
   /* ---------- filters ---------- */
   .filters{
     display:grid;
@@ -309,6 +348,27 @@
     margin-top:16px; display:none;
   }
 
+  .list-size-row{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    margin-top:16px;
+  }
+  .list-size-label{
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft);
+  }
+  .list-size-options{ display:flex; gap:6px; }
+  .list-size-btn{
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600;
+    padding:5px 13px; border-radius:20px;
+    border:1px solid var(--line); background:transparent; color:var(--ink-soft);
+    cursor:pointer;
+    transition:border-color .15s, color .15s, background-color .15s;
+  }
+  .list-size-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .list-size-btn.is-active{
+    background:var(--ink); border-color:var(--ink); color:var(--paper-raised);
+  }
+
   /* ---------- result card (the "ticket") ---------- */
   #resultZone{ margin-top:46px; display:none; }
   .ticket{
@@ -535,6 +595,19 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
   </div>
 
+  <div class="totd-zone" id="totdZone">
+    <div class="eyebrow totd-eyebrow">Talk of the Day</div>
+    <div class="list-items" id="totdItems"></div>
+  </div>
+
+  <div class="search-field">
+    <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
+    <div class="search-input-wrap">
+      <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
+      <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
+    </div>
+  </div>
+
   <div class="filters">
     <div class="field">
       <label id="roleLabel">Calling at the Time of the Talk</label>
@@ -605,6 +678,15 @@
     <div class="draw-buttons">
       <button id="drawBtn">Find a Talk</button>
       <button id="listBtn">Show a List</button>
+    </div>
+    <div class="list-size-row">
+      <span class="list-size-label">List size</span>
+      <div class="list-size-options" id="listSizeOptions">
+        <button type="button" class="list-size-btn" data-size="5">5</button>
+        <button type="button" class="list-size-btn" data-size="10">10</button>
+        <button type="button" class="list-size-btn" data-size="25">25</button>
+        <button type="button" class="list-size-btn" data-size="50">50</button>
+      </div>
     </div>
     <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
   </div>
@@ -866,8 +948,13 @@ TALKS.forEach(t=>{ TALKS_BY_KEY[talkKey(t)] = t; });
    "Family"), and the five dims are AND'd together, same as before. An
    empty array means "no filter" for that dim. "mine" is the odd one out:
    its two values ("recent"/"favorite") aren't talk properties, they're
-   membership tests against recentKeys/favoriteKeys. */
-const filterState = { year: [], speaker: [], topic: [], role: [], mine: [] };
+   membership tests against recentKeys/favoriteKeys.
+   `query` (free-text search over title + kicker) lives alongside the
+   dims but isn't one — it's a plain string, not an array, and is handled
+   separately (matchesSearch()) rather than through matchesDim/DIM_CONFIG,
+   since it has no checkbox panel and no "available values" concept. It
+   still AND's with everything else, same as any other active filter. */
+const filterState = { year: [], speaker: [], topic: [], role: [], mine: [], query: '' };
 
 function matchesDim(t, dim, values){
   if (!values.length) return true;
@@ -878,17 +965,24 @@ function matchesDim(t, dim, values){
   if (dim==='mine') return values.some(v=> v==='recent' ? recentKeys.includes(talkKey(t)) : isFavorite(t));
   return true;
 }
+function matchesSearch(t){
+  const q = filterState.query.trim().toLowerCase();
+  if (!q) return true;
+  if (t[0].toLowerCase().includes(q)) return true;
+  const kicker = talkKicker(t);
+  return !!(kicker && kicker.toLowerCase().includes(q));
+}
 function poolExcept(excludeDim){
   return TALKS.filter(t=>{
     for (const dim of Object.keys(DIM_CONFIG)){
       if (dim===excludeDim) continue;
       if (!matchesDim(t, dim, filterState[dim])) return false;
     }
-    return true;
+    return matchesSearch(t);
   });
 }
 function currentPool(){
-  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])));
+  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t));
 }
 function valuesForDim(pool, dim){
   const set = new Set();
@@ -1019,7 +1113,7 @@ function refreshCount(){
     listBtn.disabled = false;
     poolCountEl.innerHTML = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''} right now`;
   }
-  resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length);
+  resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim();
 }
 
 /* ---------------- panel open/close (one at a time) ---------------- */
@@ -1065,8 +1159,28 @@ document.addEventListener('keydown', (e)=>{
 
 resetBtn.addEventListener('click', ()=>{
   Object.keys(DIM_CONFIG).forEach(dim=>{ filterState[dim] = []; });
+  filterState.query = '';
+  querySearchEl.value = '';
+  queryClearBtn.hidden = true;
   refreshCount();
 });
+
+/* ---------------- keyword search (title + kicker) ---------------- */
+const querySearchEl = document.getElementById('querySearch');
+const queryClearBtn = document.getElementById('queryClear');
+querySearchEl.addEventListener('input', ()=>{
+  filterState.query = querySearchEl.value;
+  queryClearBtn.hidden = !querySearchEl.value;
+  refreshCount();
+});
+queryClearBtn.addEventListener('click', ()=>{
+  filterState.query = '';
+  querySearchEl.value = '';
+  queryClearBtn.hidden = true;
+  querySearchEl.focus();
+  refreshCount();
+});
+
 refreshCount();
 
 /* ---------------- draw ---------------- */
@@ -1166,10 +1280,33 @@ drawBtn.addEventListener('click', draw);
 document.getElementById('drawAgainBtn').addEventListener('click', draw);
 
 /* ---------------- list of up to LIST_SIZE matching talks ---------------- */
-const LIST_SIZE = 10;
+const LIST_SIZE_KEY = 'findATalkListSize';
+const LIST_SIZE_OPTIONS = [5, 10, 25, 50];
+let LIST_SIZE = 10;
+try {
+  const saved = Number(localStorage.getItem(LIST_SIZE_KEY));
+  if (LIST_SIZE_OPTIONS.includes(saved)) LIST_SIZE = saved;
+} catch(err){ /* storage unavailable — just use the default */ }
+
 const listZone = document.getElementById('listZone');
 const listHeader = document.getElementById('listHeader');
 const listItemsEl = document.getElementById('listItems');
+const listSizeButtons = [...document.querySelectorAll('.list-size-btn')];
+function syncListSizeButtons(){
+  listSizeButtons.forEach(btn=> btn.classList.toggle('is-active', Number(btn.dataset.size) === LIST_SIZE));
+}
+syncListSizeButtons();
+listSizeButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    LIST_SIZE = Number(btn.dataset.size);
+    syncListSizeButtons();
+    try { localStorage.setItem(LIST_SIZE_KEY, String(LIST_SIZE)); }
+    catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+    // If a list is already showing, re-roll it at the new size immediately
+    // rather than waiting for the next "Show a List" click.
+    if (listZone.style.display === 'block') showList();
+  });
+});
 
 function shuffled(arr){
   const a = arr.slice();
@@ -1272,6 +1409,48 @@ function createFavoriteButton(pick){
   });
   return btn;
 }
+
+/* ---------------- Talk of the Day ---------------- */
+/* Small, dependency-free string hash (DJB2 variant) — good enough for
+   picking a stable index, not for anything security-sensitive. */
+function hashString(s){
+  let h = 5381;
+  for (let i = 0; i < s.length; i++){ h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; }
+  return h >>> 0;
+}
+/* Deterministic, seeded by the device's local calendar date (not the
+   person's current filters — this is meant to be a stable "come back
+   tomorrow for a new one" hook, same for everyone on a given day, not a
+   filtered result that changes as someone adjusts the Speaker filter).
+   Sorts a copy of TALKS by talkKey() first so today's pick stays as
+   stable as possible even if data.json's own array order changes later
+   (e.g. new conferences get appended) — only insertions/removals near a
+   specific talk's sorted position could ever shift what "today" points
+   to, not a full reshuffle. */
+function talkOfTheDay(){
+  if (!TALKS.length) return null;
+  const sorted = [...TALKS].sort((a, b)=>{
+    const ka = talkKey(a), kb = talkKey(b);
+    return ka < kb ? -1 : ka > kb ? 1 : 0;
+  });
+  const d = new Date();
+  const dateSeed = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return sorted[hashString(dateSeed) % sorted.length];
+}
+function renderTalkOfTheDay(){
+  const pick = talkOfTheDay();
+  const totdItemsEl = document.getElementById('totdItems');
+  totdItemsEl.innerHTML = '';
+  if (pick) totdItemsEl.appendChild(buildListItemRow(pick));
+}
+// NOTE: the actual renderTalkOfTheDay() call happens at the very end of
+// initApp(), not here — buildListItemRow() → createFavoriteButton() reads
+// STAR_ICON_SVG, which (like SHARE_ICON_SVG) is declared further down in
+// the Share section. Calling this immediately, right here, hit that
+// constant before its declaration had run (a real bug caught live: every
+// click handler registered after this point — including "Show a List" —
+// silently never got attached, since the uncaught ReferenceError halted
+// the rest of initApp()'s top-to-bottom execution).
 
 function showList(){
   const pool = currentPool();
@@ -1657,6 +1836,8 @@ document.getElementById('recentNavBtn').addEventListener('click', ()=>{ renderRe
 document.getElementById('favoritesNavBtn').addEventListener('click', ()=>{ renderFavoritesPage(); showZone('favorites'); });
 document.getElementById('recentBackBtn').addEventListener('click', ()=> showZone('home'));
 document.getElementById('favoritesBackBtn').addEventListener('click', ()=> showZone('home'));
+
+renderTalkOfTheDay();
 }
 
 /* ---------------------------------------------------------------
