@@ -639,8 +639,13 @@
       <button type="button" class="reset-link" id="recentBackBtn">← Back</button>
       <h2 class="page-title">Recently Viewed</h2>
     </div>
+    <div class="filters" id="recentFilters"></div>
+    <div class="filters-actions">
+      <button type="button" class="reset-link" id="recentFilterReset">Reset filters</button>
+    </div>
+    <div class="pool-count" id="recentFilterCount"></div>
     <div class="list-items" id="recentItems"></div>
-    <div class="list-empty" id="recentEmpty">You haven't opened any talks yet — talks you open from a ticket or a list will show up here.</div>
+    <div class="list-empty" id="recentEmpty"></div>
   </div>
 
   <div id="favoritesZone" style="display:none">
@@ -648,8 +653,13 @@
       <button type="button" class="reset-link" id="favoritesBackBtn">← Back</button>
       <h2 class="page-title">Favorites</h2>
     </div>
+    <div class="filters" id="favoritesFilters"></div>
+    <div class="filters-actions">
+      <button type="button" class="reset-link" id="favoritesFilterReset">Reset filters</button>
+    </div>
+    <div class="pool-count" id="favoritesFilterCount"></div>
     <div class="list-items" id="favoritesItems"></div>
-    <div class="list-empty" id="favoritesEmpty">No favorites yet — tap the star on any talk to save it here.</div>
+    <div class="list-empty" id="favoritesEmpty"></div>
   </div>
 
   <footer>
@@ -727,6 +737,10 @@ function talkUrl([,,y,m,slug]){
   return `https://www.churchofjesuschrist.org/study/general-conference/${y}/${m}/${slug}?lang=eng`;
 }
 function monthName(m){ return m === "04" ? "April" : "October"; }
+/* Canonical display order for the six-plus-one role keys, most senior
+   first — shared by the main Calling filter and the Recent/Favorites
+   pages' own subset filters below, so both list roles in the same order. */
+const ROLE_ORDER = ["president","first-presidency","apostle","relief-society","primary","young-women","young-men","presiding-bishopric","seventy","other"];
 /* Stable identity for a talk — same "year|month|slug" key already used by
    TOPIC_LOOKUP/KICKER_LOOKUP above, reused here so recents/favorites can
    be stored as plain strings in localStorage and looked back up later. */
@@ -837,8 +851,7 @@ const allConfs = [...new Set(TALKS.map(confKey))].sort().reverse();
 const allSpeakers = [...new Set(TALKS.map(t=>t[1]))]
   .sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
 const allTopics = Object.keys(TOPIC_LABELS);
-const allRoles = ["president","first-presidency","apostle","relief-society","primary","young-women","young-men","presiding-bishopric","seventy","other"]
-  .filter(r=>Object.values(ROLE_LOOKUP).includes(r));
+const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 
 document.getElementById('totalCount').textContent = TALKS.length;
 
@@ -1365,22 +1378,281 @@ function showZone(name){
   favoritesZone.style.display = name==='favorites' ? 'block' : 'none';
   window.scrollTo({top:0, behavior:'smooth'});
 }
+
+/* Same AND-across-dims/OR-within-a-dim semantics as poolExcept()/
+   currentPool() above, just parameterized over an arbitrary pool and
+   filterState instead of always using TALKS/the home page's filterState —
+   lets Recently Viewed and Favorites each filter their own (much smaller,
+   changing-over-time) collection with the same logic. */
+function subsetPoolExcept(pool, filterState, excludeDim){
+  return pool.filter(t=> SUBSET_DIM_ORDER.every(dim=> dim===excludeDim || matchesDim(t, dim, filterState[dim])));
+}
+function subsetCurrentPool(pool, filterState){
+  return pool.filter(t=> SUBSET_DIM_ORDER.every(dim=> matchesDim(t, dim, filterState[dim])));
+}
+function subsetOrderedValues(dim, presentSet){
+  if (dim==='year') return [...presentSet].sort().reverse();
+  if (dim==='speaker') return [...presentSet].sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
+  if (dim==='topic') return Object.keys(TOPIC_LABELS).filter(tp=>presentSet.has(tp));
+  if (dim==='role') return ROLE_ORDER.filter(r=>presentSet.has(r));
+  return [...presentSet];
+}
+function subsetLabelFor(dim, val){
+  if (dim==='year'){ const [y,m]=val.split('-'); return `${monthName(m)} ${y}`; }
+  if (dim==='speaker') return speakerDisplayName(val);
+  if (dim==='topic') return TOPIC_LABELS[val];
+  return ROLE_LABELS[val];
+}
+
+const SUBSET_DIM_ORDER = ['speaker','role','year','topic'];
+const SUBSET_DIM_LABEL = { speaker:'Speaker', role:'Calling at the Time of the Talk', year:'General Conference', topic:'Topic' };
+const SUBSET_DIM_ANY = { speaker:'Any speaker', role:'Any Calling', year:'Any Conference', topic:'Any topic' };
+const SUBSET_DIM_NOUN = { speaker:'speakers', role:'callings', year:'conferences', topic:'topics' };
+const SUBSET_DIM_SEARCHABLE = { speaker:true, role:false, year:false, topic:true };
+
+/* Builds one independent set of Speaker/Calling/Conference/Topic
+   multi-select panels (same ms-trigger/ms-panel markup and cascading-
+   availability behavior as the home page's own filters above, just built
+   in JS instead of hand-written HTML since there are now three copies of
+   this UI) inside `containerEl`, scoped to whatever pool is passed to
+   setBasePool() rather than the whole TALKS array. Used once for
+   Recently Viewed and once for Favorites — fully independent of each
+   other and of the home page's filters. */
+function createSubsetFilterPanel(prefix, containerEl){
+  const filterState = { speaker:[], role:[], year:[], topic:[] };
+  const availableSets = { speaker:new Set(), role:new Set(), year:new Set(), topic:new Set() };
+  const dimConfig = {};
+  let openDim = null;
+  let basePool = [];
+  // `api` is declared with `let` (not `const`) below and assigned last,
+  // but recompute() only ever runs from an event handler or setBasePool()
+  // called after createSubsetFilterPanel() has returned — by which point
+  // `api` is set — so this forward reference is safe.
+  let api;
+
+  SUBSET_DIM_ORDER.forEach(dim=>{
+    const field = document.createElement('div');
+    field.className = 'field';
+
+    const labelId = `${prefix}${dim}Label`;
+    const label = document.createElement('label');
+    label.id = labelId;
+    label.textContent = SUBSET_DIM_LABEL[dim];
+    field.appendChild(label);
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'ms-trigger';
+    trigger.setAttribute('aria-haspopup', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+    const triggerTextId = `${prefix}${dim}TriggerText`;
+    trigger.setAttribute('aria-labelledby', `${labelId} ${triggerTextId}`);
+    const triggerText = document.createElement('span');
+    triggerText.className = 'ms-trigger-text';
+    triggerText.id = triggerTextId;
+    triggerText.textContent = SUBSET_DIM_ANY[dim];
+    trigger.appendChild(triggerText);
+    trigger.insertAdjacentHTML('beforeend', '<svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    field.appendChild(trigger);
+
+    const panel = document.createElement('div');
+    panel.className = 'ms-panel';
+    panel.hidden = true;
+
+    let search = null;
+    if (SUBSET_DIM_SEARCHABLE[dim]){
+      search = document.createElement('input');
+      search.type = 'text';
+      search.className = 'ms-search';
+      search.placeholder = dim === 'speaker' ? 'Search speakers…' : 'Search topics…';
+      search.autocomplete = 'off';
+      panel.appendChild(search);
+    }
+
+    const options = document.createElement('div');
+    options.className = 'ms-options';
+    panel.appendChild(options);
+
+    const footer = document.createElement('div');
+    footer.className = 'ms-panel-footer';
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'ms-clear';
+    clearBtn.textContent = 'Clear';
+    footer.appendChild(clearBtn);
+    panel.appendChild(footer);
+
+    field.appendChild(panel);
+    containerEl.appendChild(field);
+
+    dimConfig[dim] = { trigger, triggerText, panel, options, search, clearBtn };
+  });
+
+  function closePanel(dim){
+    dimConfig[dim].panel.hidden = true;
+    dimConfig[dim].trigger.setAttribute('aria-expanded', 'false');
+    if (openDim === dim) openDim = null;
+  }
+  function closeAllPanels(){ SUBSET_DIM_ORDER.forEach(closePanel); }
+  function openPanel(dim){
+    if (openDim && openDim !== dim) closePanel(openDim);
+    dimConfig[dim].panel.hidden = false;
+    dimConfig[dim].trigger.setAttribute('aria-expanded', 'true');
+    openDim = dim;
+    if (dimConfig[dim].search){ dimConfig[dim].search.value = ''; renderDimOptions(dim); dimConfig[dim].search.focus(); }
+  }
+
+  function renderDimOptions(dim){
+    const cfg = dimConfig[dim];
+    const selected = filterState[dim];
+    const query = cfg.search ? cfg.search.value.trim().toLowerCase() : '';
+    cfg.options.innerHTML = '';
+    const values = subsetOrderedValues(dim, new Set([...availableSets[dim], ...selected]));
+    let shown = 0;
+    values.forEach(val=>{
+      const label = subsetLabelFor(dim, val);
+      if (query && !label.toLowerCase().includes(query)) return;
+      shown++;
+      const row = document.createElement('label');
+      row.className = 'ms-option';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = val;
+      cb.checked = selected.includes(val);
+      cb.addEventListener('change', ()=>{
+        const arr = filterState[dim];
+        const idx = arr.indexOf(val);
+        if (cb.checked && idx===-1) arr.push(val);
+        if (!cb.checked && idx!==-1) arr.splice(idx, 1);
+        recompute();
+      });
+      const span = document.createElement('span');
+      span.textContent = label;
+      row.appendChild(cb); row.appendChild(span);
+      cfg.options.appendChild(row);
+    });
+    if (shown === 0){
+      const empty = document.createElement('div');
+      empty.className = 'ms-empty';
+      empty.textContent = query ? 'No matches' : 'No options available';
+      cfg.options.appendChild(empty);
+    }
+  }
+  function updateDimTrigger(dim){
+    const cfg = dimConfig[dim];
+    const n = filterState[dim].length;
+    cfg.triggerText.textContent =
+      n === 0 ? SUBSET_DIM_ANY[dim] :
+      n === 1 ? subsetLabelFor(dim, filterState[dim][0]) :
+      `${n} ${SUBSET_DIM_NOUN[dim]} selected`;
+    cfg.clearBtn.disabled = n === 0;
+  }
+  function recompute(){
+    SUBSET_DIM_ORDER.forEach(dim=>{
+      availableSets[dim] = valuesForDim(subsetPoolExcept(basePool, filterState, dim), dim);
+      renderDimOptions(dim);
+      updateDimTrigger(dim);
+    });
+    if (api.onChange) api.onChange();
+  }
+
+  SUBSET_DIM_ORDER.forEach(dim=>{
+    const cfg = dimConfig[dim];
+    cfg.trigger.addEventListener('click', ()=>{
+      if (cfg.panel.hidden) openPanel(dim); else closePanel(dim);
+    });
+    if (cfg.search) cfg.search.addEventListener('input', ()=>renderDimOptions(dim));
+    cfg.clearBtn.addEventListener('click', ()=>{ filterState[dim] = []; recompute(); });
+  });
+  document.addEventListener('click', (e)=>{
+    if (!openDim) return;
+    const field = dimConfig[openDim].trigger.closest('.field');
+    if (field && !field.contains(e.target)) closeAllPanels();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape' && openDim){
+      const dim = openDim;
+      closePanel(dim);
+      dimConfig[dim].trigger.focus();
+    }
+  });
+
+  api = {
+    filterState,
+    onChange: null, // set by the caller; invoked after every recompute()
+    setBasePool(pool){ basePool = pool; recompute(); },
+    currentPool(){ return subsetCurrentPool(basePool, filterState); },
+    baseCount(){ return basePool.length; },
+    hasActiveFilters(){ return SUBSET_DIM_ORDER.some(dim=>filterState[dim].length); },
+    reset(){ SUBSET_DIM_ORDER.forEach(dim=>{ filterState[dim] = []; }); recompute(); }
+  };
+  return api;
+}
+
+const recentFilterPanel = createSubsetFilterPanel('recent', document.getElementById('recentFilters'));
+const recentFilterResetBtn = document.getElementById('recentFilterReset');
+const recentFilterCountEl = document.getElementById('recentFilterCount');
+recentFilterResetBtn.addEventListener('click', ()=> recentFilterPanel.reset());
+
+const favoritesFilterPanel = createSubsetFilterPanel('favorites', document.getElementById('favoritesFilters'));
+const favoritesFilterResetBtn = document.getElementById('favoritesFilterReset');
+const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
+favoritesFilterResetBtn.addEventListener('click', ()=> favoritesFilterPanel.reset());
+
+/* Renders one subset page (Recently Viewed or Favorites) from its filter
+   panel's already-computed currentPool() — shared by both so the "no
+   talks saved at all" vs. "talks saved, but none match the filters"
+   distinction stays consistent between them. */
+function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filterPanel, noTalksMessage, noMatchMessage){
+  const total = filterPanel.baseCount();
+  itemsEl.innerHTML = '';
+  if (total === 0){
+    itemsEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.textContent = noTalksMessage;
+    countEl.textContent = '';
+    filtersEl.style.display = 'none';
+    resetBtn.style.display = 'none';
+    return;
+  }
+  filtersEl.style.display = '';
+  resetBtn.style.display = '';
+  const filtered = filterPanel.currentPool();
+  if (filtered.length === 0){
+    itemsEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.textContent = noMatchMessage;
+  } else {
+    itemsEl.style.display = '';
+    emptyEl.style.display = 'none';
+    filtered.forEach(pick=> itemsEl.appendChild(buildListItemRow(pick)));
+  }
+  countEl.textContent = filtered.length === total
+    ? `Showing all ${total} talk${total===1?'':'s'}`
+    : `Showing ${filtered.length} of ${total} talk${total===1?'':'s'}`;
+}
+
 function renderRecentPage(){
   const picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
-  recentItemsEl.innerHTML = '';
-  picks.forEach(pick=> recentItemsEl.appendChild(buildListItemRow(pick)));
-  recentItemsEl.style.display = picks.length ? '' : 'none';
-  recentEmptyEl.style.display = picks.length ? 'none' : 'block';
+  recentFilterPanel.setBasePool(picks);
 }
 function renderFavoritesPage(){
   // Sets preserve insertion order, and re-favoriting after unfavoriting
   // re-inserts at the end — so reversing gives most-recently-favorited first.
   const picks = [...favoriteKeys].reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
-  favoritesItemsEl.innerHTML = '';
-  picks.forEach(pick=> favoritesItemsEl.appendChild(buildListItemRow(pick)));
-  favoritesItemsEl.style.display = picks.length ? '' : 'none';
-  favoritesEmptyEl.style.display = picks.length ? 'none' : 'block';
+  favoritesFilterPanel.setBasePool(picks);
 }
+recentFilterPanel.onChange = ()=> renderSubsetList(
+  recentItemsEl, recentEmptyEl, recentFilterCountEl, document.getElementById('recentFilters'), recentFilterResetBtn,
+  recentFilterPanel, "You haven't opened any talks yet — talks you open from a ticket or a list will show up here.",
+  'No recently viewed talks match those filters.'
+);
+favoritesFilterPanel.onChange = ()=> renderSubsetList(
+  favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, document.getElementById('favoritesFilters'), favoritesFilterResetBtn,
+  favoritesFilterPanel, "No favorites yet — tap the star on any talk to save it here.",
+  'No favorites match those filters.'
+);
+
 document.getElementById('recentNavBtn').addEventListener('click', ()=>{ renderRecentPage(); showZone('recent'); });
 document.getElementById('favoritesNavBtn').addEventListener('click', ()=>{ renderFavoritesPage(); showZone('favorites'); });
 document.getElementById('recentBackBtn').addEventListener('click', ()=> showZone('home'));

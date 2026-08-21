@@ -905,6 +905,64 @@ several missed taps against the new "Show" filter in this session before
 switching to the full-width-run-length + row-grouping approach above,
 which then worked on the first try.
 
+**Renamed right after this**: the 5th filter's label went from "Show" to
+**"Recent/Favorites"** per explicit user request — one-line change
+(`<label id="mineLabel">`), no logic touched.
+
+## ✅ Done: Speaker/Calling/Conference/Topic filters on Recently Viewed and Favorites
+The user's own framing: once someone has a large collection of saved
+talks, they need a way to narrow *that* collection, not just the whole
+2052-talk pool. Both pages now get their own copy of the four content
+filters (Speaker, Calling, Conference, Topic — **not** the 5th
+"Recent/Favorites" dim, which wouldn't make sense on a page that already
+*is* exactly that subset).
+
+**Architecture — reused rather than duplicated by hand:**
+- `matchesDim(t, dim, values)` and `valuesForDim(pool, dim)` (defined for
+  the home page's filters) turned out to already be pure functions of
+  whatever pool you pass them — no changes needed, both are reused as-is
+  by the new subset filters.
+- `subsetPoolExcept(pool, filterState, excludeDim)` / `subsetCurrentPool
+  (pool, filterState)` mirror `poolExcept()`/`currentPool()` exactly, just
+  parameterized over an arbitrary pool + filterState instead of always
+  `TALKS`/the home page's single global `filterState`.
+- `createSubsetFilterPanel(prefix, containerEl)` builds one complete,
+  independent set of 4 ms-trigger/ms-panel controls **in JS** (not
+  hand-written HTML — there'd have been 3 near-identical copies of ~90
+  lines of markup otherwise) inside a given container, and returns
+  `{filterState, setBasePool(pool), currentPool(), baseCount(),
+  hasActiveFilters(), reset(), onChange}`. Called once for Recently
+  Viewed, once for Favorites — fully independent instances, independent
+  of the home page's own filters and of each other (filtering Speaker on
+  one doesn't touch the other).
+- Each instance's "all values"/"available values" are recomputed from
+  its **own current subset** every time `setBasePool()` runs (i.e. every
+  time the page is opened or a talk is added/removed) — so the Speaker
+  dropdown on Recently Viewed only ever lists speakers actually among
+  your recently-viewed talks, not all 364 in the app. Confirmed live: a
+  3-talk Recently Viewed list showed exactly its 3 speakers in the
+  dropdown, selecting one narrowed "Showing all 3 talks" to "Showing 1 of
+  3 talks" and the list to just that talk.
+- `renderSubsetList(...)` is the one shared render function both pages'
+  `onChange` callbacks call — handles three states cleanly: nothing saved
+  at all (original empty-state message, filters hidden), talks saved but
+  none match the active filters (a different "no matches" message,
+  filters still visible so it's obvious why), and the normal case
+  ("Showing all N talks" / "Showing N of M talks").
+- **A bug caught and fixed before this ever ran**: the factory originally
+  tried to expose an `onChange` callback via a plain closure variable
+  (`let onChangeCb`) that the *caller* would set via `panel.onChange =
+  fn` — but the internal `recompute()` still referenced the old
+  now-stale `onChangeCb` variable, so the caller's assignment never
+  actually reached it (classic "assigning a property on the returned
+  object doesn't rebind an internal closure variable" mistake). Fixed by
+  making the returned object itself (`api`) the single source of truth —
+  `recompute()` calls `api.onChange()`, and the object is mutated (not
+  reassigned) by the setter, so both sides see the same reference. Caught
+  by re-reading the code rather than by a failed live test this time —
+  worth remembering as a pattern to watch for in any future "return an
+  object with a settable callback" code.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
 there's now a **standing gap between April 1996 and April 1999** (7
