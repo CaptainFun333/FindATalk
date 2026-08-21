@@ -70,6 +70,13 @@
     margin:0 auto 40px;
   }
   .sub a{ color:var(--burgundy); }
+  .search-intro{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:14px;
+    line-height:1.5;
+    margin:0 0 16px;
+  }
 
   .divider{
     display:flex; align-items:center; gap:14px;
@@ -467,6 +474,11 @@
     border-bottom:1px solid var(--line);
   }
   .list-item:last-child{ border-bottom:none; }
+  /* Condensed rows drop the conference-date/kicker lines and use tighter
+     padding — aims for roughly half a normal row's height. */
+  .list-item-condensed{ padding:10px 26px; }
+  .list-item-condensed .list-item-head{ margin-bottom:2px; }
+  .list-item-condensed .list-item-speaker{ margin-bottom:0; }
   .list-item-head{
     display:flex;
     align-items:flex-start;
@@ -581,16 +593,8 @@
 <div class="wrap">
 
   <div class="eyebrow">From General Conference of the Church of Jesus Christ of Latter-day Saints</div>
-  <h1>Find random <em>inspiration</em></h1>
-  <p class="sub">Randomize a talk from General Conference.<br>You may narrow the search by using the filters below.</p>
+  <h1>Find a Talk</h1>
 
-  <div class="page-nav">
-    <button type="button" class="reset-link" id="recentNavBtn">Recently Viewed</button>
-    <span class="nav-sep">·</span>
-    <button type="button" class="reset-link" id="favoritesNavBtn">Favorites</button>
-  </div>
-
-  <div id="homeZone">
   <div class="divider">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
   </div>
@@ -599,6 +603,19 @@
     <div class="eyebrow totd-eyebrow">Talk of the Day</div>
     <div class="list-items" id="totdItems"></div>
   </div>
+
+  <div id="homeZone">
+  <div class="divider">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+  </div>
+
+  <div class="page-nav">
+    <button type="button" class="reset-link" id="recentNavBtn">Recently Viewed</button>
+    <span class="nav-sep">·</span>
+    <button type="button" class="reset-link" id="favoritesNavBtn">Favorites</button>
+  </div>
+
+  <p class="search-intro">You may narrow the search by using the filters below.</p>
 
   <div class="search-field">
     <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
@@ -680,12 +697,10 @@
       <button id="listBtn">Show a List</button>
     </div>
     <div class="list-size-row">
-      <span class="list-size-label">List size</span>
+      <span class="list-size-label">List view</span>
       <div class="list-size-options" id="listSizeOptions">
-        <button type="button" class="list-size-btn" data-size="5">5</button>
-        <button type="button" class="list-size-btn" data-size="10">10</button>
-        <button type="button" class="list-size-btn" data-size="25">25</button>
-        <button type="button" class="list-size-btn" data-size="50">50</button>
+        <button type="button" class="list-size-btn" data-mode="normal">Normal</button>
+        <button type="button" class="list-size-btn" data-mode="condensed">Condensed</button>
       </div>
     </div>
     <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
@@ -1280,12 +1295,14 @@ drawBtn.addEventListener('click', draw);
 document.getElementById('drawAgainBtn').addEventListener('click', draw);
 
 /* ---------------- list of up to LIST_SIZE matching talks ---------------- */
-const LIST_SIZE_KEY = 'findATalkListSize';
-const LIST_SIZE_OPTIONS = [5, 10, 25, 50];
-let LIST_SIZE = 10;
+// LIST_SIZE is fixed at the original count "Show a List" always used —
+// what's adjustable now is view density (Normal/Condensed), not count.
+const LIST_SIZE = 10;
+const LIST_MODE_KEY = 'findATalkListMode';
+let LIST_MODE = 'normal';
 try {
-  const saved = Number(localStorage.getItem(LIST_SIZE_KEY));
-  if (LIST_SIZE_OPTIONS.includes(saved)) LIST_SIZE = saved;
+  const saved = localStorage.getItem(LIST_MODE_KEY);
+  if (saved === 'normal' || saved === 'condensed') LIST_MODE = saved;
 } catch(err){ /* storage unavailable — just use the default */ }
 
 const listZone = document.getElementById('listZone');
@@ -1293,18 +1310,18 @@ const listHeader = document.getElementById('listHeader');
 const listItemsEl = document.getElementById('listItems');
 const listSizeButtons = [...document.querySelectorAll('.list-size-btn')];
 function syncListSizeButtons(){
-  listSizeButtons.forEach(btn=> btn.classList.toggle('is-active', Number(btn.dataset.size) === LIST_SIZE));
+  listSizeButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.mode === LIST_MODE));
 }
 syncListSizeButtons();
 listSizeButtons.forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    LIST_SIZE = Number(btn.dataset.size);
+    LIST_MODE = btn.dataset.mode;
     syncListSizeButtons();
-    try { localStorage.setItem(LIST_SIZE_KEY, String(LIST_SIZE)); }
+    try { localStorage.setItem(LIST_MODE_KEY, LIST_MODE); }
     catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
-    // If a list is already showing, re-roll it at the new size immediately
-    // rather than waiting for the next "Show a List" click.
-    if (listZone.style.display === 'block') showList();
+    // Re-render the SAME already-shown picks in the new style — a pure
+    // density toggle shouldn't re-shuffle which talks are showing.
+    if (listZone.style.display === 'block') renderListItems();
   });
 });
 
@@ -1320,14 +1337,17 @@ function shuffled(arr){
 /* Builds one talk row (title link, favorite + share buttons, speaker,
    meta, kicker) — shared by "Show a List", Recently Viewed, and
    Favorites, so all three look and behave identically. The title link
-   records the talk as "opened", same as the ticket's "Open This Talk". */
-function buildListItemRow(pick){
+   records the talk as "opened", same as the ticket's "Open This Talk".
+   `condensed` (only ever passed true from "Show a List"'s own view
+   toggle) drops the conference-date and kicker lines, showing just the
+   title and speaker/calling — roughly half the height of a normal row. */
+function buildListItemRow(pick, condensed){
   const [title, speaker, year, month] = pick;
   const role = talkRole(pick);
   const kicker = talkKicker(pick);
 
   const item = document.createElement('div');
-  item.className = 'list-item';
+  item.className = condensed ? 'list-item list-item-condensed' : 'list-item';
 
   const head = document.createElement('div');
   head.className = 'list-item-head';
@@ -1365,16 +1385,18 @@ function buildListItemRow(pick){
   speakerEl.textContent = role ? `${speaker} · ${ROLE_LABELS[role]}` : speaker;
   item.appendChild(speakerEl);
 
-  const metaEl = document.createElement('div');
-  metaEl.className = 'list-item-meta';
-  metaEl.textContent = `${monthName(month)} ${year} General Conference`;
-  item.appendChild(metaEl);
+  if (!condensed){
+    const metaEl = document.createElement('div');
+    metaEl.className = 'list-item-meta';
+    metaEl.textContent = `${monthName(month)} ${year} General Conference`;
+    item.appendChild(metaEl);
 
-  if (kicker){
-    const summaryEl = document.createElement('div');
-    summaryEl.className = 'list-item-summary';
-    summaryEl.textContent = kicker;
-    item.appendChild(summaryEl);
+    if (kicker){
+      const summaryEl = document.createElement('div');
+      summaryEl.className = 'list-item-summary';
+      summaryEl.textContent = kicker;
+      item.appendChild(summaryEl);
+    }
   }
 
   return item;
@@ -1452,15 +1474,24 @@ function renderTalkOfTheDay(){
 // silently never got attached, since the uncaught ReferenceError halted
 // the rest of initApp()'s top-to-bottom execution).
 
+// Remembers the currently-shown picks so toggling Normal/Condensed can
+// just re-render them in the new style, rather than re-shuffling a fresh
+// draw every time someone is only trying to change how dense the rows look.
+let lastListPicks = [];
+
+function renderListItems(){
+  listItemsEl.innerHTML = '';
+  const condensed = LIST_MODE === 'condensed';
+  lastListPicks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick, condensed)));
+}
+
 function showList(){
   const pool = currentPool();
   if (!pool.length) return;
-  const picks = shuffled(pool).slice(0, LIST_SIZE);
+  lastListPicks = shuffled(pool).slice(0, LIST_SIZE);
+  renderListItems();
 
-  listItemsEl.innerHTML = '';
-  picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick)));
-
-  const shown = picks.length;
+  const shown = lastListPicks.length;
   listHeader.innerHTML = shown < pool.length
     ? `Showing <strong>${shown}</strong> random talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match right now`
     : `Showing all <strong>${shown}</strong> talk${shown===1?'':'s'} that match right now`;

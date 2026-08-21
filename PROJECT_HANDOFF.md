@@ -1046,6 +1046,53 @@ visually (not just color-scanning) resolved several minutes of
 mis-tapping in this session and is the more reliable technique going
 forward for any element that isn't a solid-fill button.
 
+## ✅ Done: header/layout refinements, Normal/Condensed list view
+Follow-up polish requested right after the Talk of the Day/search/list-
+size session:
+
+- **List size → List view (Normal/Condensed)**: replaced the 5/10/25/50
+  count picker with just two buttons. `LIST_SIZE` is a plain `const = 10`
+  again (the original, pre-adjustable-size count); what's adjustable now
+  is row density, not count. "Condensed" drops the conference-date and
+  kicker lines from `buildListItemRow()` (new optional `condensed` param)
+  and tightens padding — roughly half a Normal row's height, confirmed
+  visually (6 condensed rows fit the same viewport as ~3.5 normal ones).
+  Toggling the mode **re-renders the same already-drawn picks**
+  (`lastListPicks`, `renderListItems()`) rather than re-shuffling — a
+  pure style toggle shouldn't change which talks are showing. Persisted
+  via `localStorage` (`findATalkListMode`).
+- **Header simplified**: `<h1>` is now plain "Find a Talk" (was "Find
+  random *inspiration*"); the intro paragraph's first sentence
+  ("Randomize a talk from General Conference.") was removed entirely,
+  and its second sentence ("You may narrow the search by using the
+  filters below.") moved down to sit directly above the keyword-search
+  field as its own `.search-intro` paragraph, rather than living under
+  the H1 alongside filter-agnostic branding copy.
+- **Talk of the Day ⇄ page-nav swap**: Talk of the Day moved from inside
+  `homeZone` to right after the H1 (a new `.divider` was added there too,
+  matching the one that already existed between the old positions) — it
+  and the H1 now form a fixed top section, outside `homeZone`, so **Talk
+  of the Day stays visible even on the Recently Viewed/Favorites pages**
+  (confirmed live). The "Recently Viewed · Favorites" `.page-nav` moved
+  the opposite direction, into `homeZone` right after the divider — it's
+  now hidden on those two pages (each already has its own "← Back"
+  button, so this doesn't remove any navigation capability, just means
+  jumping directly between Recently Viewed and Favorites now goes via
+  Home first rather than a persistent top-level link).
+
+**Verification**: fully live in the Simulator — confirmed the swap (Talk
+of the Day visible from the Recently Viewed page, page-nav gone from
+it), the new divider's placement, and the Normal/Condensed toggle (same
+10 talks preserved across a toggle, condensed rows visibly ~half height,
+selection persisting across a fresh app relaunch). One relaunch during
+this session produced a stale, previously-selected filter state
+immediately after `xcrun simctl terminate` — the terminate call likely
+returned before the process had actually finished exiting; adding a
+short pause (or confirming via `xcrun simctl list`) before the next
+`launch` avoided it on retry. Worth remembering for future sessions: a
+screenshot taken immediately after `terminate`+`launch` isn't guaranteed
+to be from a truly fresh process.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
 there's now a **standing gap between April 1996 and April 1999** (7
