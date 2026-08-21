@@ -1134,11 +1134,12 @@ shareBtn.addEventListener('click', ()=>{
      available, including fully offline, since a packaged mobile app reads
      it from its own bundle rather than the network.
    - REMOTE_DATA_URL is the canonical, continuously-updated copy hosted on
-     GitHub Pages. Leave it blank until that's set up; the app just runs
-     on the local/cached copy until then.
+     GitHub Pages (github.com/CaptainFun333/find-a-talk, served from
+     /docs). Update data.json in that repo and it reaches everyone on
+     their next launch — no new app-store build needed.
 ------------------------------------------------------------------*/
 const LOCAL_DATA_URL = './data.json';
-const REMOTE_DATA_URL = ''; // e.g. 'https://<user>.github.io/<repo>/data.json'
+const REMOTE_DATA_URL = 'https://captainfun333.github.io/find-a-talk/data.json';
 const DATA_CACHE_KEY = 'findATalkData';
 
 function applyData(data){
