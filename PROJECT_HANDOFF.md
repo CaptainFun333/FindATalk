@@ -779,29 +779,36 @@ a real ecosystem gap, GUI build recommended instead:**
   `platforms/android-37.0`, `build-tools/36.0.0`) and accepted the SDK
   license. `npx cap add android` succeeded and auto-generated
   `android/local.properties` pointing at the right SDK path.
-- **`./gradlew assembleDebug` fails** with `Unsupported class file major
-  version 69` — that's Java 25's class-file version. Android Studio's
-  *only* bundled JDK
-  (`/Applications/Android Studio.app/Contents/jbr`) is OpenJDK 25.0.2,
-  and there is genuinely **no Gradle release yet that fully supports
-  JDK 25** as of this session — confirmed via [gradle/gradle issue
-  #35111](https://github.com/gradle/gradle/issues/35111), an open,
-  unresolved compatibility gap in the Gradle project itself, not
-  something fixable by reconfiguring this project. No older JDK is
-  installed on this machine and there's no Homebrew to easily get one.
-- **Recommended path (not yet done): open `android/` directly in Android
-  Studio's GUI** rather than the command line — its own Gradle-JDK
-  picker (Settings → Build, Execution, Deployment → Build Tools → Gradle)
-  can select/download a JDK Gradle actually supports, and Android
-  Studio's embedded Gradle integration handles this compatibility more
-  gracefully than raw `gradlew`. This is also the path needed regardless
-  to run the Android emulator, since Claude has no Android-emulator
-  automation tool (unlike the iOS Simulator tool used above for iOS).
-  **If command-line/CI Android builds are wanted later**, the fix is
-  getting a JDK Gradle supports (17–23 depending on the Gradle version
-  pinned at that time) — e.g. via Homebrew once installed, or a manual
-  Eclipse Temurin download — and pointing `JAVA_HOME` at it instead of
-  Android Studio's bundled `jbr`.
+- **`./gradlew assembleDebug` originally failed** with `Unsupported class
+  file major version 69` — that's Java 25's class-file version. Android
+  Studio's *only* bundled JDK (`/Applications/Android Studio.app/Contents
+  /jbr`) is OpenJDK 25.0.2, and at the time this was hit, no released
+  Gradle (checked via [gradle/gradle issue
+  #35111](https://github.com/gradle/gradle/issues/35111)) fully supported
+  JDK 25 yet. **Resolved as of this session**: opening the project in
+  Android Studio's own GUI (see below) auto-upgraded `android/build.gradle`
+  (AGP 8.13.0 → **9.3.1**) and `android/gradle/wrapper/gradle-wrapper.
+  properties` (Gradle 8.14.3 → **9.5.0**), and Gradle 9.5.0 does support
+  JDK 25 — command-line `./gradlew` builds should work now too, not just
+  Android Studio's GUI. Also picked up `android/settings.gradle` gaining
+  the `org.gradle.toolchains.foojay-resolver-convention` plugin and
+  several new flags in `android/gradle.properties` — all Android Studio's
+  own doing, not manual edits.
+- **Path used to get Android fully working: opened `android/` directly in
+  Android Studio's GUI** rather than the command line — this is also the
+  path needed regardless to run the Android emulator, since Claude has no
+  Android-emulator automation tool (unlike the iOS Simulator tool used
+  above for iOS). The user then hit "No target device found" on first
+  Run — expected, since no emulator existed yet — fixed by creating one
+  via Android Studio's own Device Manager (there's no `avdmanager` in
+  this machine's SDK install to do this from the command line; only
+  `platform-tools`/`platforms`/`build-tools` got installed, not
+  `cmdline-tools`). One more real bug hit and fixed along the way:
+  `android/app/build.gradle` used `getDefaultProguardFile('proguard-
+  android.txt')`, which the newer AGP rejects (needs
+  `'proguard-android-optimize.txt'` instead, since the old file implies
+  `-dontoptimize` and blocks R8 optimizations) — one-line fix applied.
+  **Android is now confirmed building and running** via Android Studio.
 
 **Update, same Phase 2 (Android confirmed working via Android Studio's
 GUI, as recommended above):** two more real issues surfaced and got
