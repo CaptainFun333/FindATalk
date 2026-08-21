@@ -709,6 +709,100 @@ the Node-`vm`-harness and direct `file://` techniques above are the
 proven fallbacks (and, as of this session, so is just testing directly
 against the real live Pages URL — no local server needed at all).
 
+## ✅ Done: Phase 2 of mobile packaging — Capacitor scaffold, iOS verified live
+Scaffolded the actual native app shells with Capacitor, on top of the
+Phase 1 `docs/` architecture above. New root-level files: `package.json`
+(name `find-a-talk`), `package-lock.json`, `capacitor.config.json`
+(`appId: com.captainfun333.findatalk`, `appName: "Find A Talk"`, `webDir:
+"docs"` — **this app ID can't change after the first store submission**,
+chosen since the user doesn't own a registered domain yet), plus the
+generated **`ios/`** and **`android/`** native project folders (committed
+to git per Capacitor's own guidance — see the `.gitignore` note in the
+Phase 1 section above).
+
+**iOS — fully built, launched, and verified working, end-to-end, in the
+Simulator** (not just a static check this time):
+- Environment: Xcode 26.6, already fully installed and selected
+  (`xcode-select -p` → `/Applications/Xcode.app/Contents/Developer` — the
+  user ran `sudo xcode-select -s ...` themselves, since that needs a
+  password Claude doesn't have).
+- CocoaPods could **not** be installed (`gem install cocoapods
+  --user-install` fails — the system Ruby is 2.6.10 from 2022, too old
+  for `ffi`'s current native-extension requirements, and there's no
+  Homebrew here to get a newer Ruby). **Turned out not to matter** — this
+  Capacitor/Xcode version uses **Swift Package Manager**
+  (`ios/App/CapApp-SPM/Package.swift`) instead of CocoaPods, so `npx cap
+  add ios` and the build both succeeded with zero CocoaPods involvement.
+  If a future Capacitor plugin specifically requires CocoaPods, this gap
+  will need revisiting then (get Homebrew + a modern Ruby, or a Ruby
+  version manager).
+- Built via `xcodebuild` (through this environment's iOS Simulator
+  tooling) for the iPhone 17 simulator — **`BUILD SUCCEEDED`**, one
+  harmless warning (`AppIntentsMetadataProcessor` skip, unrelated to this
+  app's code).
+- Launched on-device in the Simulator and **visually confirmed working**:
+  the real bundled `docs/data.json` loaded inside the WKWebView ("2052
+  talks match right now" — same real dataset as the live Pages site,
+  bundled into the app instead of fetched, per the offline-capable design
+  from Phase 1), the Speaker filter's real 364-name list rendered, and a
+  live "Find a Talk" tap produced a fully correct ticket (title, speaker +
+  role, kicker summary, conference date, topic chips, and working "Open
+  This Talk"/Share/Find Another buttons).
+- **Simulator tap-coordinate gotcha, worth remembering for any future
+  simulator UI testing in this project**: the simulator control tool's
+  `tap`/`swipe` coordinates are in **device points** (e.g. 402×874 for an
+  iPhone 17), *not* the pixel dimensions of the screenshot image you see
+  — screenshots come back at a 3x pixel scale (1206×2622 for that same
+  device; confirmed via `xcrun simctl io booted screenshot` +
+  `sips -g pixelWidth -g pixelHeight`). Eyeballing a fraction-of-the-image
+  estimate and multiplying by 402/874 is unreliable and can be off by
+  100+ points. Also, **multiple taps landing close together in a short
+  time can trigger the WKWebView's default double-tap-to-zoom gesture**,
+  silently pinch-zooming the page and making every subsequent coordinate
+  wrong until the app is relaunched — this is exactly what happened and
+  wasted several tap attempts before being caught. **The reliable fix**:
+  grab a raw screenshot via `xcrun simctl io booted screenshot`, load it
+  with Python/Pillow (`pip3 install --user Pillow` if missing — no
+  Homebrew/ImageMagick here), scan for the target element's fill color
+  (e.g. the ticket-navy `#1c2c42` button background) using a
+  long-contiguous-horizontal-run heuristic (not bare per-pixel color
+  matching, which also catches thin anti-aliased text strokes and gives a
+  bogus, oversized bounding box) to get an exact pixel bounding box, then
+  divide by the pixel/point scale factor (3, for this device) to get the
+  real tap coordinates. Single, well-spaced taps only — no rapid repeats.
+
+**Android — scaffolded, SDK now installed, command-line build blocked by
+a real ecosystem gap, GUI build recommended instead:**
+- The user installed Android Studio and ran its first-launch setup
+  wizard themselves (a GUI flow Claude has no tool to drive) — this
+  installed the SDK (`~/Library/Android/sdk`: `platform-tools`,
+  `platforms/android-37.0`, `build-tools/36.0.0`) and accepted the SDK
+  license. `npx cap add android` succeeded and auto-generated
+  `android/local.properties` pointing at the right SDK path.
+- **`./gradlew assembleDebug` fails** with `Unsupported class file major
+  version 69` — that's Java 25's class-file version. Android Studio's
+  *only* bundled JDK
+  (`/Applications/Android Studio.app/Contents/jbr`) is OpenJDK 25.0.2,
+  and there is genuinely **no Gradle release yet that fully supports
+  JDK 25** as of this session — confirmed via [gradle/gradle issue
+  #35111](https://github.com/gradle/gradle/issues/35111), an open,
+  unresolved compatibility gap in the Gradle project itself, not
+  something fixable by reconfiguring this project. No older JDK is
+  installed on this machine and there's no Homebrew to easily get one.
+- **Recommended path (not yet done): open `android/` directly in Android
+  Studio's GUI** rather than the command line — its own Gradle-JDK
+  picker (Settings → Build, Execution, Deployment → Build Tools → Gradle)
+  can select/download a JDK Gradle actually supports, and Android
+  Studio's embedded Gradle integration handles this compatibility more
+  gracefully than raw `gradlew`. This is also the path needed regardless
+  to run the Android emulator, since Claude has no Android-emulator
+  automation tool (unlike the iOS Simulator tool used above for iOS).
+  **If command-line/CI Android builds are wanted later**, the fix is
+  getting a JDK Gradle supports (17–23 depending on the Gradle version
+  pinned at that time) — e.g. via Homebrew once installed, or a manual
+  Eclipse Temurin download — and pointing `JAVA_HOME` at it instead of
+  Android Studio's bundled `jbr`.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
 there's now a **standing gap between April 1996 and April 1999** (7
