@@ -1,0 +1,679 @@
+# General Conference Random Talk Picker — Handoff to Claude Code
+
+## What this is
+A single-file HTML app (`conference-draw.html`) that picks a random General
+Conference talk from The Church of Jesus Christ of Latter-day Saints. It has
+four **multi-select** filters — Speaker, Calling at the Time of the Talk,
+General Conference, Topic — each a custom checkbox-panel dropdown (see
+"Multi-select filters" section below), and a styled "ticket" card reveal
+when you draw a talk. The ticket shows title, speaker + calling, the talk's
+own one-sentence official "kicker" summary (see "kicker summaries" section
+below), the conference date, and up to 5 topic chips. Drawing a talk only
+*previews* it — it does **not** auto-open a tab. The talk only opens when
+the person clicks the ticket's "Open This Talk" link. (This was changed
+from an earlier version that did auto-open on every draw — don't
+reintroduce that without being asked.)
+
+Open `conference-draw.html` directly in a browser to see current behavior.
+
+**Location note:** the project folder was renamed from `files` to
+`FindATalk files` (still under `~/Downloads/`). Full path is now
+`/Users/smoothop/Downloads/FindATalk files/conference-draw.html` — if a
+path with the old `files` folder name shows up anywhere (old scratch
+scripts, memory, etc.), it's stale.
+
+## Current data state
+- **2052 real, verified talks** across **57 conferences**, pulled directly
+  from the Church's own session listing pages (not invented/hallucinated —
+  each talk's title, speaker, and URL slug was read off the actual
+  `churchofjesuschrist.org` contents page for that conference).
+- Conferences covered: October 1974, April 1987, October 1995, then a
+  **continuous run from October 1999 through April 2026** (54 conferences
+  in a row, no gaps — October 2002 used to be the start of the continuous
+  run before this session's additions pushed it back to October 1999; a
+  gap between October 1995 and October 1999, 1996–1999, still remains).
+- Administrative agenda items were deliberately excluded from the talk pool:
+  "Sustaining of Church Officers/General Authorities," "Church Auditing
+  Department Report," and "Statistical Report." These aren't really talks.
+  Note: opening/closing addresses with real titles (e.g. "Welcome to
+  Conference," "Until We Meet Again," "As We Close This Conference") ARE
+  kept as real talks — only the three admin-report titles above are
+  excluded.
+- Topics use the Church's **official topic taxonomy** (317 topics with ≥1
+  matching talk, out of 335 total), not keyword-guessing — see
+  `TOPIC_LOOKUP`/`TOPIC_LABELS` in the file. 4 talks (all from the Oct 2010
+  women's session) matched zero official topics — that's expected, not a
+  bug; `talkTopics()` defaults to `[]`. Built by fetching every
+  official topic page (`/study/general-conference/topics/{slug}`) and
+  matching its linked talk URLs against `TALKS` by year/month/url-slug.
+  Every `TOPIC_LABELS` value is capitalized on its first letter (e.g.
+  "Abortion" not "abortion") — keep that convention for any new topic added.
+
+## File structure (inside `conference-draw.html`)
+Everything is in one `<script>` block, roughly in this order:
+
+1. **`const TALKS = [...]`** — array of `[title, speaker, year, month, urlSlug]`
+   tuples. `month` is the string `"04"` or `"10"`. The full talk URL is
+   built as:
+   ```
+   https://www.churchofjesuschrist.org/study/general-conference/{year}/{month}/{urlSlug}?lang=eng
+   ```
+   Note: conferences from ~2020 onward use short numeric-code slugs (e.g.
+   `57nelson`), while older conferences (pre-~2018) use full title-slugs
+   (e.g. `the-lengthened-shadow-of-the-hand-of-god`). Both are valid, real
+   URLs — just fetched at different points and copied verbatim from the
+   Church's own listing pages, so don't try to "normalize" the slug format.
+
+2. **`const ROLE_LOOKUP = {...}`** — object keyed `"Speaker Name|Year|Month"`
+   → one of ten role strings: `president`, `first-presidency`, `apostle`,
+   `relief-society`, `primary`, `young-women`, `young-men`,
+   `presiding-bishopric`, `seventy`, `other`. This is **role at the time of
+   that specific talk**, not "who they are broadly" — e.g. Gordon B.
+   Hinckley is `apostle` for his 1974/1987 talks but `president` for
+   1995/2005, because that's what he actually held on those dates.
+   `first-presidency` means *Counselor* in the First Presidency
+   specifically — the President himself always gets `president`, never
+   `first-presidency` (so a First Presidency member is one or the other,
+   never both, for a given talk); a First Presidency counselor is also
+   technically still an ordained apostle, but gets `first-presidency`
+   instead of `apostle` while serving in that calling. `seventy` covers the
+   modern General Authority/Area Seventy offices and their pre-1976
+   equivalents (Assistant to the Twelve, First Council of the Seventy) —
+   see "Seventy role backfill" below for exactly how it was assigned and
+   its known limitations. `other` is for a real, identifiable calling that
+   doesn't fit any of the other nine (currently just Eldred G. Smith,
+   Patriarch to the Church, 1974) — it is *not* a catch-all for "unknown";
+   leaving a talk untagged is still what "unknown/not researched" means.
+   Every entry was manually
+   researched/verified (ordination dates, succession dates, etc.), including
+   live web searches for recent transitions (Oaks becoming President Oct 14
+   2025 with Eyring/Christofferson as counselors, Caussé moving from
+   Presiding Bishop to the Twelve Nov 2025, First Presidency composition
+   across every era in the dataset back to 1974).
+   `const ROLE_LABELS = {...}` maps role keys to display strings.
+   `function talkRole(talk)` looks up a talk's role.
+
+3. **`const TOPIC_LOOKUP = {...}` / `const TOPIC_LABELS = {...}` /
+   `function talkTopics(talk)`** — official Church topic tags, see "Current
+   data state" above. (The old keyword-guessing `TOPICS`/`talkTopics(title)`
+   system this replaced is gone; if you see references to it anywhere
+   that's stale.)
+
+4. **Filter-building/cascading logic** — `filterState` (each dim an array,
+   multi-select), `DIM_CONFIG`, `rebuildFilterOptions()`, `renderOptions()`,
+   `poolExcept()`, `matchesDim()`, `currentPool()`, `refreshCount()`. Each
+   filter is a custom checkbox panel (see "multi-select filters" below),
+   rebuilt on every change to only show checkboxes for values that remain
+   reachable given the other three filters (omitted, not just disabled),
+   while always preserving whatever the user currently has checked so it
+   never disappears out from under them.
+
+5. **Draw logic** — `draw()` picks a random talk from the current filtered
+   pool, avoids immediate repeats, and renders the ticket card (title,
+   speaker + role, meta, up to 5 topic chips — any active topic filter(s)
+   the talk actually has are always kept among those 5 rather than risking
+   truncation). It does **not** open any tab itself; `openLink.href` is set
+   to the real talk URL and the tab only opens if the person clicks "Open
+   This Talk".
+
+## Design notes
+- Palette/typography follows a "conference program bulletin" aesthetic:
+  ivory paper background, deep indigo ink, brass/gold accents, Fraunces
+  (display serif) + Source Serif 4 (body). Deliberately avoided the
+  generic cream+terracotta AI-cliché look.
+- Single HTML file, no build step, no external JS dependencies except
+  Google Fonts.
+
+## ✅ Done: official topic taxonomy
+Verified that each topic page (`/study/general-conference/topics/{slug}`)
+links directly to every talk tagged with it — real hrefs, going back to
+1971, no pagination. Fetched all 335 official topic pages via `curl` and
+matched their linked talk URLs against `TALKS` by exact
+`year|month|url-slug`. Result: `TOPIC_LOOKUP` (one entry per talk, real
+tags) and `TOPIC_LABELS` (Title Case, first letter always capitalized)
+replaced the old keyword-guessing system entirely.
+
+## ✅ Done: backward coverage to April 2015 (no gaps)
+Added April/Oct 2016, April/Oct 2017 (143 talks), then October 2015 (39
+talks), so the continuous run now goes **April 2015 → April 2026**, plus
+the older standalone conferences (Oct 1974, Apr 1987, Oct 1995, Oct 2005).
+Role tags were hand-verified against Wikipedia/news sources rather than
+assumed from memory — Presiding Bishopric composition per era, YM/RS/YW
+presidency succession dates, the exact conference at which 2015's three
+new apostles (Rasband/Stevenson/Renlund, sustained Sat Oct 3 2015) gave
+their first talks as apostles the very next day.
+
+## ✅ Done: "Member of the First Presidency" role
+Added `first-presidency` as its own role, distinct from `apostle` — a
+Counselor in the First Presidency is still an ordained apostle, but this
+app now tags the more specific office. Retagged every First Presidency
+counselor across the whole dataset (52 talk-entries) by researching the
+exact counselor lineup for every era present: N. Eldon Tanner/Marion G.
+Romney under Kimball (1974) → Hinckley/Monson under Benson (1987) →
+Monson/Faust under Hinckley (1995, 2005) → Eyring/Uchtdorf under Monson
+(2015–2017) → Oaks/Eyring under Nelson (2018–Oct 2025) → Eyring/
+Christofferson under Oaks (2026). The President himself always keeps
+`president`, never `first-presidency`.
+
+**While auditing this, found and fixed 5 pre-existing gaps** — real talks
+by known permanent-role holders (Jeffrey R. Holland, Ronald A. Rasband ×2,
+Russell M. Nelson, Gérald Caussé) that had simply never been tagged. Caught
+by an automated check: any untagged talk whose speaker has the *same* role
+tagged both before and after it chronologically is almost certainly a
+missed tag, not a real transition — worth re-running that check
+(`sandwiched gaps` logic) after any future bulk edit.
+
+## ✅ Done: "Member of the Seventy" role backfill
+Added `seventy` as a role and default-tagged 298 previously-untagged talks
+with it, per an explicit user decision to prioritize speed over exhaustive
+per-person verification (231 distinct untagged speakers was too many to
+fully research). **Methodology — read this before adding more talks or
+re-running this kind of pass:**
+- Every untagged speaker from **1995 onward** was tagged `seventy` by
+  default (this is genuinely how the vast majority of general-conference
+  speaking slots not otherwise covered are filled).
+- **28 talk-entries by clearly-female speakers were deliberately left
+  untagged**, not tagged `seventy` (Seventy is a male priesthood office).
+  These are Relief Society/Primary/Young Women general-presidency
+  *counselors* (not the president, who already gets tagged) — the app's
+  role categories don't currently track counselor-level auxiliary callings,
+  so these stay untagged by design, matching how it already worked before
+  this pass. Full list of the 18 names is reconstructable from `git`-free
+  diffing, or just search ROLE_LOOKUP for `seventy` gaps among women's-
+  session-adjacent talk titles.
+- **October 1974 and April 1987** used different, pre-1976-reorganization
+  office titles (Assistant to the Quorum of the Twelve, First Council of
+  the Seventy) rather than the modern "Seventy" terminology. These were
+  researched individually rather than defaulted. One exception found:
+  **Eldred G. Smith (1974)** was Patriarch to the Church — a unique
+  non-Seventy office — and was correctly left untagged.
+- **Known judgment call, not fully verified**: several Sunday School
+  General Presidency members (Devin G. Durrant, Brian K. Ashton, Tad R.
+  Callister, Mark L. Pace, Milton Camargo, Jan E. Newman, Chad H Webb) were
+  tagged `seventy` by the same default rule. Some Sunday School presidents
+  concurrently hold General Authority Seventy status (confirmed for Paul V.
+  Johnson and Mark L. Pace) but it's *not* confirmed for the lay/CES-career
+  counselors like Chad H Webb — he may not actually be a Seventy. If a user
+  flags this, the fix is a targeted correction, not a full re-audit.
+- One more pre-existing gap fixed in passing: Gérald Caussé's April 2020
+  talk was missing its `presiding-bishopric` tag (sandwiched between two
+  correctly-tagged conferences during his known 2015–2025 tenure).
+
+## ✅ Done: `other` role, for callings that don't fit any tracked category
+Added a 10th role, `other`, for speakers whose calling is real and
+identifiable but doesn't match any of the nine tracked categories (not an
+"I don't know" bucket — that's still what leaving a talk untagged means).
+Applied it to the one confirmed case already flagged in the "Seventy
+backfill" section above: **Eldred G. Smith (Oct 1974) — Patriarch to the
+Church**, a distinct, non-Seventy priesthood office (emeritus since 1979,
+never refilled, so he's the only possible case in this dataset). He had
+been deliberately left untagged before; now he's `other` instead.
+
+**Not an exhaustive audit** — two other candidates were checked and
+deliberately left as `seventy` rather than moved to `other`, so don't
+re-research them: **Joseph Anderson (1974)** was "Assistant to the Twelve"
+at that exact date (a direct historical predecessor of General Authority
+Seventy, formally merged into the First Quorum of the Seventy in 1976) —
+close enough to keep as `seventy`. **F. Michael Watson (2009)** was
+already a sustained General Authority Seventy (called April 2008) by the
+time of his one talk in this dataset, even though he'd spent 1972–2008 as
+a non-General-Authority Secretary to the First Presidency before that —
+so `seventy` is correct for the talk that's actually here. If a future
+pass finds a mission president, temple president, or similar one-off
+speaker who was never sustained a General Authority at all, that's the
+kind of case `other` is for — reclassify from `seventy` (or add fresh if
+untagged), don't leave it as-is.
+
+## ✅ Done: role/UI label renames (role *keys* in the code are unchanged)
+Several user-facing labels were renamed — these are cosmetic (`ROLE_LABELS`
+values and static HTML text only); the underlying `ROLE_LOOKUP` keys
+(`apostle`, `first-presidency`, etc.) and all matching logic are untouched,
+so don't be confused if older sections above still say the old names:
+- Filter label "Church Role at the Time" → **"Calling at the Time of the
+  Talk"**; its "Any role" default option → **"Any Calling"**.
+- Role label `apostle`: "Apostle" → **"Quorum of the Twelve Apostles"**.
+- Role label `first-presidency`: "Member of the First Presidency" →
+  **"Counselor in the First Presidency"**.
+- Year filter label "Year / Decade" → **"General Conference"**; its "Any
+  year" default → **"Any Conference"**.
+- A "Reset filters" button was added below the filter grid (`#resetBtn`) —
+  disabled when no filter is active. (Originally cleared four native
+  `<select>` elements; superseded by the multi-select rewrite below, but
+  the button and its disabled-when-empty behavior are unchanged.)
+- Speaker options are alphabetized **by last name** and displayed
+  "Last, First" (e.g. "Hinckley, Gordon B.") via `speakerDisplayName()` /
+  `parseSpeakerName()` — handles suffixes (Jr./Sr./II/III), lowercase
+  surname particles (de/da/von/van/…), and parenthetical nicknames. The
+  underlying value used for matching is still the plain "First Last" name;
+  only display text and sort order changed. (See "What this is" at the top
+  for the no-auto-open-tab behavior — that's a separate, earlier change,
+  still in effect.)
+
+## ✅ Done: multi-select filters (checkbox panels, OR within a dim, AND across dims)
+All four filters were rewritten from native single-value `<select>`
+elements to **custom multi-select checkbox panels** — you can now check
+multiple Topics, Speakers, Callings, or Conferences at once. Semantics:
+values *within* one dim are OR'd (Topic = "Faith" OR "Family"); the four
+dims are still AND'd together, same as before. Cross-checked against a
+brute-force reference filter over `TALKS`/`ROLE_LOOKUP`/`TOPIC_LOOKUP`
+directly — exact match.
+
+**Architecture** — for each dim (`year`/`speaker`/`topic`/`role`):
+- `filterState[dim]` is now an **array** (was a single string; empty
+  string → empty array is the "no filter" sentinel change to watch for if
+  you touch this code).
+- HTML: a `<button class="ms-trigger">` (shows "Any X" / one label / "N
+  things selected") that toggles a `<div class="ms-panel" hidden>`
+  containing real `<input type="checkbox">` + `<label>` pairs (native
+  semantics, no ARIA listbox pattern needed) — plus a `.ms-search` text
+  input for the two long lists (**Speaker** 364 options, **Topic** 306
+  options; **Calling** and **Conference** don't get search, short enough
+  to just scroll).
+- `DIM_CONFIG` now carries DOM refs (`trigger`/`triggerText`/`panel`/
+  `options`/`search`/`clearBtn`) alongside `allValues`/`labelFor`/
+  `anyLabel`, plus a new `noun` (plural, for the "N speakers selected"
+  summary) and `searchable` flag.
+- Cascading pruning logic is conceptually unchanged (`valuesForDim(
+  poolExcept(dim), dim)` computes what's still reachable given the *other*
+  three dims) — it now populates `availableSets[dim]`, a `Set` consumed by
+  `renderOptions(dim)` to decide which checkboxes exist. A currently-
+  checked value is always rendered even if no longer "available," same
+  never-vanish-a-selection rule as the old dropdown had.
+- Only one panel open at a time (`openDim` tracks it); opening one closes
+  any other. Closes on outside click, `Escape` (returns focus to the
+  trigger), or re-clicking the trigger. A per-panel "Clear" button resets
+  just that one dim; the existing global "Reset filters" button still
+  clears all four.
+- `draw()`'s "keep the filtered-by topic(s) visible among the ticket's
+  chips" logic now surfaces *every* selected topic the drawn talk actually
+  has (not just one), first in the chip row, before the slice-to-5 cap.
+
+**Bug hit and fixed during this build, worth remembering**: giving
+`.ms-panel` an explicit `display:flex` in the author stylesheet silently
+**overrides the browser's default `[hidden]{display:none}` rule**, because
+author-origin CSS always wins over user-agent-origin CSS regardless of
+selector specificity. Result: all four panels rendered permanently open.
+Fix is `.ms-panel[hidden]{ display:none; }` alongside the `display:flex`
+rule. **Any future custom dropdown/panel/modal in this file needs the same
+`[hidden]` override if it sets its own `display` value** — don't rely on
+the bare `hidden` attribute once a class sets `display`.
+
+## ✅ Done: backward coverage to April 2012 (no gaps)
+Added April/Oct 2012, April/Oct 2013, April/Oct 2014 (225 talks). The
+continuous run now goes **April 2012 → April 2026** (29 conferences back
+to back), plus the same 4 older standalone conferences. Role research for
+this era: Presiding Bishopric transitioned Stevenson/Caussé/Davies ← Burton
+/Edgley/McMullin *at* the April 2012 conference itself (same-conference
+outgoing officer, tagged with the outgoing role — Edgley → presiding-
+bishopric, matching how Julie B. Beck's farewell RS-president talk that
+same conference was tagged `relief-society`); Relief Society Beck→Burton
+transitioned the same day; Young Women Dalton→Oscarson transitioned at
+April 2013; Primary was a stable Wixom/Stevens/Esplin presidency April
+2010–April 2016 (all three tagged `primary` whenever they speak in that
+window — this also caught and fixed a **pre-existing gap**: Cheryl A.
+Esplin's April 2016 talk had been left untagged during the Seventy-role
+backfill pass since she's female, but she was still a sitting Primary
+counselor at that specific conference and should have gotten `primary`).
+Ronald A. Rasband and Gary E. Stevenson both appear as `seventy` /
+`presiding-bishopric` respectively in 2012–2014 talks — neither was an
+apostle yet (both called Oct 2015); don't retag their pre-2015 talks to
+`apostle`.
+
+## ✅ Done: backward coverage to April 2009 (no gaps)
+Added April/Oct 2009, April/Oct 2010, April/Oct 2011 (224 talks). The
+continuous run now goes **April 2009 → April 2026** (35 conferences back
+to back). Role notes for this era: Monson/Eyring/Uchtdorf First Presidency
+already stable since Feb 2008, so no FP transition to research here. Two
+corrections worth remembering — **Gary E. Stevenson was a plain General
+Authority Seventy from April 2008 until April 2012** (Presiding Bishop
+only from April 2012 on — don't tag his 2009–2011 talks
+`presiding-bishopric`), and **Neil L. Andersen was sustained apostle on
+the Saturday of the April 2009 conference itself** (same-day-sustaining
+pattern, same as Oaks/Rasband/Stevenson/Renlund elsewhere — tag his April
+2009 talk `apostle`, not `seventy`). Auxiliary presidencies confirmed for
+this window: Relief Society = Beck/Allred/Thompson (Mar 2007–2012);
+Primary = Lant/Lifferth/Matsumori (Apr 2005–Apr 2010) handing off to
+Wixom/Stevens/Esplin (from Apr 2010); Young Women = Dalton/Cook/Dibb
+(2008–2013). 4 talks (Oct 2010 women's session) matched no official
+topic — left as `[]`, not a bug.
+
+## ✅ Done: backward coverage to April 2006 (no gaps; Oct 2005 no longer standalone)
+Added April/Oct 2006, April/Oct 2007, April/Oct 2008 (232 talks). The
+continuous run now goes **October 2005 → April 2026** (42 conferences back
+to back) — Oct 2005 stopped being a lone standalone entry once April 2006
+was added right after it. This window crossed **two real First Presidency
+transitions**, both researched and both landed correctly:
+- **James E. Faust died Aug 10, 2007.** Henry B. Eyring succeeded him as
+  Second Counselor *at* the October 2007 conference itself (same-day
+  pattern) — his Oct 2007 talks are `first-presidency`; his April 2006/Oct
+  2006/April 2007 talks are plain `apostle` (he wasn't in the FP yet).
+  Quentin L. Cook was called to the Twelve that same Oct 6 2007 to backfill
+  Eyring's vacated seat, but didn't have a talk that conference.
+- **Gordon B. Hinckley died Jan 27, 2008.** Thomas S. Monson became
+  President Feb 3, 2008 — before the April 2008 conference, so no
+  mid-conference edge case there; he's simply `president` for Apr/Oct 2008.
+  Same day, Monson set apart Eyring (1st) and Uchtdorf (2nd) as his new
+  counselors; both were *sustained by the membership* at the April 2008
+  solemn assembly, so both get `first-presidency` starting April 2008 (Uchtdorf's
+  first FP tag — he was plain `apostle` for every 2005–2007 conference
+  before this). **D. Todd Christofferson was also called and sustained
+  apostle that same April 2008 conference** (from the Presidency of the
+  Seventy) — his April 2008 talk is `apostle`; every earlier talk of his in
+  the dataset is `seventy`.
+- Auxiliary transition also researched: Julie B. Beck moved from Young
+  Women counselor to Relief Society General President at the March 31 2007
+  conference (same-day pattern again) — her Apr 2006/Oct 2006 talks are
+  `young-women`, her Apr 2007 talk onward is `relief-society`. Susan W.
+  Tanner (YW president 2002–Apr 2008) and Bonnie D. Parkin (RS president
+  until Mar 2007) both confirmed via search, not assumed.
+
+## ✅ Done: backward coverage to October 2002 (no gaps)
+Added April/Oct 2005 (well, Apr 2005 — Oct 2005 was already in), Apr/Oct
+2004, Apr/Oct 2003, and Oct 2002 (215 talks). The continuous run now goes
+**October 2002 → April 2026** (48 conferences back to back), plus Oct
+1995, Apr 1987, Oct 1974 standalone (gap 1996–2001 still exists before Oct
+2002). Confirmed the Hinckley/Monson/Faust First Presidency (Mar 1995–Aug
+2007) needed no new research — stable across this whole window. Two real
+transition cases researched and correctly split by conference:
+- **Dieter F. Uchtdorf** was a Presidency of the Seventy member (plain
+  `seventy`) through his one talk in this batch at **Oct 2002**; he and
+  **David A. Bednar** were both sustained apostle in the *opening minutes*
+  of the **Oct 2004** conference (filling vacancies left by Neal A.
+  Maxwell's and David B. Haight's deaths that same summer) — both tagged
+  `apostle` from Oct 2004 on, no same-day ambiguity since the sustaining
+  came before any talks that conference.
+- **Julie B. Beck and Elaine S. Dalton were Young Women presidency members
+  (1st and 2nd counselor) for this entire batch**, not Relief Society —
+  Beck doesn't become RS president until March 2007 (already correctly
+  handled in the 2006–2008 batch). Don't retag their 2002–2005 talks
+  `relief-society` by pattern-matching from later batches. Relief Society
+  for this window was **Bonnie D. Parkin** (president, Apr 2002–2007) with
+  **Kathleen H. Hughes** (1st) and **Anne C. Pingree** (2nd). Primary was
+  **Coleen K. Menlove** (president, Oct 1999–Apr 2005) with **Sydney S.
+  Reynolds** (1st) and **Gayle M. Clegg** (2nd), handing off to
+  Lant/Lifferth/Matsumori exactly at April 2005 (already in the dataset).
+
+## ✅ Done: Share button on every result (ticket + each list row)
+Added a Share affordance to both result surfaces:
+- **Ticket**: a third button in `.ticket-actions`, `#shareBtn` (text
+  "Share", styled `.btn.btn-ghost` like "Find Another"), between "Open
+  This Talk" and "Find Another". Shares `lastPicked` (the same variable
+  `draw()` already tracks for its no-immediate-repeat logic).
+- **List rows**: a small round icon-only button (`.share-btn-icon`, the
+  `SHARE_ICON_SVG` inline three-node share glyph) at the top-right of each
+  row's new `.list-item-head` wrapper (title link + share button side by
+  side). Each row's button closes over its own `pick` from the `forEach`
+  in `showList()`.
+
+**Behavior** (`shareTalk(pick, btnEl)`): tries `navigator.share()` first
+(native OS share sheet — best on mobile/supporting browsers) with the
+talk's title, "title — speaker" text, and real URL. If the person cancels
+that sheet (`AbortError`), it does nothing further — that's a normal
+outcome, not a failure. If `navigator.share` isn't available, or throws
+anything other than a cancel, it falls back to `copyText()`, a two-tier
+clipboard helper: async `navigator.clipboard.writeText()` first, then a
+legacy hidden-textarea + `document.execCommand('copy')` fallback if that
+fails. **The legacy fallback matters a lot here**: this app is normally
+opened as a local `file://` page, and several browsers only grant
+`navigator.clipboard.writeText` on secure/HTTPS origins — the
+`execCommand('copy')` path has much broader `file://` support and is why
+it's there, not just defensive padding.
+
+After a successful or failed copy, `flashShareButton()` briefly swaps the
+button's content to "Link copied!" / "Copy failed" (reading the original
+content once into `dataset.defaultHtml` so repeated clicks don't stomp
+it), then restores the original label/icon after 1.6s. The icon button
+also gets an `.is-flashed` class while showing the message so its normal
+30px circle can widen enough to fit the text without clipping.
+
+**⚠️ Verification gap, same as the last two features**: the Browser-pane
+tool has now been unavailable for the Claude session's entire remaining
+duration — every `file://` navigation attempt, including a one-line test
+file, silently returns an inert placeholder instead of loading real
+content, across many retries in fresh tabs. This was **not** visually
+tested in a real browser. What was checked instead: full JS bracket/
+string-syntax balance (clean), and a complete cross-check of every
+`getElementById` call in the file against every HTML `id=` attribute (all
+matched — the only unmatched entries were `roleLabel`/`speakerLabel`/
+`topicLabel`/`yearLabel`, which are intentionally referenced via
+`aria-labelledby` rather than JS, not a bug). The share logic was traced
+by hand line-by-line rather than executed. **If the Browser-pane tool
+recovers in a future session, or the user tests it themselves, both share
+buttons (ticket and at least one list row) should get a real click-through
+— including confirming the "Link copied!" flash actually reverts after
+~1.6s and that a pasted link is the correct real talk URL.**
+
+## ✅ Done: "Show a List" — up to 10 matching talks at once
+Added a second button next to "Find a Talk": **"Show a List"** (`#listBtn`,
+in a new `.draw-buttons` flex row alongside `#drawBtn`). Instead of one
+random talk, it shows up to `LIST_SIZE` (currently 10) — or every matching
+talk if fewer than that remain after filters — as a scannable list, each
+row showing: title (a real link, opens in a new tab, same as "Open This
+Talk"), speaker + calling, conference date, and the kicker summary if the
+talk has one. The user explicitly framed this as turning the app into "a
+search and study tool," not just a randomizer, so the list is meant to be
+*browsed*, not just one more random draw.
+
+- **Selection**: a Fisher-Yates `shuffled()` of the current filtered pool,
+  sliced to `LIST_SIZE` — still random/serendipitous like the rest of the
+  app, just showing several at once instead of one. Clicking "Show a List"
+  again re-shuffles; so does the "Show a different list" link at the
+  bottom of the list itself (`#listAgainBtn`, reuses the `.reset-link`
+  style).
+- **Header text** adapts: "Showing 10 random talks of 340 that match right
+  now" when the pool is bigger than `LIST_SIZE`, vs. "Showing all 6 talks
+  that match right now" when the whole pool fits.
+- **Mutual exclusivity with the single-ticket view**: `draw()` hides
+  `#listZone`; `showList()` hides `#resultZone` (the ticket) — only one
+  result view is visible at a time, matching how the app already only
+  shows one thing at once elsewhere. Neither auto-hides when filters
+  change (consistent with the ticket's pre-existing behavior of staying
+  put until you draw/list again).
+- `listBtn.disabled` is wired into `refreshCount()` exactly like
+  `drawBtn.disabled` — both disable together when the filtered pool is
+  empty.
+- New CSS: `.draw-buttons`, `#listBtn`, `#listZone`, `.list-header`,
+  `.list-items`, `.list-item` (+ `-title`/`-speaker`/`-meta`/`-summary`
+  child classes), `.list-footer` — all namespaced separately from the
+  ticket's classes so nothing bled into the single-draw styling.
+
+**Verification note**: this was built and cross-checked the same session
+the file crossed the Browser-pane's local-file size ceiling (see "kicker
+summaries" below) — and this time the Browser-pane tool itself was down
+for the *entire* session (every `file://` navigation, including a
+one-line test file, silently fell back to an inert placeholder; retrying
+across multiple fresh tabs didn't help). So this feature has **not** been
+visually confirmed in a real browser by Claude — only: full bracket/string
+JS-syntax balance check (clean), and a from-scratch cross-check of every
+`getElementById` call in the whole file against every `id=` in the HTML
+(all matched, no typos). The DOM-construction pattern
+(`createElement`/`appendChild`/`className`/`textContent`) and the
+`talkRole`/`talkKicker`/`talkUrl`/`monthName`/`ROLE_LABELS[role]` lookups
+it reuses are all identical to code already proven working in `draw()` —
+only the Fisher-Yates shuffle and the list-item DOM assembly are actually
+new logic. **Recommend the user (or a future session once the Browser
+pane tool recovers) does one real click-through of both buttons before
+trusting this fully.**
+
+## ✅ Done: kicker summaries (the one-sentence teaser under speaker/calling)
+Every General Conference talk page on the real site has a short official
+"kicker" — a one-sentence summary in `<p class="kicker">`, sitting right
+after the `<div class="byline">` (speaker name + calling) and before the
+talk body. The ticket now shows it too, styled as small italic serif text
+between the speaker line and the conference-date line.
+
+- **Data**: `KICKER_LOOKUP`, keyed `"year|month|slug"` → the sentence
+  (plain string, not an array — one summary per talk, not a list). Sits
+  right after `talkTopics()`/`TOPIC_LOOKUP` in the script, with its own
+  `talkKicker(talk)` accessor that returns `null` when a talk has none —
+  same `|| null` fallback pattern as `talkRole()`.
+- **Coverage**: 1940 of 1946 eligible talks (99.7%) — fetched by
+  `curl`-ing every individual talk page (not just conference listing or
+  topic-index pages this time) and regex-extracting the kicker paragraph,
+  same pattern as everything else in this file. The 6 gaps were checked
+  individually and are genuinely kicker-less on the real page (not a
+  parsing miss): two ceremonial talks with no natural summary sentence
+  (Solemn Assembly 2018, the Hosanna Shout 2020) and four older women's-
+  session talks from April 2003 that the Church's site never retroactively
+  added one to.
+- **The three standalone pre-1999 conferences (Oct 1974, Apr 1987, Oct
+  1995) have NO kickers at all** — verified by testing several talks from
+  each; the Church's site apparently didn't start adding these until
+  sometime between 1995 and 1999 (Oct 1999 is the earliest conference
+  confirmed to have them). Don't bother fetching kickers for those three
+  conferences if they're ever backfilled with data from other conferences
+  — there's nothing there to get. If backward coverage is ever extended
+  *before* Oct 1999 (see the "keep expanding backward" task elsewhere in
+  this doc), re-check a sample talk from the new era first to see whether
+  it has a kicker before assuming either way.
+- **UI**: `#ticketSummary` div between `#ticketSpeaker` and `#ticketMeta`
+  in the HTML, `.ticket .summary` CSS rule (italic, `Source Serif 4`,
+  `--ink-soft` color). In `draw()`, the element's `textContent` and
+  `style.display` (`'block'`/`'none'`) are both set based on
+  `talkKicker(pick)` — hidden entirely rather than shown empty when a talk
+  has none, so there's no dangling gap in the ticket layout.
+
+**Operational note for future large data additions**: the file is now
+~793KB. This session discovered the Browser-pane preview tool has a hard
+size ceiling for local `file://` URLs somewhere between 512KB and 700KB —
+above that it silently fails to load real content (falls back to an inert
+CSP-blocked placeholder) instead of erroring clearly. **You cannot load
+this file directly in the Browser-pane preview once it crosses that
+threshold.** Two workarounds used this session: (1) all *data*-only
+validation (integrity/dedup/orphan checks, JS bracket-balance checks) can
+still be done directly against the real file via `python3`/`Bash`, no
+browser needed — that covers most of what matters; (2) for testing actual
+*UI/JS behavior* (like the kicker show/hide logic here), copy the exact
+relevant HTML/CSS/JS verbatim into a small standalone test harness in the
+scratchpad with a tiny fake dataset, and drive *that* in the browser
+instead — it's a faithful test of the real code, just not the real file.
+If you copy the real file itself for any reason, note that `cp` preserves
+the source's restrictive `600` permissions (inherited from the Downloads
+folder) which also blocks the browser tool — `chmod 644` the copy first.
+
+## ✅ Done: backward coverage to October 1999 (no gaps; standing gap shrunk)
+Added Apr/Oct 2001, Apr/Oct 2000, Apr 2002 (already had Oct 2002), and Oct
+1999 (219 talks). The continuous run now goes **October 1999 → April
+2026** (54 conferences back to back). The standing gap before that is now
+just **April 1996 through April 1999** (7 conferences), down from the
+1996–2001 gap noted previously. No new First Presidency research needed —
+Hinckley/Monson/Faust still stable throughout. Auxiliary-presidency
+transitions researched and confirmed via search, not assumed:
+- **Relief Society**: Mary Ellen W. Smoot (president, Apr 5 1997–Apr 2002)
+  with **Virginia U. Jensen** (1st) and **Sheri L. Dew** (2nd), handing off
+  to Parkin/Hughes/Pingree exactly at April 2002 (already in the dataset
+  from the previous batch) — both outgoing Smoot and incoming Parkin
+  tagged `relief-society` for that same transition conference.
+- **Young Women**: Margaret D. Nadauld (president, Oct 4 1997–Oct 6 2002)
+  with **Sharon G. Larsen** and **Carol B. Thomas** as counselors —
+  covers this entire batch with no transition to handle.
+- **Primary**: Patricia P. Pinegar (president, 1994–Oct 1999) handed off
+  to Coleen K. Menlove *at* the October 1999 conference — Pinegar's only
+  talk in this batch (Oct 1999) is her outgoing farewell, tagged `primary`
+  same as every other same-conference transition in this project.
+- One new pre-1976-era-style figure worth remembering for the next batch:
+  **Neil L. Andersen appears as a plain General Authority Seventy in Oct
+  1999** (`seventy`, not `apostle` — he wasn't called to the Twelve until
+  April 2009). Don't retag his older talks by pattern-matching from his
+  later apostolic ones.
+
+## ⏭️ Next task (optional): keep expanding backward
+The next gap going further back is **April 1999 and earlier**, but note
+there's now a **standing gap between April 1996 and April 1999** (7
+conferences: Apr 1996, Oct 1996, Apr 1997, Oct 1997, Apr 1998, Oct 1998,
+Apr 1999) that would need to be filled separately to reconnect to the
+existing October 1995 standalone entry. Same fetching pattern applies (see
+below). Not yet prioritized by the user — check before doing a large
+batch. If you go earlier than March 1995, you'll need fresh First
+Presidency research (Hinckley became president March 12 1995, succeeding
+Ezra Taft Benson who died May 30 1994 — Benson's own First Presidency and
+its transition to Hinckley haven't been researched yet in this project).
+Remember to extend Seventy/auxiliary-presidency role work too — don't
+leave new talks role-untagged — and re-run the "sandwiched gap" + full
+integrity validation passes described above afterward.
+
+## Known past mistake (for awareness, already fixed)
+Earlier in this project, a large batch of talk-array entries was
+accidentally pasted inside the `ROLE_LOOKUP` object literal instead of the
+`TALKS` array, breaking the JS syntax. It was caught by validating the file
+(parsing `TALKS` and `ROLE_LOOKUP`, checking every role key resolves to a
+real talk, checking for duplicate talk rows) before shipping.
+**Always run an equivalent validation pass after bulk-editing this file.**
+
+**Node is not available in this environment** — use `python3` instead
+(present at `/usr/bin/python3`). A JS object/array literal with
+double-quoted keys and no trailing comma on the final entry parses fine
+with `json.loads` after stripping `//` comment lines; a trailing comma
+before the closing `}`/`]` is valid JS but breaks `json.loads`, so match
+the file's existing convention of no trailing comma on the last entry.
+Equivalent validation pass (adjust paths as needed):
+
+```bash
+python3 << 'EOF'
+import re, json
+content = open('conference-draw.html', encoding='utf-8').read()
+def extract(varname, wrap):
+    m = re.search(r'const ' + varname + r' = \' + wrap[0] + r'([\s\S]*?)\n\' + wrap[1] + r';', content)
+    lines = [l for l in m.group(1).split('\n') if l.strip() and not l.strip().startswith('//')]
+    return json.loads(wrap[0] + '\n'.join(lines) + wrap[1])
+talks = extract('TALKS', '[]')
+role_lookup = extract('ROLE_LOOKUP', '{}')
+topic_lookup = extract('TOPIC_LOOKUP', '{}')
+topic_labels = extract('TOPIC_LABELS', '{}')
+print('talks:', len(talks), 'roles:', len(role_lookup), 'topic entries:', len(topic_lookup), 'topic labels:', len(topic_labels))
+talk_keys = set(f'{t[1]}|{t[2]}|{t[3]}' for t in talks)
+print('role keys with no matching talk:', sum(1 for k in role_lookup if k not in talk_keys))
+topic_keys = set(f'{t[2]}|{t[3]}|{t[4]}' for t in talks)
+print('topic-lookup keys with no matching talk:', sum(1 for k in topic_lookup if k not in topic_keys))
+print('talks missing a topic-lookup entry:', sum(1 for k in topic_keys if k not in topic_lookup))
+seen = set(); dupes = sum(1 for t in talks if tuple(t) in seen or seen.add(tuple(t)))
+print('duplicate talk rows:', dupes)
+EOF
+```
+
+Also worth a plain bracket/brace/string balance check over the whole
+`<script>` block (comment- and string-aware) since there's no `node -e`
+to lean on for a real parse — ask Claude to write one if needed, it's
+straightforward with a small hand-rolled tokenizer.
+
+## Fetching pattern that worked for conference session data
+Each conference's full talk list (title + speaker + URL) can be retrieved
+in one fetch of:
+```
+https://www.churchofjesuschrist.org/study/general-conference/{year}/{month}?lang=eng
+```
+This returns the complete session-by-session contents listing with real
+URLs — much more efficient than fetching each talk individually.
+
+**Better than WebFetch for this: `curl` the page directly and regex-parse
+it.** `curl` has full network access in this environment (no auth needed),
+and the raw HTML's sidebar nav has a reliable, regular structure:
+
+```html
+<a class="item-U_5Ca" href="/study/general-conference/2017/10/turn-on-your-light?lang=eng">
+  <div class="itemTitle-MXhtV"><p><span>Turn On Your Light</span></p>
+  <p class="subtitle-LKtQp">Sharon Eubank</p></div>
+</a>
+```
+
+A regex like
+`<a class="item-U_5Ca" href="(/study/general-conference/(\d{4})/(\d{2})/([^"?]+))\?lang=eng"[^>]*><div class="itemTitle-MXhtV"><p><span>(.*?)</span></p>(?:<p class="subtitle-LKtQp">(.*?)</p>)?</div></a>`
+against the raw HTML gives exact title/speaker/slug with zero
+summarization risk (WebFetch runs a small model over the page and can
+silently drop or mangle entries on long listings). Cross-checked this
+against WebFetch's output for Oct 2017 and it matched exactly — but for
+bulk data entry, prefer the `curl` + regex path. This is also exactly how
+`TOPIC_LOOKUP` was built: same trick against
+`/study/general-conference/topics/{slug}?lang=eng` pages, whose talk links
+use a plainer `href="/study/general-conference/YYYY/MM/slug"` pattern
+(no `item-U_5Ca` wrapper needed there, just the href regex). All 335
+official topic slugs came from `curl`-ing
+`/study/general-conference/topics?lang=eng` and extracting
+`href="/study/general-conference/topics/{slug}"` — no need to hand-slugify
+topic names (though it turns out simple slugification of the official
+name list — lowercase, strip periods/apostrophes, spaces→hyphens — matches
+the real slugs exactly, e.g. "U.S. Constitution" → `us-constitution`).
+
+Administrative items to filter out of any new conference's talk list:
+exact title `"The Sustaining of Church Officers"`, plus anything starting
+with `"Church Auditing Department Report"` or `"Statistical Report"`.

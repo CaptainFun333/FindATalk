@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pick a Talk — General Conference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c2c42;
+    --ink-soft:#3d4d64;
+    --paper:#f3efe2;
+    --paper-raised:#faf7ee;
+    --brass:#a9822f;
+    --brass-bright:#c79c3f;
+    --burgundy:#6e2b34;
+    --line:#c9bfa2;
+    --shadow: 0 18px 40px -20px rgba(28,44,66,0.35);
+    --radius: 4px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #fbf8ef 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, #efe8d3 0%, transparent 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    min-height:100vh;
+    padding:48px 20px 72px;
+    display:flex;
+    justify-content:center;
+  }
+  .wrap{ width:100%; max-width:760px; }
+
+  /* ---------- header ---------- */
+  .eyebrow{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--brass);
+    font-weight:600;
+    text-align:center;
+    margin-bottom:14px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-optical-sizing:auto;
+    font-weight:600;
+    font-size:clamp(34px,6vw,52px);
+    line-height:1.05;
+    text-align:center;
+    margin:0 0 10px;
+    letter-spacing:-0.01em;
+  }
+  h1 em{
+    font-style:italic;
+    font-weight:500;
+    color:var(--burgundy);
+  }
+  .sub{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:16.5px;
+    line-height:1.6;
+    max-width:560px;
+    margin:0 auto 40px;
+  }
+  .sub a{ color:var(--burgundy); }
+
+  .divider{
+    display:flex; align-items:center; gap:14px;
+    margin:0 auto 40px; max-width:420px;
+  }
+  .divider::before,.divider::after{
+    content:""; flex:1; height:1px; background:var(--line);
+  }
+  .divider svg{ width:16px; height:16px; color:var(--brass); flex-shrink:0; }
+
+  /* ---------- filters ---------- */
+  .filters{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+    margin-bottom:28px;
+  }
+  @media(max-width:620px){ .filters{ grid-template-columns:1fr; } }
+
+  .field label{
+    display:block;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:7px;
+    font-weight:600;
+  }
+  .field{ position:relative; }
+
+  /* ---------- multi-select trigger + panel ---------- */
+  .ms-trigger{
+    width:100%;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    color:var(--ink);
+    cursor:pointer;
+    text-align:left;
+    transition:border-color .15s;
+  }
+  .ms-trigger:hover{ border-color:var(--brass); }
+  .ms-trigger:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .ms-trigger[aria-expanded="true"]{ border-color:var(--brass); }
+  .ms-trigger-text{
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .ms-chevron{
+    width:14px; height:9px; flex-shrink:0;
+    color:var(--brass);
+    transition:transform .15s;
+  }
+  .ms-trigger[aria-expanded="true"] .ms-chevron{ transform:rotate(180deg); }
+
+  .ms-panel{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0; right:0;
+    z-index:20;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .ms-panel[hidden]{ display:none; }
+  .ms-search{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:8px 10px;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    color:var(--ink);
+    background:var(--paper);
+  }
+  .ms-search:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
+  .ms-options{
+    max-height:220px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+  }
+  .ms-option{
+    display:flex; align-items:center; gap:9px;
+    padding:7px 6px;
+    border-radius:3px;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .ms-option:hover{ background:#efe8d3; }
+  .ms-option input{
+    accent-color:var(--burgundy);
+    width:15px; height:15px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  .ms-option span{
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .ms-empty{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    padding:8px 6px;
+    text-align:center;
+  }
+  .ms-panel-footer{
+    display:flex; justify-content:flex-end;
+    padding-top:2px;
+    border-top:1px solid var(--line);
+  }
+  .ms-clear{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    background:none; border:none; cursor:pointer;
+    padding:4px 6px;
+  }
+  .ms-clear:hover{ color:var(--burgundy); }
+  .ms-clear:disabled{ opacity:.4; cursor:default; }
+
+  .filters-actions{
+    text-align:right;
+    margin-top:-6px;
+    margin-bottom:20px;
+  }
+  .reset-link{
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:.02em;
+    color:var(--ink-soft);
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:4px 2px;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    text-decoration-color:var(--line);
+    transition:color .15s, text-decoration-color .15s;
+  }
+  .reset-link:hover{ color:var(--burgundy); text-decoration-color:var(--burgundy); }
+  .reset-link:disabled{ opacity:.45; cursor:default; text-decoration-color:transparent; }
+
+  .pool-count{
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:34px;
+  }
+  .pool-count strong{ color:var(--burgundy); font-weight:600; }
+
+  /* ---------- draw button ---------- */
+  .draw-zone{ text-align:center; margin-bottom:8px; }
+  .draw-buttons{
+    display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+  }
+  #drawBtn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:15.5px;
+    letter-spacing:.02em;
+    color:var(--paper-raised);
+    background:linear-gradient(180deg,#26364e,var(--ink));
+    border:none;
+    padding:17px 38px;
+    border-radius:3px;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:transform .15s, box-shadow .15s;
+  }
+  #drawBtn:hover{ transform:translateY(-2px); box-shadow:0 22px 44px -18px rgba(28,44,66,.45); }
+  #drawBtn:active{ transform:translateY(0px) scale(.99); }
+  #drawBtn:disabled{ opacity:.55; cursor:default; transform:none; }
+
+  #listBtn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:15.5px;
+    letter-spacing:.02em;
+    color:var(--ink);
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    padding:16px 34px;
+    border-radius:3px;
+    cursor:pointer;
+    transition:border-color .15s, color .15s, transform .15s;
+  }
+  #listBtn:hover{ border-color:var(--brass); color:var(--burgundy); transform:translateY(-2px); }
+  #listBtn:active{ transform:translateY(0px) scale(.99); }
+  #listBtn:disabled{ opacity:.55; cursor:default; transform:none; }
+
+  .no-match{
+    text-align:center; color:var(--ink-soft);
+    font-family:'Inter',sans-serif; font-size:14px;
+    margin-top:16px; display:none;
+  }
+
+  /* ---------- result card (the "ticket") ---------- */
+  #resultZone{ margin-top:46px; display:none; }
+  .ticket{
+    position:relative;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:var(--shadow);
+    padding:38px 34px 30px;
+    max-width:560px;
+    margin:0 auto;
+    opacity:0;
+    transform:translateY(14px) scale(.985);
+    transition:opacity .45s ease, transform .45s ease;
+  }
+  .ticket.show{ opacity:1; transform:translateY(0) scale(1); }
+  .ticket::before{
+    content:"";
+    position:absolute; inset:8px;
+    border:1px dashed var(--line);
+    border-radius:4px;
+    pointer-events:none;
+  }
+  .ticket h2{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(24px,4vw,30px);
+    line-height:1.2;
+    text-align:center;
+    margin:0 0 14px;
+  }
+  .ticket .speaker{
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    color:var(--ink);
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  .ticket .summary{
+    text-align:center;
+    font-family:'Source Serif 4', Georgia, serif;
+    font-style:italic;
+    font-size:15px;
+    line-height:1.55;
+    color:var(--ink-soft);
+    max-width:440px;
+    margin:0 auto 20px;
+  }
+  .ticket .meta{
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    letter-spacing:.03em;
+    margin-bottom:26px;
+  }
+  .ticket .topics{
+    display:flex; flex-wrap:wrap; justify-content:center; gap:7px;
+    margin-bottom:28px;
+  }
+  .chip{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--burgundy);
+    border:1px solid #d8c3a5;
+    background:#f7efe0;
+    padding:4px 10px;
+    border-radius:20px;
+  }
+  .ticket-actions{
+    display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+  }
+
+  /* ---------- results list (up to 10 matching talks at once) ---------- */
+  #listZone{ margin-top:46px; display:none; }
+  .list-header{
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  .list-header strong{ color:var(--burgundy); font-weight:600; }
+  .list-items{
+    max-width:620px;
+    margin:0 auto;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .list-item{
+    padding:20px 26px;
+    border-bottom:1px solid var(--line);
+  }
+  .list-item:last-child{ border-bottom:none; }
+  .list-item-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .list-item-title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:18px;
+    line-height:1.3;
+    color:var(--ink);
+    text-decoration:none;
+  }
+  .list-item-title:hover{ color:var(--burgundy); }
+  .share-btn-icon{
+    flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    gap:5px;
+    width:30px; height:30px;
+    padding:0;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    white-space:nowrap;
+    color:var(--ink-soft);
+    background:transparent;
+    border:1px solid var(--line);
+    border-radius:20px;
+    cursor:pointer;
+    transition:border-color .15s, color .15s, width .15s;
+  }
+  .share-btn-icon svg{ width:14px; height:14px; flex-shrink:0; }
+  .share-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .share-btn-icon.is-flashed{ width:auto; padding:0 12px; color:var(--burgundy); border-color:var(--brass); }
+  .list-item-speaker{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:2px;
+  }
+  .list-item-meta{
+    font-family:'Inter',sans-serif;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    letter-spacing:.02em;
+    margin-bottom:8px;
+  }
+  .list-item-summary{
+    font-family:'Source Serif 4', Georgia, serif;
+    font-style:italic;
+    font-size:14px;
+    line-height:1.5;
+    color:var(--ink-soft);
+  }
+  .list-footer{ text-align:center; margin-top:16px; }
+
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    text-decoration:none;
+    padding:12px 20px;
+    border-radius:3px;
+    cursor:pointer;
+    border:1px solid transparent;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  .btn-primary{
+    background:var(--burgundy);
+    color:#fdf6ec;
+  }
+  .btn-primary:hover{ background:#5c232b; }
+  .btn-ghost{
+    background:transparent;
+    border-color:var(--line);
+    color:var(--ink);
+  }
+  .btn-ghost:hover{ border-color:var(--brass); color:var(--burgundy); }
+
+  /* ---------- footer ---------- */
+  footer{
+    margin-top:64px;
+    padding-top:26px;
+    border-top:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    line-height:1.7;
+    color:var(--ink-soft);
+    text-align:center;
+  }
+  footer a{ color:var(--burgundy); }
+
+  @media (prefers-reduced-motion: reduce){
+    .ticket, #drawBtn{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">From General Conference of the Church of Jesus Christ of Latter-day Saints</div>
+  <h1>Find random <em>inspiration</em></h1>
+  <p class="sub">Randomize a talk from General Conference.<br>You may narrow the search by using the filters below.</p>
+
+  <div class="divider">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+  </div>
+
+  <div class="filters">
+    <div class="field">
+      <label id="speakerLabel">Speaker</label>
+      <button type="button" class="ms-trigger" id="speakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="speakerLabel speakerTriggerText">
+        <span class="ms-trigger-text" id="speakerTriggerText">Any speaker</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="speakerPanel" hidden>
+        <input type="text" class="ms-search" id="speakerSearch" placeholder="Search speakers…" autocomplete="off">
+        <div class="ms-options" id="speakerOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="roleLabel">Calling at the Time of the Talk</label>
+      <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
+        <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="rolePanel" hidden>
+        <div class="ms-options" id="roleOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="yearLabel">General Conference</label>
+      <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
+        <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="yearPanel" hidden>
+        <div class="ms-options" id="yearOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="topicLabel">Topic</label>
+      <button type="button" class="ms-trigger" id="topicTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="topicLabel topicTriggerText">
+        <span class="ms-trigger-text" id="topicTriggerText">Any topic</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="topicPanel" hidden>
+        <input type="text" class="ms-search" id="topicSearch" placeholder="Search topics…" autocomplete="off">
+        <div class="ms-options" id="topicOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="topicClear">Clear</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters-actions">
+    <button type="button" id="resetBtn" class="reset-link">Reset filters</button>
+  </div>
+
+  <div class="pool-count" id="poolCount"></div>
+
+  <div class="draw-zone">
+    <div class="draw-buttons">
+      <button id="drawBtn">Find a Talk</button>
+      <button id="listBtn">Show a List</button>
+    </div>
+    <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
+  </div>
+
+  <div id="resultZone">
+    <div class="ticket" id="ticket">
+      <h2 id="ticketTitle"></h2>
+      <div class="speaker" id="ticketSpeaker"></div>
+      <div class="summary" id="ticketSummary"></div>
+      <div class="meta" id="ticketMeta"></div>
+      <div class="topics" id="ticketTopics"></div>
+      <div class="ticket-actions">
+        <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
+        <button class="btn btn-ghost" id="shareBtn" type="button">Share</button>
+        <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="listZone">
+    <div class="list-header" id="listHeader"></div>
+    <div class="list-items" id="listItems"></div>
+    <div class="list-footer">
+      <button type="button" class="reset-link" id="listAgainBtn">Show a different list</button>
+    </div>
+  </div>
+
+  <footer>
+    This tool draws from a curated sample of <strong id="totalCount"></strong> real, verified talks pulled from fifty-seven conferences — every conference from October 1999 through April 2026, plus Oct 1995, Apr 1987, and Oct 1974 — not the full archive of several thousand talks since 1971, which isn't practical to hand-index here. Topics are the Church's own official tags, pulled directly from its general-conference topics index rather than guessed from titles.<br>
+    For the complete, official library, visit <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>. This page is an independent fan-made tool, not produced by the Church.
+  </footer>
+
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   Verified talk data: title, speaker, year, month, url-slug.
+   Pulled directly from churchofjesuschrist.org session pages for
+   57 conferences: Oct 1974, Apr 1987, Oct 1995, then every conference
+   from October 1999 through April 2026 without a gap. Every URL below
+   is the real, working link for that talk.
+------------------------------------------------------------------*/
+let TALKS;
+
+/* ---------------------------------------------------------------
+   Church-role lookup: which of six specific offices a speaker held
+   AT THE TIME of a given talk (not just "who they are" generally).
+   Keyed "Speaker|Year|Month". Only speakers who held one of these
+   six roles for a specific talk appear here; everyone else defaults
+   to no role tag (most speakers are General Authority/Area Seventies,
+   which isn't one of the six categories).
+------------------------------------------------------------------*/
+let ROLE_LOOKUP;
+let ROLE_LABELS;
+function talkRole(talk){
+  return ROLE_LOOKUP[`${talk[1]}|${talk[2]}|${talk[3]}`] || null;
+}
+
+/* ---------------------------------------------------------------
+   Official Church topic tags for each talk, keyed "year|month|slug".
+   Sourced directly from each topic's own listing page at
+   churchofjesuschrist.org/study/general-conference/topics/{slug} — every
+   entry here is a real tag the Church itself applies to that talk, not a
+   keyword guess against the title. Built by fetching all 335 official
+   topic pages and matching their linked talk URLs against this file's
+   TALKS array by year/month/url-slug; 2048 of 2052 talks matched at least
+   one official topic (topic pages go back to the 1970s) — the 4 that
+   didn't are all from the Oct 2010 women's session and simply aren't
+   indexed under any official topic; talkTopics() defaults to [] for them.
+------------------------------------------------------------------*/
+let TOPIC_LOOKUP;
+
+/* Display names for topic slugs, Title Case as used on the Church's own
+   topics index (churchofjesuschrist.org/study/general-conference/topics).
+   Only the 317 topics that have >=1 matching talk in this dataset are
+   listed — the other ~18 official topics have zero talks in our 2052-talk
+   sample and are intentionally omitted from the dropdown. */
+let TOPIC_LABELS;
+
+function talkTopics(talk){
+  return TOPIC_LOOKUP[`${talk[2]}|${talk[3]}|${talk[4]}`] || [];
+}
+/* ---------------------------------------------------------------
+   Official one-sentence "kicker" summary for each talk, keyed
+   "year|month|slug" — the same italic teaser sentence that appears
+   directly under the speaker's name/calling on the real talk page
+   at churchofjesuschrist.org, scraped verbatim from each talk's own
+   page (<p class="kicker">). Not every talk has one: the three
+   standalone pre-1999 conferences (Oct 1974, Apr 1987, Oct 1995)
+   predate the Church site adding these, and a handful of individual
+   talks even in later conferences (ceremonial ones like a Solemn
+   Assembly or the Hosanna Shout, plus a few older women's-session
+   talks) simply never got one — those are omitted here rather than
+   invented, and talkKicker() returns null for them. */
+let KICKER_LOOKUP;
+function talkKicker(talk){
+  return KICKER_LOOKUP[`${talk[2]}|${talk[3]}|${talk[4]}`] || null;
+}
+function talkUrl([,,y,m,slug]){
+  return `https://www.churchofjesuschrist.org/study/general-conference/${y}/${m}/${slug}?lang=eng`;
+}
+function monthName(m){ return m === "04" ? "April" : "October"; }
+
+/* Splits a speaker's full name into { last, first, suffix } so the
+   Speaker dropdown can be alphabetized by last name and displayed as
+   "Last, First" (e.g. "Hinckley, Gordon B."). Handles a trailing
+   generational suffix (Jr., Sr., II, III, IV — kept attached to the last
+   name: "Curtis Jr., LeGrand R.") and lowercase surname particles like
+   "de"/"De"/"von" (e.g. "Adilson de Paula Parrella" → surname
+   "de Paula Parrella", not just "Parrella"). Falls back to "last word is
+   the surname" for everything else, including parenthetical nicknames
+   like "Chi Hong (Sam) Wong". */
+const NAME_SUFFIXES = new Set(['Jr.','Sr.','II','III','IV']);
+const NAME_PARTICLES = new Set(['de','da','von','van','dos','das','la','le','du','di','del','der']);
+function parseSpeakerName(name){
+  const tokens = name.split(' ');
+  let suffix = '';
+  if (tokens.length > 1 && NAME_SUFFIXES.has(tokens[tokens.length - 1])){
+    suffix = tokens.pop();
+  }
+  let start = tokens.length - 1;
+  for (let i = 1; i < tokens.length - 1; i++){
+    if (NAME_PARTICLES.has(tokens[i].toLowerCase())){ start = i; break; }
+  }
+  return {
+    last: tokens.slice(start).join(' '),
+    first: tokens.slice(0, start).join(' '),
+    suffix
+  };
+}
+function speakerDisplayName(name){
+  const { last, first, suffix } = parseSpeakerName(name);
+  const lastPart = suffix ? `${last} ${suffix}` : last;
+  return first ? `${lastPart}, ${first}` : lastPart;
+}
+
+/* ---------------- build filter options ---------------- */
+function initApp(){
+const poolCountEl = document.getElementById('poolCount');
+const noMatchEl = document.getElementById('noMatch');
+const drawBtn = document.getElementById('drawBtn');
+const listBtn = document.getElementById('listBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+// Year/conference options, newest first
+const confKey = t => `${t[2]}-${t[3]}`;
+const allConfs = [...new Set(TALKS.map(confKey))].sort().reverse();
+const allSpeakers = [...new Set(TALKS.map(t=>t[1]))]
+  .sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
+const allTopics = Object.keys(TOPIC_LABELS);
+const allRoles = ["president","first-presidency","apostle","relief-society","primary","young-women","young-men","presiding-bishopric","seventy","other"]
+  .filter(r=>Object.values(ROLE_LOOKUP).includes(r));
+
+document.getElementById('totalCount').textContent = TALKS.length;
+
+/* ---------------- filter state ----------------
+   Each dim holds an ARRAY of selected values (checkbox multi-select) —
+   values within one dim are OR'd together (e.g. topic is "Faith" OR
+   "Family"), and the four dims are AND'd together, same as before. An
+   empty array means "no filter" for that dim. */
+const filterState = { year: [], speaker: [], topic: [], role: [] };
+
+function matchesDim(t, dim, values){
+  if (!values.length) return true;
+  if (dim==='year') return values.includes(confKey(t));
+  if (dim==='speaker') return values.includes(t[1]);
+  if (dim==='topic') return talkTopics(t).some(tp=>values.includes(tp));
+  if (dim==='role') return values.includes(talkRole(t));
+  return true;
+}
+function poolExcept(excludeDim){
+  return TALKS.filter(t=>{
+    for (const dim of ['year','speaker','topic','role']){
+      if (dim===excludeDim) continue;
+      if (!matchesDim(t, dim, filterState[dim])) return false;
+    }
+    return true;
+  });
+}
+function currentPool(){
+  return TALKS.filter(t=>
+    matchesDim(t,'year',filterState.year) && matchesDim(t,'speaker',filterState.speaker) &&
+    matchesDim(t,'topic',filterState.topic) && matchesDim(t,'role',filterState.role)
+  );
+}
+function valuesForDim(pool, dim){
+  const set = new Set();
+  if (dim==='year') pool.forEach(t=>set.add(confKey(t)));
+  if (dim==='speaker') pool.forEach(t=>set.add(t[1]));
+  if (dim==='topic') pool.forEach(t=>talkTopics(t).forEach(tp=>set.add(tp)));
+  if (dim==='role') pool.forEach(t=>{ const r=talkRole(t); if(r) set.add(r); });
+  return set;
+}
+
+/* Each dim's checkbox panel: full ordered value list, "nothing selected"
+   placeholder text, the plural noun used in "N selected" summaries,
+   whether the panel gets a search box (only the two long lists — Speaker
+   and Topic — need one), and the DOM refs it's wired to. */
+const DIM_CONFIG = {
+  year: {
+    allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
+    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
+    trigger: document.getElementById('yearTrigger'), triggerText: document.getElementById('yearTriggerText'),
+    panel: document.getElementById('yearPanel'), options: document.getElementById('yearOptions'),
+    search: null, clearBtn: document.getElementById('yearClear')
+  },
+  speaker: {
+    allValues: allSpeakers, anyLabel:'Any speaker', noun:'speakers', searchable:true,
+    labelFor: v=>speakerDisplayName(v),
+    trigger: document.getElementById('speakerTrigger'), triggerText: document.getElementById('speakerTriggerText'),
+    panel: document.getElementById('speakerPanel'), options: document.getElementById('speakerOptions'),
+    search: document.getElementById('speakerSearch'), clearBtn: document.getElementById('speakerClear')
+  },
+  topic: {
+    allValues: allTopics, anyLabel:'Any topic', noun:'topics', searchable:true,
+    labelFor: v=>TOPIC_LABELS[v],
+    trigger: document.getElementById('topicTrigger'), triggerText: document.getElementById('topicTriggerText'),
+    panel: document.getElementById('topicPanel'), options: document.getElementById('topicOptions'),
+    search: document.getElementById('topicSearch'), clearBtn: document.getElementById('topicClear')
+  },
+  role: {
+    allValues: allRoles, anyLabel:'Any Calling', noun:'callings', searchable:false,
+    labelFor: v=>ROLE_LABELS[v],
+    trigger: document.getElementById('roleTrigger'), triggerText: document.getElementById('roleTriggerText'),
+    panel: document.getElementById('rolePanel'), options: document.getElementById('roleOptions'),
+    search: null, clearBtn: document.getElementById('roleClear')
+  }
+};
+// The set of values still reachable for each dim given the OTHER active
+// filters — recomputed on every filter change, same "reachable" concept
+// the old single-select cascading used, just feeding checkboxes now.
+const availableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set() };
+
+/* Renders one dim's checkbox list from its current available set, current
+   selections (never hidden even if no longer "available" — a choice
+   never vanishes out from under the person), and current search text. */
+function renderOptions(dim){
+  const cfg = DIM_CONFIG[dim];
+  const available = availableSets[dim];
+  const selected = filterState[dim];
+  const query = cfg.search ? cfg.search.value.trim().toLowerCase() : '';
+  cfg.options.innerHTML = '';
+  let shown = 0;
+  cfg.allValues.forEach(val=>{
+    if (!(available.has(val) || selected.includes(val))) return;
+    const label = cfg.labelFor(val);
+    if (query && !label.toLowerCase().includes(query)) return;
+    shown++;
+    const row = document.createElement('label');
+    row.className = 'ms-option';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = val;
+    cb.checked = selected.includes(val);
+    cb.addEventListener('change', ()=>{
+      const arr = filterState[dim];
+      const idx = arr.indexOf(val);
+      if (cb.checked && idx===-1) arr.push(val);
+      if (!cb.checked && idx!==-1) arr.splice(idx,1);
+      refreshCount();
+    });
+    const span = document.createElement('span');
+    span.textContent = label;
+    row.appendChild(cb); row.appendChild(span);
+    cfg.options.appendChild(row);
+  });
+  if (shown === 0){
+    const empty = document.createElement('div');
+    empty.className = 'ms-empty';
+    empty.textContent = query ? 'No matches' : 'No options available';
+    cfg.options.appendChild(empty);
+  }
+}
+function updateTrigger(dim){
+  const cfg = DIM_CONFIG[dim];
+  const n = filterState[dim].length;
+  cfg.triggerText.textContent =
+    n === 0 ? cfg.anyLabel :
+    n === 1 ? cfg.labelFor(filterState[dim][0]) :
+    `${n} ${cfg.noun} selected`;
+  cfg.clearBtn.disabled = n === 0;
+}
+function rebuildFilterOptions(){
+  Object.keys(DIM_CONFIG).forEach(dim=>{
+    availableSets[dim] = valuesForDim(poolExcept(dim), dim);
+    renderOptions(dim);
+    updateTrigger(dim);
+  });
+}
+function refreshCount(){
+  rebuildFilterOptions();
+  const pool = currentPool();
+  if (pool.length === 0){
+    poolCountEl.textContent = '';
+    noMatchEl.style.display = 'block';
+    drawBtn.disabled = true;
+    listBtn.disabled = true;
+  } else {
+    noMatchEl.style.display = 'none';
+    drawBtn.disabled = false;
+    listBtn.disabled = false;
+    poolCountEl.innerHTML = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''} right now`;
+  }
+  resetBtn.disabled = !(filterState.year.length || filterState.speaker.length || filterState.topic.length || filterState.role.length);
+}
+
+/* ---------------- panel open/close (one at a time) ---------------- */
+let openDim = null;
+function closePanel(dim){
+  const cfg = DIM_CONFIG[dim];
+  cfg.panel.hidden = true;
+  cfg.trigger.setAttribute('aria-expanded','false');
+  if (openDim === dim) openDim = null;
+}
+function closeAllPanels(){ Object.keys(DIM_CONFIG).forEach(closePanel); }
+function openPanel(dim){
+  if (openDim && openDim !== dim) closePanel(openDim);
+  const cfg = DIM_CONFIG[dim];
+  cfg.panel.hidden = false;
+  cfg.trigger.setAttribute('aria-expanded','true');
+  openDim = dim;
+  if (cfg.search){ cfg.search.value = ''; renderOptions(dim); cfg.search.focus(); }
+}
+Object.keys(DIM_CONFIG).forEach(dim=>{
+  const cfg = DIM_CONFIG[dim];
+  cfg.trigger.addEventListener('click', ()=>{
+    if (cfg.panel.hidden) openPanel(dim); else closePanel(dim);
+  });
+  if (cfg.search) cfg.search.addEventListener('input', ()=>renderOptions(dim));
+  cfg.clearBtn.addEventListener('click', ()=>{
+    filterState[dim] = [];
+    refreshCount();
+  });
+});
+document.addEventListener('click', (e)=>{
+  if (!openDim) return;
+  const field = DIM_CONFIG[openDim].trigger.closest('.field');
+  if (field && !field.contains(e.target)) closeAllPanels();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && openDim){
+    const dim = openDim;
+    closePanel(dim);
+    DIM_CONFIG[dim].trigger.focus();
+  }
+});
+
+resetBtn.addEventListener('click', ()=>{
+  filterState.year = []; filterState.speaker = []; filterState.topic = []; filterState.role = [];
+  refreshCount();
+});
+refreshCount();
+
+/* ---------------- draw ---------------- */
+const resultZone = document.getElementById('resultZone');
+const ticket = document.getElementById('ticket');
+let lastPicked = null;
+
+function draw(){
+  const pool = currentPool();
+  if (!pool.length) return;
+  let pick = pool[Math.floor(Math.random()*pool.length)];
+  // avoid repeating the exact same talk twice in a row when possible
+  if (pool.length > 1 && lastPicked && pick[0]===lastPicked[0] && pick[2]===lastPicked[2]){
+    pick = pool[(pool.indexOf(pick)+1) % pool.length];
+  }
+  lastPicked = pick;
+
+  const [title, speaker, year, month, slug] = pick;
+  const url = talkUrl(pick);
+
+  document.getElementById('ticketTitle').textContent = title;
+  const role = talkRole(pick);
+  document.getElementById('ticketSpeaker').textContent = role ? `${speaker} · ${ROLE_LABELS[role]}` : speaker;
+
+  // Not every talk has one (see the KICKER_LOOKUP comment above) — hide
+  // the line entirely rather than leaving an empty italic gap.
+  const summaryEl = document.getElementById('ticketSummary');
+  const kicker = talkKicker(pick);
+  summaryEl.textContent = kicker || '';
+  summaryEl.style.display = kicker ? 'block' : 'none';
+
+  document.getElementById('ticketMeta').textContent = `${monthName(month)} ${year} General Conference`;
+
+  const topicsWrap = document.getElementById('ticketTopics');
+  topicsWrap.innerHTML = '';
+  // If topic filters are active, make sure any of them the talk actually
+  // has are always among the chips shown — otherwise a talk with many
+  // official tags could truncate away the very topic(s) filtered by.
+  const activeTopics = filterState.topic;
+  const talkTags = talkTopics(pick);
+  const matchedActive = talkTags.filter(tp=>activeTopics.includes(tp));
+  const shownTags = matchedActive.length
+    ? [...matchedActive, ...talkTags.filter(tp=>!matchedActive.includes(tp))]
+    : talkTags;
+  shownTags.slice(0,5).forEach(tp=>{
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = TOPIC_LABELS[tp];
+    topicsWrap.appendChild(chip);
+  });
+
+  const openLink = document.getElementById('openLink');
+  openLink.href = url;
+
+  listZone.style.display = 'none';
+  resultZone.style.display = 'block';
+  ticket.classList.remove('show');
+  void ticket.offsetWidth; // restart animation
+  ticket.classList.add('show');
+
+  resultZone.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+drawBtn.addEventListener('click', draw);
+document.getElementById('drawAgainBtn').addEventListener('click', draw);
+
+/* ---------------- list of up to LIST_SIZE matching talks ---------------- */
+const LIST_SIZE = 10;
+const listZone = document.getElementById('listZone');
+const listHeader = document.getElementById('listHeader');
+const listItemsEl = document.getElementById('listItems');
+
+function shuffled(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showList(){
+  const pool = currentPool();
+  if (!pool.length) return;
+  const picks = shuffled(pool).slice(0, LIST_SIZE);
+
+  listItemsEl.innerHTML = '';
+  picks.forEach(pick=>{
+    const [title, speaker, year, month] = pick;
+    const role = talkRole(pick);
+    const kicker = talkKicker(pick);
+
+    const item = document.createElement('div');
+    item.className = 'list-item';
+
+    const head = document.createElement('div');
+    head.className = 'list-item-head';
+
+    const titleLink = document.createElement('a');
+    titleLink.className = 'list-item-title';
+    titleLink.href = talkUrl(pick);
+    titleLink.target = '_blank';
+    titleLink.rel = 'noopener';
+    titleLink.textContent = title;
+    head.appendChild(titleLink);
+
+    const shareIconBtn = document.createElement('button');
+    shareIconBtn.type = 'button';
+    shareIconBtn.className = 'share-btn-icon';
+    shareIconBtn.innerHTML = SHARE_ICON_SVG;
+    shareIconBtn.setAttribute('aria-label', `Share "${title}"`);
+    shareIconBtn.addEventListener('click', ()=> shareTalk(pick, shareIconBtn));
+    head.appendChild(shareIconBtn);
+
+    item.appendChild(head);
+
+    const speakerEl = document.createElement('div');
+    speakerEl.className = 'list-item-speaker';
+    speakerEl.textContent = role ? `${speaker} · ${ROLE_LABELS[role]}` : speaker;
+    item.appendChild(speakerEl);
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'list-item-meta';
+    metaEl.textContent = `${monthName(month)} ${year} General Conference`;
+    item.appendChild(metaEl);
+
+    if (kicker){
+      const summaryEl = document.createElement('div');
+      summaryEl.className = 'list-item-summary';
+      summaryEl.textContent = kicker;
+      item.appendChild(summaryEl);
+    }
+
+    listItemsEl.appendChild(item);
+  });
+
+  const shown = picks.length;
+  listHeader.innerHTML = shown < pool.length
+    ? `Showing <strong>${shown}</strong> random talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match right now`
+    : `Showing all <strong>${shown}</strong> talk${shown===1?'':'s'} that match right now`;
+
+  resultZone.style.display = 'none';
+  listZone.style.display = 'block';
+  listZone.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+listBtn.addEventListener('click', showList);
+document.getElementById('listAgainBtn').addEventListener('click', showList);
+
+/* ---------------- share (native share sheet, falls back to copy-link) ---------------- */
+const SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>';
+
+/* Copies text with the modern async Clipboard API first, falling back to
+   the older execCommand('copy') technique (a hidden, focused, selected
+   textarea) if that's unavailable or rejected — which matters here since
+   this app is typically opened as a local file:// page, and many browsers
+   only grant navigator.clipboard.writeText on secure/HTTPS origins. The
+   legacy technique has much broader file:// support. */
+async function copyText(text){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch(err){ /* fall through to the legacy technique below */ }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch(err){
+    return false;
+  }
+}
+
+async function shareTalk(pick, btnEl){
+  const [title, speaker] = pick;
+  const url = talkUrl(pick);
+  if (navigator.share){
+    try {
+      await navigator.share({ title, text: `${title} — ${speaker}`, url });
+      return;
+    } catch(err){
+      // Person cancelling the native share sheet throws AbortError — that's a
+      // normal outcome, not a failure, so stay quiet. Anything else (e.g. the
+      // browser advertises navigator.share but rejects this particular call)
+      // falls through to the copy-link fallback below.
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const copied = await copyText(url);
+  flashShareButton(btnEl, copied ? 'Link copied!' : 'Copy failed');
+}
+/* Briefly swaps a share button's content to a confirmation message, then
+   restores its original label/icon. Works for both the ticket's text
+   button and the list's icon-only buttons (the icon button also gets a
+   temporary width-expanding class so the confirmation text isn't clipped
+   inside its normal 30px circle). */
+function flashShareButton(btnEl, message){
+  if (!btnEl) return;
+  if (btnEl.dataset.flashTimer) clearTimeout(Number(btnEl.dataset.flashTimer));
+  if (!('defaultHtml' in btnEl.dataset)) btnEl.dataset.defaultHtml = btnEl.innerHTML;
+  const isIcon = btnEl.classList.contains('share-btn-icon');
+  btnEl.innerHTML = message;
+  if (isIcon) btnEl.classList.add('is-flashed');
+  const timer = setTimeout(()=>{
+    btnEl.innerHTML = btnEl.dataset.defaultHtml;
+    btnEl.classList.remove('is-flashed');
+  }, 1600);
+  btnEl.dataset.flashTimer = String(timer);
+}
+
+const shareBtn = document.getElementById('shareBtn');
+shareBtn.addEventListener('click', ()=>{
+  if (!lastPicked) return;
+  shareTalk(lastPicked, shareBtn);
+});
+}
+
+/* ---------------------------------------------------------------
+   Data loading. Talk data used to be baked directly into this file as
+   inline `const` literals; it now lives in data.json so it can be updated
+   without shipping a new app-store build (see PROJECT_HANDOFF.md).
+   - LOCAL_DATA_URL is the copy sitting right next to this file — always
+     available, including fully offline, since a packaged mobile app reads
+     it from its own bundle rather than the network.
+   - REMOTE_DATA_URL is the canonical, continuously-updated copy hosted on
+     GitHub Pages. Leave it blank until that's set up; the app just runs
+     on the local/cached copy until then.
+------------------------------------------------------------------*/
+const LOCAL_DATA_URL = './data.json';
+const REMOTE_DATA_URL = ''; // e.g. 'https://<user>.github.io/<repo>/data.json'
+const DATA_CACHE_KEY = 'findATalkData';
+
+function applyData(data){
+  TALKS = data.talks;
+  ROLE_LOOKUP = data.roleLookup;
+  ROLE_LABELS = data.roleLabels;
+  TOPIC_LOOKUP = data.topicLookup;
+  TOPIC_LABELS = data.topicLabels;
+  KICKER_LOOKUP = data.kickerLookup;
+}
+function cacheData(data){
+  try { localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(data)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip caching */ }
+}
+function showFatalLoadError(){
+  document.body.innerHTML =
+    '<p style="text-align:center;padding:80px 20px;font-family:sans-serif;color:#3d4d64;">' +
+    'Couldn\u2019t load the talk data. Check your connection and reload the page.</p>';
+}
+
+async function loadData(){
+  // Fast path: a previously-cached copy (from the bundle or a prior remote
+  // check), so relaunches/reloads render instantly with no network wait.
+  let cached = null;
+  try {
+    const raw = localStorage.getItem(DATA_CACHE_KEY);
+    if (raw) cached = JSON.parse(raw);
+  } catch(err){ /* corrupted cache or storage unavailable — ignore, fall through */ }
+
+  if (cached){
+    applyData(cached);
+  } else {
+    // First-ever launch: load the copy bundled alongside this file. Works
+    // fully offline in a packaged app, since it's read from the app's own
+    // bundle rather than fetched over the network.
+    try {
+      const res = await fetch(LOCAL_DATA_URL, {cache:'no-store'});
+      if (!res.ok) throw new Error('bad response');
+      const data = await res.json();
+      applyData(data);
+      cacheData(data);
+    } catch(err){
+      showFatalLoadError();
+      return;
+    }
+  }
+
+  initApp();
+
+  // Check for a fresher copy in the background (new conferences, fixes).
+  // If found, just cache it silently — it's picked up on the NEXT launch
+  // via the cached-copy fast path above, rather than hot-swapping data
+  // and re-wiring the UI underneath someone mid-session.
+  if (REMOTE_DATA_URL){
+    fetch(REMOTE_DATA_URL, {cache:'no-store'})
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => cacheData(data))
+      .catch(()=>{ /* offline or remote unreachable — keep what's cached */ });
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
