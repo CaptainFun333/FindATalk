@@ -803,6 +803,101 @@ a real ecosystem gap, GUI build recommended instead:**
   Eclipse Temurin download — and pointing `JAVA_HOME` at it instead of
   Android Studio's bundled `jbr`.
 
+**Update, same Phase 2 (Android confirmed working via Android Studio's
+GUI, as recommended above):** two more real issues surfaced and got
+fixed:
+- `android/app/build.gradle` used `getDefaultProguardFile('proguard-
+  android.txt')`, which a newer Android Gradle Plugin rejects (it now
+  requires `'proguard-android-optimize.txt'` instead — the old file
+  implies `-dontoptimize`, which blocks R8 optimizations). One-line fix
+  applied directly to that generated file.
+- Android Studio's Run button failed with "No target device found" —
+  expected the first time, since no emulator existed yet. Fixed by the
+  user creating a virtual device via Android Studio's own Device Manager
+  (Claude has no `avdmanager`/emulator-creation tool here — the SDK
+  install didn't include `cmdline-tools`, only `platform-tools`/
+  `platforms`/`build-tools`, so this really did need the GUI).
+
+## ✅ Done: Recently Viewed, Favorites, and a "Show" filter for both
+Three related features, all purely local to the device (`localStorage`,
+no accounts/sync):
+- **Recently Viewed** — a new page listing talks the person actually
+  *opened*, most-recent-first. Recording happens **only** on a real open:
+  the ticket's "Open This Talk" link, or a title link in "Show a List" /
+  Recently Viewed / Favorites itself — deliberately **not** on draw or
+  share, per how the feature was scoped.
+- **Favorites** — a star toggle (next to Share, everywhere a talk is
+  shown: the ticket, every list row, and both new pages) that saves/
+  unsaves a talk to its own page. Unfavoriting live-removes the row from
+  the Favorites page immediately, no refresh needed.
+- **A 5th filter, "Show"** — alongside Speaker/Calling/Conference/Topic,
+  with two checkbox values ("Recently Viewed"/"Favorites") that plug into
+  the exact same multi-select architecture as the other four (OR'd within
+  the dim, AND'd across dims, cascading-availability rules included) —
+  checking "Favorites" narrows the pool to just favorited talks, checking
+  both shows talks that are either.
+
+**Architecture notes:**
+- `talkKey(talk)` (`"year|month|slug"`, same format `TOPIC_LOOKUP`/
+  `KICKER_LOOKUP` already used) is the shared identity used to store
+  recents/favorites as plain string arrays in `localStorage`
+  (`findATalkRecent`, `findATalkFavorites`) and look them back up via a
+  new `TALKS_BY_KEY` map built once real data loads.
+- Adding a 5th filter dim was the trigger for a small refactor: the
+  dim-iteration logic in `poolExcept()`/`currentPool()`/the reset-button
+  handler/`refreshCount()`'s disabled-check was hardcoded to the four
+  original dim names — replaced with `Object.keys(DIM_CONFIG)` everywhere
+  so a future 6th dim (if one's ever added) is a pure `DIM_CONFIG`/HTML
+  addition, no hunting for hardcoded dim lists elsewhere.
+- The "Recently Viewed"/"Favorites" pages reuse `buildListItemRow(pick)`
+  and `createFavoriteButton(pick)` — the exact same row-rendering code
+  "Show a List" already used, refactored out into shared functions rather
+  than copy-pasted three times.
+- New page-nav (top of the page, "Recently Viewed · Favorites") and a
+  `homeZone` wrapper `<div>` around everything that used to be the whole
+  page (divider through `listZone`) so `showZone('home'|'recent'|
+  'favorites')` can just toggle which one section is visible — same
+  "only one thing visible at a time" pattern the app already used for
+  the ticket vs. the list.
+
+**A real bug found and fixed during live iOS Simulator testing** (not
+just a static check this time — see verification below): favoriting/
+unfavoriting a talk from a *different* surface than the ticket (e.g. its
+own list row on the Favorites page) didn't update the ticket's own
+"☆ Favorite"/"★ Favorited" button if that same talk happened to still be
+showing on the ticket — each favorite button only synced itself, not
+every other instance of the same talk elsewhere on the page. Fixed by
+having `createFavoriteButton`'s click handler also call the ticket's
+`syncFavoriteBtn()` whenever the toggled talk matches `lastPicked`.
+
+**Verification — fully live, not just static checks this time:** built
+and ran in the iOS Simulator (same iPhone 17 sim as Phase 2's iOS
+verification), covering: drawing a talk → tapping "Open This Talk" →
+confirming it shows up on the Recently Viewed page; favoriting from the
+ticket → confirming it appears on the Favorites page with a filled star;
+unfavoriting from the Favorites page → confirming it live-disappears from
+that page immediately; the "Show" filter panel opening, "Recently
+Viewed" being checkable, and the pool count narrowing correctly; and the
+ticket-sync bug above, both before (caught the bug) and after (confirmed
+the fix) the patch. Android wasn't re-verified live for this feature
+(no Android-emulator automation tool available), but `npx cap sync` was
+re-run so the same updated `docs/` content is bundled into `android/`
+too — the user can confirm via Android Studio's Run button same as before.
+
+**Tap-coordinate technique refined further this session, worth keeping
+for future simulator UI testing:** for *outlined* elements (ghost
+buttons, filter trigger boxes) rather than solid-fill ones, scanning for
+the border color (`var(--line)`, `#c9bfa2`) and grouping matching rows
+into "bands" (consecutive border-color rows collapsed into one, filtering
+by a **near-full-width run length** — roughly 1000+ px out of a 1206px-
+wide screenshot at this device's 3x scale) reliably finds each field
+box's real top/bottom edges. A single mis-scan (too-strict tolerance, or
+an isolated short border-colored run like a `.reset-link`'s underline)
+can produce a wrong box pairing that looks *plausible* — this cost
+several missed taps against the new "Show" filter in this session before
+switching to the full-width-run-length + row-grouping approach above,
+which then worked on the first try.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
 there's now a **standing gap between April 1996 and April 1999** (7
