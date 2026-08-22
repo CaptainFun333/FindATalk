@@ -1841,21 +1841,78 @@ plus the October 1974 standalone. **3454 talks total.**
   (`presiding-bishopric`), Naomi M. Shumway (`primary`), and Hinckley
   still correctly `apostle` at Apr 1980 (pre-July 1981).
 
+## ✅ Done: backward coverage to October 1976 (Harold B. Lee's presidency researched, no transition needed)
+Added Oct 1976, Apr 1977, Oct 1977, Apr 1978 (165 talks). **The
+continuous run now goes October 1976 → April 2026 (101 conferences back
+to back)**, plus the October 1974 standalone. **3619 talks total.**
+- **Harold B. Lee's presidency researched, confirmed via search**: Lee
+  (11th president, July 7 1972 – Dec 26 1973, the shortest 20th-century
+  presidency at 18 months) had the **same two counselors Kimball later
+  kept** — N. Eldon Tanner (1st) and Marion G. Romney (2nd) — meaning
+  **no First-Presidency-transition research was actually needed for this
+  batch**: every one of these 4 conferences falls entirely within
+  Kimball's presidency (started Dec 30 1973), so the already-established
+  Kimball/Tanner/Romney pattern (Hinckley still a plain apostle
+  throughout, pre-July 1981) just continues unchanged. Lee's own
+  presidency itself (July 1972 – Dec 1973) still has no conferences in
+  this dataset — that's the next task, see below.
+- **A fifth admin-title variant matched an already-generalized pattern**
+  (`"Church Finance Committee Report"`, already added to the exclusion
+  set last session) — no new variant this time, the standing exclusion
+  list held up for this batch.
+- **Kickers**: 1 more of the "context note" family (not this project's
+  usual one-sentence-teaser style) — a McConkie sermon originally given
+  in Lima, Peru, printed at Kimball's request. Kept verbatim.
+- **Topics**: 164/165 matched; the exception ("Presentation of Scouting
+  Award," Apr 1977) has no official topic tag, unsurprising for a
+  ceremonial award presentation rather than a doctrinal talk.
+- **New apostle added to the stable set for this era**: **Delbert L.
+  Stapley** (called 1950, active through this whole batch) — the first
+  time this project has needed him, since he doesn't appear in any
+  later batch already covered.
+- **Eldred G. Smith, Patriarch to the Church, reappears** (Apr 1978,
+  "Decision") — tagged `other`, consistent with the precedent already
+  established from his Oct 1974 talk (the unique non-Seventy priesthood
+  office documented in an earlier session's `other`-role work).
+- **One more non-officeholder left untagged**: **Arch Monson** (Apr
+  1977, "Presentation of Scouting Award") — presenting a civic honor
+  rather than giving a doctrinal sermon, no confirmable Church calling,
+  same treatment as every other unconfirmed-calling case this project
+  has hit.
+- **No Relief Society/Young Women/Primary talks at all appear in this
+  batch** — not a bug, just means none of Barbara B. Smith (the only
+  auxiliary president confirmed active this era)'s counterparts spoke at
+  these 4 particular conferences; Smith herself has no talk in this
+  batch either. Nothing to tag, nothing to flag.
+- **Validation clean**: zero duplicates, zero orphans, zero sandwiched
+  gaps, zero missing conferences in the expected Oct 1976 → Apr 2026
+  run, zero role flip-flops, across the full 3619-talk dataset.
+- Footer copy and code comment in `docs/index.html` updated: "one
+  hundred and one conferences... every conference from October 1976
+  through April 2026, plus Oct 1974."
+- **Verified live**: `TALKS.length` = 3619; `ROLE_LOOKUP` confirmed
+  Stapley (`apostle`), Eldred G. Smith (`other`), Victor L. Brown
+  (`presiding-bishopric`), Hinckley still `apostle` at Apr 1978, and Arch
+  Monson resolving to `undefined`.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **October 1974 and earlier** — this
-project has no other conferences between the current Oct 1978 start and
-the standalone Oct 1974 (a 7-conference/3.5-year hole, 1975–1978, never
-touched at all) or before Oct 1974 itself (the earliest conference this
-project has ever indexed — going further back than that has never been
-scoped at all). Kimball's own presidency is confirmed stable back to
-1973 (his own succession, from Harold B. Lee who died Dec 26 1973 after
-less than 18 months as president himself, still hasn't been researched —
-this is the last remaining First-Presidency-transition unknown standing
-between the current Oct 1978 start and the Oct 1974 standalone). Filling
-backward past Oct 1974 would need that research plus fresh Relief
-Society/Young Women/Primary/Presiding Bishopric predecessor research
-(Smith/Funk/Shumway/Brown-or-earlier's own predecessors, none confirmed
-yet).
+project has no other conferences between the current Oct 1976 start and
+the standalone Oct 1974 (a 3-conference/1.5-year hole: Apr 1976, Oct
+1975, Apr 1975 — small enough to likely close in one more batch) or
+before Oct 1974 itself (the earliest conference this project has ever
+indexed — going further back than that has never been scoped at all).
+**Harold B. Lee's own presidency (July 1972 – Dec 1973) still needs its
+own conferences fetched** — Apr 1975 and Oct 1975/Apr 1976 fall under
+Kimball (already-confirmed Tanner/Romney pattern, no new FP research
+needed), but if this next batch or a future one reaches back far enough
+to touch a conference **before Dec 30 1973** (i.e., Oct 1973 or Apr
+1973, both under Lee), remember Lee had the *same* two counselors as
+Kimball, so still no new FP research needed even then — the real
+unresearched unknown is **Joseph Fielding Smith's presidency (Lee's own
+predecessor, died July 2 1972)** and its transition to Lee, only
+relevant if a future batch reaches back past Lee's very first conference
+(likely Oct 1972).
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the full validation pass
 (duplicates, orphans, sandwiched gaps, missing-conference check, role
@@ -1863,7 +1920,8 @@ flip-flop check) afterward. **Scan every new batch's raw talk titles for
 admin-report variants before trusting the fixed exclusion list, and
 re-scan every conference in a multi-conference batch against the role
 sets individually** — both have now caught real misses in three sessions
-running.
+running (though this session's batch didn't hit either issue, the
+standing exclusion set having grown enough to cover it).
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was
