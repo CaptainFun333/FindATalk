@@ -291,6 +291,7 @@
     color:var(--ink);
     padding:4px 2px;
   }
+  .nav-current-link{ font-weight:700; color:var(--ink); }
 
   /* ---------- Recently Viewed / Favorites pages ---------- */
   .page-header{
@@ -734,16 +735,12 @@
   </div>
 
   <div id="homeZone">
+  <div class="page-nav" id="homeZoneNav"></div>
+
   <div class="totd-zone" id="totdZone">
     <div class="eyebrow totd-eyebrow">Talk of the Day</div>
     <div class="list-items" id="totdItems"></div>
   </div>
-
-  <div class="divider">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
-  </div>
-
-  <div class="page-nav" id="homeZoneNav"></div>
 
   <p class="search-intro">You may narrow the search by using the filters below.</p>
 
@@ -932,7 +929,7 @@
   </div>
 
   <footer>
-    This tool draws from a curated sample of <strong id="totalCount"></strong> real, verified talks pulled from ninety-three conferences — every conference from October 1980 through April 2026, plus Oct 1974 — not the full archive of several thousand talks since 1971, which isn't practical to hand-index here. Topics are the Church's own official tags, pulled directly from its general-conference topics index rather than guessed from titles.<br>
+    This tool draws from a curated sample of <strong id="totalCount"></strong> real, verified talks pulled from ninety-seven conferences — every conference from October 1978 through April 2026, plus Oct 1974 — not the full archive of several thousand talks since 1971, which isn't practical to hand-index here. Topics are the Church's own official tags, pulled directly from its general-conference topics index rather than guessed from titles.<br>
     For the complete, official library, visit <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>. This page is an independent fan-made tool, not produced by the Church.
   </footer>
 
@@ -942,8 +939,8 @@
 /* ---------------------------------------------------------------
    Verified talk data: title, speaker, year, month, url-slug.
    Pulled directly from churchofjesuschrist.org session pages for
-   93 conferences: Oct 1974 standalone, then every conference from
-   October 1980 through April 2026 without a gap. Every URL below
+   97 conferences: Oct 1974 standalone, then every conference from
+   October 1978 through April 2026 without a gap. Every URL below
    is the real, working link for that talk.
 ------------------------------------------------------------------*/
 let TALKS;
@@ -1856,13 +1853,17 @@ const NAV_ITEMS = [
 const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
 function renderNavBars(currentZone){
   // The individual list-detail page isn't one of the four tabs — treat
-  // it as part of "My Lists" for bolding purposes.
-  const current = currentZone==='collection' ? 'collectionsIndex' : currentZone;
+  // it as part of "My Lists" for bolding purposes. Unlike an exact match
+  // on one of the four tab pages, "My Lists" here still has to stay
+  // clickable, since it's the only way back to the list index.
+  const boldZone = currentZone==='collection' ? 'collectionsIndex' : currentZone;
   const html = NAV_ITEMS.map((item, i)=>{
     const sep = i>0 ? '<span class="nav-sep">·</span>' : '';
-    const piece = item.zone===current
+    const isBold = item.zone===boldZone;
+    const isExactMatch = item.zone===currentZone;
+    const piece = isExactMatch
       ? `<span class="nav-current">${item.label}</span>`
-      : `<button type="button" class="reset-link" data-nav-zone="${item.zone}">${item.label}</button>`;
+      : `<button type="button" class="reset-link${isBold ? ' nav-current-link' : ''}" data-nav-zone="${item.zone}">${item.label}</button>`;
     return sep + piece;
   }).join('');
   NAV_BAR_IDS.forEach(id=>{

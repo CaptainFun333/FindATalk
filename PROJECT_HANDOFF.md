@@ -1782,29 +1782,88 @@ October 1974 standalone. **3303 talks total.**
   boundary, Victor L. Brown and Marian R. Boyer resolving correctly, and
   JoAnn Randall resolving to `undefined`.
 
+## ✅ Done: backward coverage to October 1978 (Funk→Cannon and Shumway→Young predecessors confirmed)
+Added Apr 1979, Oct 1979, Apr 1980, plus **Oct 1978** (151 talks, after
+dropping two more admin-title variants — see below). **The continuous
+run now goes October 1978 → April 2026 (97 conferences back to back)**,
+plus the October 1974 standalone. **3454 talks total.**
+- **Yet another admin-title variant caught, this time before merging**:
+  `"Church Finance Committee Report"` (Apr 1979, Apr 1980) — a fourth
+  distinct admin-report title family, after "The Sustaining of Church
+  Officers," "Church Audit Committee Report," and "Sustaining of Church
+  Officers" (no "The") from the last two sessions. Confirms the standing
+  advice to scan every new batch's raw titles rather than trust the
+  fixed exclusion set — **this is now the third session in a row this
+  check has caught a real miss.**
+- **A same-conference miss caught mid-batch, not before**: the first
+  draft of this batch's role script only covered the Apr 1979/Oct 1979/
+  Apr 1980 conferences' visible pattern and missed that **Oct 1978**
+  (also fetched this batch) contains **two real auxiliary transitions**
+  — re-scanning that conference's full speaker list caught both before
+  merging. **Worth remembering: when a batch spans more conferences than
+  the ones most recently discussed, re-scan *every* conference's full
+  list against the role sets, not just the ones already top-of-mind.**
+- **Young Women: Ruth H. Funk → Elaine A. Cannon, a real same-conference
+  transition at Oct 1978** — Funk (7th YW president, confirmed via this
+  session's search results) gives her farewell ("Come, Listen to a
+  Prophet's Voice") the same conference Cannon gives her first ("If We
+  Want to Go Up, We Have to Get On"), both tagged `young-women`, the
+  same pattern used throughout this project. This is the predecessor to
+  the already-documented Cannon→Kapp transition (Apr 1984).
+- **Primary: Naomi M. Shumway confirmed as Dwan J. Young's predecessor**
+  (6th Primary general president, 1974–1980, counselor Colleen B. Lemmon
+  who has no talk in this batch) — her one talk in this batch (Oct 1979)
+  is tagged `primary`. **The exact transition conference to Young is
+  still not pinned down**: neither Shumway nor Young has a talk at Apr
+  1980 (this batch) or Oct 1980 (already in the dataset from an earlier
+  session) — Shumway's last talk in the dataset is Oct 1979, Young's
+  first is Apr 1982 (already known). The search confirms "succeeded...
+  in 1980" but not which specific conference — leave this open rather
+  than guessing if a future pass ever needs the exact boundary.
+- **Presiding Bishopric (Brown/Peterson) confirmed active this whole
+  window** — both already documented from the previous two sessions,
+  just continuing here with no new transition.
+- **Topics**: 150/153 fetched talks matched; 3 exceptions — the historic
+  "Revelation on Priesthood Accepted, Church Officers Sustained" (Oct
+  1978, a real distinctly-titled proceeding, correctly kept per the
+  Solemn Assembly precedent) and the two Church Finance Committee
+  Reports (already dropped as admin items before this count, so not
+  actually a concern).
+- **Kickers**: zero, as expected.
+- **Validation clean**: zero duplicates, zero orphans, zero sandwiched
+  gaps, zero missing conferences in the expected Oct 1978 → Apr 2026 run,
+  zero role flip-flops, across the full 3454-talk dataset.
+- Footer copy and code comment in `docs/index.html` updated: "ninety-
+  seven conferences... every conference from October 1978 through April
+  2026, plus Oct 1974."
+- **Verified live**: `TALKS.length` = 3454; `ROLE_LOOKUP` confirmed the
+  Funk/Cannon Oct 1978 transition, H. Burke Peterson
+  (`presiding-bishopric`), Naomi M. Shumway (`primary`), and Hinckley
+  still correctly `apostle` at Apr 1980 (pre-July 1981).
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **October 1974 and earlier** — this
-project has no other conferences between the current Oct 1980 start and
-the standalone Oct 1974 (a 11-conference/5.5-year hole, 1975–1980, never
+project has no other conferences between the current Oct 1978 start and
+the standalone Oct 1974 (a 7-conference/3.5-year hole, 1975–1978, never
 touched at all) or before Oct 1974 itself (the earliest conference this
-project has ever indexed). Kimball's own presidency is confirmed stable
-back to 1973 (his own succession, from Harold B. Lee who died Dec 26
-1973 after less than 18 months as president himself, hasn't been
-researched). Filling backward past Oct 1974, or filling the 1975–1980
-hole to connect it to the current Oct 1980 start, are both much bigger
-undertakings than any single batch so far — neither has been scoped, and
-either would need substantial fresh First Presidency/auxiliary-
-presidency research (Lee's brief presidency and its transition both to
-and from; Smith/Cannon/Young's own predecessors in Relief Society/Young
-Women/Primary, none of which have known start dates before the 1970s in
-this project yet; the Presiding Bishopric before Brown/Peterson, whose
-own start dates aren't yet confirmed either).
+project has ever indexed — going further back than that has never been
+scoped at all). Kimball's own presidency is confirmed stable back to
+1973 (his own succession, from Harold B. Lee who died Dec 26 1973 after
+less than 18 months as president himself, still hasn't been researched —
+this is the last remaining First-Presidency-transition unknown standing
+between the current Oct 1978 start and the Oct 1974 standalone). Filling
+backward past Oct 1974 would need that research plus fresh Relief
+Society/Young Women/Primary/Presiding Bishopric predecessor research
+(Smith/Funk/Shumway/Brown-or-earlier's own predecessors, none confirmed
+yet).
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the full validation pass
 (duplicates, orphans, sandwiched gaps, missing-conference check, role
 flip-flop check) afterward. **Scan every new batch's raw talk titles for
-admin-report variants before trusting the fixed exclusion list** — this
-has now caught a real miss in two sessions running.
+admin-report variants before trusting the fixed exclusion list, and
+re-scan every conference in a multi-conference batch against the role
+sets individually** — both have now caught real misses in three sessions
+running.
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was
