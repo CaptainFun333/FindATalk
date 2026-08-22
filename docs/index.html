@@ -111,7 +111,12 @@
     border-radius:var(--radius);
     padding:12px 40px 12px 14px;
     font-family:'Inter',sans-serif;
-    font-size:14.5px;
+    /* 16px, not the surrounding 14.5px — iOS/WKWebView auto-zooms the
+       whole page on focusing any text input smaller than 16px, and (in
+       this Capacitor WebView at least) doesn't reliably zoom back out on
+       blur, leaving the page stuck zoomed in. Applies to every text
+       <input> below, same reason each time. */
+    font-size:16px;
     color:var(--ink);
     transition:border-color .15s;
   }
@@ -196,7 +201,7 @@
     border-radius:3px;
     padding:8px 10px;
     font-family:'Inter',sans-serif;
-    font-size:13.5px;
+    font-size:16px; /* see #querySearch's comment on iOS zoom-on-focus */
     color:var(--ink);
     background:var(--paper);
   }
@@ -525,6 +530,127 @@
   .favorite-btn-icon.is-favorited svg{ fill:var(--brass); }
 
   #favoriteBtn.is-favorited{ border-color:var(--brass); color:var(--burgundy); }
+
+  .collection-btn-icon svg{ width:14px; height:14px; }
+  .collection-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
+
+  /* ---------- add-to-list modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(28,44,66,.45);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:8px;
+    box-shadow:var(--shadow);
+    padding:24px;
+    max-width:420px;
+    width:100%;
+    max-height:80vh;
+    overflow-y:auto;
+  }
+  .modal-header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .modal-header h3{
+    font-family:'Fraunces',serif; font-weight:600; font-size:20px; margin:0;
+  }
+  .modal-close{
+    background:none; border:none; cursor:pointer;
+    font-size:24px; line-height:1; color:var(--ink-soft);
+    padding:2px 8px; border-radius:4px; flex-shrink:0;
+  }
+  .modal-close:hover{ color:var(--burgundy); }
+  .modal-option{
+    display:flex; align-items:center; gap:9px;
+    padding:9px 6px;
+    font-family:'Inter',sans-serif; font-size:14.5px; color:var(--ink);
+    cursor:pointer;
+    border-radius:4px;
+  }
+  .modal-option:hover{ background:#efe8d3; }
+  .modal-option input{
+    accent-color:var(--burgundy);
+    width:16px; height:16px; flex-shrink:0; cursor:pointer;
+  }
+  .modal-empty{
+    font-family:'Inter',sans-serif; font-size:13.5px; color:var(--ink-soft);
+    padding:10px 6px;
+  }
+  .modal-new-collection{
+    display:flex; gap:8px;
+    margin-top:16px; padding-top:16px;
+    border-top:1px solid var(--line);
+  }
+  .modal-new-collection input{
+    flex:1; min-width:0;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink); /* see #querySearch's comment */
+  }
+  .modal-new-collection button, .collections-new-row button{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+    padding:0 18px;
+    background:var(--burgundy); color:#fdf6ec;
+    border:none; border-radius:4px; cursor:pointer;
+    white-space:nowrap;
+  }
+  .modal-new-collection button:hover, .collections-new-row button:hover{ background:#5c232b; }
+
+  /* ---------- My Lists index page ---------- */
+  .collections-new-row{
+    display:flex; gap:8px;
+    margin-bottom:28px;
+  }
+  .collections-new-row input{
+    flex:1; min-width:0;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink); /* see #querySearch's comment */
+  }
+  .collection-row{
+    display:flex; align-items:stretch; gap:0;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:6px;
+    margin-bottom:10px;
+    overflow:hidden;
+  }
+  .collection-row-main{
+    flex:1; min-width:0;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px;
+    padding:18px 20px;
+    background:none; border:none; cursor:pointer;
+    text-align:left;
+  }
+  .collection-row-main:hover{ background:#efe8d3; }
+  .collection-row-name{
+    font-family:'Fraunces',serif; font-weight:600; font-size:17px; color:var(--ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .collection-row-count{
+    font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); flex-shrink:0;
+  }
+  .collection-row-delete{
+    flex-shrink:0;
+    width:48px;
+    display:flex; align-items:center; justify-content:center;
+    background:none; border:none; border-left:1px solid var(--line); cursor:pointer;
+    font-size:20px; color:var(--ink-soft);
+  }
+  .collection-row-delete:hover{ color:var(--burgundy); background:#efe8d3; }
+
   .list-item-speaker{
     font-family:'Inter',sans-serif;
     font-size:13px;
@@ -599,12 +725,12 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
   </div>
 
+  <div id="homeZone">
   <div class="totd-zone" id="totdZone">
     <div class="eyebrow totd-eyebrow">Talk of the Day</div>
     <div class="list-items" id="totdItems"></div>
   </div>
 
-  <div id="homeZone">
   <div class="divider">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
   </div>
@@ -613,6 +739,8 @@
     <button type="button" class="reset-link" id="recentNavBtn">Recently Viewed</button>
     <span class="nav-sep">·</span>
     <button type="button" class="reset-link" id="favoritesNavBtn">Favorites</button>
+    <span class="nav-sep">·</span>
+    <button type="button" class="reset-link" id="collectionsNavBtn">My Lists</button>
   </div>
 
   <p class="search-intro">You may narrow the search by using the filters below.</p>
@@ -717,6 +845,7 @@
         <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
         <button class="btn btn-ghost" id="shareBtn" type="button">Share</button>
         <button class="btn btn-ghost" id="favoriteBtn" type="button">☆ Favorite</button>
+        <button class="btn btn-ghost" id="collectionBtn" type="button">+ Add to List</button>
         <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
       </div>
     </div>
@@ -757,6 +886,47 @@
     <div class="pool-count" id="favoritesFilterCount"></div>
     <div class="list-items" id="favoritesItems"></div>
     <div class="list-empty" id="favoritesEmpty"></div>
+  </div>
+
+  <div id="collectionsIndexZone" style="display:none">
+    <div class="page-header">
+      <button type="button" class="reset-link" id="collectionsIndexBackBtn">← Back</button>
+      <h2 class="page-title">My Lists</h2>
+    </div>
+    <div class="collections-new-row">
+      <input type="text" id="collectionsIndexNewInput" placeholder="New list name…" autocomplete="off">
+      <button type="button" id="collectionsIndexNewBtn">Create</button>
+    </div>
+    <div class="collections-index-list" id="collectionsIndexList"></div>
+    <div class="list-empty" id="collectionsIndexEmpty">You haven't created any lists yet — name one above to get started.</div>
+  </div>
+
+  <div id="collectionZone" style="display:none">
+    <div class="page-header">
+      <button type="button" class="reset-link" id="collectionBackBtn">← Back</button>
+      <h2 class="page-title" id="collectionTitle">List</h2>
+    </div>
+    <div class="filters" id="collectionFilters"></div>
+    <div class="filters-actions">
+      <button type="button" class="reset-link" id="collectionFilterReset">Reset filters</button>
+    </div>
+    <div class="pool-count" id="collectionFilterCount"></div>
+    <div class="list-items" id="collectionItems"></div>
+    <div class="list-empty" id="collectionEmpty"></div>
+  </div>
+
+  <div class="modal-overlay" id="collectionModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="collectionModalTitle">
+      <div class="modal-header">
+        <h3 id="collectionModalTitle">Add to a List</h3>
+        <button type="button" class="modal-close" id="collectionModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="collectionModalList"></div>
+      <div class="modal-new-collection">
+        <input type="text" id="newCollectionInput" placeholder="New list name…" autocomplete="off">
+        <button type="button" id="newCollectionBtn">Create</button>
+      </div>
+    </div>
   </div>
 
   <footer>
@@ -899,6 +1069,67 @@ function toggleFavorite(talk){
   const key = talkKey(talk);
   if (favoriteKeys.has(key)) favoriteKeys.delete(key); else favoriteKeys.add(key);
   saveFavorites();
+}
+
+/* ---------------------------------------------------------------
+   Self-defined collections ("Sunday lesson ideas," "For my talk in
+   June," etc.) — a generalization of the single hardcoded Favorites
+   bucket above, but kept as a fully separate feature rather than merged
+   into it: Favorites stays exactly as it already worked (one star, one
+   page), and collections are however many named lists someone wants,
+   each holding whichever talks they've added to it.
+   - `collections`: [{id, name}], in creation order.
+   - `collectionMembers`: {id: [talkKey, talkKey, ...]}.
+   Both persisted separately in localStorage, same pattern as recents/
+   favorites (load once at startup, save after every mutation). */
+const COLLECTIONS_KEY = 'findATalkCollections';
+const COLLECTION_MEMBERS_KEY = 'findATalkCollectionMembers';
+let collections = [];
+let collectionMembers = {};
+
+function loadCollections(){
+  try {
+    const raw = localStorage.getItem(COLLECTIONS_KEY);
+    if (raw) collections = JSON.parse(raw);
+  } catch(err){ collections = []; }
+  try {
+    const raw = localStorage.getItem(COLLECTION_MEMBERS_KEY);
+    if (raw) collectionMembers = JSON.parse(raw);
+  } catch(err){ collectionMembers = {}; }
+}
+loadCollections();
+
+function saveCollections(){
+  try { localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections)); }
+  catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+}
+function saveCollectionMembers(){
+  try { localStorage.setItem(COLLECTION_MEMBERS_KEY, JSON.stringify(collectionMembers)); }
+  catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+}
+function createCollection(name){
+  const id = 'col_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  collections.push({id, name});
+  collectionMembers[id] = [];
+  saveCollections();
+  saveCollectionMembers();
+  return id;
+}
+function deleteCollection(id){
+  collections = collections.filter(c=> c.id !== id);
+  delete collectionMembers[id];
+  saveCollections();
+  saveCollectionMembers();
+}
+function isInCollection(id, talk){
+  return (collectionMembers[id] || []).includes(talkKey(talk));
+}
+function toggleCollectionMember(id, talk){
+  const key = talkKey(talk);
+  const arr = collectionMembers[id] || (collectionMembers[id] = []);
+  const idx = arr.indexOf(key);
+  if (idx === -1) arr.push(key); else arr.splice(idx, 1);
+  saveCollectionMembers();
 }
 
 /* Splits a speaker's full name into { last, first, suffix } so the
@@ -1208,6 +1439,10 @@ const recentEmptyEl = document.getElementById('recentEmpty');
 const favoritesZone = document.getElementById('favoritesZone');
 const favoritesItemsEl = document.getElementById('favoritesItems');
 const favoritesEmptyEl = document.getElementById('favoritesEmpty');
+const collectionsIndexZone = document.getElementById('collectionsIndexZone');
+const collectionZone = document.getElementById('collectionZone');
+const collectionItemsEl = document.getElementById('collectionItems');
+const collectionEmptyEl = document.getElementById('collectionEmpty');
 let lastPicked = null;
 
 // Recording "opened" only happens here (the ticket's real open link) and
@@ -1232,6 +1467,12 @@ favoriteBtn.addEventListener('click', ()=>{
   syncFavoriteBtn();
   refreshCount();
   if (favoritesZone.style.display === 'block') renderFavoritesPage();
+});
+
+const collectionBtn = document.getElementById('collectionBtn');
+collectionBtn.addEventListener('click', ()=>{
+  if (!lastPicked) return;
+  openCollectionModal(lastPicked);
 });
 
 function draw(){
@@ -1368,6 +1609,7 @@ function buildListItemRow(pick, condensed){
   const actions = document.createElement('div');
   actions.className = 'list-item-actions';
   actions.appendChild(createFavoriteButton(pick));
+  actions.appendChild(createCollectionButton(pick));
 
   const shareIconBtn = document.createElement('button');
   shareIconBtn.type = 'button';
@@ -1429,6 +1671,20 @@ function createFavoriteButton(pick){
     // ticket's button showing stale state).
     if (lastPicked && talkKey(lastPicked) === talkKey(pick)) syncFavoriteBtn();
   });
+  return btn;
+}
+
+/* A small icon button that opens the "Add to a List" modal for this
+   talk — unlike the favorite star, there's no on/off state to show here
+   (a talk can be in zero, one, or many lists at once), so this is a pure
+   action button, not a toggle. */
+function createCollectionButton(pick){
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'share-btn-icon collection-btn-icon';
+  btn.innerHTML = COLLECTION_ICON_SVG;
+  btn.setAttribute('aria-label', `Add "${pick[0]}" to a list`);
+  btn.addEventListener('click', ()=> openCollectionModal(pick));
   return btn;
 }
 
@@ -1507,6 +1763,7 @@ document.getElementById('listAgainBtn').addEventListener('click', showList);
 /* ---------------- share (native share sheet, falls back to copy-link) ---------------- */
 const SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>';
 const STAR_ICON_SVG = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>';
+const COLLECTION_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
 
 /* Copies text with the modern async Clipboard API first, falling back to
    the older execCommand('copy') technique (a hidden, focused, selected
@@ -1581,11 +1838,13 @@ shareBtn.addEventListener('click', ()=>{
   shareTalk(lastPicked, shareBtn);
 });
 
-/* ---------------- Recently Viewed / Favorites pages ---------------- */
+/* ---------------- Recently Viewed / Favorites / My Lists pages ---------------- */
 function showZone(name){
   homeZone.style.display = name==='home' ? '' : 'none';
   recentZone.style.display = name==='recent' ? 'block' : 'none';
   favoritesZone.style.display = name==='favorites' ? 'block' : 'none';
+  collectionsIndexZone.style.display = name==='collectionsIndex' ? 'block' : 'none';
+  collectionZone.style.display = name==='collection' ? 'block' : 'none';
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -1809,6 +2068,16 @@ const favoritesFilterResetBtn = document.getElementById('favoritesFilterReset');
 const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
 favoritesFilterResetBtn.addEventListener('click', ()=> favoritesFilterPanel.reset());
 
+// One filter-panel instance reused for whichever single collection is
+// currently open (its base pool is swapped via setBasePool() each time a
+// different collection is viewed) — same pattern as recent/favorites,
+// just re-pointed at a different collection's talks instead of having
+// one instance per collection.
+const collectionFilterPanel = createSubsetFilterPanel('collection', document.getElementById('collectionFilters'));
+const collectionFilterResetBtn = document.getElementById('collectionFilterReset');
+const collectionFilterCountEl = document.getElementById('collectionFilterCount');
+collectionFilterResetBtn.addEventListener('click', ()=> collectionFilterPanel.reset());
+
 /* Renders one subset page (Recently Viewed or Favorites) from its filter
    panel's already-computed currentPool() — shared by both so the "no
    talks saved at all" vs. "talks saved, but none match the filters"
@@ -1867,6 +2136,157 @@ document.getElementById('recentNavBtn').addEventListener('click', ()=>{ renderRe
 document.getElementById('favoritesNavBtn').addEventListener('click', ()=>{ renderFavoritesPage(); showZone('favorites'); });
 document.getElementById('recentBackBtn').addEventListener('click', ()=> showZone('home'));
 document.getElementById('favoritesBackBtn').addEventListener('click', ()=> showZone('home'));
+
+/* ---------------- My Lists (self-defined collections) ---------------- */
+// Which collection collectionZone is currently showing, if any — lets a
+// membership change made via the modal (e.g. removing this same talk
+// from this same collection while its page happens to be open) refresh
+// the visible list immediately, same live-sync the Favorites page already
+// does for its own star.
+let currentCollectionId = null;
+
+function renderCollectionPage(id){
+  currentCollectionId = id;
+  const col = collections.find(c=> c.id === id);
+  document.getElementById('collectionTitle').textContent = col ? col.name : 'List';
+  const keys = collectionMembers[id] || [];
+  const picks = keys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  collectionFilterPanel.setBasePool(picks);
+}
+collectionFilterPanel.onChange = ()=> renderSubsetList(
+  collectionItemsEl, collectionEmptyEl, collectionFilterCountEl, document.getElementById('collectionFilters'), collectionFilterResetBtn,
+  collectionFilterPanel, 'No talks in this list yet.',
+  'No talks in this list match those filters.'
+);
+
+function renderCollectionsIndexPage(){
+  const listEl = document.getElementById('collectionsIndexList');
+  const emptyEl = document.getElementById('collectionsIndexEmpty');
+  listEl.innerHTML = '';
+  if (!collections.length){
+    listEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  listEl.style.display = '';
+  emptyEl.style.display = 'none';
+  collections.forEach(col=>{
+    const row = document.createElement('div');
+    row.className = 'collection-row';
+
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'collection-row-main';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'collection-row-name';
+    nameEl.textContent = col.name;
+    const count = (collectionMembers[col.id] || []).length;
+    const countEl = document.createElement('span');
+    countEl.className = 'collection-row-count';
+    countEl.textContent = `${count} talk${count===1?'':'s'}`;
+    main.appendChild(nameEl);
+    main.appendChild(countEl);
+    main.addEventListener('click', ()=>{ renderCollectionPage(col.id); showZone('collection'); });
+    row.appendChild(main);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'collection-row-delete';
+    delBtn.setAttribute('aria-label', `Delete "${col.name}"`);
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if (confirm(`Delete "${col.name}"? This can't be undone.`)){
+        deleteCollection(col.id);
+        renderCollectionsIndexPage();
+      }
+    });
+    row.appendChild(delBtn);
+
+    listEl.appendChild(row);
+  });
+}
+
+document.getElementById('collectionsNavBtn').addEventListener('click', ()=>{ renderCollectionsIndexPage(); showZone('collectionsIndex'); });
+document.getElementById('collectionsIndexBackBtn').addEventListener('click', ()=> showZone('home'));
+document.getElementById('collectionBackBtn').addEventListener('click', ()=>{ renderCollectionsIndexPage(); showZone('collectionsIndex'); });
+
+const collectionsIndexNewInput = document.getElementById('collectionsIndexNewInput');
+document.getElementById('collectionsIndexNewBtn').addEventListener('click', ()=>{
+  const name = collectionsIndexNewInput.value.trim();
+  if (!name) return;
+  createCollection(name);
+  collectionsIndexNewInput.value = '';
+  renderCollectionsIndexPage();
+});
+collectionsIndexNewInput.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter') document.getElementById('collectionsIndexNewBtn').click();
+});
+
+/* ---------------- "Add to a List" modal ---------------- */
+// Reused for every talk on the page (ticket, list rows, Talk of the Day,
+// Recently Viewed/Favorites/My Lists rows) — which talk it's currently
+// acting on is just whatever was passed to openCollectionModal() last.
+const collectionModalOverlay = document.getElementById('collectionModalOverlay');
+const collectionModalList = document.getElementById('collectionModalList');
+const newCollectionInput = document.getElementById('newCollectionInput');
+let collectionModalTalk = null;
+
+function renderCollectionModalList(){
+  collectionModalList.innerHTML = '';
+  if (!collections.length){
+    const empty = document.createElement('p');
+    empty.className = 'modal-empty';
+    empty.textContent = 'No lists yet — create one below.';
+    collectionModalList.appendChild(empty);
+    return;
+  }
+  collections.forEach(col=>{
+    const row = document.createElement('label');
+    row.className = 'modal-option';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = isInCollection(col.id, collectionModalTalk);
+    cb.addEventListener('change', ()=>{
+      toggleCollectionMember(col.id, collectionModalTalk);
+      if (currentCollectionId === col.id) renderCollectionPage(col.id);
+    });
+    const span = document.createElement('span');
+    const count = (collectionMembers[col.id] || []).length;
+    span.textContent = `${col.name} (${count})`;
+    row.appendChild(cb);
+    row.appendChild(span);
+    collectionModalList.appendChild(row);
+  });
+}
+function openCollectionModal(talk){
+  collectionModalTalk = talk;
+  renderCollectionModalList();
+  newCollectionInput.value = '';
+  collectionModalOverlay.hidden = false;
+}
+function closeCollectionModal(){
+  collectionModalOverlay.hidden = true;
+  collectionModalTalk = null;
+}
+document.getElementById('collectionModalClose').addEventListener('click', closeCollectionModal);
+collectionModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === collectionModalOverlay) closeCollectionModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !collectionModalOverlay.hidden) closeCollectionModal();
+});
+document.getElementById('newCollectionBtn').addEventListener('click', ()=>{
+  const name = newCollectionInput.value.trim();
+  if (!name || !collectionModalTalk) return;
+  const id = createCollection(name);
+  toggleCollectionMember(id, collectionModalTalk);
+  newCollectionInput.value = '';
+  renderCollectionModalList();
+});
+newCollectionInput.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter') document.getElementById('newCollectionBtn').click();
+});
 
 renderTalkOfTheDay();
 }

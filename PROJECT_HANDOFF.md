@@ -1093,6 +1093,78 @@ short pause (or confirming via `xcrun simctl list`) before the next
 screenshot taken immediately after `terminate`+`launch` isn't guaranteed
 to be from a truly fresh process.
 
+## ✅ Done: Talk of the Day scoped back to home-only; self-defined "My Lists" collections
+Two follow-ups requested right after the header/layout refinements above.
+
+**Talk of the Day, home-only again**: the previous session's swap had
+moved `totd-zone` *outside* `homeZone` so it stayed visible on Recently
+Viewed/Favorites too — turned out that wasn't wanted. Fix was a pure
+structural move, no visibility-toggling code needed: `<div
+id="homeZone">`'s opening tag now wraps `totd-zone` again (right after
+the divider that follows the H1), so it's back to hiding automatically
+whenever `showZone()` switches away from `'home'`. Visual position on
+the home page itself is unchanged.
+
+**Self-defined collections ("My Lists")** — the bigger ask: generalizing
+the single hardcoded Favorites bucket into as many named lists as
+someone wants ("Sunday lesson ideas," "For my talk in June," etc.),
+kept as a fully separate feature from Favorites rather than merged into
+it (Favorites still works exactly as before — one star, one page).
+
+**Data layer** (`COLLECTIONS_KEY`/`COLLECTION_MEMBERS_KEY` in
+`localStorage`, same load-once/save-after-every-mutation pattern as
+recents/favorites): `collections` is `[{id, name}]` in creation order;
+`collectionMembers` is `{id: [talkKey, ...]}`. IDs are
+`'col_' + timestamp + random suffix`, not sequential — fine since
+nothing ever needs to sort or diff them.
+
+**UI, three new pieces:**
+- A "+" icon button next to the star/share on every talk row (ticket,
+  list rows, Talk of the Day, Recently Viewed/Favorites/My Lists rows —
+  it's part of the shared `buildListItemRow()`/ticket-actions, so it
+  appears everywhere those already do) opens an **"Add to a List"
+  modal** — checkboxes for every existing collection plus an inline
+  "New list name…" + Create field. Unlike the favorite star, this button
+  has no on/off visual state (a talk can be in 0, 1, or many lists at
+  once), so it's a plain action button, not a toggle.
+- **"My Lists"** added as a third nav link (`Recently Viewed · Favorites
+  · My Lists`) — an index page listing every collection with its talk
+  count, a row click to open it, an × to delete (behind a native
+  `confirm()`, "This can't be undone"), and its own "New list name…" +
+  Create row for creating without going through a specific talk first.
+- **Single collection view** reuses the exact same `createSubsetFilterPanel`
+  /`renderSubsetList` machinery Recently Viewed and Favorites already
+  established — one filter-panel instance (`collectionFilterPanel`,
+  dims Calling/Topic/Speaker/Conference) whose base pool gets swapped via
+  `setBasePool()` each time a different collection is opened, rather than
+  building a new instance per collection. `currentCollectionId` tracks
+  which one is open so a membership change made via the modal while that
+  same collection's page happens to be open refreshes it live, same
+  pattern as Favorites' own live-sync.
+
+**A real, user-facing bug found and fixed during this session's live
+testing, not specific to this feature but newly visible because of it**:
+every text `<input>` in the file (search box, filter search boxes, the
+two new "list name" inputs) had `font-size` under 16px. iOS/WKWebView
+auto-zooms the whole page when a text input smaller than 16px is
+focused, and — at least in this Capacitor WebView — doesn't reliably
+zoom back out on blur, leaving the page stuck zoomed in with content
+cut off at the right edge (several minutes of subsequent mis-taps in
+this session traced back to exactly this, not coordinate-math error).
+Fixed by bumping every text-input `font-size` to 16px; noted inline
+in the CSS so it doesn't quietly regress if someone "cleans up" the
+sizing later.
+
+**Verification**: fully live in the Simulator — created two collections
+("Test" via the modal from the Talk of the Day card, "Sunday lesson
+ideas" also via the modal, auto-checked on creation as designed),
+confirmed both appear correctly on the My Lists index with accurate
+counts, opened one and confirmed its own filter panel correctly scoped
+to just that collection's talk (Speaker dropdown showed only that one
+talk's speaker), and deleted a collection via the confirm() dialog and
+confirmed it disappeared from the index. Also confirmed Talk of the Day
+no longer appears on the Recently Viewed or My Lists pages.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **April 1999 and earlier**, but note
 there's now a **standing gap between April 1996 and April 1999** (7
