@@ -1646,26 +1646,103 @@ before considering a batch done**, not just at the very end of a session.
   1986 (pre-dates his 1988 apostle call), and Peter Vidmar resolving to
   `undefined` (confirming the deliberate non-tag).
 
+## ✅ Done: backward coverage to October 1982 (a real cross-batch bug found and fixed)
+Added Oct 1982, Apr 1983, Oct 1983, Apr 1984 (128 talks, after dropping
+one admin-report title that slipped past the exclusion filter — see
+below). **The continuous run now goes October 1982 → April 2026 (89
+conferences back to back)**, plus the October 1974 standalone. **3147
+talks total.**
+- **Exclusion-filter gap found**: `"Church Audit Committee Report"` (no
+  leading "The") slipped past `EXCLUDE_PREFIX`, which only had `"The
+  Church Audit Committee Report"` — a different exact title used in a
+  later era. Caught by the zero-topic check (an admin report obviously
+  has no official topic), removed by hand for this batch. **Worth adding
+  both title variants to the standing exclusion list for any future
+  session** — the admin-report titles are not perfectly stable across
+  decades, so a per-batch title scan for "Audit"/"Statistical"/
+  "Sustaining" (not just the fixed exclusion set) is cheap insurance.
+- **Kickers**: zero, as expected this far back.
+- **Topics**: 128/128 (after dropping the admin report) matched.
+- **A real bug from an earlier session's batch, found and fixed**: this
+  session's fresh research turned up that **M. Russell Ballard wasn't
+  called to the Quorum of the Twelve until October 6, 1985** (he was a
+  Presidency of the Seventy member before that) — but the "Oct 1984 →
+  Apr 1986" batch two sessions ago had defaulted him to `apostle` for
+  **all four** of its conferences, incorrectly including Oct 1984 and Apr
+  1985 (before his actual calling). **Fixed**: those two entries changed
+  to `seventy`; Oct 1985 and Apr 1986 (his real apostle-era talks) were
+  already correct. A cross-check for role "flip-flops" (a speaker's role
+  changing and then changing back) was added to the validation pass
+  specifically to catch this class of error — it came back clean after
+  the fix. **Lesson for future batches, worth internalizing**: when
+  extending a "stable apostles" set backward across a new session, don't
+  assume last session's set is still accurate — a name in it may have
+  been called to the Twelve mid-way through the *previous* batch's own
+  date range. Verify each apostle's actual calling date against the
+  batch's earliest conference, not just spot-check the newest one.
+- **Two more real apostle-calling dates confirmed via search, both
+  landing at Apr 1984 (the same conference, sustained together April 7
+  1984)**: **Russell M. Nelson** (his talk that conference is literally
+  titled "Call to the Holy Apostleship") and **Dallin H. Oaks** (no talk
+  of his falls in this specific batch, but confirmed for future
+  reference). Both tagged `apostle` starting exactly there — no earlier
+  talk of either exists in the dataset, so there's no gap to manage.
+- **Young Women: Elaine A. Cannon → Ardeth G. Kapp, and Relief Society:
+  Barbara B. Smith → Barbara W. Winder, both real same-conference
+  transitions landing at the identical Apr 1984 conference** — Cannon
+  (8th YW president, 1978–1984) and Smith (RS president, 1974–1984,
+  already partly known from Winder's own start date) both give farewell
+  talks the same conference Kapp and Winder give their first, matching
+  the established same-conference-transition pattern used throughout
+  this project.
+- **Four more non-officeholder speakers left deliberately untagged**,
+  extending last session's new "special guest / no confirmed calling"
+  category: **Jeffrey R. Holland** (Apr 1983 — five years before his
+  1989 Seventy call, most likely speaking in his capacity as sitting BYU
+  president rather than as a General Authority; his later talks already
+  correctly resolve `seventy`/`apostle` per prior sessions), **Matthew
+  S. Holland** and **Devin G. Durrant** (both youth-themed talks by men
+  too young at the time to hold any tracked calling — Durrant was later
+  a Sunday School general president, already documented, but not yet in
+  1984), and **Michael Nicholas** (Oct 1982, part of an Aaronic
+  Priesthood activation-themed cluster with no confirmable calling).
+- **Validation clean**, including the new role-flip-flop check: zero
+  duplicates, zero orphans, zero sandwiched gaps, zero missing
+  conferences in the expected Oct 1982 → Apr 2026 run, zero suspicious
+  role flip-flops across the whole 3147-talk dataset.
+- Footer copy and code comment in `docs/index.html` updated: "eighty-nine
+  conferences... every conference from October 1982 through April 2026,
+  plus Oct 1974."
+- **Verified live**: `TALKS.length` = 3147; `ROLE_LOOKUP` confirmed the
+  Ballard fix (`seventy` at Oct 1984/Apr 1985, `apostle` from Oct 1985),
+  Nelson's Apr 1984 apostle tag, the Cannon/Kapp and Smith/Winder
+  same-conference transitions, and Holland's Apr 1983 key resolving to
+  `undefined`.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **October 1974 and earlier** — this
-project has no other conferences between the current Oct 1984 start and
-the standalone Oct 1974 (a 20-conference/10-year hole, 1975–1984, never
+project has no other conferences between the current Oct 1982 start and
+the standalone Oct 1974 (a 15-conference/7.5-year hole, 1975–1982, never
 touched at all) or before Oct 1974 itself (the earliest conference this
-project has ever indexed). Kimball's own presidency is now confirmed
-stable back to 1973 (his own succession, from Harold B. Lee who died Dec
-26 1973 after less than 18 months as president himself, hasn't been
-researched). Filling backward past Oct 1974, or filling the 1975–1984
-hole to connect it to the new Oct 1984 start, are both much bigger
+project has ever indexed). Kimball's own presidency is confirmed stable
+back to 1973 (his own succession, from Harold B. Lee who died Dec 26
+1973 after less than 18 months as president himself, hasn't been
+researched). Filling backward past Oct 1974, or filling the 1975–1982
+hole to connect it to the current Oct 1982 start, are both much bigger
 undertakings than any single batch so far — neither has been scoped, and
 either would need substantial fresh First Presidency/auxiliary-
 presidency research (Lee's brief presidency and its transition both to
-and from; auxiliary presidencies further back than Winder/Kapp/Young,
-none of which have known start dates before ~1980 in this project yet).
+and from; Smith/Cannon/Young's own predecessors in Relief Society/Young
+Women/Primary, none of which have known start dates before the 1970s in
+this project yet). Also worth doing early in any such session: check
+whether N. Eldon Tanner or any other pre-1982 apostle had talks in a
+still-earlier batch under a role that later sessions' "stable apostles"
+sets might get wrong, using the same cross-check pattern documented
+above.
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the full validation pass
-(duplicates, orphans, sandwiched gaps, **and the missing-conference
-check** — run it right after merging each batch, not just once at the
-end) afterward.
+(duplicates, orphans, sandwiched gaps, missing-conference check, **and
+the role flip-flop check**) afterward.
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was
