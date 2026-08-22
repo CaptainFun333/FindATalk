@@ -1292,15 +1292,119 @@ total.**
   `role` (`president`) and a real `TOPIC_LOOKUP` array via the live
   in-page `TALKS`/`ROLE_LOOKUP`/`TOPIC_LOOKUP` globals.
 
+## ✅ Done: backward coverage to April 1994 (three real Presidency-level transitions researched)
+Added Apr 1994, Oct 1994, Apr 1995 (114 talks). **The continuous run now
+goes April 1994 → April 2026 (67 conferences back to back)**, plus the
+remaining older standalone, October 1974, and April 1987 is no longer
+standalone either (now bridged in). **2416 talks total.**
+- **Kickers**: confirmed zero for all three conferences (114/114 talks
+  checked, none had a `class="kicker"` paragraph) — consistent with the
+  established pattern that kickers didn't start until sometime between
+  April 1996 and April 1997. Don't re-check Apr 1994/Oct 1994/Apr 1995 if
+  coverage is ever extended further back.
+- **Topics**: all 335 official topic pages (already cached on disk from
+  the previous batch this session) matched 112 of 114 talks; the 2
+  without a topic are both "The Solemn Assembly (Sustaining of Church
+  Officers)" — a real, distinctly-titled proceeding (not the generic
+  excluded admin title), kept as a real talk per existing precedent
+  (matches the already-documented Solemn Assembly 2018 case), just with
+  no official topic tag, same as the 4 pre-existing Oct 2010 zero-topic
+  talks.
+- **Three real First-Presidency-level transitions researched and
+  confirmed via web search, none assumed from memory:**
+  1. **Howard W. Hunter presided between Benson and Hinckley** — a
+     president this project hadn't encountered before. Ezra Taft Benson
+     (president, Nov 11 1985 – d. May 30 1994) kept **Gordon B. Hinckley**
+     (1st counselor) and **Thomas S. Monson** (2nd counselor) the whole
+     time. Hunter (14th president, set apart June 5 1994) **kept the same
+     two counselors** rather than calling new ones — confirmed via a
+     contemporary 1994 First-Presidency photo caption. Hunter died March 3
+     1995 after only nine months, the shortest presidency in Church
+     history, presiding over exactly one conference (Oct 1994). Hinckley
+     (15th president) was set apart March 12 1995 with **Monson (1st)**
+     and **James E. Faust (2nd, newly added to the First Presidency —
+     he'd been a plain apostle since 1978)** — already the pattern this
+     project had documented for Oct 1995 onward, now confirmed to start
+     cleanly at Apr 1995 with no mid-conference edge case (the calling
+     came 3 weeks before the conference).
+     - Role tags: **Benson = `president`** (Apr 1994 only, his last
+       conference), **Hunter = `president`** (Oct 1994 only — also gets
+       the tag on his "Solemn Assembly" talk that same conference, since
+       he was sustained before any talks that conference), **Hinckley =
+       `first-presidency`** for Apr 1994 and Oct 1994 (still just a
+       counselor), **`president`** from Apr 1995 on. **Faust = `apostle`**
+       for Apr 1994/Oct 1994 (not yet in the FP), **`first-presidency`**
+       from Apr 1995 on.
+  2. **Robert D. Hales moved from Presiding Bishop to the Quorum of the
+     Twelve, same-day, at Apr 1994** — sustained to the Twelve April 2
+     1994 (the Saturday of that conference), ordained April 7; **Merrill
+     J. Bateman** (previously a Seventy) was sustained Presiding Bishop
+     that same Saturday afternoon to fill the vacancy, with **H. David
+     Burton** (1st) and **Richard C. Edgley** (2nd) continuing as his
+     counselors (they'd already been counselors under Hales). Same-day-
+     sustaining pattern already established elsewhere in this project:
+     Hales's Apr 1994 talk is tagged `apostle` (the new role), not
+     `presiding-bishopric`, since the sustaining came before any talks
+     that conference. Bateman/Burton/Edgley = `presiding-bishopric`
+     through Apr 1995 (Bateman leaves for BYU president Jan 1 1996,
+     already documented in an earlier session).
+  3. **The Primary General Presidency (Grassli → Pinegar) and a linked
+     Young Women vacancy, both landing at Oct 1994**: **Michaelene P.
+     Grassli** (president, Apr 1988 – Oct 1 1994) with **Betty Jo N.
+     Jepsen** and **Ruth B. Wright** as counselors was released Oct 1
+     1994, replaced same-day by **Patricia P. Pinegar** (president) with
+     **Anne G. Wirthlin** (1st) and **Susan L. Warner** (2nd) — the same
+     trio already documented as serving through 1999 in an earlier
+     session, now confirmed to have started at this exact date. Grassli's
+     Oct 1994 talk is her same-conference farewell (`primary`); Wright's
+     Apr 1994 talk is also `primary` (before the transition); Jepsen has
+     no talk in this batch. **Pinegar herself was Young Women's 2nd
+     counselor immediately before this** (serving 1992–1994 under
+     Janette Hales Beckham, alongside 1st counselor Virginia H. Pearce) —
+     her Apr 1994 talk is tagged `young-women` (before her promotion),
+     flipping to `primary` starting Oct 1994. Her Young Women vacancy was
+     filled by **Bonnie D. Parkin** (2nd counselor, 1994–1997, already
+     documented from a later session) — Parkin's first talk in the
+     dataset doesn't appear until Apr 1995, skipping Oct 1994 entirely,
+     which is fine (not every presidency member speaks every conference).
+- **Seventy default rule applied** to the remaining 29 otherwise-untagged
+  speakers (Carlos E. Asay, Hartman Rector Jr., L. Aldin Porter, Dieter F.
+  Uchtdorf — called to the Second Quorum of the Seventy that same April
+  1994 conference, confirmed via search — and 25 others with typical
+  1990s-era Seventy naming patterns), **except 5 names left deliberately
+  untagged**: Melanie Eaton, Andrea Allen, Hilarie Cole, Karen Maxwell
+  (Apr 1995 — a female-testimony block immediately following Janette
+  Hales Beckham's Young Women address, same identifiable
+  non-officeholder pattern as the Apr 1996/1997 youth-testimony
+  exclusions documented above) and Andrew W. Peterson ("Easter
+  Reflections," Apr 1995 — sits between two General Authority talks but
+  reads as a short devotional/musical program insert rather than a
+  standard sermon; left untagged rather than guessed).
+- **Validation clean** across the whole now-2416-talk dataset: zero
+  duplicate talk rows, zero orphaned role/topic/kicker entries, zero
+  talks missing a topic entry beyond the 2 expected Solemn Assembly
+  proceedings, zero sandwiched role gaps.
+- Footer copy and the `TALKS` block's code comment in `docs/index.html`
+  updated again: "sixty-seven conferences... every conference from April
+  1994 through April 2026, plus Apr 1987 and Oct 1974."
+- **Verified live** the same way as the prior batch: `npx cap sync`
+  re-run, a fresh local `python3 -m http.server` + Browser-pane check
+  confirmed `TALKS.length` = 2416 and spot-checked `ROLE_LOOKUP` resolved
+  exactly as researched for all three transition cases above (Hales →
+  `apostle`, Bateman → `presiding-bishopric`, Pinegar Apr 1994 →
+  `young-women` vs. Oct 1994 → `primary`, Grassli Oct 1994 → `primary`,
+  Eyring Apr 1995 → `apostle`).
+
 ## ⏭️ Next task (optional): keep expanding backward
-The next gap going further back is **April 1996 and earlier**. Going
-past October 1974 backward, or filling 1975–1986 / 1988–1994 (this
-project has never touched those years at all), is a much bigger
-undertaking than any single batch so far and hasn't been scoped. Note:
-**if you go earlier than March 1995, you'll need fresh First Presidency
-research** (Hinckley became president March 12 1995, succeeding Ezra Taft
-Benson who died May 30 1994 — Benson's own First Presidency and its
-transition to Hinckley haven't been researched yet in this project).
+The next gap going further back is **October 1993 and earlier**. Benson's
+presidency (Hinckley/Monson as counselors, confirmed above) was stable
+all the way back to Nov 1985, so conferences from **Apr 1986 through Oct
+1993** (16 conferences) share the same simple First Presidency tagging as
+this batch — no further FP research needed for that whole stretch. Going
+past October 1974 backward, or filling 1975–1985 (this project has never
+touched those years at all), is a much bigger undertaking than any single
+batch so far and hasn't been scoped, and would need fresh First
+Presidency research (Kimball's presidency and its transition to Benson).
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the "sandwiched gap" + full
 integrity validation passes described above afterward.
