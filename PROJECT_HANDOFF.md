@@ -2071,6 +2071,66 @@ own app offers.
   (`president` at Oct 1972), and Kimball's exact `apostle`→`president`
   split at Apr 1974.
 
+## ✅ Done: Backup export/import + OS-backup hardening (data-loss mitigation)
+Favorites and My Lists (`findATalkFavorites`/`findATalkCollections`/
+`findATalkCollectionMembers`) are `localStorage`-only, per-device, with no
+accounts or server sync — so clearing site data, reinstalling, or
+switching devices loses them with no recovery path. Added two
+independent mitigations (discussed with the user as "option 1" and
+"option 3" of four considered; a real backend sync was ruled out as too
+big a lift for a no-accounts static app):
+- **Manual export/import** (`docs/index.html`, in the My Lists page,
+  `collectionsIndexZone`) — "Export Backup"/"Import Backup" buttons.
+  `exportBackupData()` bundles favorites + collections +
+  collectionMembers (deliberately **not** `recentKeys` — that's viewing
+  history, not worth backing up) into a versioned JSON blob;
+  `saveBackupToFile()` prefers `navigator.share({files})` (needed inside
+  the wrapped mobile app, where a plain `<a download>` often can't save a
+  file — same fallback pattern as `shareTalk()`) and falls back to a
+  blob download link for the plain website. Import always **merges**,
+  never replaces: favorite keys are unioned, and collections are unioned
+  keyed by collection `id`, so re-importing the same file twice, or
+  restoring onto a device that already has some of these lists, is safe
+  and never duplicates or loses anything. Verified live: created a list
+  + favorite, captured the exported JSON directly from the blob, cleared
+  `localStorage`, reloaded, imported that JSON back in — favorite and
+  list both restored exactly; re-importing the same file again correctly
+  reported "Added 0 favorites" (already present, no dupes); a malformed
+  file correctly surfaced "Import failed" without throwing.
+- **OS-level passive backup, made explicit rather than left implicit** —
+  neither platform had this feature (Android had `allowBackup="true"`
+  but no rules file, so its scope was whatever the undocumented default
+  happened to cover including this app's WebView data). Native pieces
+  are correct by inspection (no `@capacitor/preferences` etc. needed —
+  the WebView's storage was never excluded from OS backup, on either
+  platform):
+  - **Android**: `android/app/src/main/res/xml/data_extraction_rules.xml`
+    (API 31+) and `backup_rules.xml` (API 23-30 fallback), wired into
+    `AndroidManifest.xml` via `android:dataExtractionRules`/
+    `android:fullBackupContent`. Both explicitly include
+    `app_webview/` (where WebView localStorage lives) alongside every
+    other domain (`sharedpref`/`database`/`file`/`external`/`root`), so
+    this reaffirms — rather than narrows — today's default "back up
+    everything" behavior, and guards against a future contributor adding
+    a narrower rules file that unintentionally drops WebView data
+    without realizing it lives outside the app's cache dirs.
+  - **iOS**: no `NSURLIsExcludedFromBackupKey` exclusion existed or was
+    added — a documenting comment was added at the top of
+    `ios/App/App/Info.plist` instead, so a future change that excludes
+    other files from backup doesn't accidentally sweep in the WebView's
+    `WebKit/WebsiteData` directory.
+  - This only covers same-platform device restores (new iPhone from an
+    iCloud/iTunes backup of an old iPhone; new Android phone from a
+    Google Account backup of an old one) — it does **not** sync live
+    between two devices someone owns at once, and does **not** help
+    anyone moving between iOS/Android/the plain website, which is what
+    the export/import feature above is for. Not independently testable
+    without an actual device restore, so this is correct-by-inspection
+    of the manifest/plist wiring only, not verified end-to-end.
+- `npx cap copy` was re-run after the `docs/index.html` change to
+  propagate it into `ios/App/App/public/` and
+  `android/app/src/main/assets/public/`.
+
 ## ⏭️ Next task: none scoped — this was the user's explicit stopping point
 The user asked specifically to reach **April 1971**, matching what the
 Gospel Library app itself offers, and that goal is now met — **there is
@@ -2195,3 +2255,181 @@ the real slugs exactly, e.g. "U.S. Constitution" → `us-constitution`).
 Administrative items to filter out of any new conference's talk list:
 exact title `"The Sustaining of Church Officers"`, plus anything starting
 with `"Church Auditing Department Report"` or `"Statistical Report"`.
+
+## ✅ Done: `other` role expanded beyond Eldred G. Smith (2026-08-22)
+User-requested change: move **Assistant to the Twelve**, **Church
+Historian/Assistant Church Historian**, and **BYU President** talks into
+`other`, rather than leaving the first folded into `seventy` (as the
+original Seventy backfill deliberately chose to do) or left untagged (as
+Church Historian/BYU President previously were). `other`'s label stays the
+generic "Other" — it's now a real multi-office bucket, not a
+Eldred-G.-Smith-only special case. 47 `roleLookup` entries changed in
+`docs/data.json` (synced to `ios/App/App/public/data.json` and
+`android/app/src/main/assets/public/data.json`, byte-identical as always):
+
+- **44 entries reassigned `seventy` → `other`** for talks given while the
+  speaker specifically held the pre-1976 **"Assistant to the Twelve"**
+  office (a `seventy`-adjacent but formally distinct title, retired when
+  the office was folded into the reorganized First Quorum of the Seventy
+  at the **October 1976** conference — not April 1976, confirmed by
+  Faust's title change landing exactly "from Oct 1976"). Talks from the
+  same speakers at or after that Oct 1976 conference (already-First-
+  Quorum-of-the-Seventy talks) were deliberately left as `seventy`, not
+  swept into `other`:
+  - **David B. Haight** — all 8 pre-apostle talks (Apr 1971 – Oct 1975;
+    he left the office for the apostleship Jan 8 1976, before the Oct
+    1976 reorg even happened).
+  - **ElRay L. Christiansen** — all 8 of his talks (Apr 1971 – Apr 1975);
+    he held this office continuously from Oct 1958 until his death May 23
+    1975, never reaching the 1976 reorg.
+  - **James E. Faust** — 6 talks (Oct 1972 – Oct 1975). His Oct 1976 and
+    Oct 1977 talks stay `seventy` (First Quorum of the Seventy presidency
+    from Oct 1976).
+  - **John H. Vandenberg** — 6 talks (Oct 1972 – Apr 1976, i.e. every
+    Assistant-to-the-Twelve-era talk through the last conference *before*
+    the Oct 1976 reorg). His Apr 1978 talk stays `seventy`.
+  - **Joseph Anderson** — 9 talks (Apr 1971 – Apr 1976). Previously
+    documented (see the original Seventy backfill section above) as a
+    deliberate exception left at `seventy` — that decision is now
+    superseded by this change. His Oct 1976, Apr 1978, and Oct 1986 talks
+    stay `seventy`.
+  - **L. Tom Perry** — 3 talks (Oct 1972 – Oct 1973; he left the office
+    for the apostleship Apr 6 1974).
+  - **Neal A. Maxwell** — 4 talks (Apr 1974 – Apr 1976, i.e. through the
+    last conference before the Oct 1976 reorg). His Oct 1976, Apr 1978,
+    and Oct 1980 talks stay `seventy` (Presidency of the Seventy from Oct
+    1976 until his Oct 1981 apostleship).
+  - **Not touched, and shouldn't be re-researched**: Vaughn J.
+    Featherstone's `seventy`-tagged talks all start Oct 1976 or later
+    (he was in the Presiding Bishopric through Apr 1976), so none of his
+    entries were ever Assistant-to-the-Twelve-era — correctly still
+    `seventy`.
+- **3 previously-untagged talks newly tagged `other`** — real,
+  identifiable non-Seventy offices that simply aren't one of the ten
+  tracked categories, same rationale as Eldred G. Smith's original `other`
+  tag:
+  - **Richard E. Turley Sr.**, Apr 1998 — Assistant Church Historian (a
+    professional employee, not a sustained General Authority; previously
+    left untagged per the "one-off employee never sustained a General
+    Authority" carve-out documented in the Oct 1996–Apr 1999 batch
+    section above — now reclassified from "untagged" to `other` instead).
+  - **Dallin H. Oaks**, Oct 1971 — BYU President (served Sept 1971 – May
+    1980, before his Utah Supreme Court and later apostolic service).
+  - **Jeffrey R. Holland**, Apr 1983 — BYU President (served 1980–1989,
+    before his Oct 1989 sustaining to the Quorum of the Twelve).
+  - **Checked and found to need no action**: Merrill J. Bateman (BYU
+    president Jan 1996 – 2003) and Cecil O. Samuelson (BYU president
+    2003–2014) — neither has any talk in the dataset that falls during
+    their BYU presidency; Bateman's entries are all from his Seventy/
+    Presiding Bishopric years, and Samuelson has no talks in the dataset
+    at all. Kevin J Worthen and C. Shane Reese (later BYU presidents)
+    also have no talks in the dataset.
+- **Not touched**: the "First Council of the Seventy" pre-1976 title
+  (the other historical predecessor mentioned alongside Assistant to the
+  Twelve in the code comment at the top of this file) — no specific
+  case naming that exact title, as distinct from Assistant to the Twelve,
+  was identified in this pass. If one turns up later, apply the same
+  Oct-1976-boundary logic used above.
+- If a future pass adds more offices to `other` (Church Patriarch's staff,
+  mission presidents, temple presidents, etc.), keep following this same
+  pattern: only tag a real, identifiable, verified office — `other` is
+  still never a catch-all for "didn't bother to check."
+
+## ✅ Done: `sunday-school` role added; `area-seventy` researched and deliberately NOT added (2026-08-22)
+User asked for two new roles: **"Area Seventy"** (between `seventy` and
+`other`) and **"Sunday School Presidency"** (between `young-men` and
+`presiding-bishopric`), with all matching talks moved into them.
+
+**New source-of-truth technique used for this pass, worth reusing any
+time role assignment needs real verification:** every talk's own page at
+`churchofjesuschrist.org/study/general-conference/{y}/{m}/{slug}` carries
+the speaker's exact official calling in
+`<p class="author-role">...</p>`, right under
+`<p class="author-name">By Elder/Sister ...</p>`. This is the *exact*
+wording the Church itself used for that talk at publication time — more
+precise than any manual research, and scriptable via `curl` + a one-line
+regex exactly like the existing `TOPIC_LOOKUP`/session-listing fetch
+pattern documented above. For this pass, **every single one of the 1,316
+candidate talks was checked this way**: all 1,263 talks then tagged
+`seventy`, plus all 53 then-untagged talks — full coverage, not a sample.
+
+- **`sunday-school` added, 22 talks reassigned `seventy` → `sunday-school`**
+  (`roleLabels.sunday-school` = "Sunday School General Presidency"; role
+  key order in both `docs/data.json` and `ROLE_ORDER` in `docs/index.html`
+  is now `...,young-men,sunday-school,presiding-bishopric,seventy,other`).
+  Every one of the 22 had an exact byline of "Sunday School General
+  President," "First Counselor in the Sunday School General Presidency,"
+  or "Second Counselor in the Sunday School General Presidency": A.
+  Roger Merrill (Oct 2006), Daniel K Judd (Oct 2007), William D. Oswald
+  (Oct 2008), Russell T. Osguthorpe (Oct 2009, Oct 2012), David M.
+  McConkie (Oct 2010, Oct 2013), Matthew O. Richardson (Oct 2011), Tad R.
+  Callister (Oct 2014, Oct 2017), Devin G. Durrant (Oct 2015, Apr 2018),
+  Brian K. Ashton (Oct 2016, Oct 2018), Mark L. Pace (Oct 2019, Apr 2022,
+  Apr 2024), Milton Camargo (Oct 2020, Apr 2023), Jan E. Newman (Apr
+  2021, Oct 2023), Chad H Webb (Oct 2025) — this also **resolves the
+  Chad H Webb uncertainty flagged in the original Seventy backfill
+  section above**: his byline is Sunday School counselor, not GA Seventy,
+  confirmed directly from the source rather than inferred.
+  - **One deliberate exclusion**: Tad R. Callister's Apr 2019 talk is
+    byline'd "**Recently Released** Sunday School General President" —
+    per this project's "role at the time of the talk" rule, that's
+    explicitly *not* currently holding the office at that talk, so it
+    was left `seventy`, not moved.
+  - No Sunday School Presidency talks existed among the pre-Oct-1997
+    untagged pool either (checked as part of the same full sweep) — the
+    office simply predates any of this dataset's Sunday School
+    presidency members' conference talks.
+- **`area-seventy` was NOT added.** Every one of the 1,316 checked talks'
+  bylines was inspected for "Area Seventy" / "Area Authority Seventy" —
+  **zero matches, anywhere in the entire 4,054-talk dataset.** This
+  matches real Church practice: Area Seventies are sustained at
+  conference (in the leadership/business session) but essentially never
+  given an actual sermon speaking slot in the public Saturday/Sunday
+  sessions this dataset draws from — that's reserved for General
+  Authorities and general officers. **User was asked and chose to skip
+  adding an always-empty category** rather than add one that would
+  permanently show "0 talks match." If a real Area Seventy talk is ever
+  found in a future conference (or an older one previously missed),
+  add `area-seventy` at that point, positioned between `seventy` and
+  `other` in both `ROLE_ORDER` and `roleLabels`, labeled "Area Seventy."
+- **Byproduct findings from this full sweep, NOT acted on (out of scope
+  for this request, flagged for a future pass)** — worth revisiting
+  since the data is already sitting in `/tmp/pre1997_roles.tsv`,
+  `/tmp/seventy_roles2.tsv`, `/tmp/untagged_roles.tsv` from this session
+  (not committed anywhere, regenerate via the same curl+regex technique
+  if needed):
+  - **~102 pre-1976 talks have the exact byline "Assistant to the
+    Council of the Twelve"** — noticeably more than the 44 talks (7
+    speakers) reclassified to `other` in the section above this one,
+    which was based on manual per-speaker research rather than a full
+    byline sweep. The gap is unexplained and worth reconciling: either
+    additional speakers held this exact office and were missed, or (more
+    likely) many of these 102 are `seventy`-appropriate talks whose
+    speaker's byline still read "Assistant to the Council of the Twelve"
+    at the *pre-1976* time of the talk even though this project's
+    existing merge logic already accounts for some of them — needs a
+    side-by-side diff against the 44 already-moved keys before acting,
+    not a blind bulk move.
+  - **A handful of currently-`seventy`- or untagged talks have bylines
+    that are obviously not Seventy at all**: local stake/ward callings
+    ("Bishop, Beavercreek Ward...", "President, Portland Oregon East
+    Stake", "Member of the Slate Canyon 14th Ward..."), a football coach
+    ("Head Football Coach, Brigham Young University"), an astronaut
+    ("Astronaut"), a Scouting official ("National President, Boy Scouts
+    of America"), and a few Church employees ("Director of Internal
+    Communications", "Commissioner, Health Services Corporation") — none
+    of these should be `seventy`, and some may deserve `other` (real,
+    identifiable non-Seventy office) once individually confirmed, same
+    standard as Richard E. Turley Sr./Oaks/Holland above.
+  - **Several already-tracked-category counselors are currently
+    untagged** even though their byline is an exact match for an
+    existing role: e.g. Elaine L. Jack and Jayne B. Malan (Young Women
+    counselors, 1989/1991), and roughly two dozen Relief Society/Primary/
+    Young Women counselors from 2016–2025 (Linda S. Reeves, Carole M.
+    Stephens, Carol F. McConkie, Joy D. Jones, Bonnie H. Cordon, Neill F.
+    Marriott, Sharon Eubank, Cristina B. Franco, Rebecca L. Craven, Lisa
+    L. Harkness, Reyna I. Aburto, Tamara W. Runia, Andrea Muñoz Spannaus,
+    Jean B. Bingham, Mary R. Durham [hers is "Recently Released," so
+    correctly excluded]) — these look like a straightforward, low-risk
+    batch tagging pass since the byline gives an exact, unambiguous
+    match to a role that already exists in `ROLE_LABELS`.

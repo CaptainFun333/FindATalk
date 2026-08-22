@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  No NSURLIsExcludedFromBackupKey / backup-exclusion logic is set anywhere
+  in this app on purpose: Favorites and My Lists (see FAVORITES_KEY/
+  COLLECTIONS_KEY in docs/index.html) live in the WKWebView's localStorage
+  under this app's container, which iOS/iTunes/iCloud device backups
+  include by default as long as nothing marks it excluded. If a future
+  change needs to exclude other files from backup, keep this app's
+  WebKit/WebsiteData directory out of that exclusion.
+-->
 <plist version="1.0">
 <dict>
   <key>CAPACITOR_DEBUG</key>

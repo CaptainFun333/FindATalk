@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31+) cloud-backup / device-transfer rules.
+
+  Adding this file switches Auto Backup from "include everything by
+  default" to an allowlist — so every domain is re-included explicitly
+  below to keep today's default behavior, not narrow it. The one thing
+  that actually matters is `file` domain coverage of `app_webview/`,
+  where the wrapped app's WebView keeps localStorage — this is where
+  Favorites and My Lists live (FAVORITES_KEY/COLLECTIONS_KEY/
+  COLLECTION_MEMBERS_KEY in docs/index.html). This file exists so that
+  stays true even if a future change adds narrower rules elsewhere,
+  rather than relying on the implicit default.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="." />
+        <include domain="database" path="." />
+        <include domain="file" path="." />
+        <include domain="external" path="." />
+        <include domain="root" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="." />
+        <include domain="database" path="." />
+        <include domain="file" path="." />
+        <include domain="external" path="." />
+        <include domain="root" path="." />
+    </device-transfer>
+</data-extraction-rules>
