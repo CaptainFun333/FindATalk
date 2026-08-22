@@ -1719,30 +1719,92 @@ talks total.**
   same-conference transitions, and Holland's Apr 1983 key resolving to
   `undefined`.
 
+## ✅ Done: backward coverage to October 1980 (Hinckley's apostle→First-Presidency boundary correctly split)
+Added Oct 1980, Apr 1981, Oct 1981, Apr 1982 (156 talks, after dropping
+one more admin-title variant — see below). **The continuous run now
+goes October 1980 → April 2026 (93 conferences back to back)**, plus the
+October 1974 standalone. **3303 talks total.**
+- **Another exclusion-filter title variant caught**: `"Sustaining of
+  Church Officers"` (missing both "The" and any distinguishing suffix)
+  slipped past the filter at Apr 1982 — a third variant of the same
+  generic admin item, after "The Sustaining of Church Officers" (already
+  excluded) and last session's "Church Audit Committee Report" catch.
+  Removed by hand. **The exclusion list is clearly not exhaustive across
+  eras — scan every new batch's raw titles for "Audit"/"Statistical"/
+  "Sustaining" before trusting the fixed `EXCLUDE_EXACT`/`EXCLUDE_PREFIX`
+  sets**, same lesson as last session, now proven twice in a row.
+- **Kickers**: zero, as expected.
+- **Topics**: 155/156 matched (after dropping the admin item); one
+  exception, no red flag.
+- **A real correction caught before merging this time (not after, unlike
+  the Ballard bug two sessions ago)**: **Gordon B. Hinckley was a plain
+  apostle, not yet in the First Presidency, for Oct 1980 and Apr 1981** —
+  he wasn't set apart as a third counselor to Kimball until **July 23,
+  1981**, several months after Apr 1981's conference. His Oct 1980/Apr
+  1981 talks are tagged `apostle`; Oct 1981 onward (his first conference
+  after the July calling) is `first-presidency`, matching the pattern
+  already used for every other apostle-to-FP transition in this project.
+  Also confirmed **Victor L. Brown (Presiding Bishop, 1972–1985) and H.
+  Burke Peterson (his 1st counselor from 1972)** — both were nearly
+  missed for this same reason (an earlier draft of this batch's script
+  defaulted both to `seventy` before a second pass caught it) — **worth
+  re-checking this project's evolving Presiding Bishopric timeline
+  explicitly every time a new batch reaches further back than the
+  previous batch's earliest Presiding Bishop research**, the same lesson
+  as the Ballard apostle-date issue, just for a different role.
+- **Relief Society counselor identification, partly confirmed via
+  search and partly by strong contextual inference**: **Janath R.
+  Cannon** was Barbara B. Smith's 1st counselor 1974–1978, succeeded by
+  **Marian R. Boyer** (confirmed via search) — Boyer's talks in this
+  batch are tagged `relief-society`. **Shirley W. Thomas** appears
+  paired with Boyer at both Oct 1980 and Oct 1981 (both RS-themed
+  session talks) but her exact office wasn't independently confirmed —
+  tagged `relief-society` on the strength of that repeated pairing,
+  flagged here in case a future session finds a source that
+  contradicts it. **Mary F. Foulger** and **Addie Fuhriman** appear only
+  once each (Oct 1980) alongside Smith/Boyer/Thomas — left deliberately
+  untagged, most likely Relief Society General Board members (a level
+  this app doesn't track), same treatment as the Elaine L. Jack Oct 1989
+  case from two sessions ago.
+- **One more non-officeholder pair left untagged**: **JoAnn Randall**
+  and **Nyle Randall** (Oct 1981) — a married couple giving a joint
+  service-themed talk, no confirmable calling, same "leave untagged"
+  treatment as the Vidmar/Edwards/Lind celebrity-guest cases and the
+  Holland-brothers/Durrant youth cases from the last two sessions.
+- **Validation clean**: zero duplicates, zero orphans, zero sandwiched
+  gaps, zero missing conferences in the expected Oct 1980 → Apr 2026
+  run, zero role flip-flops, across the full 3303-talk dataset.
+- Footer copy and code comment in `docs/index.html` updated: "ninety-
+  three conferences... every conference from October 1980 through April
+  2026, plus Oct 1974."
+- **Verified live**: `TALKS.length` = 3303; `ROLE_LOOKUP` confirmed
+  Hinckley's exact `apostle`→`first-presidency` split at the July 1981
+  boundary, Victor L. Brown and Marian R. Boyer resolving correctly, and
+  JoAnn Randall resolving to `undefined`.
+
 ## ⏭️ Next task (optional): keep expanding backward
 The next gap going further back is **October 1974 and earlier** — this
-project has no other conferences between the current Oct 1982 start and
-the standalone Oct 1974 (a 15-conference/7.5-year hole, 1975–1982, never
+project has no other conferences between the current Oct 1980 start and
+the standalone Oct 1974 (a 11-conference/5.5-year hole, 1975–1980, never
 touched at all) or before Oct 1974 itself (the earliest conference this
 project has ever indexed). Kimball's own presidency is confirmed stable
 back to 1973 (his own succession, from Harold B. Lee who died Dec 26
 1973 after less than 18 months as president himself, hasn't been
-researched). Filling backward past Oct 1974, or filling the 1975–1982
-hole to connect it to the current Oct 1982 start, are both much bigger
+researched). Filling backward past Oct 1974, or filling the 1975–1980
+hole to connect it to the current Oct 1980 start, are both much bigger
 undertakings than any single batch so far — neither has been scoped, and
 either would need substantial fresh First Presidency/auxiliary-
 presidency research (Lee's brief presidency and its transition both to
 and from; Smith/Cannon/Young's own predecessors in Relief Society/Young
 Women/Primary, none of which have known start dates before the 1970s in
-this project yet). Also worth doing early in any such session: check
-whether N. Eldon Tanner or any other pre-1982 apostle had talks in a
-still-earlier batch under a role that later sessions' "stable apostles"
-sets might get wrong, using the same cross-check pattern documented
-above.
+this project yet; the Presiding Bishopric before Brown/Peterson, whose
+own start dates aren't yet confirmed either).
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the full validation pass
-(duplicates, orphans, sandwiched gaps, missing-conference check, **and
-the role flip-flop check**) afterward.
+(duplicates, orphans, sandwiched gaps, missing-conference check, role
+flip-flop check) afterward. **Scan every new batch's raw talk titles for
+admin-report variants before trusting the fixed exclusion list** — this
+has now caught a real miss in two sessions running.
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was

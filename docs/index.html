@@ -283,6 +283,14 @@
     margin:0 0 32px;
   }
   .nav-sep{ color:var(--line); font-family:'Inter',sans-serif; font-size:12.5px; }
+  .nav-current{
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:var(--ink);
+    padding:4px 2px;
+  }
 
   /* ---------- Recently Viewed / Favorites pages ---------- */
   .page-header{
@@ -735,13 +743,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
   </div>
 
-  <div class="page-nav">
-    <button type="button" class="reset-link" id="recentNavBtn">Recently Viewed</button>
-    <span class="nav-sep">·</span>
-    <button type="button" class="reset-link" id="favoritesNavBtn">Favorites</button>
-    <span class="nav-sep">·</span>
-    <button type="button" class="reset-link" id="collectionsNavBtn">My Lists</button>
-  </div>
+  <div class="page-nav" id="homeZoneNav"></div>
 
   <p class="search-intro">You may narrow the search by using the filters below.</p>
 
@@ -861,8 +863,8 @@
   </div>
 
   <div id="recentZone" style="display:none">
+    <div class="page-nav" id="recentZoneNav"></div>
     <div class="page-header">
-      <button type="button" class="reset-link" id="recentBackBtn">← Back</button>
       <h2 class="page-title">Recently Viewed</h2>
     </div>
     <div class="filters" id="recentFilters"></div>
@@ -875,8 +877,8 @@
   </div>
 
   <div id="favoritesZone" style="display:none">
+    <div class="page-nav" id="favoritesZoneNav"></div>
     <div class="page-header">
-      <button type="button" class="reset-link" id="favoritesBackBtn">← Back</button>
       <h2 class="page-title">Favorites</h2>
     </div>
     <div class="filters" id="favoritesFilters"></div>
@@ -889,8 +891,8 @@
   </div>
 
   <div id="collectionsIndexZone" style="display:none">
+    <div class="page-nav" id="collectionsIndexZoneNav"></div>
     <div class="page-header">
-      <button type="button" class="reset-link" id="collectionsIndexBackBtn">← Back</button>
       <h2 class="page-title">My Lists</h2>
     </div>
     <div class="collections-new-row">
@@ -902,8 +904,8 @@
   </div>
 
   <div id="collectionZone" style="display:none">
+    <div class="page-nav" id="collectionZoneNav"></div>
     <div class="page-header">
-      <button type="button" class="reset-link" id="collectionBackBtn">← Back</button>
       <h2 class="page-title" id="collectionTitle">List</h2>
     </div>
     <div class="filters" id="collectionFilters"></div>
@@ -930,7 +932,7 @@
   </div>
 
   <footer>
-    This tool draws from a curated sample of <strong id="totalCount"></strong> real, verified talks pulled from eighty-nine conferences — every conference from October 1982 through April 2026, plus Oct 1974 — not the full archive of several thousand talks since 1971, which isn't practical to hand-index here. Topics are the Church's own official tags, pulled directly from its general-conference topics index rather than guessed from titles.<br>
+    This tool draws from a curated sample of <strong id="totalCount"></strong> real, verified talks pulled from ninety-three conferences — every conference from October 1980 through April 2026, plus Oct 1974 — not the full archive of several thousand talks since 1971, which isn't practical to hand-index here. Topics are the Church's own official tags, pulled directly from its general-conference topics index rather than guessed from titles.<br>
     For the complete, official library, visit <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>. This page is an independent fan-made tool, not produced by the Church.
   </footer>
 
@@ -940,8 +942,8 @@
 /* ---------------------------------------------------------------
    Verified talk data: title, speaker, year, month, url-slug.
    Pulled directly from churchofjesuschrist.org session pages for
-   89 conferences: Oct 1974 standalone, then every conference from
-   October 1982 through April 2026 without a gap. Every URL below
+   93 conferences: Oct 1974 standalone, then every conference from
+   October 1980 through April 2026 without a gap. Every URL below
    is the real, working link for that talk.
 ------------------------------------------------------------------*/
 let TALKS;
@@ -1839,12 +1841,56 @@ shareBtn.addEventListener('click', ()=>{
 });
 
 /* ---------------- Recently Viewed / Favorites / My Lists pages ---------------- */
+
+// Home / Recents / Favorites / My Lists tab bar — shown at the top of
+// every page. The active section is bolded plain text; the rest are
+// clickable links to jump straight there. The same markup is rendered
+// into a placeholder on each zone (rather than living in one shared
+// element) so it stays visible no matter which zone is on screen.
+const NAV_ITEMS = [
+  {zone:'home', label:'Home'},
+  {zone:'recent', label:'Recents'},
+  {zone:'favorites', label:'Favorites'},
+  {zone:'collectionsIndex', label:'My Lists'}
+];
+const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
+function renderNavBars(currentZone){
+  // The individual list-detail page isn't one of the four tabs — treat
+  // it as part of "My Lists" for bolding purposes.
+  const current = currentZone==='collection' ? 'collectionsIndex' : currentZone;
+  const html = NAV_ITEMS.map((item, i)=>{
+    const sep = i>0 ? '<span class="nav-sep">·</span>' : '';
+    const piece = item.zone===current
+      ? `<span class="nav-current">${item.label}</span>`
+      : `<button type="button" class="reset-link" data-nav-zone="${item.zone}">${item.label}</button>`;
+    return sep + piece;
+  }).join('');
+  NAV_BAR_IDS.forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
+}
+// Delegated click handler — the nav bars are re-rendered (innerHTML
+// replaced) every time the active zone changes, so listeners are bound
+// once here rather than re-attached after each render.
+document.body.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-nav-zone]');
+  if (!btn) return;
+  const zone = btn.getAttribute('data-nav-zone');
+  if (zone==='recent') renderRecentPage();
+  else if (zone==='favorites') renderFavoritesPage();
+  else if (zone==='collectionsIndex') renderCollectionsIndexPage();
+  showZone(zone);
+});
+renderNavBars('home'); // initial paint — the app opens on the Home page
+
 function showZone(name){
   homeZone.style.display = name==='home' ? '' : 'none';
   recentZone.style.display = name==='recent' ? 'block' : 'none';
   favoritesZone.style.display = name==='favorites' ? 'block' : 'none';
   collectionsIndexZone.style.display = name==='collectionsIndex' ? 'block' : 'none';
   collectionZone.style.display = name==='collection' ? 'block' : 'none';
+  renderNavBars(name);
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -2132,10 +2178,6 @@ favoritesFilterPanel.onChange = ()=> renderSubsetList(
   'No favorites match those filters.'
 );
 
-document.getElementById('recentNavBtn').addEventListener('click', ()=>{ renderRecentPage(); showZone('recent'); });
-document.getElementById('favoritesNavBtn').addEventListener('click', ()=>{ renderFavoritesPage(); showZone('favorites'); });
-document.getElementById('recentBackBtn').addEventListener('click', ()=> showZone('home'));
-document.getElementById('favoritesBackBtn').addEventListener('click', ()=> showZone('home'));
 
 /* ---------------- My Lists (self-defined collections) ---------------- */
 // Which collection collectionZone is currently showing, if any — lets a
@@ -2207,9 +2249,6 @@ function renderCollectionsIndexPage(){
   });
 }
 
-document.getElementById('collectionsNavBtn').addEventListener('click', ()=>{ renderCollectionsIndexPage(); showZone('collectionsIndex'); });
-document.getElementById('collectionsIndexBackBtn').addEventListener('click', ()=> showZone('home'));
-document.getElementById('collectionBackBtn').addEventListener('click', ()=>{ renderCollectionsIndexPage(); showZone('collectionsIndex'); });
 
 const collectionsIndexNewInput = document.getElementById('collectionsIndexNewInput');
 document.getElementById('collectionsIndexNewBtn').addEventListener('click', ()=>{
