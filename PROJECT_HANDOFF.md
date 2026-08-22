@@ -1576,25 +1576,96 @@ them.
   Doxey (`relief-society`), Holland (`seventy`), and Jack's Oct 1989 key
   resolving to `undefined` (confirming the deliberate non-tag).
 
+## ✅ Done: backward coverage to October 1984 (Kimball-era First Presidency researched; a double Presiding Bishopric transition)
+Added Oct 1984, Apr 1985, Oct 1985, Apr 1986, then caught and filled
+**another** one-conference hole this same session: **Oct 1986** (sitting
+between Apr 1986 and the already-in-dataset Apr 1987), matching last
+session's Oct 1987 catch. 127 + 32 = 159 talks total. **The continuous
+run is now October 1984 → April 2026 (85 conferences back to back), plus
+the October 1974 standalone** — 2 have been caught this way in a row now;
+**always run the missing-conference check immediately after merging,
+before considering a batch done**, not just at the very end of a session.
+- **Kickers**: 4 more non-summary "context note" kickers this batch, same
+  family as previous sessions' finds — two more "(Read by President
+  ___, ___ Counselor in the First Presidency)" notes on Kimball/Benson
+  talks (his declining-then-fatal health continuing the pattern from the
+  1988–1989 batch), one for a priesthood-session talk "delivered in part"
+  by Benson with the "complete text... printed here at his request," and
+  one describing a videotape compilation of Kimball's past priesthood-
+  session talks. All kept verbatim.
+- **Topics**: 158/159 matched; the one exception ("Your Patriarchal
+  Blessing: A Liahona of Light," Thomas S. Monson, Oct 1986) has no
+  official topic tag — plausible, no red flag.
+- **Fresh First Presidency research for the Kimball era, confirmed via
+  web search**: Spencer W. Kimball's counselors were **N. Eldon Tanner**
+  and **Marion G. Romney** from 1973 until Tanner's death in 1982; when
+  Kimball/Tanner/Romney's health all declined, **Gordon B. Hinckley was
+  added as a third counselor July 23, 1981**; after Tanner died, Romney
+  became 1st counselor and Hinckley 2nd. **Kimball died Nov 5 1985** —
+  Benson became president Nov 10/11 1985 (already documented). This
+  means **Thomas S. Monson was still a plain apostle for Oct 1984/Apr
+  1985/Oct 1985** — he wasn't added to the First Presidency until Benson
+  called him Nov 1985 — a real correction from every prior batch's
+  default of tagging him `first-presidency`, worth remembering if any
+  earlier-era script or memory gets reused: **Monson = `apostle` for any
+  talk before Nov 1985, `first-presidency` from Apr 1986 on.** Marion G.
+  Romney has no talk in this batch (declining health).
+- **A real double Presiding Bishopric transition at Apr 1985, same-day,
+  confirmed via search**: **Victor L. Brown** (10th Presiding Bishop,
+  1972–1985, with **H. Burke Peterson** as 1st counselor from 1972) was
+  released April 6 1985 and succeeded by **Robert D. Hales**, who called
+  **Henry B. Eyring** (1st) and **Glenn L. Pace** (2nd) as his own new
+  counselors — all documented in an earlier session as continuing from
+  this exact date. All five have talks at that same Apr 1985 conference
+  (Brown's and Peterson's farewells; Hales's, Eyring's, and Pace's firsts
+  — Hales's talk is literally titled "The Mantle of a Bishop") — all
+  five tagged `presiding-bishopric`, the same-conference-transition
+  pattern used throughout this project.
+- **Three non-officeholder special-guest speakers left deliberately
+  untagged**, a new category for this project (distinct from the
+  youth-testimony blocks documented earlier): **Peter Vidmar** (Apr
+  1985, "Pursuing Excellence" — the 1984 Olympic gymnastics gold
+  medalist), **R. LaVell Edwards** (Oct 1984, "Prepare for a Mission" —
+  the BYU football coach), and **Don Lind** (Oct 1985, "The Heavens
+  Declare the Glory of God" — the NASA astronaut). All three are
+  well-known LDS public figures invited to address a specific conference
+  session without holding any Church office this app tracks — same
+  "leave untagged rather than guess" principle as every other
+  unconfirmed-calling case in this project.
+- **Validation clean** across the whole 3019-talk dataset: zero
+  duplicates, zero orphans, zero sandwiched gaps, zero missing
+  conferences in the expected Oct 1984 → Apr 2026 run (confirmed only
+  after adding the Oct 1986 catch-up batch).
+- Footer copy and code comment in `docs/index.html` updated: "eighty-five
+  conferences... every conference from October 1984 through April 2026,
+  plus Oct 1974."
+- **Verified live**: `TALKS.length` = 3019; `ROLE_LOOKUP` confirmed
+  Monson flipping `apostle`→`first-presidency` exactly at the Apr 1986
+  boundary, Kimball (`president`), the five-way Apr 1985 Presiding
+  Bishopric transition, Richard G. Scott correctly still `seventy` at Apr
+  1986 (pre-dates his 1988 apostle call), and Peter Vidmar resolving to
+  `undefined` (confirming the deliberate non-tag).
+
 ## ⏭️ Next task (optional): keep expanding backward
-The next gap going further back is **April 1986 and earlier**. Benson's
-presidency (Hinckley/Monson as counselors) is confirmed stable all the
-way back to Nov 11 1985, so **April 1986** (his first conference as
-president) shares the same simple First Presidency tagging as every
-batch so far. **Winder/Evans/Doxey (Relief Society, since April 1984),
-Kapp (Young Women, since 1984), and Young/Cannon/Grassli (Primary, 1980–
-1988)** are all already confirmed stable across this one remaining
-conference — no new auxiliary research needed for Apr 1986 itself.
-Going further back — **October 1985 and earlier** — needs fresh First
-Presidency research: Spencer W. Kimball died Nov 5 1985, and this
-project has never researched his presidency, its counselors, or its
-transition to Benson. Filling 1975–1985 in general (this project has
-only ever touched Oct 1974 in that whole span) is a much bigger
-undertaking than any single batch so far and hasn't been scoped.
+The next gap going further back is **October 1974 and earlier** — this
+project has no other conferences between the current Oct 1984 start and
+the standalone Oct 1974 (a 20-conference/10-year hole, 1975–1984, never
+touched at all) or before Oct 1974 itself (the earliest conference this
+project has ever indexed). Kimball's own presidency is now confirmed
+stable back to 1973 (his own succession, from Harold B. Lee who died Dec
+26 1973 after less than 18 months as president himself, hasn't been
+researched). Filling backward past Oct 1974, or filling the 1975–1984
+hole to connect it to the new Oct 1984 start, are both much bigger
+undertakings than any single batch so far — neither has been scoped, and
+either would need substantial fresh First Presidency/auxiliary-
+presidency research (Lee's brief presidency and its transition both to
+and from; auxiliary presidencies further back than Winder/Kapp/Young,
+none of which have known start dates before ~1980 in this project yet).
 Remember to extend Seventy/auxiliary-presidency role work too — don't
-leave new talks role-untagged — and re-run the "sandwiched gap" + full
-integrity validation passes (including the new missing-conference check)
-described above afterward.
+leave new talks role-untagged — and re-run the full validation pass
+(duplicates, orphans, sandwiched gaps, **and the missing-conference
+check** — run it right after merging each batch, not just once at the
+end) afterward.
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was
