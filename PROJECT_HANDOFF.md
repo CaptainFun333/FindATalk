@@ -1395,16 +1395,101 @@ standalone either (now bridged in). **2416 talks total.**
   `young-women` vs. Oct 1994 → `primary`, Grassli Oct 1994 → `primary`,
   Eyring Apr 1995 → `apostle`).
 
+## ✅ Done: backward coverage to April 1992 (Kapp→Hales YW transition; Presiding Bishopric counselor history filled in)
+Added Apr 1992, Oct 1992, Apr 1993, Oct 1993 (145 talks). **The
+continuous run now goes April 1992 → April 2026 (69 conferences back to
+back)**, plus the October 1974 standalone (Apr 1987 is now bridged in
+too). **71 conferences, 2561 talks total.**
+- **Kickers**: expected zero for this era, but 2 talks had a real
+  `class="kicker"` paragraph anyway — **not** a one-sentence teaser like
+  every other kicker in this dataset, but a short editorial/context note
+  ("This address was given at the 1993 Parliament of the World's
+  Religions..."; "Part of this address was filmed in Nauvoo, Illinois...
+  Relief Society Sesquicentennial Satellite Broadcast"). Kept verbatim
+  anyway, same as every other kicker — it's genuinely what's in that
+  page's kicker element, just not the "summary sentence" style most
+  kickers use. Worth knowing about if a future pass ever tries to
+  validate "kicker text should read like a summary" — these two are
+  legitimate exceptions, not scraping bugs.
+- **Topics**: 144/145 matched; the one exception (Russell M. Nelson,
+  "Combatting Spiritual Drift—Our Global Pandemic," Oct 1993 — the same
+  talk with the Parliament-of-Religions kicker) has no official topic tag,
+  plausible given its unusual origin as a repurposed interfaith address.
+- **Presiding Bishopric counselor history filled in** (this project had
+  only known Robert D. Hales was Presiding Bishop April 1985 – April 1994
+  and that Burton/Edgley took over as his counselors Oct 3 1992; the
+  counselors *before* that were unresearched until now): **Henry B.
+  Eyring** was 1st counselor April 1, 1985 – October 3, 1992 (no talk of
+  his falls in this batch, but tag `presiding-bishopric` if one from that
+  window ever surfaces in an earlier batch), **Glenn L. Pace** was 2nd
+  counselor the same span, released the same Oct 3 1992 day Eyring was —
+  his one talk in this batch, at that same Oct 1992 conference, is his
+  same-conference farewell (`presiding-bishopric`). **H. David Burton**
+  (1st) and **Richard C. Edgley** (2nd) were sustained that same Oct 3
+  1992 day (already documented in an earlier session as continuing under
+  Bateman from Apr 1994 — now confirmed their tenure actually starts here,
+  Oct 1992, under Hales). Robert D. Hales himself only has one talk in
+  this batch (Apr 1992) — tagged `presiding-bishopric` (he doesn't become
+  an apostle until Apr 1994, already documented).
+- **Young Women: Ardeth G. Kapp → Janette Hales (Beckham) is a real
+  same-conference-transition case**, confirmed via the 10th-president
+  fact already on file ("April 4, 1992") plus this batch's own scraped
+  data: Kapp's farewell talk ("A Mighty Force for Righteousness") and
+  Hales Beckham's first-ever talk in the dataset ("You Are Not Alone")
+  both fall at **Apr 1992** — unlike some other transitions in this
+  project (which skip a conference between outgoing and incoming), this
+  one has both sides tagged `young-women` at the identical conference,
+  the same pattern as the RS Beck 2012 case. Virginia H. Pearce (1st
+  counselor from this same date, already known) has no talk in this
+  batch. Note: the real page byline already reads "Janette Hales
+  Beckham" even for this 1992 talk — she didn't actually marry and take
+  that surname until 1995, but the Church's site apparently updated the
+  byline retroactively (same behavior already confirmed for her 1996–97
+  talks in an earlier session) — use the byline exactly as scraped, don't
+  "correct" it to "Janette C. Hales."
+- **Apostle-roster correction, worth flagging for any future session
+  reusing a "stable apostles" set from a prior batch**: **Jeffrey R.
+  Holland was NOT yet an apostle** for any conference in this batch (he
+  has one talk, Oct 1993 — tagged `seventy`, correct, since he wasn't
+  sustained to the Twelve until June 23, 1994, a mid-year special
+  sustaining with no conference attached). **Henry B. Eyring** also
+  wasn't an apostle yet this era (still Presiding Bishopric 1st counselor
+  through Oct 1992, then off the Presiding Bishopric with no other public
+  calling change until his April 1995 apostle call, already documented —
+  he has no talk in this batch at all). **Marvin J. Ashton** (apostle,
+  d. Feb 25 1994) is added to the "stable apostles" set for this era —
+  present at Apr 1992/Oct 1992 only, absent from Apr/Oct 1993 (consistent
+  with declining health before his death).
+- **Validation clean**: zero duplicate talk rows, zero orphaned role/
+  topic/kicker entries, zero sandwiched role gaps, across the full
+  2561-talk dataset.
+- Footer copy and code comment in `docs/index.html` updated again:
+  "seventy-one conferences... every conference from April 1992 through
+  April 2026, plus Apr 1987 and Oct 1974."
+- **Verified live**: same `npx cap sync` + local-server + Browser-pane
+  spot-check pattern as the last two batches — `TALKS.length` = 2561,
+  and `ROLE_LOOKUP` confirmed for Holland (`seventy`), Kapp/Hales Beckham
+  same-conference transition (`young-women`/`young-women`), and
+  Pace/Burton (`presiding-bishopric`/`presiding-bishopric`).
+
 ## ⏭️ Next task (optional): keep expanding backward
-The next gap going further back is **October 1993 and earlier**. Benson's
-presidency (Hinckley/Monson as counselors, confirmed above) was stable
-all the way back to Nov 1985, so conferences from **Apr 1986 through Oct
-1993** (16 conferences) share the same simple First Presidency tagging as
-this batch — no further FP research needed for that whole stretch. Going
-past October 1974 backward, or filling 1975–1985 (this project has never
-touched those years at all), is a much bigger undertaking than any single
-batch so far and hasn't been scoped, and would need fresh First
-Presidency research (Kimball's presidency and its transition to Benson).
+The next gap going further back is **October 1991 and earlier**.
+Benson's presidency (Hinckley/Monson as counselors, confirmed above) was
+stable all the way back to Nov 1985, so conferences from **Apr 1986
+through Oct 1991** (12 conferences) share the same simple First
+Presidency tagging as this batch — no further FP research needed for
+that whole stretch. Two auxiliary transitions still need researching
+somewhere in that window before this project's already-known
+1990-onward data connects cleanly: **Relief Society** (Barbara W. Winder
+→ Elaine L. Jack, already known to land at March 31 1990 — Winder's own
+presidency and counselors, 1984–1990, are still unresearched) and
+**Primary** (Dwan J. Young → Michaelene P. Grassli, already known to
+land in Apr 1988 — Young's own presidency and counselors are still
+unresearched). Going past October 1974 backward, or filling 1975–1985
+(this project has never touched those years at all), is a much bigger
+undertaking than any single batch so far and hasn't been scoped, and
+would need fresh First Presidency research (Kimball's presidency and its
+transition to Benson).
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the "sandwiched gap" + full
 integrity validation passes described above afterward.
