@@ -32,6 +32,17 @@ edits should target `docs/`, not `conference-draw.html`, unless
 specifically doing a one-off legacy-file fix.
 
 ## Current data state
+**⚠️ The numbers below are stale — kept for historical color only.** For
+the real, current totals, see the most recent `## ✅ Done:` section
+further down this file (search for "the standing gap is FULLY CLOSED"
+for the latest milestone). As of that session: **3762 real, verified
+talks** across **104 conferences**, pulled directly from the Church's
+own session listing pages (not invented/hallucinated — each talk's
+title, speaker, and URL slug was read off the actual
+`churchofjesuschrist.org` contents page for that conference), spanning
+**every single conference from October 1974 through April 2026 with no
+gaps and no standalone entries left** — this was the original state at
+the time this "Current data state" section was first written:
 - **2052 real, verified talks** across **57 conferences**, pulled directly
   from the Church's own session listing pages (not invented/hallucinated —
   each talk's title, speaker, and URL slug was read off the actual
@@ -1895,33 +1906,70 @@ to back)**, plus the October 1974 standalone. **3619 talks total.**
   (`presiding-bishopric`), Hinckley still `apostle` at Apr 1978, and Arch
   Monson resolving to `undefined`.
 
-## ⏭️ Next task (optional): keep expanding backward
-The next gap going further back is **October 1974 and earlier** — this
-project has no other conferences between the current Oct 1976 start and
-the standalone Oct 1974 (a 3-conference/1.5-year hole: Apr 1976, Oct
-1975, Apr 1975 — small enough to likely close in one more batch) or
-before Oct 1974 itself (the earliest conference this project has ever
-indexed — going further back than that has never been scoped at all).
-**Harold B. Lee's own presidency (July 1972 – Dec 1973) still needs its
-own conferences fetched** — Apr 1975 and Oct 1975/Apr 1976 fall under
-Kimball (already-confirmed Tanner/Romney pattern, no new FP research
-needed), but if this next batch or a future one reaches back far enough
-to touch a conference **before Dec 30 1973** (i.e., Oct 1973 or Apr
-1973, both under Lee), remember Lee had the *same* two counselors as
-Kimball, so still no new FP research needed even then — the real
-unresearched unknown is **Joseph Fielding Smith's presidency (Lee's own
-predecessor, died July 2 1972)** and its transition to Lee, only
-relevant if a future batch reaches back past Lee's very first conference
-(likely Oct 1972).
-Remember to extend Seventy/auxiliary-presidency role work too — don't
-leave new talks role-untagged — and re-run the full validation pass
-(duplicates, orphans, sandwiched gaps, missing-conference check, role
-flip-flop check) afterward. **Scan every new batch's raw talk titles for
-admin-report variants before trusting the fixed exclusion list, and
-re-scan every conference in a multi-conference batch against the role
-sets individually** — both have now caught real misses in three sessions
-running (though this session's batch didn't hit either issue, the
-standing exclusion set having grown enough to cover it).
+## ✅ Done: the standing gap is FULLY CLOSED — October 1974 → April 2026, one unbroken chain, no more standalone entries
+Added Apr 1975, Oct 1975, Apr 1976 (143 talks) — the last 3 conferences
+needed to bridge the final hole between the Oct 1976 start and the old
+Oct 1974 standalone entry. **This is a milestone for the project: there
+are no more gaps or standalone conferences anywhere in the dataset.**
+Every single General Conference from **October 1974 through April
+2026 — 104 conferences in a row** — is now present, continuous, and
+fully role/topic-tagged. **3762 talks total.**
+- No new First Presidency research was needed — every conference in
+  this batch falls under Kimball (Tanner/Romney counselors, already
+  established), confirming last session's prediction.
+- **Kickers**: zero, as expected.
+- **Topics**: all 143 matched — zero exceptions this batch.
+- One new name added to the stable-apostles set for completeness:
+  none needed this batch (Delbert L. Stapley, added last session,
+  covers it). One new Seventy-era name: **ElRay L. Christiansen**
+  (Apr 1975 only).
+- **Validation clean**, including the milestone confirmation: zero
+  duplicates, zero orphans, zero sandwiched gaps, **zero missing
+  conferences in the full October 1974 → April 2026 range** (the
+  missing-conference check was run against `1974-10` as the floor for
+  the first time — it came back completely empty), zero role
+  flip-flops.
+- **Footer copy and the code comment in `docs/index.html` were rewritten**,
+  not just incremented — the old "Oct 1974 standalone, plus every
+  conference from X onward" phrasing no longer applies since there's no
+  standalone conference left at all. New wording: "every single General
+  Conference from October 1974 through April 2026, one hundred and four
+  conferences in a row with no gaps."
+- **Verified live**: `TALKS.length` = 3762, spanning `min(year)` = 1974
+  to `max(year)` = 2026; spot-checked Kimball (`president`), Romney
+  (`first-presidency`), Eldred G. Smith (`other`), and Hinckley (still
+  `apostle` at Oct 1975, correctly pre-dating his July 1981 First
+  Presidency call) all resolving correctly at the very edge of the newly
+  closed range.
+
+## ⏭️ Next task (optional): go earlier than October 1974, or fill in gaps skipped along the way
+**There is no more "next gap to close" in the Oct 1974–Apr 2026 range —
+this stretch is completely done.** Two directions remain, both
+unscoped:
+1. **Go earlier than October 1974** — this project has never indexed
+   anything before Oct 1974. Harold B. Lee's own presidency (July 1972 –
+   Dec 1973, same Tanner/Romney counselors as Kimball, already
+   confirmed — no new FP research needed for Lee-era conferences
+   themselves) would cover back to roughly Oct 1972. Going earlier than
+   that needs fresh research into **Joseph Fielding Smith's presidency**
+   (Lee's predecessor, died July 2 1972) and its transition, plus
+   whatever First Presidency and auxiliary-presidency lineups preceded
+   it — none of which this project has ever touched.
+2. **Audit the existing Oct 1974–Apr 2026 range for anything worth
+   revisiting** — with the whole range now continuous, it may be worth
+   a pass specifically re-running the "sandwiched gap" and "role
+   flip-flop" checks (already clean as of this session) periodically as
+   a sanity check, and possibly spot-checking a few of the earlier
+   sessions' "strong contextual inference" tags (e.g. Shirley W. Thomas
+   as a Relief Society counselor, flagged but not fully source-confirmed
+   two sessions ago) against a source if one turns up.
+Whichever direction is chosen: remember to extend Seventy/auxiliary-
+presidency role work too — don't leave new talks role-untagged — and
+re-run the full validation pass (duplicates, orphans, sandwiched gaps,
+missing-conference check, role flip-flop check) afterward. **Scan every
+new batch's raw talk titles for admin-report variants before trusting
+the fixed exclusion list, and re-scan every conference in a
+multi-conference batch against the role sets individually.**
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was
