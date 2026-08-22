@@ -1472,21 +1472,61 @@ too). **71 conferences, 2561 talks total.**
   same-conference transition (`young-women`/`young-women`), and
   Pace/Burton (`presiding-bishopric`/`presiding-bishopric`).
 
+## ✅ Done: backward coverage to April 1990 (Winder→Jack RS transition confirmed same-conference)
+Added Apr 1990, Oct 1990, Apr 1991, Oct 1991 (143 talks). **The
+continuous run now goes April 1990 → April 2026 (73 conferences back to
+back)**, plus the October 1974 standalone. **75 conferences, 2704 talks
+total.**
+- **Kickers**: zero, as expected for this era (all 143 talks checked).
+- **Topics**: all 143 matched at least one official topic.
+- **Relief Society: Barbara W. Winder → Elaine L. Jack confirmed as a
+  real same-conference transition, at Apr 1990** — Winder (11th
+  president, April 7 1984 – March 31 1990, counselors Joy F. Evans and
+  Joanne B. Doxey, neither of whom have a talk in this batch) gives her
+  farewell talk ("Instruments to Accomplish His Purposes") at the same
+  Apr 1990 conference where Jack gives her first ("I Will Go and Do") —
+  both tagged `relief-society`, same pattern as the Apr 1992 Kapp→Hales
+  Young Women case documented in the previous session. This closes out
+  the loose end left in the prior "Next task" note.
+- Young Women (Kapp, `young-women`) and Primary (Jepsen/Wright,
+  `primary`) continue unchanged through this whole batch — no transition
+  in this window, matching what was already known (Kapp's presidency
+  runs through Apr 1992; Grassli's Primary presidency, already
+  documented, runs from Apr 1988).
+- **Presiding Bishopric**: Robert D. Hales (Apr 1990), Glenn L. Pace (Oct
+  1990), Henry B. Eyring (Apr 1991) all confirmed still active in their
+  already-documented 1985–1992/1994 roles — no new research needed, this
+  batch just fills in talk-level tags using facts already on file from
+  the previous session.
+- **One genuine pre-existing gap found and fixed, unrelated to this
+  batch**: the "sandwiched gap" check flagged **Lynn A. Mickelsen's
+  October 1995 talk** ("Eternal Laws of Happiness") as untagged despite
+  `seventy` on both the conference before (Oct 1990, now added by this
+  batch) and after (2003) — a real missed tag from an earlier session,
+  now fixed to `seventy`. Worth re-running this check after every batch,
+  same as the project has done since the original Seventy backfill.
+- Footer copy and code comment in `docs/index.html` updated: "seventy-
+  five conferences... every conference from April 1990 through April
+  2026, plus Apr 1987 and Oct 1974."
+- **Verified live**: same pattern as prior batches — `TALKS.length` =
+  2704, `ROLE_LOOKUP` confirmed for Winder/Jack (`relief-society`/
+  `relief-society`), Kapp (`young-women`), Eyring (`presiding-
+  bishopric`), and the fixed Mickelsen entry (`seventy`).
+
 ## ⏭️ Next task (optional): keep expanding backward
-The next gap going further back is **October 1991 and earlier**.
-Benson's presidency (Hinckley/Monson as counselors, confirmed above) was
-stable all the way back to Nov 1985, so conferences from **Apr 1986
-through Oct 1991** (12 conferences) share the same simple First
-Presidency tagging as this batch — no further FP research needed for
-that whole stretch. Two auxiliary transitions still need researching
-somewhere in that window before this project's already-known
-1990-onward data connects cleanly: **Relief Society** (Barbara W. Winder
-→ Elaine L. Jack, already known to land at March 31 1990 — Winder's own
-presidency and counselors, 1984–1990, are still unresearched) and
-**Primary** (Dwan J. Young → Michaelene P. Grassli, already known to
-land in Apr 1988 — Young's own presidency and counselors are still
-unresearched). Going past October 1974 backward, or filling 1975–1985
-(this project has never touched those years at all), is a much bigger
+The next gap going further back is **October 1989 and earlier**.
+Benson's presidency (Hinckley/Monson as counselors) is confirmed stable
+all the way back to Nov 1985, so conferences from **Apr 1986 through Oct
+1989** (8 conferences) share the same simple First Presidency tagging as
+every batch so far — no further FP research needed for that whole
+stretch. One auxiliary transition still needs researching in that
+window: **Primary** (Dwan J. Young → Michaelene P. Grassli, already
+known to land at Apr 1988 — Young's own presidency and counselors,
+pre-1988, are still unresearched; Winder/Evans/Doxey's Relief Society
+presidency and Kapp's Young Women presidency, both confirmed stable back
+to 1984 in earlier sessions, cover the rest of this window with no new
+research). Going past October 1974 backward, or filling 1975–1985 (this
+project has never touched those years at all), is a much bigger
 undertaking than any single batch so far and hasn't been scoped, and
 would need fresh First Presidency research (Kimball's presidency and its
 transition to Benson).
