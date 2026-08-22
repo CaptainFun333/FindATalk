@@ -1165,17 +1165,142 @@ talk's speaker), and deleted a collection via the confirm() dialog and
 confirmed it disappeared from the index. Also confirmed Talk of the Day
 no longer appears on the Recently Viewed or My Lists pages.
 
+## ✅ Done: backward coverage to April 1996 (gap closed; Oct 1995 no longer standalone)
+Added Apr 1996, Oct 1996, Apr 1997, Oct 1997, Apr 1998, Oct 1998, Apr 1999
+(250 talks — one entry, "Faith in Every Footstep: The Epic Pioneer
+Journey" [Video Presentation] from Apr 1997, was deliberately excluded:
+no byline/speaker of record, unlike the kept ceremonial addresses which
+always have a real speaker). **The continuous run now goes October 1995 →
+April 2026 (61 conferences back to back)**, plus the two remaining older
+standalones, April 1987 and October 1974. **64 conferences, 2302 talks
+total.**
+- **Kickers**: confirmed the Church's site didn't add these until
+  somewhere between April 1996 and April 1997 — Apr 1996 and Oct 1996
+  have **zero** kickers (matches the pre-1999 standalone conferences'
+  behavior), Apr 1997 has partial coverage (33/37 — the missing 4 are a
+  video presentation plus 3 real talks that apparently never got one),
+  and Oct 1997 onward has full coverage. Don't bother re-checking Apr/Oct
+  1996 if backward coverage ever continues past this point — there's
+  nothing there to get, same as the three pre-1999 standalones.
+- **Topics**: this batch is what confirmed the topic-page fetching
+  pattern still works this far back — all 335 official topic pages were
+  refetched (not reused from the cached `TOPIC_LABELS` built in an
+  earlier session) and every one of the 250 kept talks matched at least
+  one topic. 4 previously-zero-match topic slugs picked up a first real
+  match from this batch and were added to `topicLabels`.
+- **Roles researched, all confirmed via web search, not assumed:**
+  - First Presidency: Hinckley/Monson/Faust, stable and already
+    researched (no change) — confirmed no new research needed for this
+    window.
+  - **Relief Society**: Elaine L. Jack (president) with **Chieko N.
+    Okazaki** (1st) and **Aileen H. Clyde** (2nd) — serving since March 31
+    1990 — covers Apr 1996, Oct 1996, Apr 1997 (Jack's last talk in the
+    dataset, "A Small Stone," is that same April 1997 conference). Mary
+    Ellen W. Smoot's presidency (Jensen/Dew, already known from a later
+    session) was called that same April 1997 conference per a
+    contemporary Deseret News article, but their first talks in the
+    dataset don't appear until **Oct 1997** — a clean conference-boundary
+    handoff with no same-conference overlap needed (unlike some other
+    transitions in this project), since Jack/Okazaki/Clyde simply have no
+    talks after Apr 1997 and Smoot/Jensen/Dew have none before Oct 1997.
+  - **Young Women**: Janette Hales Beckham (president, Apr 1992–Oct 1997)
+    with **Virginia H. Pearce** (1st counselor throughout) and **Bonnie D.
+    Parkin** (2nd counselor, 1994–1997) — covers Apr 1996, Oct 1996, Apr
+    1997. Hales Beckham gives a same-conference farewell talk at **Oct
+    1997** (the exact conference the new Nadauld/Larsen/Thomas presidency
+    was sustained, Oct 4 1997) even though the new presidency's own first
+    talks in the dataset don't start until **Apr 1998** — a real
+    same-conference-transition case, same pattern as several others
+    already documented in this file, just with the incoming side's first
+    talk landing a full conference later than the outgoing side's last
+    one.
+  - **Primary**: confirmed via search — Patricia P. Pinegar (president)
+    served with **Anne G. Wirthlin** (1st counselor) and **Susan L.
+    Warner** (2nd counselor), all three sustained Oct 1 1994 and released
+    together in 1999. All three tagged `primary` wherever they speak in
+    this batch (Pinegar Apr 1997; Wirthlin Apr 1998; Warner Apr 1996 and
+    Oct 1998).
+  - **Presiding Bishopric**: confirmed via search — Merrill J. Bateman
+    left to become BYU president Jan 1 1996 (before this batch's first
+    conference); **H. David Burton** was called the 13th Presiding
+    Bishop Dec 27 1995, with **Richard C. Edgley** (1st) and **Keith B.
+    McMullin** (2nd) — all three stable and already tagged
+    `presiding-bishopric` in the existing Oct 1995 data, so no
+    conference-boundary edge case in this window; they simply continue
+    across all 7 new conferences.
+  - **Seventy default rule reapplied** (same explicit speed-over-
+    exhaustive-verification methodology as the original Seventy backfill
+    documented above): every otherwise-untagged speaker across this batch
+    got `seventy`, **except** 7 names deliberately left untagged:
+    **Anne Marie Rose, Kirstin Boyer, Anne Prescott** (Apr 1996) and
+    **Kristin Banner, Fono Lavatai, Alejandra Hernández** (Apr 1997) —
+    all personal-testimony talks bundled into an identifiable
+    non-officeholder youth segment (the Apr 1997 trio sits right after
+    the "Faith in Every Footstep" pioneer-sesquicentennial video, matching
+    that year's 150th-anniversary Pioneer Trek theme; the Apr 1996 trio
+    reads the same way) — tagging any of these `seventy` would have been
+    a real, identifiable error, not just an unverified guess, so this is
+    a targeted exception to the default rule, not a case-by-case
+    re-verification of the whole batch. Also excluded: **Richard E.
+    Turley Sr.**, a known Assistant Church Historian (a professional
+    employee, not a sustained General Authority) — left untagged rather
+    than defaulted to `seventy`, matching the "one-off speaker never
+    sustained a General Authority" carve-out already documented in the
+    `other`-role section above (though `other` itself wasn't used here
+    since Church Historian isn't one of the nine tracked categories
+    either, and the existing precedent treats an unverified one-off
+    employee the same as "not researched," not as `other`).
+- **Fetching-pattern confirmation**: the same `curl` + regex technique
+  used for every prior batch still works unchanged this far back — the
+  session-listing page's `item-U_5Ca` markup, individual talk pages'
+  `class="kicker"` paragraph, and topic-index pages' talk-link hrefs are
+  all structurally identical for 1996–1999 as for every later conference
+  already in this dataset. One small wrinkle worth remembering: on these
+  older pages the topic-index talk-link hrefs have **no trailing
+  `?lang=eng` query string** (`href="/study/general-conference/1996/04/
+  slug"` vs. the newer `...slug?lang=eng"` used elsewhere) — a regex that
+  assumes the `?` suffix will silently match zero topic links on this
+  older content. Fixed by matching the closing `"` directly instead of
+  requiring a literal `?` before it.
+- **Validation**: full integrity pass run after merging — zero duplicate
+  talk rows, zero orphaned `roleLookup`/`topicLookup`/`kickerLookup`
+  entries (no orphan key without a matching talk), zero talks missing a
+  `topicLookup` entry, and the "sandwiched gap" check (any untagged talk
+  whose speaker has the same role both before and after it
+  chronologically) came back clean — zero hits across the whole 2302-talk
+  dataset, not just the new batch.
+- **Footer copy and the `TALKS` block's leading code comment** in
+  `docs/index.html` were updated to say "sixty-four conferences... every
+  conference from October 1995 through April 2026, plus Apr 1987 and Oct
+  1974" (was "fifty-seven conferences... October 1999... plus Oct 1995,
+  Apr 1987, and Oct 1974") — **`conference-draw.html` was deliberately
+  left unchanged**, per its standing "legacy/reference copy, don't touch
+  unless doing a one-off legacy-file fix" status.
+- **Verified live**: `npx cap sync` re-run (updates both `ios/App/App/
+  public/data.json` and `android/app/src/main/assets/public/data.json`
+  from the new `docs/data.json`); the local `python3 -m http.server 8934`
+  workaround from the Phase 1 section above worked this session
+  (previously flagged as blocked by a sandbox `getcwd()` error — that
+  appears to have been transient, matching the "left in place unused in
+  case it's transient" note) — confirmed live in the Browser pane:
+  "2302 talks match right now," a fresh `localStorage.clear()` +
+  reload correctly re-fetched the new `data.json` (the first load had
+  been served the old cached 2052-talk copy, exactly per the
+  deliberately-non-hot-swapping bootstrap design documented in Phase 1 —
+  not a bug), and a direct console check confirmed an April 1999 talk
+  ("The Work Moves Forward," Gordon B. Hinckley) resolves the correct
+  `role` (`president`) and a real `TOPIC_LOOKUP` array via the live
+  in-page `TALKS`/`ROLE_LOOKUP`/`TOPIC_LOOKUP` globals.
+
 ## ⏭️ Next task (optional): keep expanding backward
-The next gap going further back is **April 1999 and earlier**, but note
-there's now a **standing gap between April 1996 and April 1999** (7
-conferences: Apr 1996, Oct 1996, Apr 1997, Oct 1997, Apr 1998, Oct 1998,
-Apr 1999) that would need to be filled separately to reconnect to the
-existing October 1995 standalone entry. Same fetching pattern applies (see
-below). Not yet prioritized by the user — check before doing a large
-batch. If you go earlier than March 1995, you'll need fresh First
-Presidency research (Hinckley became president March 12 1995, succeeding
-Ezra Taft Benson who died May 30 1994 — Benson's own First Presidency and
-its transition to Hinckley haven't been researched yet in this project).
+The next gap going further back is **April 1996 and earlier**. Going
+past October 1974 backward, or filling 1975–1986 / 1988–1994 (this
+project has never touched those years at all), is a much bigger
+undertaking than any single batch so far and hasn't been scoped. Note:
+**if you go earlier than March 1995, you'll need fresh First Presidency
+research** (Hinckley became president March 12 1995, succeeding Ezra Taft
+Benson who died May 30 1994 — Benson's own First Presidency and its
+transition to Hinckley haven't been researched yet in this project).
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the "sandwiched gap" + full
 integrity validation passes described above afterward.
