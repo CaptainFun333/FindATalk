@@ -1942,34 +1942,168 @@ fully role/topic-tagged. **3762 talks total.**
   Presidency call) all resolving correctly at the very edge of the newly
   closed range.
 
-## ⏭️ Next task (optional): go earlier than October 1974, or fill in gaps skipped along the way
-**There is no more "next gap to close" in the Oct 1974–Apr 2026 range —
-this stretch is completely done.** Two directions remain, both
-unscoped:
-1. **Go earlier than October 1974** — this project has never indexed
-   anything before Oct 1974. Harold B. Lee's own presidency (July 1972 –
-   Dec 1973, same Tanner/Romney counselors as Kimball, already
-   confirmed — no new FP research needed for Lee-era conferences
-   themselves) would cover back to roughly Oct 1972. Going earlier than
-   that needs fresh research into **Joseph Fielding Smith's presidency**
-   (Lee's predecessor, died July 2 1972) and its transition, plus
-   whatever First Presidency and auxiliary-presidency lineups preceded
-   it — none of which this project has ever touched.
-2. **Audit the existing Oct 1974–Apr 2026 range for anything worth
-   revisiting** — with the whole range now continuous, it may be worth
-   a pass specifically re-running the "sandwiched gap" and "role
-   flip-flop" checks (already clean as of this session) periodically as
-   a sanity check, and possibly spot-checking a few of the earlier
-   sessions' "strong contextual inference" tags (e.g. Shirley W. Thomas
-   as a Relief Society counselor, flagged but not fully source-confirmed
-   two sessions ago) against a source if one turns up.
-Whichever direction is chosen: remember to extend Seventy/auxiliary-
-presidency role work too — don't leave new talks role-untagged — and
-re-run the full validation pass (duplicates, orphans, sandwiched gaps,
-missing-conference check, role flip-flop check) afterward. **Scan every
-new batch's raw talk titles for admin-report variants before trusting
-the fixed exclusion list, and re-scan every conference in a
-multi-conference batch against the role sets individually.**
+## ✅ Done: backward coverage to April 1971 — THE ENTIRE GOSPEL LIBRARY RANGE IS NOW COMPLETE
+Added April 1971 through April 1974 (7 conferences, 292 talks, after
+excluding 13 admin-report-variant items and one more empty-speaker
+ceremonial item — see below). **The dataset now spans every single
+General Conference from April 1971 — the earliest one the Church's own
+Gospel Library app makes available — through April 2026: 111
+conferences in a row, zero gaps, zero standalone entries. 4054 talks
+total.** At the user's explicit request to match Gospel Library's own
+range, this is the natural stopping point for "keep going backward" —
+there is nothing earlier to add without going beyond what the Church's
+own app offers.
+- **Two First-Presidency-era transitions researched, both confirmed via
+  search**:
+  1. **Joseph Fielding Smith (10th president, Jan 23 1970 – d. July 2
+     1972)** — counselors **Harold B. Lee (1st)** and **N. Eldon Tanner
+     (2nd)**. When Lee became the 11th president (set apart July 7
+     1972), he kept Tanner but **promoted him to 1st counselor and added
+     Marion G. Romney as 2nd** — meaning Romney, already a longtime
+     apostle, wasn't part of the First Presidency at all until this
+     point. Role tags: Smith = `president` (Apr 1971/Oct 1971/Apr 1972,
+     his last conference before death), Lee = `first-presidency` for
+     those same 3, then `president` from Oct 1972 (his own first
+     conference) through Oct 1973 (his last — he died Dec 26 1973).
+     Romney = `apostle` through Apr 1972, `first-presidency` from Oct
+     1972 on. Tanner = `first-presidency` throughout, unchanged the
+     whole time — the one constant across three different presidents.
+     Kimball himself (already confirmed Dec 30 1973 – Nov 1985
+     president, Tanner/Romney counselors) is `apostle` for every
+     conference in this batch **except** Apr 1974, his first as
+     president (the Solemn Assembly for his own sustaining, read by
+     Tanner, falls at that exact conference).
+  2. **The Presiding Bishopric before Victor L. Brown**: **John H.
+     Vandenberg** (9th Presiding Bishop, 1961 – April 6 1972) with
+     **Victor L. Brown as his 2nd counselor since 1961** (so Brown is
+     `presiding-bishopric` for every conference in this entire batch,
+     both before and after his own April 6 1972 promotion to bishop —
+     same-day transition, already-established pattern). Vandenberg's
+     farewell talk is at that same Apr 1972 conference
+     (`presiding-bishopric`); from Oct 1972 on he's `seventy` (moved to
+     Assistant to the Twelve, the pre-1976 equivalent this project
+     already treats as `seventy`). **Vaughn J. Featherstone** was also
+     sustained 2nd counselor in the Presiding Bishopric that identical
+     Apr 1972 conference (a triple-transition conference — bishop,
+     outgoing 1st counselor's replacement wasn't researched since no
+     talk of theirs appears, and this new 2nd counselor, all landing the
+     same day), serving until Oct 1 1976.
+- **Five real cross-session bugs found and fixed, all through careful
+  apostle-calling-date verification prompted by this batch's needs —
+  this is the single most important lesson from this session, worth
+  reading in full before ever reusing a "stable apostles" set again:**
+  1. **David B. Haight** wasn't ordained an apostle until **January 8,
+     1976** (he was "Assistant to the Twelve" from 1970) — his Apr
+     1975/Oct 1975 entries (already merged from an earlier session) were
+     wrongly `apostle`; fixed to `seventy`. Every entry from Apr 1976 on
+     was already correct.
+  2. **Neal A. Maxwell** wasn't ordained an apostle until **July 23,
+     1981** (sustained Oct 3 1981) — he was only an "Assistant to the
+     Twelve" from April 6 1974. Five already-merged entries (Apr 1975,
+     Apr 1976, Oct 1976, Apr 1978, Oct 1980) were wrongly `apostle`;
+     fixed to `seventy`.
+  3. **James E. Faust** wasn't ordained an apostle until **October 1,
+     1978** — Assistant to the Twelve from Oct 1972, First Quorum of the
+     Seventy presidency from Oct 1976. Four already-merged entries (Apr
+     1975, Oct 1975, Oct 1976, Oct 1977) were wrongly `apostle`; fixed to
+     `seventy`.
+  4. **LeGrand Richards** — the opposite kind of error — was actually an
+     **apostle continuously from April 6 1952 to January 1983** (a
+     previous Presiding Bishop, 1938–1952, before that). This project
+     had been defaulting him to `seventy` almost everywhere all
+     session — **21 already-merged entries**, spanning nearly every
+     batch from Oct 1974 through Oct 1982, were wrong and are now fixed
+     to `apostle`.
+  5. **Vaughn J. Featherstone** — 7 already-merged entries (Apr/Oct 1972,
+     Apr/Oct 1973, Apr/Oct 1975, Apr 1976) were wrongly `seventy` instead
+     of `presiding-bishopric`, per the transition documented above.
+  **All five were caught by the "role flip-flop" check** (a speaker's
+  role changing and changing back to an earlier value) **run against the
+  full merged dataset after this batch, not by manual review** — proof
+  that check earns its keep every session it's run, not just the one
+  where a bug was introduced. **Also caught, this time before merging
+  rather than after**: Bruce R. McConkie (apostle only from Oct 12
+  1972 — First Council of the Seventy before that) and Marvin J. Ashton
+  (apostle only from Dec 2 1971) and L. Tom Perry (apostle only from
+  Apr 6 1974, Assistant to the Twelve from Oct 6 1972) all needed
+  per-conference splits within this single batch, verified via search
+  before any data was written, not assumed from later-batch precedent.
+- **The exclusion filter needed real generalization for this era, not
+  just more literal variants**: titles like "Sustaining of General
+  Authorities and Church Officers," "Sustaining of Church Authorities
+  and Officers," "Audit Report," and "Audit Report 1971" (13 total admin
+  items across the 7 conferences) don't match any previous session's
+  literal exclusion strings. Switched to a **prefix/substring rule**
+  (starts with "Sustaining of", "Statistical Report", "Audit Report", or
+  "Church Finance Committee Report"; contains "Audit Committee Report"
+  or "Auditing Department Report") instead of an ever-growing literal
+  set — **this is the more durable fix future sessions should extend,
+  rather than adding yet another exact string**. Also dropped one more
+  empty-speaker ceremonial item ("The Annual Report of the Church," Apr
+  1972, no byline), same treatment as the Apr 1997 video presentation
+  from an earlier session.
+- **Two more people left deliberately untagged**: **Wendell J. Ashton**
+  (Apr 1971) was a Regional Representative and advertising executive —
+  a real, identifiable, but untracked calling (like Richard E. Turley
+  Sr. from an earlier session) — and **Dallin H. Oaks** (Oct 1971, over
+  a decade before his 1984 apostle call) was BYU's president at the
+  time, most likely a guest-address appearance rather than a General
+  Authority calling. **No Relief Society/Young Women/Primary talks
+  appear anywhere in this whole batch** — not a bug, just means none of
+  that era's auxiliary presidents (whoever they were — this project has
+  never researched them) had a talk captured in the main-session listing
+  for these 7 conferences specifically.
+- **Kickers**: 22 found, mostly the same "context note" family as prior
+  sessions (talks delivered by proxy, welfare-session addresses, etc.),
+  kept verbatim as always.
+- **Validation clean** across the full 4054-talk dataset, **after** the
+  5 retroactive fixes above: zero duplicates, zero orphans, zero
+  sandwiched gaps, **zero missing conferences in the complete April 1971
+  → April 2026 range**, zero role flip-flops.
+- Footer copy and code comment in `docs/index.html` rewritten again:
+  "one hundred and eleven conferences... every conference from April
+  1971 through April 2026... matching the earliest conference the
+  Church's Gospel Library app makes available."
+- **Verified live**: `TALKS.length` = 4054, `min(year)` = 1971;
+  spot-checked LeGrand Richards (`apostle`), Featherstone
+  (`presiding-bishopric`), Faust (`seventy`, pre-1978), Haight
+  (`seventy`, pre-1976), Joseph Fielding Smith (`president`), Lee
+  (`president` at Oct 1972), and Kimball's exact `apostle`→`president`
+  split at Apr 1974.
+
+## ⏭️ Next task: none scoped — this was the user's explicit stopping point
+The user asked specifically to reach **April 1971**, matching what the
+Gospel Library app itself offers, and that goal is now met — **there is
+no further backward expansion to do** unless the user asks to go beyond
+what Gospel Library provides (which would need fresh research into
+whatever came before Joseph Fielding Smith, and isn't information the
+Church's own current app surfaces either). If a future session is asked
+to keep expanding anyway: the immediate next research needed would be
+**Joseph Fielding Smith's own predecessor** (David O. McKay, died Jan 18
+1970) and Smith's succession to the presidency, plus fresh Relief
+Society/Young Women/Primary/Presiding-Bishopric-predecessor research,
+none of which this project has ever touched below April 1971.
+**Two process lessons from this session are worth re-reading before any
+future large role-tagging pass, regardless of direction**:
+1. **Never add a name to a "stable apostles" (or any other stable-role)
+   set without verifying that specific person's actual calling date** —
+   five real bugs this session came from assuming later-batch precedent
+   applied to earlier conferences without checking. A name being
+   "obviously an apostle" in every batch you've seen it in is not
+   evidence it was an apostle in a batch you haven't checked yet.
+2. **Run the full validation pass — especially the role flip-flop
+   check — against the *entire* merged dataset after every batch, not
+   just the newly-added rows.** Four of the five bugs above were sitting
+   undetected in already-merged data from earlier sessions; the
+   flip-flop check caught all of them the moment a later batch's data
+   made the pattern visible. It would be worth deliberately re-running
+   this check once more as a dedicated audit pass even with no new data
+   being added, in case any earlier-era name still has an undetected
+   error that just hasn't collided with a later batch yet.
+Remember to keep scanning every new batch's raw titles for admin-report
+variants (now handled by a prefix/substring rule, not a literal list)
+and to re-scan every conference in a multi-conference batch against the
+role sets individually.
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was
