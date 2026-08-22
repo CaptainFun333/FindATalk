@@ -1513,26 +1513,88 @@ total.**
   `relief-society`), Kapp (`young-women`), Eyring (`presiding-
   bishopric`), and the fixed Mickelsen entry (`seventy`).
 
+## ✅ Done: backward coverage to October 1987 (gap fully closed — Apr 1987 no longer standalone)
+Added Apr 1988, Oct 1988, Apr 1989, Oct 1989 (124 talks), then caught and
+filled a one-conference hole this same session: **Oct 1987**, which had
+been sitting unfilled between the old Apr 1987 standalone and the new Apr
+1988 start (32 more talks). **The continuous run is now fully unbroken
+from October 1987 through April 2026 (79 conferences back to back)**,
+plus the October 1974 standalone. **80 conferences, 2860 talks total.**
+Worth remembering for any future backward-expansion session: **always
+check for a straddling single-conference hole** right where new work
+connects to a previously-standalone conference — it's easy to fetch the
+"next 4 back" and not notice the older standalone doesn't actually touch
+them.
+- **Kickers**: 2 more of the same non-summary "read by" parenthetical
+  style seen in an earlier batch turned up — `(Read by President Thomas
+  S. Monson, Second Counselor in the First Presidency)` and `(Read by
+  President Gordon B. Hinckley, First Counselor in the First
+  Presidency)`, both on Ezra Taft Benson talks (his declining health
+  meant several of his messages were read by a counselor rather than
+  delivered in person — the byline still credits Benson as the speaker
+  of record, and that's what's tagged). Kept verbatim, same treatment as
+  the Parliament-of-Religions/Nauvoo-broadcast notes from the previous
+  session.
+- **Topics**: all 124 + 32 = 156 talks in this round matched at least one
+  official topic — no zero-topic exceptions this time.
+- **Primary: Dwan J. Young → Michaelene P. Grassli confirmed**, but as a
+  *gap-style* transition, not same-conference — Young (7th president,
+  1980–1988, counselors **Virginia B. Cannon** [1st] and **Michaelene P.
+  Grassli** [2nd, chosen to succeed her]) gives her farewell talk at
+  **Apr 1988**; Grassli's first talk as president doesn't appear until
+  **Oct 1988** (she has two that conference). Same pattern as the
+  Nadauld/Hales-Beckham Young Women transition documented earlier in this
+  file — outgoing and incoming don't necessarily share a conference.
+  Cannon has no talk in this batch.
+- **A genuinely unresolvable-for-now case, left untagged on purpose**:
+  **Elaine L. Jack has a talk at Oct 1989** ("Identity of a Young
+  Woman"), a full five months *before* her Relief Society presidency
+  begins (March 31, 1990, already documented). She wasn't yet holding any
+  of the nine tracked callings at that point — likely a Relief Society
+  General Board member, a level this app doesn't track — so this one
+  talk is deliberately left untagged even though her later talks (Apr
+  1990 onward) are `relief-society`. This is *not* a "sandwiched gap":
+  the conference immediately before it has no Jack talk at all, so the
+  automated check won't (and shouldn't) flag it — noting it here so a
+  future session doesn't "fix" it by mistake.
+- **Confirmed Jeffrey R. Holland's earliest talk in the dataset (Oct
+  1989) predates his June 1994 apostle call by nearly five years** — he
+  was a General Authority Seventy from 1989, so `seventy` is correct
+  here, consistent with the correction already documented for his Oct
+  1993 talk.
+- **Validation clean** across the whole 2860-talk dataset: zero duplicate
+  talk rows, zero orphaned role/topic/kicker entries, zero sandwiched
+  role gaps, and (new check added this session) **zero missing
+  conferences** in the expected Oct 1987 → Apr 2026 continuous run —
+  confirmed programmatically, not just by eyeballing a printed list.
+- Footer copy and code comment in `docs/index.html` updated: "eighty
+  conferences... every conference from October 1987 through April 2026"
+  (Apr 1987 dropped from the "older standalones" list since it's no
+  longer standalone — only Oct 1974 remains as one).
+- **Verified live**: same pattern as every prior batch — `TALKS.length` =
+  2860, `ROLE_LOOKUP` confirmed for the Young/Grassli Primary transition,
+  Doxey (`relief-society`), Holland (`seventy`), and Jack's Oct 1989 key
+  resolving to `undefined` (confirming the deliberate non-tag).
+
 ## ⏭️ Next task (optional): keep expanding backward
-The next gap going further back is **October 1989 and earlier**.
-Benson's presidency (Hinckley/Monson as counselors) is confirmed stable
-all the way back to Nov 1985, so conferences from **Apr 1986 through Oct
-1989** (8 conferences) share the same simple First Presidency tagging as
-every batch so far — no further FP research needed for that whole
-stretch. One auxiliary transition still needs researching in that
-window: **Primary** (Dwan J. Young → Michaelene P. Grassli, already
-known to land at Apr 1988 — Young's own presidency and counselors,
-pre-1988, are still unresearched; Winder/Evans/Doxey's Relief Society
-presidency and Kapp's Young Women presidency, both confirmed stable back
-to 1984 in earlier sessions, cover the rest of this window with no new
-research). Going past October 1974 backward, or filling 1975–1985 (this
-project has never touched those years at all), is a much bigger
-undertaking than any single batch so far and hasn't been scoped, and
-would need fresh First Presidency research (Kimball's presidency and its
-transition to Benson).
+The next gap going further back is **April 1986 and earlier**. Benson's
+presidency (Hinckley/Monson as counselors) is confirmed stable all the
+way back to Nov 11 1985, so **April 1986** (his first conference as
+president) shares the same simple First Presidency tagging as every
+batch so far. **Winder/Evans/Doxey (Relief Society, since April 1984),
+Kapp (Young Women, since 1984), and Young/Cannon/Grassli (Primary, 1980–
+1988)** are all already confirmed stable across this one remaining
+conference — no new auxiliary research needed for Apr 1986 itself.
+Going further back — **October 1985 and earlier** — needs fresh First
+Presidency research: Spencer W. Kimball died Nov 5 1985, and this
+project has never researched his presidency, its counselors, or its
+transition to Benson. Filling 1975–1985 in general (this project has
+only ever touched Oct 1974 in that whole span) is a much bigger
+undertaking than any single batch so far and hasn't been scoped.
 Remember to extend Seventy/auxiliary-presidency role work too — don't
 leave new talks role-untagged — and re-run the "sandwiched gap" + full
-integrity validation passes described above afterward.
+integrity validation passes (including the new missing-conference check)
+described above afterward.
 
 ## Known past mistake (for awareness, already fixed)
 Earlier in this project, a large batch of talk-array entries was
