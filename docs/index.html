@@ -255,10 +255,39 @@
   .ms-clear:disabled{ opacity:.4; cursor:default; }
 
   .filters-actions{
-    text-align:right;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
     margin-top:-6px;
     margin-bottom:20px;
   }
+  .sort-toggle{
+    display:inline-flex;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:2px;
+    gap:2px;
+  }
+  .sort-toggle-btn{
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:.01em;
+    color:var(--ink-soft);
+    background:none;
+    border:none;
+    border-radius:999px;
+    padding:5px 12px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .sort-toggle-btn:hover{ color:var(--burgundy); }
+  .sort-toggle-btn.is-active{
+    background:var(--burgundy);
+    color:var(--paper-raised);
+  }
+  .sort-toggle-btn.is-active:hover{ color:var(--paper-raised); }
   .reset-link{
     font-family:'Inter',sans-serif;
     font-size:12.5px;
@@ -847,6 +876,13 @@
         <button type="button" class="list-size-btn" data-mode="condensed">Condensed</button>
       </div>
     </div>
+    <div class="list-size-row">
+      <span class="list-size-label">Sort</span>
+      <div class="list-size-options" id="listSortOptions">
+        <button type="button" class="list-size-btn" data-sort="random">Random</button>
+        <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
+      </div>
+    </div>
     <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
   </div>
 
@@ -883,6 +919,10 @@
     </div>
     <div class="filters" id="recentFilters"></div>
     <div class="filters-actions">
+      <div class="sort-toggle" id="recentSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Viewed</button>
+        <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
+      </div>
       <button type="button" class="reset-link" id="recentFilterReset">Reset filters</button>
     </div>
     <div class="pool-count" id="recentFilterCount"></div>
@@ -897,6 +937,10 @@
     </div>
     <div class="filters" id="favoritesFilters"></div>
     <div class="filters-actions">
+      <div class="sort-toggle" id="favoritesSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Favorited</button>
+        <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
+      </div>
       <button type="button" class="reset-link" id="favoritesFilterReset">Reset filters</button>
     </div>
     <div class="pool-count" id="favoritesFilterCount"></div>
@@ -1211,6 +1255,25 @@ document.getElementById('totalCount').textContent = TALKS.length;
 // Viewed / Favorites pages from the key lists in localStorage.
 const TALKS_BY_KEY = {};
 TALKS.forEach(t=>{ TALKS_BY_KEY[talkKey(t)] = t; });
+
+// Position of each talk within TALKS — NOT globally newest-first (later
+// conferences were appended to the dataset in whatever order they were
+// scraped/backfilled, not chronological order), but talks from the same
+// conference do stay in their original program order. Used only as a
+// same-conference tiebreak below, never as the primary sort key.
+const TALK_INDEX = {};
+TALKS.forEach((t,i)=>{ TALK_INDEX[talkKey(t)] = i; });
+// Sorts by actual conference date, newest first — "10" > "04" so a plain
+// string compare of year+month already puts October ahead of April within
+// the same year. Falls back to TALK_INDEX (that conference's program
+// order) for talks that share a conference.
+function sortByConferenceDate(picks){
+  return [...picks].sort((a,b)=>{
+    const ak = `${a[2]}${a[3]}`, bk = `${b[2]}${b[3]}`;
+    if (ak !== bk) return bk.localeCompare(ak);
+    return TALK_INDEX[talkKey(a)] - TALK_INDEX[talkKey(b)];
+  });
+}
 
 /* ---------------- filter state ----------------
    Each dim holds an ARRAY of selected values (checkbox multi-select) —
@@ -1573,7 +1636,8 @@ try {
 const listZone = document.getElementById('listZone');
 const listHeader = document.getElementById('listHeader');
 const listItemsEl = document.getElementById('listItems');
-const listSizeButtons = [...document.querySelectorAll('.list-size-btn')];
+const listAgainBtn = document.getElementById('listAgainBtn');
+const listSizeButtons = [...document.querySelectorAll('#listSizeOptions .list-size-btn')];
 function syncListSizeButtons(){
   listSizeButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.mode === LIST_MODE));
 }
@@ -1589,6 +1653,45 @@ listSizeButtons.forEach(btn=>{
     if (listZone.style.display === 'block') renderListItems();
   });
 });
+
+// Sort toggle — "Random" (the original shuffle) vs "Most Recent" (top
+// LIST_SIZE by conference date, newest first). Persisted the same way as
+// LIST_MODE above, so a person's preference sticks across visits.
+const LIST_SORT_KEY = 'findATalkListSort';
+let LIST_SORT = 'random';
+try {
+  const savedSort = localStorage.getItem(LIST_SORT_KEY);
+  if (savedSort === 'random' || savedSort === 'recent') LIST_SORT = savedSort;
+} catch(err){ /* storage unavailable — just use the default */ }
+
+const listSortButtons = [...document.querySelectorAll('#listSortOptions .list-size-btn')];
+function syncListSortButtons(){
+  listSortButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.sort === LIST_SORT));
+  // "Show a different list" only makes sense for the random draw — the
+  // most-recent top LIST_SIZE for a given filter is deterministic, so
+  // there's nothing "different" to re-show.
+  listAgainBtn.style.display = LIST_SORT === 'random' ? '' : 'none';
+}
+syncListSortButtons();
+listSortButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    LIST_SORT = btn.dataset.sort;
+    syncListSortButtons();
+    try { localStorage.setItem(LIST_SORT_KEY, LIST_SORT); }
+    catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+    // Unlike the density toggle, switching sort changes WHICH talks are
+    // shown, so this needs a fresh draw, not just a re-render.
+    if (listZone.style.display === 'block') showList();
+  });
+});
+
+// Most-recent-first: higher year first, and within a year the later
+// conference month first (October=10 outranks April=4).
+function byMostRecent(a, b){
+  const [, , yearA, monthA] = a;
+  const [, , yearB, monthB] = b;
+  return (yearB - yearA) || (monthB - monthA);
+}
 
 function shuffled(arr){
   const a = arr.slice();
@@ -1768,13 +1871,21 @@ function renderListItems(){
 function showList(){
   const pool = currentPool();
   if (!pool.length) return;
-  lastListPicks = shuffled(pool).slice(0, LIST_SIZE);
+  lastListPicks = LIST_SORT === 'recent'
+    ? pool.slice().sort(byMostRecent).slice(0, LIST_SIZE)
+    : shuffled(pool).slice(0, LIST_SIZE);
   renderListItems();
 
   const shown = lastListPicks.length;
-  listHeader.innerHTML = shown < pool.length
-    ? `Showing <strong>${shown}</strong> random talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match right now`
-    : `Showing all <strong>${shown}</strong> talk${shown===1?'':'s'} that match right now`;
+  if (LIST_SORT === 'recent'){
+    listHeader.innerHTML = shown < pool.length
+      ? `Showing the <strong>${shown}</strong> most recent talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match`
+      : `Showing all <strong>${shown}</strong> talk${shown===1?'':'s'} that match, newest first`;
+  } else {
+    listHeader.innerHTML = shown < pool.length
+      ? `Showing <strong>${shown}</strong> random talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match right now`
+      : `Showing all <strong>${shown}</strong> talk${shown===1?'':'s'} that match right now`;
+  }
 
   resultZone.style.display = 'none';
   listZone.style.display = 'block';
@@ -2130,15 +2241,39 @@ function createSubsetFilterPanel(prefix, containerEl){
   return api;
 }
 
+/* Wires the "Recently Viewed/Favorited" vs. "Conference Date" toggle
+   shared by the Recent and Favorites pages — same markup/behavior on
+   both, just re-pointed at each page's own render function so picking a
+   different mode re-sorts that page's list immediately. */
+function createSortToggle(containerEl, onChange){
+  let mode = 'default';
+  const buttons = [...containerEl.querySelectorAll('.sort-toggle-btn')];
+  function sync(){
+    buttons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.sort === mode));
+  }
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if (btn.dataset.sort === mode) return;
+      mode = btn.dataset.sort;
+      sync();
+      onChange();
+    });
+  });
+  sync();
+  return { get mode(){ return mode; } };
+}
+
 const recentFilterPanel = createSubsetFilterPanel('recent', document.getElementById('recentFilters'));
 const recentFilterResetBtn = document.getElementById('recentFilterReset');
 const recentFilterCountEl = document.getElementById('recentFilterCount');
 recentFilterResetBtn.addEventListener('click', ()=> recentFilterPanel.reset());
+const recentSortToggle = createSortToggle(document.getElementById('recentSortToggle'), ()=> renderRecentPage());
 
 const favoritesFilterPanel = createSubsetFilterPanel('favorites', document.getElementById('favoritesFilters'));
 const favoritesFilterResetBtn = document.getElementById('favoritesFilterReset');
 const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
 favoritesFilterResetBtn.addEventListener('click', ()=> favoritesFilterPanel.reset());
+const favoritesSortToggle = createSortToggle(document.getElementById('favoritesSortToggle'), ()=> renderFavoritesPage());
 
 // One filter-panel instance reused for whichever single collection is
 // currently open (its base pool is swapped via setBasePool() each time a
@@ -2184,13 +2319,15 @@ function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filter
 }
 
 function renderRecentPage(){
-  const picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  let picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  if (recentSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
   recentFilterPanel.setBasePool(picks);
 }
 function renderFavoritesPage(){
   // Sets preserve insertion order, and re-favoriting after unfavoriting
   // re-inserts at the end — so reversing gives most-recently-favorited first.
-  const picks = [...favoriteKeys].reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  let picks = [...favoriteKeys].reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  if (favoritesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
   favoritesFilterPanel.setBasePool(picks);
 }
 recentFilterPanel.onChange = ()=> renderSubsetList(
