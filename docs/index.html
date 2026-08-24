@@ -517,11 +517,6 @@
     border-bottom:1px solid var(--line);
   }
   .list-item:last-child{ border-bottom:none; }
-  /* Condensed rows drop the conference-date/kicker lines and use tighter
-     padding — aims for roughly half a normal row's height. */
-  .list-item-condensed{ padding:10px 26px; }
-  .list-item-condensed .list-item-head{ margin-bottom:2px; }
-  .list-item-condensed .list-item-speaker{ margin-bottom:0; }
   .list-item-head{
     display:flex;
     align-items:flex-start;
@@ -868,13 +863,6 @@
     <div class="draw-buttons">
       <button id="drawBtn">Find a Talk</button>
       <button id="listBtn">Show a List</button>
-    </div>
-    <div class="list-size-row">
-      <span class="list-size-label">List view</span>
-      <div class="list-size-options" id="listSizeOptions">
-        <button type="button" class="list-size-btn" data-mode="normal">Normal</button>
-        <button type="button" class="list-size-btn" data-mode="condensed">Condensed</button>
-      </div>
     </div>
     <div class="list-size-row">
       <span class="list-size-label">Sort</span>
@@ -1623,40 +1611,17 @@ drawBtn.addEventListener('click', draw);
 document.getElementById('drawAgainBtn').addEventListener('click', draw);
 
 /* ---------------- list of up to LIST_SIZE matching talks ---------------- */
-// LIST_SIZE is fixed at the original count "Show a List" always used —
-// what's adjustable now is view density (Normal/Condensed), not count.
+// LIST_SIZE is fixed at the original count "Show a List" always used.
 const LIST_SIZE = 10;
-const LIST_MODE_KEY = 'findATalkListMode';
-let LIST_MODE = 'normal';
-try {
-  const saved = localStorage.getItem(LIST_MODE_KEY);
-  if (saved === 'normal' || saved === 'condensed') LIST_MODE = saved;
-} catch(err){ /* storage unavailable — just use the default */ }
 
 const listZone = document.getElementById('listZone');
 const listHeader = document.getElementById('listHeader');
 const listItemsEl = document.getElementById('listItems');
 const listAgainBtn = document.getElementById('listAgainBtn');
-const listSizeButtons = [...document.querySelectorAll('#listSizeOptions .list-size-btn')];
-function syncListSizeButtons(){
-  listSizeButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.mode === LIST_MODE));
-}
-syncListSizeButtons();
-listSizeButtons.forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    LIST_MODE = btn.dataset.mode;
-    syncListSizeButtons();
-    try { localStorage.setItem(LIST_MODE_KEY, LIST_MODE); }
-    catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
-    // Re-render the SAME already-shown picks in the new style — a pure
-    // density toggle shouldn't re-shuffle which talks are showing.
-    if (listZone.style.display === 'block') renderListItems();
-  });
-});
 
 // Sort toggle — "Random" (the original shuffle) vs "Most Recent" (top
-// LIST_SIZE by conference date, newest first). Persisted the same way as
-// LIST_MODE above, so a person's preference sticks across visits.
+// LIST_SIZE by conference date, newest first). Persisted so a person's
+// preference sticks across visits.
 const LIST_SORT_KEY = 'findATalkListSort';
 let LIST_SORT = 'random';
 try {
@@ -1705,17 +1670,14 @@ function shuffled(arr){
 /* Builds one talk row (title link, favorite + share buttons, speaker,
    meta, kicker) — shared by "Show a List", Recently Viewed, and
    Favorites, so all three look and behave identically. The title link
-   records the talk as "opened", same as the ticket's "Open This Talk".
-   `condensed` (only ever passed true from "Show a List"'s own view
-   toggle) drops the conference-date and kicker lines, showing just the
-   title and speaker/calling — roughly half the height of a normal row. */
-function buildListItemRow(pick, condensed){
+   records the talk as "opened", same as the ticket's "Open This Talk". */
+function buildListItemRow(pick){
   const [title, speaker, year, month] = pick;
   const role = talkRole(pick);
   const kicker = talkKicker(pick);
 
   const item = document.createElement('div');
-  item.className = condensed ? 'list-item list-item-condensed' : 'list-item';
+  item.className = 'list-item';
 
   const head = document.createElement('div');
   head.className = 'list-item-head';
@@ -1754,18 +1716,16 @@ function buildListItemRow(pick, condensed){
   speakerEl.textContent = role ? `${speaker} · ${ROLE_LABELS[role]}` : speaker;
   item.appendChild(speakerEl);
 
-  if (!condensed){
-    const metaEl = document.createElement('div');
-    metaEl.className = 'list-item-meta';
-    metaEl.textContent = `${monthName(month)} ${year} General Conference`;
-    item.appendChild(metaEl);
+  const metaEl = document.createElement('div');
+  metaEl.className = 'list-item-meta';
+  metaEl.textContent = `${monthName(month)} ${year} General Conference`;
+  item.appendChild(metaEl);
 
-    if (kicker){
-      const summaryEl = document.createElement('div');
-      summaryEl.className = 'list-item-summary';
-      summaryEl.textContent = kicker;
-      item.appendChild(summaryEl);
-    }
+  if (kicker){
+    const summaryEl = document.createElement('div');
+    summaryEl.className = 'list-item-summary';
+    summaryEl.textContent = kicker;
+    item.appendChild(summaryEl);
   }
 
   return item;
@@ -1857,26 +1817,16 @@ function renderTalkOfTheDay(){
 // silently never got attached, since the uncaught ReferenceError halted
 // the rest of initApp()'s top-to-bottom execution).
 
-// Remembers the currently-shown picks so toggling Normal/Condensed can
-// just re-render them in the new style, rather than re-shuffling a fresh
-// draw every time someone is only trying to change how dense the rows look.
-let lastListPicks = [];
-
-function renderListItems(){
-  listItemsEl.innerHTML = '';
-  const condensed = LIST_MODE === 'condensed';
-  lastListPicks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick, condensed)));
-}
-
 function showList(){
   const pool = currentPool();
   if (!pool.length) return;
-  lastListPicks = LIST_SORT === 'recent'
+  const picks = LIST_SORT === 'recent'
     ? pool.slice().sort(byMostRecent).slice(0, LIST_SIZE)
     : shuffled(pool).slice(0, LIST_SIZE);
-  renderListItems();
+  listItemsEl.innerHTML = '';
+  picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick)));
 
-  const shown = lastListPicks.length;
+  const shown = picks.length;
   if (LIST_SORT === 'recent'){
     listHeader.innerHTML = shown < pool.length
       ? `Showing the <strong>${shown}</strong> most recent talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match`
