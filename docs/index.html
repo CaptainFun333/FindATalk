@@ -815,6 +815,8 @@
     color:var(--ink);
   }
   .btn-ghost:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .btn-ghost:disabled{ opacity:.4; cursor:default; }
+  .btn-ghost:disabled:hover{ border-color:var(--line); color:var(--ink); }
 
   /* ---------- footer ---------- */
   footer{
@@ -955,6 +957,8 @@
         <button class="btn btn-ghost" id="shareBtn" type="button">Share</button>
         <button class="btn btn-ghost" id="favoriteBtn" type="button">☆ Favorite</button>
         <button class="btn btn-ghost" id="collectionBtn" type="button">+ Add to List</button>
+        <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
+        <button class="btn btn-ghost" id="forwardBtn" type="button" disabled>Next →</button>
         <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
       </div>
     </div>
@@ -1792,6 +1796,15 @@ const collectionZone = document.getElementById('collectionZone');
 const collectionItemsEl = document.getElementById('collectionItems');
 const collectionEmptyEl = document.getElementById('collectionEmpty');
 let lastPicked = null;
+// Stack of talks shown before the current one, so "← Previous" can step
+// back through what "Find a Talk"/"Find Another" already surfaced this
+// session. Not persisted — this is in-memory navigation, not the
+// "recently viewed" history (see RECENT_KEY above).
+let pickHistory = [];
+// Talks stepped away from via "← Previous", so "Next →" can redo those
+// steps. A fresh draw (drawBtn/drawAgainBtn) clears this — same as a
+// browser's forward history being dropped once you navigate somewhere new.
+let pickFuture = [];
 
 // Recording "opened" only happens here (the ticket's real open link) and
 // on a title link in "Show a List"/Recently Viewed/Favorites — never just
@@ -1841,6 +1854,11 @@ function syncReadBadge(){
   if (read) ticketReadBadge.innerHTML = `${CHECK_ICON_SVG}<span>You already read this talk</span>`;
 }
 
+function updateBackBtn(){
+  backBtn.disabled = pickHistory.length === 0;
+  forwardBtn.disabled = pickFuture.length === 0;
+}
+
 function draw(){
   const pool = currentPool();
   if (!pool.length) return;
@@ -1849,6 +1867,27 @@ function draw(){
   if (pool.length > 1 && lastPicked && pick[0]===lastPicked[0] && pick[2]===lastPicked[2]){
     pick = pool[(pool.indexOf(pick)+1) % pool.length];
   }
+  if (lastPicked) pickHistory.push(lastPicked);
+  pickFuture = []; // a fresh draw breaks the "Next →" chain, like browser history
+  showTicket(pick);
+  updateBackBtn();
+}
+
+function goBack(){
+  if (!pickHistory.length) return;
+  if (lastPicked) pickFuture.push(lastPicked);
+  showTicket(pickHistory.pop());
+  updateBackBtn();
+}
+
+function goForward(){
+  if (!pickFuture.length) return;
+  if (lastPicked) pickHistory.push(lastPicked);
+  showTicket(pickFuture.pop());
+  updateBackBtn();
+}
+
+function showTicket(pick){
   lastPicked = pick;
   syncFavoriteBtn();
   syncCollectionBtn();
@@ -1902,6 +1941,10 @@ function draw(){
 
 drawBtn.addEventListener('click', draw);
 document.getElementById('drawAgainBtn').addEventListener('click', draw);
+const backBtn = document.getElementById('backBtn');
+backBtn.addEventListener('click', goBack);
+const forwardBtn = document.getElementById('forwardBtn');
+forwardBtn.addEventListener('click', goForward);
 
 /* ---------------- list of up to LIST_SIZE matching talks ---------------- */
 // LIST_SIZE is fixed at the original count "Show a List" always used.
