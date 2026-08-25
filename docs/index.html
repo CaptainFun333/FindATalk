@@ -581,6 +581,35 @@
 
   .collection-btn-icon svg{ width:14px; height:14px; }
   .collection-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .collection-btn-icon.in-collection{ border-color:var(--brass); color:var(--brass); }
+
+  #collectionBtn.in-collection{ border-color:var(--brass); color:var(--burgundy); }
+
+  /* ---------- read badge ---------- */
+  /* [hidden] is called out explicitly below because it ties in
+     specificity with the plain class rule (both 0,1,0) — without this,
+     source order alone would let `display:inline-flex` win over the UA
+     stylesheet's `[hidden]{display:none}` and the badge would never
+     actually hide. */
+  .list-item-read-badge{
+    display:inline-flex; align-items:center; gap:3px;
+    flex-shrink:0;
+    font-family:'Inter',sans-serif;
+    font-size:11px; font-weight:600;
+    color:var(--ink-soft);
+    margin-left:8px;
+  }
+  .list-item-read-badge[hidden]{ display:none; }
+  .list-item-read-badge svg{ width:12px; height:12px; }
+  .ticket-read-badge{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family:'Inter',sans-serif;
+    font-size:12px; font-weight:600;
+    color:var(--ink-soft);
+    margin:-6px 0 10px;
+  }
+  .ticket-read-badge[hidden]{ display:none; }
+  .ticket-read-badge svg{ width:13px; height:13px; }
 
   /* ---------- add-to-list modal ---------- */
   .modal-overlay{
@@ -894,6 +923,7 @@
       <div class="speaker" id="ticketSpeaker"></div>
       <div class="summary" id="ticketSummary"></div>
       <div class="meta" id="ticketMeta"></div>
+      <div class="ticket-read-badge" id="ticketReadBadge" hidden></div>
       <div class="topics" id="ticketTopics"></div>
       <div class="ticket-actions">
         <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
@@ -1098,12 +1128,20 @@ function talkKey(talk){ return `${talk[2]}|${talk[3]}|${talk[4]}`; }
      it at the end again — so reversing the Set's iteration order below
      naturally shows the most-recently-favorited talk first, with no
      separate timestamp bookkeeping needed.
+   - readKeys: a Set, marked automatically the first time a talk is
+     actually opened (same trigger as recentKeys — see recordOpened()
+     below), never unmarked automatically. Unlike recentKeys this is an
+     explicit "I've read this" flag someone would want to keep, so it's
+     included in backup export/import alongside favorites (see the
+     Backup export/import section further down).
 ------------------------------------------------------------------*/
 const RECENT_KEY = 'findATalkRecent';
 const FAVORITES_KEY = 'findATalkFavorites';
+const READ_KEY = 'findATalkRead';
 const RECENT_MAX = 50;
 let recentKeys = [];
 let favoriteKeys = new Set();
+let readKeys = new Set();
 
 function loadRecentAndFavorites(){
   try {
@@ -1114,6 +1152,10 @@ function loadRecentAndFavorites(){
     const raw = localStorage.getItem(FAVORITES_KEY);
     if (raw) favoriteKeys = new Set(JSON.parse(raw));
   } catch(err){ favoriteKeys = new Set(); }
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    if (raw) readKeys = new Set(JSON.parse(raw));
+  } catch(err){ readKeys = new Set(); }
 }
 loadRecentAndFavorites();
 
@@ -1125,6 +1167,17 @@ function saveFavorites(){
   try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favoriteKeys])); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
 }
+function saveRead(){
+  try { localStorage.setItem(READ_KEY, JSON.stringify([...readKeys])); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+}
+function isRead(talk){ return readKeys.has(talkKey(talk)); }
+function markRead(talk){
+  const key = talkKey(talk);
+  if (readKeys.has(key)) return; // already marked — skip the write
+  readKeys.add(key);
+  saveRead();
+}
 function recordOpened(talk){
   if (!talk) return;
   const key = talkKey(talk);
@@ -1133,6 +1186,7 @@ function recordOpened(talk){
   recentKeys.unshift(key);
   if (recentKeys.length > RECENT_MAX) recentKeys.length = RECENT_MAX;
   saveRecent();
+  markRead(talk);
   // Actually opening a talk is what advances the streak (see the Daily
   // streak section below) — not just having the app open — so this is
   // the one shared place both recentKeys and the streak get touched.
@@ -1343,6 +1397,12 @@ function deleteCollection(id){
 }
 function isInCollection(id, talk){
   return (collectionMembers[id] || []).includes(talkKey(talk));
+}
+/* Names of every list (in creation order) a talk currently belongs to —
+   used to badge a talk as "already on a list" and say which one(s),
+   without the caller needing to loop over `collections` itself. */
+function talkListNames(talk){
+  return collections.filter(c=> isInCollection(c.id, talk)).map(c=> c.name);
 }
 function toggleCollectionMember(id, talk){
   const key = talkKey(talk);
@@ -1692,6 +1752,7 @@ document.getElementById('openLink').addEventListener('click', ()=>{
   recordOpened(lastPicked);
   refreshCount();
   if (recentZone.style.display === 'block') renderRecentPage();
+  syncReadBadge();
 });
 
 const favoriteBtn = document.getElementById('favoriteBtn');
@@ -1709,10 +1770,27 @@ favoriteBtn.addEventListener('click', ()=>{
 });
 
 const collectionBtn = document.getElementById('collectionBtn');
+function syncCollectionBtn(){
+  const names = lastPicked ? talkListNames(lastPicked) : [];
+  collectionBtn.textContent = names.length ? `✓ On ${names.length === 1 ? '1 List' : names.length + ' Lists'}` : '+ Add to List';
+  collectionBtn.classList.toggle('in-collection', names.length > 0);
+  collectionBtn.title = names.length ? `On your list: ${names.join(', ')}` : '';
+}
 collectionBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
   openCollectionModal(lastPicked);
 });
+
+// Reflects whether the currently-shown talk has already been opened at
+// least once (see markRead(), called from recordOpened() above) — a
+// small non-interactive line, same "already read" flag as the one shown
+// on every list row (see buildListItemRow()).
+const ticketReadBadge = document.getElementById('ticketReadBadge');
+function syncReadBadge(){
+  const read = !!(lastPicked && isRead(lastPicked));
+  ticketReadBadge.hidden = !read;
+  if (read) ticketReadBadge.innerHTML = `${CHECK_ICON_SVG}<span>You already read this talk</span>`;
+}
 
 function draw(){
   const pool = currentPool();
@@ -1724,6 +1802,8 @@ function draw(){
   }
   lastPicked = pick;
   syncFavoriteBtn();
+  syncCollectionBtn();
+  syncReadBadge();
 
   const [title, speaker, year, month, slug] = pick;
   const url = talkUrl(pick);
@@ -1856,8 +1936,18 @@ function buildListItemRow(pick){
     recordOpened(pick);
     refreshCount();
     if (recentZone.style.display === 'block') renderRecentPage();
+    readBadge.hidden = false; // opening it just marked it read — reflect that immediately
   });
   head.appendChild(titleLink);
+
+  // Shown once a talk has actually been opened (see recordOpened() ->
+  // markRead()) — never interactive, just a small "already read" flag.
+  const readBadge = document.createElement('span');
+  readBadge.className = 'list-item-read-badge';
+  readBadge.innerHTML = `${CHECK_ICON_SVG}<span>Read</span>`;
+  readBadge.title = 'You already opened this talk';
+  readBadge.hidden = !isRead(pick);
+  head.appendChild(readBadge);
 
   const actions = document.createElement('div');
   actions.className = 'list-item-actions';
@@ -1926,17 +2016,46 @@ function createFavoriteButton(pick){
 }
 
 /* A small icon button that opens the "Add to a List" modal for this
-   talk — unlike the favorite star, there's no on/off state to show here
-   (a talk can be in zero, one, or many lists at once), so this is a pure
-   action button, not a toggle. */
+   talk. Clicking it is always the same action (open the modal to
+   add/remove it from any list), but the button also doubles as a badge:
+   once the talk is on at least one list it switches to a filled/brass
+   look, same visual language as the favorite star, and its tooltip names
+   every list it's currently on. `_syncCollectionBadge` and
+   `dataset.talkKey` are stashed on the element so
+   refreshCollectionBadgesFor() (below) can find and re-sync every copy
+   of this button on the page after a list membership change made inside
+   the modal, without having to re-render (and, for "Show a List",
+   re-shuffle) the whole list it lives in. */
 function createCollectionButton(pick){
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'share-btn-icon collection-btn-icon';
   btn.innerHTML = COLLECTION_ICON_SVG;
-  btn.setAttribute('aria-label', `Add "${pick[0]}" to a list`);
+  btn.dataset.talkKey = talkKey(pick);
+  const sync = ()=>{
+    const names = talkListNames(pick);
+    btn.classList.toggle('in-collection', names.length > 0);
+    btn.title = names.length ? `On your list: ${names.join(', ')}` : '';
+    btn.setAttribute('aria-label', names.length
+      ? `"${pick[0]}" is on ${names.length === 1 ? names[0] : `${names.length} lists`} — manage lists`
+      : `Add "${pick[0]}" to a list`);
+  };
+  btn._syncCollectionBadge = sync;
+  sync();
   btn.addEventListener('click', ()=> openCollectionModal(pick));
   return btn;
+}
+/* Re-syncs every on-page copy of a talk's "add to list" badge (list rows
+   plus the ticket's own button) after its list membership changed inside
+   the "Add to a List" modal — see the comment on createCollectionButton
+   above for why this walks the DOM instead of re-rendering. */
+function refreshCollectionBadgesFor(talk){
+  if (!talk) return;
+  const key = talkKey(talk);
+  document.querySelectorAll('.collection-btn-icon').forEach(btn=>{
+    if (btn.dataset.talkKey === key && btn._syncCollectionBadge) btn._syncCollectionBadge();
+  });
+  if (lastPicked && talkKey(lastPicked) === key) syncCollectionBtn();
 }
 
 /* ---------------- Talk of the Day ---------------- */
@@ -2077,6 +2196,7 @@ document.getElementById('listAgainBtn').addEventListener('click', showList);
 const SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>';
 const STAR_ICON_SVG = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>';
 const COLLECTION_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+const CHECK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>';
 
 /* Copies text with the modern async Clipboard API first, falling back to
    the older execCommand('copy') technique (a hidden, focused, selected
@@ -2626,6 +2746,7 @@ function exportBackupData(){
     version: 1,
     exportedAt: new Date().toISOString(),
     favorites: [...favoriteKeys],
+    read: [...readKeys],
     collections,
     collectionMembers,
     streak: loadStreak()
@@ -2694,6 +2815,12 @@ function mergeBackupData(data){
   (data.favorites || []).forEach(key=>{
     if (typeof key === 'string' && !favoriteKeys.has(key)){ favoriteKeys.add(key); addedFavorites++; }
   });
+  // `read` is a later addition than `favorites`/`collections` — older
+  // backup files simply won't have it, so this just no-ops for them
+  // rather than requiring it like importBackupFile requires the rest.
+  (data.read || []).forEach(key=>{
+    if (typeof key === 'string') readKeys.add(key);
+  });
   (data.collections || []).forEach(col=>{
     if (!col || typeof col.id !== 'string' || typeof col.name !== 'string') return;
     const incomingMembers = (data.collectionMembers && data.collectionMembers[col.id]) || [];
@@ -2709,6 +2836,7 @@ function mergeBackupData(data){
   });
   mergeStreakData(data.streak);
   saveFavorites();
+  saveRead();
   saveCollections();
   saveCollectionMembers();
   return {addedFavorites, addedLists, mergedLists};
@@ -2780,6 +2908,7 @@ function renderCollectionModalList(){
     cb.addEventListener('change', ()=>{
       toggleCollectionMember(col.id, collectionModalTalk);
       if (currentCollectionId === col.id) renderCollectionPage(col.id);
+      refreshCollectionBadgesFor(collectionModalTalk);
     });
     const span = document.createElement('span');
     const count = (collectionMembers[col.id] || []).length;
@@ -2813,6 +2942,7 @@ document.getElementById('newCollectionBtn').addEventListener('click', ()=>{
   toggleCollectionMember(id, collectionModalTalk);
   newCollectionInput.value = '';
   renderCollectionModalList();
+  refreshCollectionBadgesFor(collectionModalTalk);
 });
 newCollectionInput.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') document.getElementById('newCollectionBtn').click();
