@@ -90,6 +90,21 @@
   /* ---------- talk of the day ---------- */
   .totd-zone{ margin-bottom:36px; }
   .totd-eyebrow{ margin-bottom:12px; }
+  .streak-badge[hidden]{ display:none; }
+  .streak-badge{
+    display:inline-flex;
+    align-items:center;
+    white-space:nowrap;
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--burgundy);
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:5px 13px;
+    margin-top:14px;
+  }
 
   /* ---------- keyword search ---------- */
   .search-field{ margin-bottom:20px; }
@@ -781,6 +796,7 @@
   <div class="totd-zone" id="totdZone">
     <div class="eyebrow totd-eyebrow">Talk of the Day</div>
     <div class="list-items" id="totdItems"></div>
+    <div class="streak-badge" id="streakBadge" hidden></div>
   </div>
 
   <p class="search-intro">You may narrow the search by using the filters below.</p>
@@ -1119,7 +1135,157 @@ function recordOpened(talk){
   recentKeys.unshift(key);
   if (recentKeys.length > RECENT_MAX) recentKeys.length = RECENT_MAX;
   saveRecent();
+  // Actually opening a talk is what advances the streak (see the Daily
+  // streak section below) — not just having the app open — so this is
+  // the one shared place both recentKeys and the streak get touched.
+  touchStreak();
+  renderStreak();
 }
+
+/* yyyy-mm-dd for the device's local calendar date — shared by
+   talkOfTheDay() (as its hash seed, inside initApp() further down) and
+   the streak counter directly below (as the unit it counts in), so both
+   agree on when "today" rolls over. Top-level (not nested in initApp
+   like talkOfTheDay is) because touchStreak() needs it and touchStreak
+   is called from recordOpened() above, which also has to be top-level —
+   see the note on that below. */
+function localDateSeed(d){
+  d = d || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+/* ---------------- Daily streak ----------------
+   Two related but separate stats, both counted from "was a talk actually
+   OPENED today" — touchStreak() is called from recordOpened() above, the
+   same trigger recentKeys uses (the ticket's "Open This Talk" link, or a
+   title link in Show a List/Recently Viewed/Favorites), not from just
+   launching the app. Not tied to actually reading/finishing a talk
+   though — same "opening it is enough" spirit as recentKeys itself:
+   - count: CONSECUTIVE calendar days, resets hard to 1 on any gap. The
+     all-or-nothing "don't stop now" number.
+   - activeDays: how many of the last 365 calendar days were active, as a
+     rolling window (old days age out as new ones are added). Forgiving
+     where `count` isn't — one missed day doesn't erase it, so there's
+     still a number that only goes up even after a streak breaks.
+   Stored as {count, longest, lastDate, activeDays}:
+   - lastDate === today: already counted today, leave everything as-is
+     (so re-opening the app five times in one day doesn't inflate either
+     number).
+   - lastDate === yesterday: the streak continues, count++.
+   - anything else (a gap, or first-ever run): streak resets to 1.
+   `longest` only ever grows, kept for a possible future "personal best"
+   display even after a streak breaks. `activeDays` is an array of
+   yyyy-mm-dd strings, pruned to the trailing ACTIVE_DAYS_WINDOW days
+   every time it's touched.
+   Unlike recentKeys (see the comment above RECENT_KEY), this IS included
+   in backup export/import — losing a real streak to a reinstall would
+   undercut the whole point of having one.
+   This whole section is top-level, NOT nested inside initApp() (unlike
+   most of the app's other functions, including talkOfTheDay() and
+   setupDailyReminder() further down) — it has to be, because
+   recordOpened() above is top-level too (it's wired up before initApp()
+   ever runs) and needs to call touchStreak()/renderStreak() directly.
+   mergeStreakData() below, by contrast, is only ever called from
+   initApp()-nested code (mergeBackupData()), so it's fine left nested
+   there even though it also reads/writes streak state — nested code can
+   always see this outer scope. */
+const STREAK_KEY = 'findATalkStreak';
+const ACTIVE_DAYS_WINDOW = 365;
+function loadStreak(){
+  try {
+    const raw = localStorage.getItem(STREAK_KEY);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return {
+        count: parsed.count|0,
+        longest: parsed.longest|0,
+        lastDate: parsed.lastDate || null,
+        activeDays: Array.isArray(parsed.activeDays) ? parsed.activeDays.filter(d=> typeof d === 'string') : []
+      };
+    }
+  } catch(err){ /* fall through to a fresh streak below */ }
+  return {count: 0, longest: 0, lastDate: null, activeDays: []};
+}
+function saveStreak(streak){
+  try { localStorage.setItem(STREAK_KEY, JSON.stringify(streak)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  mirrorStreakToNative(streak);
+}
+/* Copies the streak into native storage the home-screen widgets can read
+   directly — they run in a separate process from this WebView and can't
+   see localStorage at all. Two different native paths, since the two
+   platforms solve "storage a widget can reach" differently:
+   - Android: @capacitor/preferences writes into a SharedPreferences file
+     named "CapacitorStorage" (its default group/filename) — app widgets
+     run in the same process as the host app, so TalkOfDayWidgetProvider
+     just opens that same file directly. No extra native code needed.
+   - iOS: WKWebView and a widget extension are fully sandboxed from each
+     other; only an explicit App Group container is shared between them,
+     and @capacitor/preferences doesn't support that (it only prefixes
+     keys within UserDefaults.standard, which a widget extension can't
+     see). StreakBridgePlugin is a small custom native plugin — see
+     ios/App/App/StreakBridgePlugin.swift — that writes straight into
+     UserDefaults(suiteName: <the App Group ID>) instead. Requires the
+     App Group capability to actually be enabled in Xcode on both the App
+     and TalkOfDayWidget targets (a manual, one-time signing step — see
+     PROJECT_HANDOFF.md) before this has anywhere real to write to. */
+async function mirrorStreakToNative(streak){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const platform = cap.getPlatform ? cap.getPlatform() : '';
+  const json = JSON.stringify(streak);
+  try {
+    if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
+      await cap.Plugins.Preferences.set({key: STREAK_KEY, value: json});
+    } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
+      await cap.Plugins.StreakBridge.setStreak({json});
+    }
+  } catch(err){ /* native widget just won't see fresh data this time — not fatal */ }
+}
+/* Drops any activeDays entry older than the trailing ACTIVE_DAYS_WINDOW
+   days (measured from `now`) and returns a sorted, deduped copy — cheap
+   enough to just run on every touch/merge rather than track separately. */
+function pruneActiveDays(days, now){
+  const cutoff = localDateSeed(new Date(now.getTime() - (ACTIVE_DAYS_WINDOW - 1)*24*60*60*1000));
+  return [...new Set(days)].filter(d=> d >= cutoff).sort();
+}
+/* Advances the streak for "today" if it hasn't been already, and returns
+   the (possibly just-updated) streak object. Called from recordOpened()
+   only — NOT from renderStreak()/page load — so merely having the app
+   open doesn't count, only actually opening a talk does. Safe to call
+   more than once per day (e.g. opening several talks in one sitting) —
+   only the first call each day actually changes anything beyond
+   re-pruning activeDays (harmless, and keeps old entries from lingering
+   if the app is left open across a day boundary). */
+function touchStreak(){
+  const streak = loadStreak();
+  const now = new Date();
+  const today = localDateSeed(now);
+  if (streak.lastDate !== today){
+    const yesterday = localDateSeed(new Date(now.getTime() - 24*60*60*1000));
+    streak.count = (streak.lastDate === yesterday) ? streak.count + 1 : 1;
+    streak.lastDate = today;
+    streak.longest = Math.max(streak.longest, streak.count);
+    streak.activeDays.push(today);
+  }
+  streak.activeDays = pruneActiveDays(streak.activeDays, now);
+  saveStreak(streak);
+  return streak;
+}
+/* Pure display — reads whatever touchStreak() last recorded without
+   advancing anything itself. Safe (and cheap) to call on every page
+   load, after every talk opened, and after a backup import. */
+function renderStreak(){
+  const streak = loadStreak();
+  const el = document.getElementById('streakBadge');
+  if (!el) return;
+  if (streak.count <= 0){ el.hidden = true; return; }
+  el.hidden = false;
+  el.textContent = streak.count === 1
+    ? '🔥 Day 1 — come back tomorrow to start a streak'
+    : `🔥 ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
+}
+
 function isFavorite(talk){ return favoriteKeys.has(talkKey(talk)); }
 function toggleFavorite(talk){
   const key = talkKey(talk);
@@ -1798,15 +1964,62 @@ function talkOfTheDay(){
     const ka = talkKey(a), kb = talkKey(b);
     return ka < kb ? -1 : ka > kb ? 1 : 0;
   });
-  const d = new Date();
-  const dateSeed = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  return sorted[hashString(dateSeed) % sorted.length];
+  return sorted[hashString(localDateSeed()) % sorted.length];
 }
 function renderTalkOfTheDay(){
   const pick = talkOfTheDay();
   const totdItemsEl = document.getElementById('totdItems');
   totdItemsEl.innerHTML = '';
   if (pick) totdItemsEl.appendChild(buildListItemRow(pick));
+}
+
+/* ---------------- Daily reminder notification ----------------
+   A single repeating local notification ("your talk of the day is
+   ready") at a fixed 8:00 AM local time, meant to pair with the streak
+   above — the nudge that actually gets someone to open the app each day,
+   not just a number that sits unseen until they remember to look.
+   Web-only (no server, no accounts) so this uses @capacitor/local-
+   notifications, which only exists inside the wrapped iOS/Android app —
+   window.Capacitor is absent entirely when this page is opened as a
+   plain website, so everything here is a no-op there.
+   Permission is asked exactly once, on the very first launch (per the
+   product decision to prompt early rather than bury this behind a
+   settings toggle nobody finds) — findATalkNotifPrompted gates that so
+   later launches never ask again, matching whatever the person chose
+   (or dismissed) that first time. */
+const NOTIF_PROMPTED_KEY = 'findATalkNotifPrompted';
+const DAILY_REMINDER_ID = 1;
+async function setupDailyReminder(){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const LocalNotifications = cap.Plugins && cap.Plugins.LocalNotifications;
+  if (!LocalNotifications) return;
+
+  let alreadyPrompted = false;
+  try { alreadyPrompted = localStorage.getItem(NOTIF_PROMPTED_KEY) === '1'; } catch(err){ /* ignore */ }
+
+  try {
+    let perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== 'granted' && !alreadyPrompted){
+      perm = await LocalNotifications.requestPermissions();
+    }
+    try { localStorage.setItem(NOTIF_PROMPTED_KEY, '1'); } catch(err){ /* ignore */ }
+    if (perm.display !== 'granted') return;
+
+    // `schedule.on` with only hour/minute set (no day/month/year) is a
+    // recurring trigger, not a one-off — Capacitor fires it every day at
+    // that local time. Re-scheduling the same id on a later launch just
+    // replaces this one entry, so it's safe to call again if we ever
+    // want to (e.g. a future "change reminder time" setting).
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: DAILY_REMINDER_ID,
+        title: 'Find a Talk',
+        body: 'Your talk of the day is ready to read.',
+        schedule: { on: { hour: 8, minute: 0 }, allowWhileIdle: true }
+      }]
+    });
+  } catch(err){ /* permission denied, plugin unavailable, etc. — not fatal */ }
 }
 // NOTE: the actual renderTalkOfTheDay() call happens at the very end of
 // initApp(), not here — buildListItemRow() → createFavoriteButton() reads
@@ -2380,11 +2593,18 @@ collectionsIndexNewInput.addEventListener('keydown', (e)=>{
    browser/device's localStorage (see the comment above RECENT_KEY), so
    this is the only way a user can move them to a new phone or recover
    them after clearing site data/reinstalling. recentKeys is left out on
-   purpose: it's viewing history, not something worth backing up.
+   purpose: it's viewing history, not something worth backing up. The
+   streak (see STREAK_KEY above) IS included, unlike recentKeys — it's
+   the one piece of "history" someone would actually be upset to lose.
    Import always MERGES rather than replacing — union of favorite keys,
    and for collections a union keyed by collection id so re-importing the
    same file twice (or restoring on a device that already has some of
-   these lists) is safe and never loses or duplicates anything. ------- */
+   these lists) is safe and never loses or duplicates anything. The
+   streak merges by taking whichever side has the more recent lastDate as
+   the current count (so restoring onto a fresh install picks up the
+   backup's streak, but re-importing an old backup can never roll back an
+   already-more-current streak on this device), and the longer of the two
+   `longest` values either way. ------- */
 function exportBackupData(){
   return {
     app: 'findATalk',
@@ -2392,7 +2612,8 @@ function exportBackupData(){
     exportedAt: new Date().toISOString(),
     favorites: [...favoriteKeys],
     collections,
-    collectionMembers
+    collectionMembers,
+    streak: loadStreak()
   };
 }
 /* Writes the backup to a file. Prefers the native share sheet (the only
@@ -2429,6 +2650,30 @@ async function saveBackupToFile(){
     return false;
   }
 }
+function mergeStreakData(incoming){
+  if (!incoming || typeof incoming !== 'object') return;
+  const local = loadStreak();
+  const merged = {
+    count: local.count,
+    lastDate: local.lastDate,
+    longest: Math.max(local.longest|0, incoming.longest|0),
+    // activeDays is a plain union — unlike count/lastDate it's not a
+    // single "current" value that importing an old backup could regress,
+    // so days from either side are safe to just combine and re-prune.
+    activeDays: pruneActiveDays(
+      [...local.activeDays, ...(Array.isArray(incoming.activeDays) ? incoming.activeDays : [])],
+      new Date()
+    )
+  };
+  // Only adopt the incoming streak as "current" if it's actually newer —
+  // otherwise re-importing an old backup could stomp a longer streak
+  // that's been building on this device since that backup was made.
+  if (typeof incoming.lastDate === 'string' && (!local.lastDate || incoming.lastDate > local.lastDate)){
+    merged.count = incoming.count|0;
+    merged.lastDate = incoming.lastDate;
+  }
+  saveStreak(merged);
+}
 function mergeBackupData(data){
   let addedFavorites = 0, addedLists = 0, mergedLists = 0;
   (data.favorites || []).forEach(key=>{
@@ -2447,6 +2692,7 @@ function mergeBackupData(data){
       mergedLists++;
     }
   });
+  mergeStreakData(data.streak);
   saveFavorites();
   saveCollections();
   saveCollectionMembers();
@@ -2488,6 +2734,7 @@ backupImportInput.addEventListener('change', ()=>{
     flashShareButton(backupImportBtn, `Added ${addedFavorites} favorite${addedFavorites===1?'':'s'}, ${listsTouched} list${listsTouched===1?'':'s'}`);
     renderCollectionsIndexPage();
     if (favoritesZone.style.display === 'block') renderFavoritesPage();
+    renderStreak();
   });
 });
 
@@ -2557,6 +2804,8 @@ newCollectionInput.addEventListener('keydown', (e)=>{
 });
 
 renderTalkOfTheDay();
+renderStreak();
+setupDailyReminder();
 }
 
 /* ---------------------------------------------------------------
