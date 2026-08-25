@@ -1940,12 +1940,29 @@ function createCollectionButton(pick){
 }
 
 /* ---------------- Talk of the Day ---------------- */
-/* Small, dependency-free string hash (DJB2 variant) — good enough for
-   picking a stable index, not for anything security-sensitive. */
-function hashString(s){
-  let h = 5381;
-  for (let i = 0; i < s.length; i++){ h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; }
-  return h >>> 0;
+/* Integer mixing hash (splitmix32) — used instead of hashing the date
+   string directly. A prior DJB2-on-string version hashed values like
+   "2026-08-24" -> "2026-08-25", which differ only in their last digit(s),
+   and digit characters sit right next to each other in ASCII; that
+   combination didn't avalanche, so consecutive days produced near-linear
+   runs of picks (index N, N-1, N-2, ...) that visibly repeated every
+   couple weeks. Mixing the integer day number through splitmix32 gives
+   well-distributed, uncorrelated output even for adjacent inputs, while
+   staying fully deterministic — not security-sensitive, just needs to
+   look random day to day. */
+function splitmix32(seed){
+  let h = (seed + 0x9e3779b9) >>> 0;
+  let z = h;
+  z = Math.imul(z ^ (z >>> 16), 0x21f0aaad) >>> 0;
+  z = Math.imul(z ^ (z >>> 15), 0x735a2d97) >>> 0;
+  z = (z ^ (z >>> 15)) >>> 0;
+  return z >>> 0;
+}
+/* Days since epoch on the device's local calendar (not UTC), so "today"
+   rolls over at local midnight like the rest of the date-seeded logic. */
+function localDayNumber(d){
+  d = d || new Date();
+  return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
 }
 /* Deterministic, seeded by the device's local calendar date (not the
    person's current filters — this is meant to be a stable "come back
@@ -1962,7 +1979,7 @@ function talkOfTheDay(){
     const ka = talkKey(a), kb = talkKey(b);
     return ka < kb ? -1 : ka > kb ? 1 : 0;
   });
-  return sorted[hashString(localDateSeed()) % sorted.length];
+  return sorted[splitmix32(localDayNumber()) % sorted.length];
 }
 function renderTalkOfTheDay(){
   const pick = talkOfTheDay();
