@@ -518,6 +518,31 @@
     margin-bottom:18px;
   }
   .list-header strong{ color:var(--burgundy); font-weight:600; }
+  .list-bulk-bar{
+    max-width:620px;
+    margin:0 auto 14px;
+    display:flex; align-items:center; gap:14px;
+    padding:10px 16px;
+    background:var(--paper-raised);
+    border:1px solid var(--brass);
+    border-radius:6px;
+    font-family:'Inter',sans-serif; font-size:13.5px; color:var(--ink);
+  }
+  .list-bulk-bar[hidden]{ display:none; }
+  .list-bulk-bar #listBulkCount{ font-weight:600; margin-right:auto; }
+  .list-item-title-group{
+    display:flex; align-items:flex-start; flex-wrap:wrap;
+    gap:9px; min-width:0;
+  }
+  .list-item-select{
+    display:flex; align-items:center; flex-shrink:0;
+    padding-top:3px; /* nudges the checkbox to align with the title's cap-height */
+    cursor:pointer;
+  }
+  .list-item-select input{
+    accent-color:var(--burgundy);
+    width:17px; height:17px; cursor:pointer;
+  }
   .list-items{
     max-width:620px;
     margin:0 auto;
@@ -937,6 +962,11 @@
 
   <div id="listZone">
     <div class="list-header" id="listHeader"></div>
+    <div class="list-bulk-bar" id="listBulkBar" hidden>
+      <span id="listBulkCount"></span>
+      <button type="button" class="btn btn-ghost" id="listBulkAddBtn">+ Add to List</button>
+      <button type="button" class="reset-link" id="listBulkClearBtn">Clear selection</button>
+    </div>
     <div class="list-items" id="listItems"></div>
     <div class="list-footer">
       <button type="button" class="reset-link" id="listAgainBtn">Show a different list</button>
@@ -1404,11 +1434,30 @@ function isInCollection(id, talk){
 function talkListNames(talk){
   return collections.filter(c=> isInCollection(c.id, talk)).map(c=> c.name);
 }
-function toggleCollectionMember(id, talk){
+function addTalkToCollection(id, talk){
+  const key = talkKey(talk);
+  const arr = collectionMembers[id] || (collectionMembers[id] = []);
+  if (!arr.includes(key)) arr.push(key);
+}
+function removeTalkFromCollection(id, talk){
   const key = talkKey(talk);
   const arr = collectionMembers[id] || (collectionMembers[id] = []);
   const idx = arr.indexOf(key);
-  if (idx === -1) arr.push(key); else arr.splice(idx, 1);
+  if (idx !== -1) arr.splice(idx, 1);
+}
+function toggleCollectionMember(id, talk){
+  if (isInCollection(id, talk)) removeTalkFromCollection(id, talk); else addTalkToCollection(id, talk);
+  saveCollectionMembers();
+}
+/* Bulk variants — add/remove several talks at once (one save at the end
+   instead of one per talk), used by the "Add to a List" modal when it's
+   acting on more than one talk, e.g. a multi-select from "Show a List". */
+function addTalksToCollection(id, talks){
+  talks.forEach(t=> addTalkToCollection(id, t));
+  saveCollectionMembers();
+}
+function removeTalksFromCollection(id, talks){
+  talks.forEach(t=> removeTalkFromCollection(id, t));
   saveCollectionMembers();
 }
 
@@ -1863,6 +1912,34 @@ const listHeader = document.getElementById('listHeader');
 const listItemsEl = document.getElementById('listItems');
 const listAgainBtn = document.getElementById('listAgainBtn');
 
+/* Multi-select on "Show a List": which talks (talkKey -> pick) are
+   currently checked, so they can all be added to a personal list in one
+   trip through the "Add to a List" modal instead of one row at a time.
+   Keyed by talkKey rather than being a plain array so a re-checked row
+   doesn't produce a duplicate entry. Cleared whenever the list is
+   re-drawn (showList()) since the rows themselves are being replaced. */
+let listSelection = new Map();
+const listBulkBar = document.getElementById('listBulkBar');
+const listBulkCount = document.getElementById('listBulkCount');
+const listBulkAddBtn = document.getElementById('listBulkAddBtn');
+const listBulkClearBtn = document.getElementById('listBulkClearBtn');
+
+function syncListBulkBar(){
+  const n = listSelection.size;
+  listBulkBar.hidden = n === 0;
+  listBulkCount.textContent = `${n} talk${n===1?'':'s'} selected`;
+}
+function clearListSelection(){
+  listSelection.clear();
+  listItemsEl.querySelectorAll('.list-item-select input').forEach(cb=> cb.checked = false);
+  syncListBulkBar();
+}
+listBulkClearBtn.addEventListener('click', clearListSelection);
+listBulkAddBtn.addEventListener('click', ()=>{
+  if (!listSelection.size) return;
+  openCollectionModalFor([...listSelection.values()], clearListSelection);
+});
+
 // Sort toggle — "Random" (the original shuffle) vs "Most Recent" (top
 // LIST_SIZE by conference date, newest first). Persisted so a person's
 // preference sticks across visits.
@@ -1914,8 +1991,11 @@ function shuffled(arr){
 /* Builds one talk row (title link, favorite + share buttons, speaker,
    meta, kicker) — shared by "Show a List", Recently Viewed, and
    Favorites, so all three look and behave identically. The title link
-   records the talk as "opened", same as the ticket's "Open This Talk". */
-function buildListItemRow(pick){
+   records the talk as "opened", same as the ticket's "Open This Talk".
+   Pass {selectable:true} (only "Show a List" does) to also prepend a
+   checkbox that adds/removes the talk from listSelection, for the
+   "select several, add them to a list at once" bulk-add bar. */
+function buildListItemRow(pick, {selectable=false}={}){
   const [title, speaker, year, month] = pick;
   const role = talkRole(pick);
   const kicker = talkKicker(pick);
@@ -1925,6 +2005,29 @@ function buildListItemRow(pick){
 
   const head = document.createElement('div');
   head.className = 'list-item-head';
+
+  // Groups the (optional) select checkbox with the title and read badge,
+  // so this is a single flex item on the left of `head` — keeping `head`
+  // itself a simple 2-item space-between (this group, then `actions`)
+  // regardless of whether a checkbox is present.
+  const titleGroup = document.createElement('div');
+  titleGroup.className = 'list-item-title-group';
+
+  if (selectable){
+    const selectLabel = document.createElement('label');
+    selectLabel.className = 'list-item-select';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = listSelection.has(talkKey(pick));
+    cb.setAttribute('aria-label', `Select "${title}"`);
+    cb.addEventListener('change', ()=>{
+      if (cb.checked) listSelection.set(talkKey(pick), pick);
+      else listSelection.delete(talkKey(pick));
+      syncListBulkBar();
+    });
+    selectLabel.appendChild(cb);
+    titleGroup.appendChild(selectLabel);
+  }
 
   const titleLink = document.createElement('a');
   titleLink.className = 'list-item-title';
@@ -1938,7 +2041,7 @@ function buildListItemRow(pick){
     if (recentZone.style.display === 'block') renderRecentPage();
     readBadge.hidden = false; // opening it just marked it read — reflect that immediately
   });
-  head.appendChild(titleLink);
+  titleGroup.appendChild(titleLink);
 
   // Shown once a talk has actually been opened (see recordOpened() ->
   // markRead()) — never interactive, just a small "already read" flag.
@@ -1947,7 +2050,9 @@ function buildListItemRow(pick){
   readBadge.innerHTML = `${CHECK_ICON_SVG}<span>Read</span>`;
   readBadge.title = 'You already opened this talk';
   readBadge.hidden = !isRead(pick);
-  head.appendChild(readBadge);
+  titleGroup.appendChild(readBadge);
+
+  head.appendChild(titleGroup);
 
   const actions = document.createElement('div');
   actions.className = 'list-item-actions';
@@ -2170,8 +2275,10 @@ function showList(){
   const picks = LIST_SORT === 'recent'
     ? pool.slice().sort(byMostRecent).slice(0, LIST_SIZE)
     : shuffled(pool).slice(0, LIST_SIZE);
+  listSelection.clear();
+  syncListBulkBar();
   listItemsEl.innerHTML = '';
-  picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick)));
+  picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick, {selectable: true})));
 
   const shown = picks.length;
   if (LIST_SORT === 'recent'){
@@ -2887,8 +2994,25 @@ backupImportInput.addEventListener('change', ()=>{
 // acting on is just whatever was passed to openCollectionModal() last.
 const collectionModalOverlay = document.getElementById('collectionModalOverlay');
 const collectionModalList = document.getElementById('collectionModalList');
+const collectionModalTitle = document.getElementById('collectionModalTitle');
 const newCollectionInput = document.getElementById('newCollectionInput');
-let collectionModalTalk = null;
+// One or more talks the modal is currently acting on — almost always one
+// (a single row's icon, or the ticket's own button), but a multi-select
+// on "Show a List" can pass several at once. A checkbox here reads as
+// "checked" only once EVERY talk in this array is already on that list,
+// and toggling it adds/removes whichever of them aren't already there —
+// see addTalksToCollection/removeTalksFromCollection above.
+let collectionModalTalks = [];
+// Set only when the modal was opened from the "Show a List" bulk-select
+// bar, so closing it can also clear that selection — see showList()'s
+// bulk bar wiring below.
+let collectionModalBulkClose = null;
+
+function syncCollectionModalTitle(){
+  collectionModalTitle.textContent = collectionModalTalks.length > 1
+    ? `Add ${collectionModalTalks.length} Talks to a List`
+    : 'Add to a List';
+}
 
 function renderCollectionModalList(){
   collectionModalList.innerHTML = '';
@@ -2904,11 +3028,15 @@ function renderCollectionModalList(){
     row.className = 'modal-option';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.checked = isInCollection(col.id, collectionModalTalk);
+    cb.checked = collectionModalTalks.every(t=> isInCollection(col.id, t));
     cb.addEventListener('change', ()=>{
-      toggleCollectionMember(col.id, collectionModalTalk);
+      if (cb.checked) addTalksToCollection(col.id, collectionModalTalks);
+      else removeTalksFromCollection(col.id, collectionModalTalks);
       if (currentCollectionId === col.id) renderCollectionPage(col.id);
-      refreshCollectionBadgesFor(collectionModalTalk);
+      collectionModalTalks.forEach(t=> refreshCollectionBadgesFor(t));
+      // Re-render so the "(count)" after each list name reflects the
+      // membership change we just made.
+      renderCollectionModalList();
     });
     const span = document.createElement('span');
     const count = (collectionMembers[col.id] || []).length;
@@ -2919,14 +3047,28 @@ function renderCollectionModalList(){
   });
 }
 function openCollectionModal(talk){
-  collectionModalTalk = talk;
+  openCollectionModalFor([talk]);
+}
+/* Bulk variant, used by "Show a List"'s multi-select bar — a talk is
+   itself a plain array ([title, speaker, year, month, slug]), so it's
+   not safe to tell "one talk" from "an array of talks" by Array.isArray()
+   alone; callers pick the right function instead. `onClose` (if given)
+   fires once, when the modal is closed, so the caller can clear its own
+   selection state — see the bulk bar's "+ Add to List" handler below. */
+function openCollectionModalFor(talks, onClose){
+  collectionModalTalks = talks;
+  collectionModalBulkClose = onClose || null;
+  syncCollectionModalTitle();
   renderCollectionModalList();
   newCollectionInput.value = '';
   collectionModalOverlay.hidden = false;
 }
 function closeCollectionModal(){
   collectionModalOverlay.hidden = true;
-  collectionModalTalk = null;
+  collectionModalTalks = [];
+  const onClose = collectionModalBulkClose;
+  collectionModalBulkClose = null;
+  if (onClose) onClose();
 }
 document.getElementById('collectionModalClose').addEventListener('click', closeCollectionModal);
 collectionModalOverlay.addEventListener('click', (e)=>{
@@ -2937,12 +3079,12 @@ document.addEventListener('keydown', (e)=>{
 });
 document.getElementById('newCollectionBtn').addEventListener('click', ()=>{
   const name = newCollectionInput.value.trim();
-  if (!name || !collectionModalTalk) return;
+  if (!name || !collectionModalTalks.length) return;
   const id = createCollection(name);
-  toggleCollectionMember(id, collectionModalTalk);
+  addTalksToCollection(id, collectionModalTalks);
   newCollectionInput.value = '';
   renderCollectionModalList();
-  refreshCollectionBadgesFor(collectionModalTalk);
+  collectionModalTalks.forEach(t=> refreshCollectionBadgesFor(t));
 });
 newCollectionInput.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') document.getElementById('newCollectionBtn').click();
