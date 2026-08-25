@@ -4,4 +4,9 @@
     <string name="title_activity_main">Find A Talk</string>
     <string name="package_name">com.captainfun333.findatalk</string>
     <string name="custom_url_scheme">com.captainfun333.findatalk</string>
+
+    <!-- Talk of the Day widget -->
+    <string name="widget_eyebrow">Talk of the Day</string>
+    <string name="widget_loading">Loading today\'s talk…</string>
+    <string name="widget_description">Shows today\'s Talk of the Day and opens it in your browser when tapped.</string>
 </resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared with the web app's palette (see docs/index.html :root) -->
+    <color name="widget_paper">#F3EFE2</color>
+    <color name="widget_paper_raised">#FAF7EE</color>
+    <color name="widget_ink">#1C2C42</color>
+    <color name="widget_ink_soft">#3D4D64</color>
+    <color name="widget_brass">#A9822F</color>
+    <color name="widget_burgundy">#6E2B34</color>
+    <color name="widget_line">#C9BFA2</color>
+</resources>

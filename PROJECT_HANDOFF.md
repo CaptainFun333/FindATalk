@@ -2433,3 +2433,27 @@ candidate talks was checked this way**: all 1,263 talks then tagged
     correctly excluded]) — these look like a straightforward, low-risk
     batch tagging pass since the byline gives an exact, unambiguous
     match to a role that already exists in `ROLE_LABELS`.
+
+## ⚠️ Manual step required before the next iOS build/push: enable App Groups
+
+The streak counter now mirrors into the `TalkOfDayWidget` extension via a
+custom native bridge (`ios/App/App/StreakBridgePlugin.swift`), which needs
+an **App Group** shared container that only Xcode's Signing & Capabilities
+UI can provision (it needs your Apple Developer Team ID) — I can't do this
+step from the CLI. Until it's done, the app and Android widget work fine;
+the iOS widget just silently shows no streak line (falls back to
+talk-only, same as before this feature).
+
+**To enable it, in Xcode:**
+1. Select the **App** target → Signing & Capabilities → **+ Capability** →
+   **App Groups** → **+** → add `group.com.captainfun333.findatalk`
+   (must match exactly).
+2. Select the **TalkOfDayWidget** (extension) target → same steps → check
+   the *same* `group.com.captainfun333.findatalk` group (don't create a
+   second one).
+3. Build once so Xcode regenerates the `.entitlements` files for both
+   targets.
+
+If the group ID ever needs to change, update it in all three places it's
+hardcoded: `StreakBridgePlugin.swift` (`appGroupID`), `TalkOfDayWidget.swift`
+(`StreakStore.appGroupID`), and whatever you set in Xcode.
