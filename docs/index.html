@@ -1275,6 +1275,32 @@ function setTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
   try { localStorage.setItem(THEME_KEY, theme); } catch(err){ /* ignore */ }
   updateThemeToggleUI();
+  mirrorThemeToNative(theme);
+}
+/* Copies an explicit light/dark choice into native storage so the
+   home-screen widgets can match it — same problem and same two
+   platform-specific paths as mirrorStreakToNative() below: a widget runs
+   in a separate process from this WebView and can't see localStorage.
+   Only ever called with an explicit 'light'/'dark' value (never to reset
+   back to "follow system" — there's no UI for that yet, same as the
+   in-app toggle itself), so the native side only needs to know "was an
+   explicit choice ever made, and if so which" — absence of this key
+   there means "still following the system setting", same meaning as
+   getStoredTheme() returning null here. */
+async function mirrorThemeToNative(theme){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const platform = cap.getPlatform ? cap.getPlatform() : '';
+  try {
+    if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
+      await cap.Plugins.Preferences.set({key: 'findATalkTheme', value: theme});
+      if (cap.Plugins.WidgetRefresh){
+        try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
+      }
+    } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
+      await cap.Plugins.StreakBridge.setThemePreference({theme});
+    }
+  } catch(err){ /* native widget just won't see the fresh choice this time — not fatal */ }
 }
 document.getElementById('themeToggleBtn').addEventListener('click', ()=>{
   setTheme(effectiveTheme()==='dark' ? 'light' : 'dark');

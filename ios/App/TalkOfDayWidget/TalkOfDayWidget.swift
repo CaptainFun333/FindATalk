@@ -5,6 +5,26 @@ struct TalkEntry: TimelineEntry {
     let date: Date
     let talk: Talk?
     let streakText: String?
+    // "light" / "dark" if the person made an explicit choice with the
+    // in-app toggle, nil if they haven't (still following the system
+    // setting) — see ThemeStore below.
+    let themeOverride: String?
+}
+
+/// Read-only mirror of an explicit light/dark choice made with the in-app
+/// toggle (see mirrorThemeToNative() in docs/index.html and
+/// StreakBridgePlugin.setThemePreference). nil means no explicit choice
+/// has ever been made (or the App Group isn't set up), in which case the
+/// view falls back to the system's own colorScheme, same as before this
+/// existed.
+private enum ThemeStore {
+    // Must match StreakBridgePlugin.appGroupID/.themeKey.
+    static let appGroupID = "group.com.captainfun333.findatalk"
+    static let themeKey = "findATalkTheme"
+
+    static func currentOverride() -> String? {
+        UserDefaults(suiteName: appGroupID)?.string(forKey: themeKey)
+    }
 }
 
 /// Read-only mirror of renderStreak()'s text in docs/index.html — this
@@ -38,20 +58,21 @@ struct TalkOfDayProvider: TimelineProvider {
         TalkEntry(
             date: Date(),
             talk: Talk(title: "Why Not Now?", speaker: "Neal A. Maxwell", year: 1974, month: "10", urlSlug: "why-not-now"),
-            streakText: "🔥 122 of the last 365 — 10-day streak"
+            streakText: "🔥 122 of the last 365 — 10-day streak",
+            themeOverride: ThemeStore.currentOverride()
         )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TalkEntry) -> Void) {
         let pick = TalkStore.talkOfTheDay(from: TalkStore.loadTalks())
-        completion(TalkEntry(date: Date(), talk: pick, streakText: StreakStore.currentText()))
+        completion(TalkEntry(date: Date(), talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TalkEntry>) -> Void) {
         let talks = TalkStore.loadTalks()
         let now = Date()
         let pick = TalkStore.talkOfTheDay(from: talks, date: now)
-        let entry = TalkEntry(date: now, talk: pick, streakText: StreakStore.currentText())
+        let entry = TalkEntry(date: now, talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride())
 
         // Reload right after local midnight so tomorrow's pick shows up
         // promptly, rather than waiting on WidgetKit's own daily budget.
@@ -100,6 +121,18 @@ private enum TalkPalette {
     static func forScheme(_ colorScheme: ColorScheme) -> Scheme {
         colorScheme == .dark ? dark : light
     }
+
+    /// An explicit "light"/"dark" from entry.themeOverride wins over the
+    /// system colorScheme; any other value (nil — no choice made yet, or
+    /// unrecognized) falls back to following the system, same as before
+    /// the in-app toggle existed.
+    static func resolve(override: String?, colorScheme: ColorScheme) -> Scheme {
+        switch override {
+        case "light": return light
+        case "dark": return dark
+        default: return forScheme(colorScheme)
+        }
+    }
 }
 
 struct TalkOfDayWidgetEntryView: View {
@@ -107,7 +140,7 @@ struct TalkOfDayWidgetEntryView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let palette = TalkPalette.forScheme(colorScheme)
+        let palette = TalkPalette.resolve(override: entry.themeOverride, colorScheme: colorScheme)
 
         VStack(alignment: .leading, spacing: 4) {
             Text("TALK OF THE DAY")

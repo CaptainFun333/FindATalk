@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -113,6 +114,8 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.widget_speaker, "");
         }
 
+        applyThemeOverride(context, views);
+
         // Tapping opens the app (not the talk directly in a browser) so
         // the person taps "Open This Talk" from inside it — that's the
         // one place recordOpened()/touchStreak() actually run, so this is
@@ -163,6 +166,49 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             Log.e(TAG, "Failed to read streak", e);
             return null;
         }
+    }
+
+    // Written by mirrorThemeToNative() in docs/index.html, same
+    // SharedPreferences file as the streak — see the comment above
+    // STREAK_PREFS_NAME. Value is "light"/"dark" if the person made an
+    // explicit choice with the in-app toggle, or absent if they haven't
+    // (still following the system setting).
+    private static final String THEME_KEY = "findATalkTheme";
+
+    // Literal hex values (not @color/widget_* resource references) for
+    // both palettes — must match values/colors.xml (light) and
+    // values-night/colors.xml (dark). A resource reference re-resolves
+    // against whatever the device's CURRENT night mode is at render time,
+    // which is exactly the auto-follow-system behavior an explicit
+    // override needs to bypass; RemoteViews.setTextColor()/
+    // setBackgroundResource() below only accept literal values/resource
+    // ids anyway, not something that could re-resolve later.
+    private static final int LIGHT_INK = Color.parseColor("#1C2C42");
+    private static final int LIGHT_INK_SOFT = Color.parseColor("#3D4D64");
+    private static final int LIGHT_BRASS = Color.parseColor("#A9822F");
+    private static final int LIGHT_BURGUNDY = Color.parseColor("#6E2B34");
+    private static final int DARK_INK = Color.parseColor("#F3EFE2");
+    private static final int DARK_INK_SOFT = Color.parseColor("#B7BDCF");
+    private static final int DARK_BRASS = Color.parseColor("#CAA550");
+    private static final int DARK_BURGUNDY = Color.parseColor("#D98A93");
+
+    /** No-op when there's no explicit theme choice yet — the layout's own
+        @color/widget_* references (auto light/dark via values/values-night)
+        already handle "follow the system setting" correctly with zero
+        extra code, exactly as before this method existed. Only overrides
+        anything when the person has actually picked Light or Dark. */
+    private void applyThemeOverride(Context context, RemoteViews views) {
+        SharedPreferences prefs = context.getSharedPreferences(STREAK_PREFS_NAME, Context.MODE_PRIVATE);
+        String theme = prefs.getString(THEME_KEY, null);
+        if (theme == null) return;
+
+        boolean dark = "dark".equals(theme);
+        views.setInt(R.id.widget_root, "setBackgroundResource",
+            dark ? R.drawable.widget_background_dark : R.drawable.widget_background_light);
+        views.setTextColor(R.id.widget_eyebrow, dark ? DARK_BRASS : LIGHT_BRASS);
+        views.setTextColor(R.id.widget_title, dark ? DARK_INK : LIGHT_INK);
+        views.setTextColor(R.id.widget_speaker, dark ? DARK_INK_SOFT : LIGHT_INK_SOFT);
+        views.setTextColor(R.id.widget_streak, dark ? DARK_BURGUNDY : LIGHT_BURGUNDY);
     }
 
     private ArrayList<Talk> loadTalks(Context context) throws Exception {

@@ -22,7 +22,8 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "StreakBridgePlugin"
     public let jsName = "StreakBridge"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "setStreak", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setStreak", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setThemePreference", returnType: CAPPluginReturnPromise)
     ]
 
     // Must match the group ID entered under Signing & Capabilities ->
@@ -31,6 +32,9 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     static let appGroupID = "group.com.captainfun333.findatalk"
     // Must match STREAK_KEY in docs/index.html.
     static let streakKey = "findATalkStreak"
+    // Must match the native-mirror key mirrorThemeToNative() writes to
+    // in docs/index.html.
+    static let themeKey = "findATalkTheme"
 
     // Must match the `kind` in TalkOfDayWidget.swift.
     static let widgetKind = "TalkOfDayWidget"
@@ -50,6 +54,22 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         // reload.
         WidgetCenter.shared.reloadTimelines(ofKind: StreakBridgePlugin.widgetKind)
 
+        call.resolve()
+    }
+
+    /// Mirrors an explicit light/dark choice from the in-app toggle so the
+    /// widget can match it instead of always following the system-wide
+    /// setting. Despite the plugin's name (kept as-is to avoid the native
+    /// project-file churn of registering a second plugin), this has
+    /// nothing to do with the streak — it's just the one existing bridge
+    /// into the App Group both the app and TalkOfDayWidget can see.
+    @objc func setThemePreference(_ call: CAPPluginCall) {
+        guard let theme = call.getString("theme") else {
+            call.reject("Missing theme")
+            return
+        }
+        UserDefaults(suiteName: StreakBridgePlugin.appGroupID)?.set(theme, forKey: StreakBridgePlugin.themeKey)
+        WidgetCenter.shared.reloadTimelines(ofKind: StreakBridgePlugin.widgetKind)
         call.resolve()
     }
 }

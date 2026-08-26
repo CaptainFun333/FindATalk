@@ -15,6 +15,7 @@ this updated.
 - "Show a List" now has "Previous 10" / "Next 10" buttons, so you can page through every matching talk (e.g. everything by one speaker) instead of only ever seeing the first 10.
 - Added a dark mode toggle. It follows your phone/browser's light or dark setting by default, or you can override it with the new sun/moon button in the top-right corner — your choice is remembered.
 - The home-screen "Talk of the Day" widget now follows your phone's dark mode setting too, instead of always showing the light version.
+- If you pick Light or Dark with the in-app toggle, the widget now matches that choice too, instead of only ever following the phone's overall setting.
 
 ### Fixed
 - The home-screen "Talk of the Day" widget could show a different talk than the app for the same day. It now always picks the same one.
