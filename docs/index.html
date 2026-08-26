@@ -4,10 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pick a Talk — General Conference</title>
+<!-- Applies a saved dark-mode choice (if any) before first paint, so the
+     page never flashes light-then-dark on load. Must run before the
+     <style> block below is parsed. If no explicit choice was ever saved,
+     this does nothing and the `prefers-color-scheme` media query in the
+     stylesheet handles following the system setting instead. -->
+<script>
+(function(){
+  try{
+    var t = localStorage.getItem('themePreference');
+    if (t==='dark' || t==='light') document.documentElement.setAttribute('data-theme', t);
+  } catch(err){ /* ignore — falls back to system preference */ }
+})();
+</script>
+<meta name="theme-color" id="themeColorMeta" content="#f3efe2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
+    color-scheme: light;
     --ink:#1c2c42;
     --ink-soft:#3d4d64;
     --paper:#f3efe2;
@@ -15,16 +30,89 @@
     --brass:#a9822f;
     --brass-bright:#c79c3f;
     --burgundy:#6e2b34;
+    --burgundy-hover:#5c232b;
     --line:#c9bfa2;
     --shadow: 0 18px 40px -20px rgba(28,44,66,0.35);
+    --shadow-hover: 0 22px 44px -18px rgba(28,44,66,.45);
+    --overlay: rgba(28,44,66,.45);
+    --tint:#efe8d3;
+    --bg-glow-1:#fbf8ef;
+    --bg-glow-2:#efe8d3;
+    --chip-border:#d8c3a5;
+    --chip-bg:#f7efe0;
     --radius: 4px;
+    /* Brand-accent buttons (the draw button, "Add" buttons, etc.) keep a
+       fixed dark navy/burgundy look in both themes rather than inverting —
+       these three don't get redefined in the dark-mode blocks below. */
+    --accent-grad-start:#26364e;
+    --accent-grad-end:#1c2c42;
+    --on-accent:#fdf6ec;
+    /* Solid-fill buttons (Open This Talk, Create, Enable Reminders) pair
+       a burgundy background with the fixed --on-accent text above — that
+       pairing needs a burgundy that STAYS deep/dark in both themes, unlike
+       plain --burgundy below (which deliberately lightens in dark mode so
+       it stays legible as plain text/links on a dark background). Keeping
+       these separate is why: reusing --burgundy for both a lightened
+       dark-mode text color and a dark-mode button fill would turn every
+       solid button pale pink with barely-readable text. */
+    --accent-fill:#6e2b34;
+    --accent-fill-hover:#5c232b;
+  }
+  /* ---------- dark mode ----------
+     Two ways in: an explicit choice (the toggle button below, persisted as
+     `data-theme` on <html> — see the anti-flash script in <head>), or no
+     explicit choice yet, in which case the OS-level `prefers-color-scheme`
+     applies via the media query. `:not([data-theme="light"])` in the media
+     query makes sure an explicit light choice still wins even when the OS
+     itself is set to dark. */
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ink:#f3efe2;
+    --ink-soft:#b7bdcf;
+    --paper:#161b26;
+    --paper-raised:#1f2635;
+    --brass:#caa550;
+    --brass-bright:#e0bc6e;
+    --burgundy:#d98a93;
+    --burgundy-hover:#e9adb4;
+    --line:#333c4f;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+    --overlay: rgba(0,0,0,.65);
+    --tint:#2a3140;
+    --bg-glow-1:rgba(255,255,255,.05);
+    --bg-glow-2:rgba(202,165,80,.06);
+    --chip-border:#4a3d2a;
+    --chip-bg:#241f14;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --ink:#f3efe2;
+      --ink-soft:#b7bdcf;
+      --paper:#161b26;
+      --paper-raised:#1f2635;
+      --brass:#caa550;
+      --brass-bright:#e0bc6e;
+      --burgundy:#d98a93;
+      --burgundy-hover:#e9adb4;
+      --line:#333c4f;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+      --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+      --overlay: rgba(0,0,0,.65);
+      --tint:#2a3140;
+      --bg-glow-1:rgba(255,255,255,.05);
+      --bg-glow-2:rgba(202,165,80,.06);
+      --chip-border:#4a3d2a;
+      --chip-bg:#241f14;
+    }
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     background:
-      radial-gradient(1200px 600px at 15% -10%, #fbf8ef 0%, transparent 60%),
-      radial-gradient(1000px 500px at 110% 10%, #efe8d3 0%, transparent 55%),
+      radial-gradient(1200px 600px at 15% -10%, var(--bg-glow-1) 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, var(--bg-glow-2) 0%, transparent 55%),
       var(--paper);
     color:var(--ink);
     font-family:'Source Serif 4', Georgia, serif;
@@ -87,6 +175,25 @@
   }
   .divider svg{ width:16px; height:16px; color:var(--brass); flex-shrink:0; }
 
+  /* ---------- dark-mode toggle ---------- */
+  .theme-toggle-btn{
+    position:fixed;
+    top:18px; right:18px;
+    z-index:50;
+    width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:50%;
+    color:var(--ink-soft);
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:border-color .15s, color .15s;
+  }
+  .theme-toggle-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .theme-toggle-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .theme-toggle-btn svg{ width:19px; height:19px; }
+
   /* ---------- talk of the day ---------- */
   .totd-zone{ margin-bottom:36px; }
   .totd-eyebrow{ margin-bottom:12px; }
@@ -144,7 +251,7 @@
     font-size:20px; color:var(--ink-soft);
     border-radius:50%;
   }
-  #queryClear:hover{ color:var(--burgundy); background:#efe8d3; }
+  #queryClear:hover{ color:var(--burgundy); background:var(--tint); }
 
   /* ---------- filters ---------- */
   .filters{
@@ -236,7 +343,7 @@
     color:var(--ink);
     cursor:pointer;
   }
-  .ms-option:hover{ background:#efe8d3; }
+  .ms-option:hover{ background:var(--tint); }
   .ms-option input{
     accent-color:var(--burgundy);
     width:15px; height:15px;
@@ -378,7 +485,7 @@
     font-size:15.5px;
     letter-spacing:.02em;
     color:var(--paper-raised);
-    background:linear-gradient(180deg,#26364e,var(--ink));
+    background:linear-gradient(180deg,var(--accent-grad-start),var(--accent-grad-end));
     border:none;
     padding:17px 38px;
     border-radius:3px;
@@ -386,7 +493,7 @@
     box-shadow:var(--shadow);
     transition:transform .15s, box-shadow .15s;
   }
-  #drawBtn:hover{ transform:translateY(-2px); box-shadow:0 22px 44px -18px rgba(28,44,66,.45); }
+  #drawBtn:hover{ transform:translateY(-2px); box-shadow:var(--shadow-hover); }
   #drawBtn:active{ transform:translateY(0px) scale(.99); }
   #drawBtn:disabled{ opacity:.55; cursor:default; transform:none; }
 
@@ -499,8 +606,8 @@
     font-family:'Inter',sans-serif;
     font-size:11px;
     color:var(--burgundy);
-    border:1px solid #d8c3a5;
-    background:#f7efe0;
+    border:1px solid var(--chip-border);
+    background:var(--chip-bg);
     padding:4px 10px;
     border-radius:20px;
   }
@@ -639,7 +746,7 @@
   /* ---------- add-to-list modal ---------- */
   .modal-overlay{
     position:fixed; inset:0; z-index:200;
-    background:rgba(28,44,66,.45);
+    background:var(--overlay);
     display:flex; align-items:center; justify-content:center;
     padding:20px;
   }
@@ -676,7 +783,7 @@
     cursor:pointer;
     border-radius:4px;
   }
-  .modal-option:hover{ background:#efe8d3; }
+  .modal-option:hover{ background:var(--tint); }
   .modal-option input{
     accent-color:var(--burgundy);
     width:16px; height:16px; flex-shrink:0; cursor:pointer;
@@ -701,11 +808,18 @@
   .modal-new-collection button, .collections-new-row button{
     font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
     padding:0 18px;
-    background:var(--burgundy); color:#fdf6ec;
+    background:var(--accent-fill); color:var(--on-accent);
     border:none; border-radius:4px; cursor:pointer;
     white-space:nowrap;
   }
-  .modal-new-collection button:hover, .collections-new-row button:hover{ background:#5c232b; }
+  .modal-new-collection button:hover, .collections-new-row button:hover{ background:var(--accent-fill-hover); }
+  .modal-copy{
+    font-family:'Inter',sans-serif; font-size:14.5px; line-height:1.5; color:var(--ink-soft);
+    margin:0 0 20px;
+  }
+  .modal-actions{
+    display:flex; justify-content:flex-end; gap:10px;
+  }
 
   /* ---------- My Lists index page ---------- */
   .collections-new-row{
@@ -753,7 +867,7 @@
     background:none; border:none; cursor:pointer;
     text-align:left;
   }
-  .collection-row-main:hover{ background:#efe8d3; }
+  .collection-row-main:hover{ background:var(--tint); }
   .collection-row-name{
     font-family:'Fraunces',serif; font-weight:600; font-size:17px; color:var(--ink);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -768,7 +882,7 @@
     background:none; border:none; border-left:1px solid var(--line); cursor:pointer;
     font-size:20px; color:var(--ink-soft);
   }
-  .collection-row-delete:hover{ color:var(--burgundy); background:#efe8d3; }
+  .collection-row-delete:hover{ color:var(--burgundy); background:var(--tint); }
 
   .list-item-speaker{
     font-family:'Inter',sans-serif;
@@ -792,6 +906,13 @@
     color:var(--ink-soft);
   }
   .list-footer{ text-align:center; margin-top:16px; }
+  .list-pagination{
+    display:flex; align-items:center; justify-content:center;
+    gap:14px; margin-bottom:14px;
+  }
+  .list-page-indicator{
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft);
+  }
 
   .btn{
     font-family:'Inter',sans-serif;
@@ -805,10 +926,10 @@
     display:inline-flex; align-items:center; gap:7px;
   }
   .btn-primary{
-    background:var(--burgundy);
-    color:#fdf6ec;
+    background:var(--accent-fill);
+    color:var(--on-accent);
   }
-  .btn-primary:hover{ background:#5c232b; }
+  .btn-primary:hover{ background:var(--accent-fill-hover); }
   .btn-ghost{
     background:transparent;
     border-color:var(--line);
@@ -838,6 +959,13 @@
 </head>
 <body>
 <div class="wrap">
+
+  <!-- Fixed so it stays reachable from every page (Home, Recents,
+       Favorites, My Lists) without living inside any one zone's markup —
+       those get their innerHTML replaced on navigation, which would wipe
+       a button placed inside them. Icon/label are filled in by
+       updateThemeToggleIcon() at load. -->
+  <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Switch to dark mode"></button>
 
   <div class="eyebrow">From General Conference of the Church of Jesus Christ of Latter-day Saints</div>
   <h1>Find a Talk</h1>
@@ -973,6 +1101,11 @@
     </div>
     <div class="list-items" id="listItems"></div>
     <div class="list-footer">
+      <div class="list-pagination" id="listPagination">
+        <button type="button" class="btn btn-ghost" id="listPrevBtn">← Previous 10</button>
+        <span class="list-page-indicator" id="listPageIndicator"></span>
+        <button type="button" class="btn btn-ghost" id="listNextBtn">Next 10 →</button>
+      </div>
       <button type="button" class="reset-link" id="listAgainBtn">Show a different list</button>
     </div>
   </div>
@@ -1061,6 +1194,19 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="notifPermModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifPermModalTitle">
+      <div class="modal-header">
+        <h3 id="notifPermModalTitle">Get a daily nudge?</h3>
+      </div>
+      <p class="modal-copy">Find a Talk can send one reminder a day, at 8:00 AM, with your talk of the day ready to read. Your phone will ask you to allow notifications next — this is just a heads-up on why.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="notifPermSkipBtn">Not Now</button>
+        <button type="button" class="btn btn-primary" id="notifPermAllowBtn">Enable Reminders</button>
+      </div>
+    </div>
+  </div>
+
   <footer>
     This tool draws from a curated sample of <strong id="totalCount"></strong> real, verified talks pulled from every single General Conference from April 1971 through April 2026, one hundred and eleven conferences in a row with no gaps. Topics are the Church's own official tags, pulled directly from its general-conference topics index rather than guessed from titles.<br>
     For the complete, official library, visit <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>. This page is an independent fan-made tool, not produced by the Church.
@@ -1069,6 +1215,63 @@
 </div>
 
 <script>
+/* ---------------------------------------------------------------
+   Dark mode. `themePreference` in localStorage holds an EXPLICIT
+   choice ('light'/'dark') from the toggle button below; when it's
+   absent, the app follows `prefers-color-scheme` instead (handled
+   entirely in CSS — see the @media block in <style>). This runs
+   immediately, independent of loadData()/initApp() below, since the
+   toggle button is static markup present from first paint. A
+   duplicate of the "apply a saved choice" logic also runs inline in
+   <head>, before <style> is parsed, purely to avoid a light-then-dark
+   flash on load — this copy is what actually wires up the button.
+------------------------------------------------------------------*/
+const THEME_KEY = 'themePreference';
+const SUN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>';
+const MOON_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.3A8.4 8.4 0 1 1 9.7 4a6.6 6.6 0 0 0 10.3 10.3z"/></svg>';
+function getStoredTheme(){
+  try { return localStorage.getItem(THEME_KEY); } catch(err){ return null; }
+}
+function systemPrefersDark(){
+  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+// The theme actually in effect right now, whether from an explicit
+// choice or (absent one) the OS setting.
+function effectiveTheme(){
+  const stored = getStoredTheme();
+  return (stored==='light' || stored==='dark') ? stored : (systemPrefersDark() ? 'dark' : 'light');
+}
+function updateThemeToggleUI(){
+  const btn = document.getElementById('themeToggleBtn');
+  if (!btn) return;
+  const isDark = effectiveTheme()==='dark';
+  btn.innerHTML = isDark ? SUN_ICON_SVG : MOON_ICON_SVG;
+  btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  const meta = document.getElementById('themeColorMeta');
+  if (meta) meta.setAttribute('content', isDark ? '#161b26' : '#f3efe2');
+}
+// Sets an EXPLICIT theme (from a user tap), overriding the system
+// setting from then on. To go back to following the system automatically,
+// a person would need to clear site data — there's no "system" option in
+// the toggle itself, just light/dark, matching how most apps' simple
+// two-state toggles work.
+function setTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  try { localStorage.setItem(THEME_KEY, theme); } catch(err){ /* ignore */ }
+  updateThemeToggleUI();
+}
+document.getElementById('themeToggleBtn').addEventListener('click', ()=>{
+  setTheme(effectiveTheme()==='dark' ? 'light' : 'dark');
+});
+updateThemeToggleUI();
+// No explicit choice saved yet: keep the icon and status-bar color in
+// sync if the OS-level setting changes while the app is open.
+if (window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+    if (!getStoredTheme()) updateThemeToggleUI();
+  });
+}
+
 /* ---------------------------------------------------------------
    Verified talk data: title, speaker, year, month, url-slug.
    Pulled directly from churchofjesuschrist.org session pages for
@@ -1323,6 +1526,14 @@ async function mirrorStreakToNative(streak){
   try {
     if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
       await cap.Plugins.Preferences.set({key: STREAK_KEY, value: json});
+      // Preferences.set() only updates what's on disk — nothing repaints
+      // the widget until this fires (see WidgetRefreshPlugin.java), so
+      // without it a streak advance sits unseen on the widget for up to
+      // a day. Best-effort: plugin might not be registered yet, or might
+      // not exist on an older build.
+      if (cap.Plugins.WidgetRefresh){
+        try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
+      }
     } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
       await cap.Plugins.StreakBridge.setStreak({json});
     }
@@ -1554,6 +1765,19 @@ function sortByConferenceDate(picks){
    still AND's with everything else, same as any other active filter. */
 const filterState = { year: [], speaker: [], topic: [], role: [], mine: [], query: '' };
 
+// "Show a List" pagination state — declared up here (not down by the rest
+// of the list-pagination code) because refreshCount() resets it on every
+// filter change, and refreshCount() runs for the first time well before
+// the list-pagination section of the script executes; a `let` referenced
+// before its own declaration line throws (temporal dead zone), so this
+// has to live above refreshCount(), not just above its first call site.
+let listPage = 0;
+let listRandomOrder = null;
+function resetListPaging(){
+  listPage = 0;
+  listRandomOrder = null;
+}
+
 function matchesDim(t, dim, values){
   if (!values.length) return true;
   if (dim==='year') return values.includes(confKey(t));
@@ -1699,6 +1923,10 @@ function rebuildFilterOptions(){
 }
 function refreshCount(){
   rebuildFilterOptions();
+  // Filters changing invalidates any in-progress "Show a List" paging —
+  // the pool itself is different now, so start back at page 0 with a
+  // fresh (uncached) random order next time showList() runs.
+  resetListPaging();
   const pool = currentPool();
   if (pool.length === 0){
     poolCountEl.textContent = '';
@@ -1997,19 +2225,34 @@ const listSortButtons = [...document.querySelectorAll('#listSortOptions .list-si
 function syncListSortButtons(){
   listSortButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.sort === LIST_SORT));
   // "Show a different list" only makes sense for the random draw — the
-  // most-recent top LIST_SIZE for a given filter is deterministic, so
-  // there's nothing "different" to re-show.
+  // most-recent-first ordering for a given filter is deterministic
+  // (paging through it always lands on the same talks), so there's
+  // nothing "different" to re-show there.
   listAgainBtn.style.display = LIST_SORT === 'random' ? '' : 'none';
 }
 syncListSortButtons();
+
+// Pagination — "Show a List" originally always showed just the first
+// LIST_SIZE matches. listPage indexes which window of LIST_SIZE is shown
+// (listPage/listRandomOrder/resetListPaging are declared up near
+// filterState — see the comment there for why). For "recent" sort the
+// full pool is sorted once and paged through (deterministic — same
+// window every time you land on a given page). For "random" sort a
+// single shuffle order is cached in listRandomOrder and paged through
+// too, so "Next 10" reveals genuinely new talks instead of re-shuffling
+// into possible repeats; only an explicit reshuffle (sort switch, "Show a
+// different list", or a filter change that changes the pool) clears the
+// cache and starts over at page 0.
+
 listSortButtons.forEach(btn=>{
   btn.addEventListener('click', ()=>{
     LIST_SORT = btn.dataset.sort;
     syncListSortButtons();
     try { localStorage.setItem(LIST_SORT_KEY, LIST_SORT); }
     catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
-    // Unlike the density toggle, switching sort changes WHICH talks are
-    // shown, so this needs a fresh draw, not just a re-render.
+    // Switching sort changes WHICH talks are shown and their order, so
+    // this needs a fresh draw from page 0, not just a re-render.
+    resetListPaging();
     if (listZone.style.display === 'block') showList();
   });
 });
@@ -2268,9 +2511,35 @@ function renderTalkOfTheDay(){
    product decision to prompt early rather than bury this behind a
    settings toggle nobody finds) — findATalkNotifPrompted gates that so
    later launches never ask again, matching whatever the person chose
-   (or dismissed) that first time. */
+   (or dismissed) that first time.
+   Before that ask ever reaches the OS, a custom explainer modal shows
+   why we want the permission — a user-suggested step, since a bare OS
+   prompt with no context tends to get reflexively denied. Declining our
+   own explainer counts the same as declining the OS prompt: it still
+   sets the "prompted" flag so we never nag again, matching the existing
+   ask-once philosophy above. */
 const NOTIF_PROMPTED_KEY = 'findATalkNotifPrompted';
 const DAILY_REMINDER_ID = 1;
+
+function showNotifPermModal(){
+  return new Promise((resolve)=>{
+    const overlay = document.getElementById('notifPermModalOverlay');
+    const allowBtn = document.getElementById('notifPermAllowBtn');
+    const skipBtn = document.getElementById('notifPermSkipBtn');
+    function close(choice){
+      overlay.hidden = true;
+      allowBtn.removeEventListener('click', onAllow);
+      skipBtn.removeEventListener('click', onSkip);
+      resolve(choice);
+    }
+    function onAllow(){ close(true); }
+    function onSkip(){ close(false); }
+    allowBtn.addEventListener('click', onAllow);
+    skipBtn.addEventListener('click', onSkip);
+    overlay.hidden = false;
+  });
+}
+
 async function setupDailyReminder(){
   const cap = window.Capacitor;
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
@@ -2283,9 +2552,11 @@ async function setupDailyReminder(){
   try {
     let perm = await LocalNotifications.checkPermissions();
     if (perm.display !== 'granted' && !alreadyPrompted){
+      const wantsIt = await showNotifPermModal();
+      try { localStorage.setItem(NOTIF_PROMPTED_KEY, '1'); } catch(err){ /* ignore */ }
+      if (!wantsIt) return;
       perm = await LocalNotifications.requestPermissions();
     }
-    try { localStorage.setItem(NOTIF_PROMPTED_KEY, '1'); } catch(err){ /* ignore */ }
     if (perm.display !== 'granted') return;
 
     // `schedule.on` with only hour/minute set (no day/month/year) is a
@@ -2312,26 +2583,56 @@ async function setupDailyReminder(){
 // silently never got attached, since the uncaught ReferenceError halted
 // the rest of initApp()'s top-to-bottom execution).
 
+const listPrevBtn = document.getElementById('listPrevBtn');
+const listNextBtn = document.getElementById('listNextBtn');
+const listPageIndicatorEl = document.getElementById('listPageIndicator');
+
 function showList(){
   const pool = currentPool();
   if (!pool.length) return;
-  const picks = LIST_SORT === 'recent'
-    ? pool.slice().sort(byMostRecent).slice(0, LIST_SIZE)
-    : shuffled(pool).slice(0, LIST_SIZE);
+
+  // The ordered source to page through: sorted once for "recent" (so
+  // every page is a stable, deterministic window), or a single shuffle
+  // cached in listRandomOrder for "random" (built once, then paged
+  // through — see the comment by listRandomOrder's declaration for why
+  // it isn't re-shuffled on every call).
+  const source = LIST_SORT === 'recent'
+    ? pool.slice().sort(byMostRecent)
+    : (listRandomOrder || (listRandomOrder = shuffled(pool)));
+
+  const total = source.length;
+  const maxPage = Math.max(0, Math.ceil(total / LIST_SIZE) - 1);
+  if (listPage > maxPage) listPage = maxPage; // pool shrank under us — clamp back onto a real page
+
+  const start = listPage * LIST_SIZE;
+  const picks = source.slice(start, start + LIST_SIZE);
+
   listSelection.clear();
   syncListBulkBar();
   listItemsEl.innerHTML = '';
   picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick, {selectable: true})));
 
-  const shown = picks.length;
+  const rangeStart = start + 1;
+  const rangeEnd = start + picks.length;
   if (LIST_SORT === 'recent'){
-    listHeader.innerHTML = shown < pool.length
-      ? `Showing the <strong>${shown}</strong> most recent talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match`
-      : `Showing all <strong>${shown}</strong> talk${shown===1?'':'s'} that match, newest first`;
+    listHeader.innerHTML = total <= LIST_SIZE
+      ? `Showing all <strong>${total}</strong> talk${total===1?'':'s'} that match, newest first`
+      : `Showing <strong>${rangeStart}–${rangeEnd}</strong> of <strong>${total}</strong> most recent talks that match`;
   } else {
-    listHeader.innerHTML = shown < pool.length
-      ? `Showing <strong>${shown}</strong> random talk${shown===1?'':'s'} of <strong>${pool.length}</strong> that match right now`
-      : `Showing all <strong>${shown}</strong> talk${shown===1?'':'s'} that match right now`;
+    listHeader.innerHTML = total <= LIST_SIZE
+      ? `Showing all <strong>${total}</strong> talk${total===1?'':'s'} that match right now`
+      : `Showing <strong>${rangeStart}–${rangeEnd}</strong> of <strong>${total}</strong> talks that match right now`;
+  }
+
+  // Pagination controls: hide the whole row when everything already fits
+  // on one page (nothing to page through), otherwise show it with
+  // Prev/Next disabled at whichever end is currently reached.
+  const hasMultiplePages = total > LIST_SIZE;
+  document.getElementById('listPagination').style.display = hasMultiplePages ? '' : 'none';
+  if (hasMultiplePages){
+    listPrevBtn.disabled = listPage === 0;
+    listNextBtn.disabled = listPage >= maxPage;
+    listPageIndicatorEl.textContent = `Page ${listPage + 1} of ${maxPage + 1}`;
   }
 
   resultZone.style.display = 'none';
@@ -2339,8 +2640,17 @@ function showList(){
   listZone.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-listBtn.addEventListener('click', showList);
-document.getElementById('listAgainBtn').addEventListener('click', showList);
+listBtn.addEventListener('click', ()=>{ resetListPaging(); showList(); });
+document.getElementById('listAgainBtn').addEventListener('click', ()=>{ resetListPaging(); showList(); });
+listPrevBtn.addEventListener('click', ()=>{
+  if (listPage === 0) return;
+  listPage--;
+  showList();
+});
+listNextBtn.addEventListener('click', ()=>{
+  listPage++;
+  showList();
+});
 
 /* ---------------- share (native share sheet, falls back to copy-link) ---------------- */
 const SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>';
@@ -3168,7 +3478,7 @@ function cacheData(data){
 }
 function showFatalLoadError(){
   document.body.innerHTML =
-    '<p style="text-align:center;padding:80px 20px;font-family:sans-serif;color:#3d4d64;">' +
+    '<p style="text-align:center;padding:80px 20px;font-family:sans-serif;color:var(--ink-soft);">' +
     'Couldn\u2019t load the talk data. Check your connection and reload the page.</p>';
 }
 
