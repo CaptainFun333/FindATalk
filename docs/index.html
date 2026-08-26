@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pick a Talk — General Conference</title>
 <!-- Applies a saved dark-mode choice (if any) before first paint, so the
      page never flashes light-then-dark on load. Must run before the
@@ -117,7 +117,13 @@
     color:var(--ink);
     font-family:'Source Serif 4', Georgia, serif;
     min-height:100vh;
-    padding:48px 20px 72px;
+    /* `viewport-fit=cover` (added for the theme-toggle button's safe-area
+       fix above) makes the whole page render edge-to-edge, including
+       normal document flow — before that change, WKWebView auto-inset
+       this for us. env()/max() here keeps the header clear of the status
+       bar/notch on iOS; the plain 48px still applies on the web build,
+       where the inset is always 0. */
+    padding:max(48px, calc(env(safe-area-inset-top) + 28px)) 20px 72px;
     display:flex;
     justify-content:center;
   }
@@ -178,7 +184,17 @@
   /* ---------- dark-mode toggle ---------- */
   .theme-toggle-btn{
     position:fixed;
-    top:18px; right:18px;
+    /* Fixed-position elements render edge-to-edge in iOS WKWebView (the
+       Capacitor app) even though normal document flow correctly clears
+       the status bar/notch — a well-known WebKit quirk. Without this,
+       the button lands half-hidden under the status bar/Dynamic Island
+       and is untappable there (confirmed on-device in the Simulator).
+       env(safe-area-inset-*) needs `viewport-fit=cover` in the viewport
+       meta tag to resolve to a real value; the max()/plain-18px fallback
+       keeps this correct on the plain web build too, where the inset is
+       always 0. */
+    top:max(18px, calc(env(safe-area-inset-top) + 8px));
+    right:max(18px, calc(env(safe-area-inset-right) + 18px));
     z-index:50;
     width:38px; height:38px;
     display:flex; align-items:center; justify-content:center;

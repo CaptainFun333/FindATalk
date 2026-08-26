@@ -19,6 +19,8 @@ this updated.
 - The home-screen "Talk of the Day" widget could show a different talk than the app for the same day. It now always picks the same one.
 - The widget's streak count could sit stale for a long time after your streak actually changed. It now updates right away.
 - Tapping the "Talk of the Day" widget now opens the app instead of jumping straight to the talk in your browser — open it from there once you're in the app.
+- On iPhone, the new dark mode button sat partly under the status bar / Dynamic Island and couldn't be tapped. It's now positioned clear of them.
+- The "Find a Talk" button's text was unreadable in dark mode (dark text on a dark button). It's light text again.
 
 ## [1.0.0] — initial release
 
