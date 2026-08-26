@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-mode counterpart to values/colors.xml — same names, so every
+         layout that references @color/widget_* automatically gets these
+         instead when the system is in dark mode, no code changes needed.
+         Values mirror docs/index.html's :root[data-theme="dark"] palette;
+         keep the two in sync if either changes. -->
+    <color name="widget_paper">#161B26</color>
+    <color name="widget_paper_raised">#1F2635</color>
+    <color name="widget_ink">#F3EFE2</color>
+    <color name="widget_ink_soft">#B7BDCF</color>
+    <color name="widget_brass">#CAA550</color>
+    <color name="widget_burgundy">#D98A93</color>
+    <color name="widget_line">#333C4F</color>
+</resources>

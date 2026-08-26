@@ -64,46 +64,77 @@ struct TalkOfDayProvider: TimelineProvider {
     }
 }
 
-// Palette mirrors docs/index.html's :root custom properties — keep in sync.
+// Palette mirrors docs/index.html's :root custom properties (light) and
+// :root[data-theme="dark"] (dark) — keep both in sync with the web app.
+// Unlike Android (values-night/colors.xml, resolved automatically by the
+// OS), SwiftUI has no resource-qualifier system for plain Color values, so
+// the view below picks light/dark explicitly from @Environment(\.colorScheme).
 private enum TalkPalette {
-    static let paperRaised = Color(red: 0.980, green: 0.969, blue: 0.933)
-    static let ink = Color(red: 0.110, green: 0.173, blue: 0.259)
-    static let inkSoft = Color(red: 0.239, green: 0.302, blue: 0.392)
-    static let brass = Color(red: 0.663, green: 0.510, blue: 0.184)
-    static let line = Color(red: 0.788, green: 0.749, blue: 0.635)
-    static let burgundy = Color(red: 0.431, green: 0.169, blue: 0.204)
+    struct Scheme {
+        let paperRaised: Color
+        let ink: Color
+        let inkSoft: Color
+        let brass: Color
+        let line: Color
+        let burgundy: Color
+    }
+
+    static let light = Scheme(
+        paperRaised: Color(red: 0.980, green: 0.969, blue: 0.933),
+        ink: Color(red: 0.110, green: 0.173, blue: 0.259),
+        inkSoft: Color(red: 0.239, green: 0.302, blue: 0.392),
+        brass: Color(red: 0.663, green: 0.510, blue: 0.184),
+        line: Color(red: 0.788, green: 0.749, blue: 0.635),
+        burgundy: Color(red: 0.431, green: 0.169, blue: 0.204)
+    )
+
+    static let dark = Scheme(
+        paperRaised: Color(red: 0.122, green: 0.149, blue: 0.208),
+        ink: Color(red: 0.953, green: 0.937, blue: 0.886),
+        inkSoft: Color(red: 0.718, green: 0.741, blue: 0.812),
+        brass: Color(red: 0.792, green: 0.647, blue: 0.314),
+        line: Color(red: 0.200, green: 0.235, blue: 0.310),
+        burgundy: Color(red: 0.851, green: 0.541, blue: 0.576)
+    )
+
+    static func forScheme(_ colorScheme: ColorScheme) -> Scheme {
+        colorScheme == .dark ? dark : light
+    }
 }
 
 struct TalkOfDayWidgetEntryView: View {
     var entry: TalkOfDayProvider.Entry
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let palette = TalkPalette.forScheme(colorScheme)
+
         VStack(alignment: .leading, spacing: 4) {
             Text("TALK OF THE DAY")
                 .font(.system(size: 11, weight: .bold))
                 .tracking(1.1)
-                .foregroundColor(TalkPalette.brass)
+                .foregroundColor(palette.brass)
 
             if let talk = entry.talk {
                 Text(talk.title)
                     .font(.system(size: 16, weight: .bold, design: .serif))
-                    .foregroundColor(TalkPalette.ink)
+                    .foregroundColor(palette.ink)
                     .lineLimit(2)
                     .minimumScaleFactor(0.9)
                 Text(talk.speaker)
                     .font(.system(size: 13, design: .serif))
-                    .foregroundColor(TalkPalette.inkSoft)
+                    .foregroundColor(palette.inkSoft)
                     .lineLimit(1)
             } else {
                 Text("Find A Talk")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(TalkPalette.ink)
+                    .foregroundColor(palette.ink)
             }
 
             if let streakText = entry.streakText {
                 Text(streakText)
                     .font(.system(size: 10.5, weight: .bold))
-                    .foregroundColor(TalkPalette.burgundy)
+                    .foregroundColor(palette.burgundy)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .padding(.top, 2)
@@ -121,7 +152,7 @@ struct TalkOfDayWidgetEntryView: View {
         // the streak just never moved. Requires the custom URL scheme
         // registered in App/Info.plist (CFBundleURLTypes).
         .widgetURL(URL(string: "com.captainfun333.findatalk://"))
-        .talkOfDayBackground()
+        .talkOfDayBackground(palette.paperRaised)
     }
 }
 
@@ -129,13 +160,13 @@ private extension View {
     /// containerBackground(for:) is required on iOS 17+ (and warns/behaves
     /// oddly without it); older OSes fall back to a plain background fill.
     @ViewBuilder
-    func talkOfDayBackground() -> some View {
+    func talkOfDayBackground(_ color: Color) -> some View {
         if #available(iOSApplicationExtension 17.0, *) {
             self.containerBackground(for: .widget) {
-                TalkPalette.paperRaised
+                color
             }
         } else {
-            self.background(TalkPalette.paperRaised)
+            self.background(color)
         }
     }
 }
