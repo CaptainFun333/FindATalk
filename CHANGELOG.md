@@ -22,6 +22,7 @@ this updated.
 - Tapping the "Talk of the Day" widget now opens the app instead of jumping straight to the talk in your browser — open it from there once you're in the app.
 - On iPhone, the new dark mode button sat partly under the status bar / Dynamic Island and couldn't be tapped. It's now positioned clear of them.
 - The "Find a Talk" button's text was unreadable in dark mode (dark text on a dark button). It's light text again.
+- On Android, a long talk title in the small widget size could spill text out past the bottom of the card. The title now stays on one line (shortened with "…" if needed) instead of wrapping and overflowing.
 
 ## [1.0.0] — initial release
 
