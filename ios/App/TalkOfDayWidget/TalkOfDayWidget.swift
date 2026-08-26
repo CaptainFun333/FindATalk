@@ -113,7 +113,14 @@ struct TalkOfDayWidgetEntryView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetURL(entry.talk?.url)
+        // Opens the app rather than the talk's URL directly, so the
+        // person taps "Open This Talk" from inside it — that's the one
+        // place recordOpened()/touchStreak() actually run in
+        // docs/index.html, so this is what makes the streak advance at
+        // all. Going straight to Safari bypassed the app entirely and
+        // the streak just never moved. Requires the custom URL scheme
+        // registered in App/Info.plist (CFBundleURLTypes).
+        .widgetURL(URL(string: "com.captainfun333.findatalk://"))
         .talkOfDayBackground()
     }
 }
@@ -141,7 +148,7 @@ struct TalkOfDayWidget: Widget {
             TalkOfDayWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Talk of the Day")
-        .description("Shows today's Talk of the Day and opens it in Safari when tapped.")
+        .description("Shows today's Talk of the Day and your streak — tap to open the app.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

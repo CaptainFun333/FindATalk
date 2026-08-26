@@ -20,7 +20,8 @@ struct Talk {
 /// Loads talks from the widget extension's own bundled copy of data.json
 /// and picks the same deterministic "Talk of the Day" as the web app and
 /// the Android widget. This is a straight port of talkOfTheDay()/
-/// hashString() in docs/index.html — don't let the three drift apart.
+/// localDayNumber()/splitmix32() in docs/index.html — don't let the three
+/// drift apart.
 enum TalkStore {
     static func loadTalks() -> [Talk] {
         guard let url = Bundle.main.url(forResource: "data", withExtension: "json"),
@@ -55,24 +56,36 @@ enum TalkStore {
 
         let sorted = talks.sorted { $0.key < $1.key }
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone.current
-        let comps = calendar.dateComponents([.year, .month, .day], from: date)
-        let dateSeed = String(format: "%04d-%02d-%02d", comps.year ?? 1970, comps.month ?? 1, comps.day ?? 1)
-
-        let hash = hashString(dateSeed)
+        let seed = UInt32(truncatingIfNeeded: localDayNumber(date))
+        let hash = splitmix32(seed)
         let index = Int(hash % UInt32(sorted.count))
         return sorted[index]
     }
 
-    /// DJB2 variant, bit-for-bit match of the JS hashString() (32-bit
-    /// wraparound) — UInt32's `&*` overflow operator gives the same mod
-    /// 2^32 truncation as JS's `>>> 0` coercions.
-    static func hashString(_ s: String) -> UInt32 {
-        var h: UInt32 = 5381
-        for scalar in s.unicodeScalars {
-            h = (h &* 33) ^ scalar.value
-        }
-        return h
+    /// Days since epoch on the device's local calendar (not UTC) — a
+    /// straight port of localDayNumber() in docs/index.html. Must use the
+    /// same "local midnight, floor(ms/86400000)" arithmetic as the JS
+    /// version, not a timezone-independent day count, so it lines up
+    /// exactly with what the web app computes on the same device.
+    static func localDayNumber(_ date: Date) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let ms = startOfDay.timeIntervalSince1970 * 1000
+        return Int(floor(ms / 86400000))
+    }
+
+    /// Integer mixing hash (splitmix32), bit-for-bit match of the JS
+    /// splitmix32() in docs/index.html — replaced a prior DJB2-on-string
+    /// version that didn't avalanche for adjacent dates. UInt32's `&+`/`&*`
+    /// overflow operators give the same mod 2^32 truncation as JS's
+    /// `>>> 0` coercions and Math.imul.
+    static func splitmix32(_ seed: UInt32) -> UInt32 {
+        let h = seed &+ 0x9e3779b9
+        var z = h
+        z = (z ^ (z >> 16)) &* 0x21f0aaad
+        z = (z ^ (z >> 15)) &* 0x735a2d97
+        z = z ^ (z >> 15)
+        return z
     }
 }

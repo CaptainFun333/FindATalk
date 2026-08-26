@@ -31,6 +31,29 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.captainfun333.findatalk</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Lets TalkOfDayWidget (see widgetURL() in
+				     TalkOfDayWidget.swift) open this app directly —
+				     iOS has no "launch this bundle ID" API for a
+				     widget without registering a URL scheme it can
+				     open. Nothing here needs to parse the URL, so
+				     there's no handler in AppDelegate/SceneDelegate:
+				     Capacitor's default openURL forwarding is a no-op
+				     for a URL nothing is listening for, and the app
+				     still just launches to its normal screen, which
+				     already shows Talk of the Day at the top. -->
+				<string>com.captainfun333.findatalk</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

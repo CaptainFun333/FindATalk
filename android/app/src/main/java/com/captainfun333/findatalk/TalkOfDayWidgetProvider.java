@@ -7,7 +7,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -26,19 +25,21 @@ import java.util.Locale;
 
 /**
  * Home-screen widget that shows the same deterministic "Talk of the Day"
- * pick as the web app (see talkOfTheDay()/hashString() in docs/index.html).
- * The algorithm here is a byte-for-byte port of that JS so the widget and
- * the app always agree on today's pick — don't let them drift apart.
+ * pick as the web app (see talkOfTheDay()/localDayNumber()/splitmix32()
+ * in docs/index.html). The algorithm here is a byte-for-byte port of that
+ * JS so the widget and the app always agree on today's pick — don't let
+ * them drift apart.
  *
  * Data comes from the exact same assets/public/data.json bundled for the
  * web view, read directly off disk (no WebView/JS involved), so the widget
  * works even if the app has never been opened.
+ *
+ * Tapping the widget opens the app rather than the talk's URL directly —
+ * see updateWidget() below for why.
  */
 public class TalkOfDayWidgetProvider extends AppWidgetProvider {
 
     private static final String TAG = "TalkOfDayWidget";
-    private static final String CHURCH_URL_FMT =
-        "https://www.churchofjesuschrist.org/study/general-conference/%s/%s/%s?lang=eng";
 
     private static class Talk {
         final String title;
@@ -57,10 +58,6 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
 
         String key() {
             return year + "|" + month + "|" + urlSlug;
-        }
-
-        String url() {
-            return String.format(Locale.US, CHURCH_URL_FMT, year, month, urlSlug);
         }
     }
 
@@ -111,30 +108,26 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         if (pick != null) {
             views.setTextViewText(R.id.widget_title, pick.title);
             views.setTextViewText(R.id.widget_speaker, pick.speaker);
-
-            Intent openIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(pick.url()));
-            openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            PendingIntent pendingIntent = PendingIntent.getActivity(
-                context,
-                appWidgetId,
-                openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
-            views.setOnClickPendingIntent(R.id.widget_root, pendingIntent);
         } else {
-            // Data couldn't be read — fall back to just opening the app.
             views.setTextViewText(R.id.widget_title, context.getString(R.string.app_name));
             views.setTextViewText(R.id.widget_speaker, "");
-            Intent launchIntent = new Intent(context, MainActivity.class);
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            PendingIntent pendingIntent = PendingIntent.getActivity(
-                context,
-                appWidgetId,
-                launchIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
-            views.setOnClickPendingIntent(R.id.widget_root, pendingIntent);
         }
+
+        // Tapping opens the app (not the talk directly in a browser) so
+        // the person taps "Open This Talk" from inside it — that's the
+        // one place recordOpened()/touchStreak() actually run, so this is
+        // what makes the streak advance at all. Going straight to the
+        // browser bypassed the app entirely and the streak just never
+        // moved.
+        Intent launchIntent = new Intent(context, MainActivity.class);
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+            context,
+            appWidgetId,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        views.setOnClickPendingIntent(R.id.widget_root, pendingIntent);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
@@ -198,7 +191,7 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         return talks;
     }
 
-    /** Port of talkOfTheDay()/hashString() from docs/index.html — keep in sync. */
+    /** Port of talkOfTheDay()/localDayNumber()/splitmix32() from docs/index.html — keep in sync. */
     private Talk talkOfTheDay(ArrayList<Talk> talks) {
         if (talks.isEmpty()) return null;
 
@@ -210,26 +203,39 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             }
         });
 
-        Calendar cal = Calendar.getInstance();
-        String dateSeed = String.format(
-            Locale.US,
-            "%04d-%02d-%02d",
-            cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH) + 1,
-            cal.get(Calendar.DAY_OF_MONTH)
-        );
-
-        long hash = hashString(dateSeed);
-        int index = (int) (hash % sorted.size());
+        int seed = localDayNumber(Calendar.getInstance());
+        int hash = splitmix32(seed);
+        int index = (int) (Integer.toUnsignedLong(hash) % sorted.size());
         return sorted.get(index);
     }
 
-    /** DJB2 variant, bit-for-bit match of the JS hashString() (32-bit wraparound). */
-    private long hashString(String s) {
-        int h = 5381;
-        for (int i = 0; i < s.length(); i++) {
-            h = (h * 33) ^ s.charAt(i);
-        }
-        return Integer.toUnsignedLong(h);
+    /** Days since epoch on the device's local calendar (not UTC) — a
+        straight port of localDayNumber() in docs/index.html. Must use the
+        same "local midnight, floor(ms/86400000)" arithmetic as the JS
+        version, not a timezone-independent day count, so it lines up
+        exactly with what the web app computes on the same device. */
+    private int localDayNumber(Calendar cal) {
+        Calendar midnight = (Calendar) cal.clone();
+        midnight.set(Calendar.HOUR_OF_DAY, 0);
+        midnight.set(Calendar.MINUTE, 0);
+        midnight.set(Calendar.SECOND, 0);
+        midnight.set(Calendar.MILLISECOND, 0);
+        long ms = midnight.getTimeInMillis();
+        return (int) Math.floorDiv(ms, 86400000L);
+    }
+
+    /** Integer mixing hash (splitmix32), bit-for-bit match of the JS
+        splitmix32() in docs/index.html — replaced a prior DJB2-on-string
+        version that didn't avalanche for adjacent dates. Java's `int`
+        arithmetic already wraps mod 2^32 on overflow, matching JS's
+        `>>> 0` coercions and Math.imul, as long as `>>>` (unsigned shift)
+        is used everywhere the JS does. */
+    private int splitmix32(int seed) {
+        int h = seed + 0x9e3779b9;
+        int z = h;
+        z = (z ^ (z >>> 16)) * 0x21f0aaad;
+        z = (z ^ (z >>> 15)) * 0x735a2d97;
+        z = z ^ (z >>> 15);
+        return z;
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import Capacitor
+import WidgetKit
 
 /// Tiny custom plugin whose only job is getting the streak from the
 /// WebView's localStorage into somewhere TalkOfDayWidgetExtension can
@@ -31,12 +32,24 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     // Must match STREAK_KEY in docs/index.html.
     static let streakKey = "findATalkStreak"
 
+    // Must match the `kind` in TalkOfDayWidget.swift.
+    static let widgetKind = "TalkOfDayWidget"
+
     @objc func setStreak(_ call: CAPPluginCall) {
         guard let json = call.getString("json") else {
             call.reject("Missing json")
             return
         }
         UserDefaults(suiteName: StreakBridgePlugin.appGroupID)?.set(json, forKey: StreakBridgePlugin.streakKey)
+
+        // Writing to UserDefaults alone doesn't repaint an already-placed
+        // widget — WidgetKit only re-renders on its own schedule (see the
+        // `.after(startOfTomorrow)` policy in TalkOfDayWidget.swift)
+        // unless told to reload now. Without this, a streak advance made
+        // mid-day just sits unseen on the widget until the next midnight
+        // reload.
+        WidgetCenter.shared.reloadTimelines(ofKind: StreakBridgePlugin.widgetKind)
+
         call.resolve()
     }
 }
