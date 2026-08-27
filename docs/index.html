@@ -84,6 +84,7 @@
     --bg-glow-2:rgba(202,165,80,.06);
     --chip-border:#4a3d2a;
     --chip-bg:#241f14;
+    --time-icon-filter: invert(1);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -105,6 +106,7 @@
       --bg-glow-2:rgba(202,165,80,.06);
       --chip-border:#4a3d2a;
       --chip-bg:#241f14;
+      --time-icon-filter: invert(1);
     }
   }
   *{box-sizing:border-box;}
@@ -127,7 +129,7 @@
     display:flex;
     justify-content:center;
   }
-  .wrap{ width:100%; max-width:760px; }
+  .wrap{ width:100%; max-width:760px; position:relative; }
 
   /* ---------- header ---------- */
   .eyebrow{
@@ -181,34 +183,137 @@
   }
   .divider svg{ width:16px; height:16px; color:var(--brass); flex-shrink:0; }
 
-  /* ---------- dark-mode toggle ---------- */
-  .theme-toggle-btn{
-    position:fixed;
-    /* Fixed-position elements render edge-to-edge in iOS WKWebView (the
-       Capacitor app) even though normal document flow correctly clears
-       the status bar/notch — a well-known WebKit quirk. Without this,
-       the button lands half-hidden under the status bar/Dynamic Island
-       and is untappable there (confirmed on-device in the Simulator).
-       env(safe-area-inset-*) needs `viewport-fit=cover` in the viewport
-       meta tag to resolve to a real value; the max()/plain-18px fallback
-       keeps this correct on the plain web build too, where the inset is
-       always 0. */
-    top:max(18px, calc(env(safe-area-inset-top) + 8px));
-    right:max(18px, calc(env(safe-area-inset-right) + 18px));
-    z-index:50;
+  /* ---------- settings button ---------- */
+  .settings-btn{
+    /* Absolute within .wrap (see .wrap's position:relative below), not
+       fixed to the viewport — it scrolls away with the rest of the page
+       instead of floating over content at all times. Anchored to the
+       top-right corner of .wrap, which already clears the status
+       bar/notch via body's safe-area-aware top padding, so no
+       env(safe-area-inset-*) handling is needed here (that was only
+       ever needed for position:fixed, which renders edge-to-edge in iOS
+       WKWebView regardless of normal document flow). */
+    position:absolute;
+    top:0; right:0;
     width:38px; height:38px;
     display:flex; align-items:center; justify-content:center;
     background:var(--paper-raised);
+    /* Subtle by design — colored like the divider lines under the
+       title, not a call-to-action, since this is a settle-it-once
+       preference, not something people need to notice. */
     border:1px solid var(--line);
     border-radius:50%;
-    color:var(--ink-soft);
+    color:var(--line);
     cursor:pointer;
     box-shadow:var(--shadow);
     transition:border-color .15s, color .15s;
   }
-  .theme-toggle-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
-  .theme-toggle-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
-  .theme-toggle-btn svg{ width:19px; height:19px; }
+  .settings-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .settings-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .settings-btn svg{ width:19px; height:19px; }
+
+  /* ---------- settings modal ---------- */
+  .settings-section{ margin-bottom:22px; }
+  .settings-section:last-child{ margin-bottom:0; }
+  .settings-label{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin:0 0 10px;
+  }
+  .settings-sub{
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.5;
+    color:var(--ink-soft); margin:6px 0 0;
+  }
+  /* Light/Dark/System segmented control. */
+  .segmented{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .segmented button{
+    flex:1;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    background:var(--paper-raised);
+    border:none;
+    padding:10px 8px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .segmented button + button{ border-left:1px solid var(--line); }
+  .segmented button:hover{ color:var(--burgundy); }
+  .segmented button[aria-pressed="true"]{
+    background:var(--accent-fill); color:var(--on-accent);
+  }
+  .segmented button[aria-pressed="true"]:hover{ color:var(--on-accent); }
+  .segmented button:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:-2px; }
+  /* Daily-reminder on/off switch, native app only. */
+  .settings-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .settings-row + .settings-row{ margin-top:14px; }
+  .settings-row-text strong{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:14.5px; font-weight:600; color:var(--ink);
+  }
+  .settings-row-text span{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft); margin-top:2px;
+  }
+  .switch{
+    position:relative; flex-shrink:0;
+    width:44px; height:26px;
+  }
+  .switch input{
+    position:absolute; inset:0; opacity:0; margin:0; cursor:pointer;
+  }
+  .switch-track{
+    position:absolute; inset:0;
+    background:var(--line);
+    border-radius:999px;
+    transition:background .15s;
+    pointer-events:none;
+  }
+  .switch-track::before{
+    content:"";
+    position:absolute; top:3px; left:3px;
+    width:20px; height:20px;
+    background:var(--paper-raised);
+    border-radius:50%;
+    box-shadow:var(--shadow);
+    transition:transform .15s;
+  }
+  .switch input:checked + .switch-track{ background:var(--accent-fill); }
+  .switch input:checked + .switch-track::before{ transform:translateX(18px); }
+  .switch input:focus-visible + .switch-track{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  /* Reminder-time picker, shown right under the Daily Reminder switch.
+     Styled to match the app's paper/ink palette rather than the raw OS
+     widget default so it doesn't look bolted on. */
+  #reminderTimeInput{
+    flex-shrink:0;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:7px 10px;
+    -webkit-appearance:none;
+  }
+  #reminderTimeInput:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  #reminderTimeInput:disabled{ opacity:.45; }
+  /* Safari/WKWebView renders the time value's own tiny AM/PM + clear
+     controls in solid black by default, which reads as a stray black
+     blob in dark mode — recolor to match the rest of the field. */
+  #reminderTimeInput::-webkit-datetime-edit{ color:var(--ink); }
+  #reminderTimeInput::-webkit-calendar-picker-indicator{ filter:var(--time-icon-filter, none); }
 
   /* ---------- talk of the day ---------- */
   .totd-zone{ margin-bottom:36px; }
@@ -976,15 +1081,20 @@
 <body>
 <div class="wrap">
 
-  <!-- Fixed so it stays reachable from every page (Home, Recents,
-       Favorites, My Lists) without living inside any one zone's markup —
+  <!-- A direct child of .wrap (not any one zone's markup) so it stays
+       reachable from every page (Home, Recents, Favorites, My Lists) —
        those get their innerHTML replaced on navigation, which would wipe
-       a button placed inside them. Icon/label are filled in by
-       updateThemeToggleIcon() at load. -->
-  <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Switch to dark mode"></button>
+       a button placed inside them. Positioned absolute within .wrap
+       (see .settings-btn CSS), so it sits in the top-right corner of the
+       page and scrolls away with it, rather than floating fixed over
+       the content. Opens the Settings modal below, which holds
+       Appearance (Light/Dark/System) and the Daily Reminder toggle. -->
+  <button type="button" class="settings-btn" id="settingsBtn" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L14.9 3h-3.8l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h3.8l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z"/></svg>
+  </button>
 
   <div class="eyebrow">From General Conference of<br>The Church of Jesus Christ<br>of Latter-day Saints</div>
-  <h1>Find a Talk</h1>
+  <h1>FindATalk</h1>
 
   <div class="divider">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
@@ -1215,10 +1325,49 @@
       <div class="modal-header">
         <h3 id="notifPermModalTitle">Get a daily nudge?</h3>
       </div>
-      <p class="modal-copy">Find a Talk can send one reminder a day, at 8:00 AM, with your talk of the day ready to read. Your phone will ask you to allow notifications next — this is just a heads-up on why.</p>
+      <p class="modal-copy">Find a Talk can send one reminder a day, at 8:00 AM by default, with your talk of the day ready to read — you can change the time anytime in Settings. Your phone will ask you to allow notifications next — this is just a heads-up on why.</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="notifPermSkipBtn">Not Now</button>
         <button type="button" class="btn btn-primary" id="notifPermAllowBtn">Enable Reminders</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="settingsModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <div class="modal-header">
+        <h3 id="settingsModalTitle">Settings</h3>
+        <button type="button" class="modal-close" id="settingsModalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="settings-section">
+        <p class="settings-label">Appearance</p>
+        <div class="segmented" role="group" aria-label="Appearance">
+          <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+          <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+          <button type="button" data-theme-choice="system" aria-pressed="false">System</button>
+        </div>
+      </div>
+
+      <div class="settings-section" id="reminderSettingsSection" hidden>
+        <p class="settings-label">Notifications</p>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <strong>Daily Reminder</strong>
+            <span>One nudge a day with your talk ready to read.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="reminderToggle">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+        <div class="settings-row" id="reminderTimeRow">
+          <div class="settings-row-text">
+            <strong>Reminder Time</strong>
+            <span>When the nudge shows up each day.</span>
+          </div>
+          <input type="time" id="reminderTimeInput" aria-label="Reminder time">
+        </div>
       </div>
     </div>
   </div>
@@ -1233,18 +1382,17 @@
 <script>
 /* ---------------------------------------------------------------
    Dark mode. `themePreference` in localStorage holds an EXPLICIT
-   choice ('light'/'dark') from the toggle button below; when it's
-   absent, the app follows `prefers-color-scheme` instead (handled
-   entirely in CSS — see the @media block in <style>). This runs
-   immediately, independent of loadData()/initApp() below, since the
-   toggle button is static markup present from first paint. A
+   choice ('light'/'dark') made from the Appearance control in the
+   Settings modal below; when it's absent (the "System" choice), the
+   app follows `prefers-color-scheme` instead (handled entirely in CSS
+   — see the @media block in <style>). This runs immediately,
+   independent of loadData()/initApp() below, since the Settings
+   button/modal are static markup present from first paint. A
    duplicate of the "apply a saved choice" logic also runs inline in
    <head>, before <style> is parsed, purely to avoid a light-then-dark
-   flash on load — this copy is what actually wires up the button.
+   flash on load — this copy is what actually wires up the controls.
 ------------------------------------------------------------------*/
 const THEME_KEY = 'themePreference';
-const SUN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>';
-const MOON_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.3A8.4 8.4 0 1 1 9.7 4a6.6 6.6 0 0 0 10.3 10.3z"/></svg>';
 function getStoredTheme(){
   try { return localStorage.getItem(THEME_KEY); } catch(err){ return null; }
 }
@@ -1257,43 +1405,56 @@ function effectiveTheme(){
   const stored = getStoredTheme();
   return (stored==='light' || stored==='dark') ? stored : (systemPrefersDark() ? 'dark' : 'light');
 }
+// Reflects the current choice in the Appearance segmented control
+// (Light/Dark/System) and the status-bar color meta tag. "System" is
+// just the absence of an explicit stored choice.
 function updateThemeToggleUI(){
-  const btn = document.getElementById('themeToggleBtn');
-  if (!btn) return;
   const isDark = effectiveTheme()==='dark';
-  btn.innerHTML = isDark ? SUN_ICON_SVG : MOON_ICON_SVG;
-  btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
   const meta = document.getElementById('themeColorMeta');
   if (meta) meta.setAttribute('content', isDark ? '#161b26' : '#f3efe2');
+  const active = getStoredTheme() || 'system';
+  document.querySelectorAll('[data-theme-choice]').forEach((btn)=>{
+    btn.setAttribute('aria-pressed', String(btn.dataset.themeChoice === active));
+  });
 }
-// Sets an EXPLICIT theme (from a user tap), overriding the system
-// setting from then on. To go back to following the system automatically,
-// a person would need to clear site data — there's no "system" option in
-// the toggle itself, just light/dark, matching how most apps' simple
-// two-state toggles work.
+// Sets the Appearance choice from a tap in the Settings modal.
+// 'light'/'dark' store an explicit override; 'system' clears it so the
+// app goes back to following prefers-color-scheme.
 function setTheme(theme){
-  document.documentElement.setAttribute('data-theme', theme);
-  try { localStorage.setItem(THEME_KEY, theme); } catch(err){ /* ignore */ }
+  if (theme === 'system'){
+    document.documentElement.removeAttribute('data-theme');
+    try { localStorage.removeItem(THEME_KEY); } catch(err){ /* ignore */ }
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch(err){ /* ignore */ }
+  }
   updateThemeToggleUI();
   mirrorThemeToNative(theme);
 }
-/* Copies an explicit light/dark choice into native storage so the
-   home-screen widgets can match it — same problem and same two
-   platform-specific paths as mirrorStreakToNative() below: a widget runs
-   in a separate process from this WebView and can't see localStorage.
-   Only ever called with an explicit 'light'/'dark' value (never to reset
-   back to "follow system" — there's no UI for that yet, same as the
-   in-app toggle itself), so the native side only needs to know "was an
-   explicit choice ever made, and if so which" — absence of this key
-   there means "still following the system setting", same meaning as
-   getStoredTheme() returning null here. */
+/* Copies the Appearance choice into native storage so the home-screen
+   widgets can match it — same problem and same two platform-specific
+   paths as mirrorStreakToNative() below: a widget runs in a separate
+   process from this WebView and can't see localStorage.
+   For 'light'/'dark' this mirrors an explicit override. For 'system'
+   it needs to put the native side back into "no override, follow the
+   OS setting" — on Android that means actually removing the
+   preferences key (TalkOfDayWidgetProvider treats a *missing* key as
+   "no override", not a value of "system"); on iOS the widget's
+   TalkPalette.resolve() already falls back to the system scheme for
+   any override string it doesn't recognize as "light"/"dark", so
+   writing the literal string "system" there works just as well as
+   removing it. */
 async function mirrorThemeToNative(theme){
   const cap = window.Capacitor;
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const platform = cap.getPlatform ? cap.getPlatform() : '';
   try {
     if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
-      await cap.Plugins.Preferences.set({key: 'findATalkTheme', value: theme});
+      if (theme === 'system'){
+        await cap.Plugins.Preferences.remove({key: 'findATalkTheme'});
+      } else {
+        await cap.Plugins.Preferences.set({key: 'findATalkTheme', value: theme});
+      }
       if (cap.Plugins.WidgetRefresh){
         try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
       }
@@ -1302,17 +1463,40 @@ async function mirrorThemeToNative(theme){
     }
   } catch(err){ /* native widget just won't see the fresh choice this time — not fatal */ }
 }
-document.getElementById('themeToggleBtn').addEventListener('click', ()=>{
-  setTheme(effectiveTheme()==='dark' ? 'light' : 'dark');
+document.querySelectorAll('[data-theme-choice]').forEach((btn)=>{
+  btn.addEventListener('click', ()=> setTheme(btn.dataset.themeChoice));
 });
 updateThemeToggleUI();
-// No explicit choice saved yet: keep the icon and status-bar color in
-// sync if the OS-level setting changes while the app is open.
+// No explicit choice saved (following "System"): keep the segmented
+// control and status-bar color in sync if the OS-level setting changes
+// while the app is open.
 if (window.matchMedia){
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
     if (!getStoredTheme()) updateThemeToggleUI();
   });
 }
+
+/* ---------------------------------------------------------------
+   Settings modal — houses Appearance above and the Daily Reminder
+   toggle below. Same open/close pattern as the "Add to a List" modal
+   (see closeCollectionModal() further down): overlay click, Escape,
+   or the × all close it.
+------------------------------------------------------------------*/
+const settingsModalOverlay = document.getElementById('settingsModalOverlay');
+function openSettingsModal(){
+  settingsModalOverlay.hidden = false;
+}
+function closeSettingsModal(){
+  settingsModalOverlay.hidden = true;
+}
+document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
+document.getElementById('settingsModalClose').addEventListener('click', closeSettingsModal);
+settingsModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === settingsModalOverlay) closeSettingsModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !settingsModalOverlay.hidden) closeSettingsModal();
+});
 
 /* ---------------------------------------------------------------
    Verified talk data: title, speaker, year, month, url-slug.
@@ -2542,9 +2726,11 @@ function renderTalkOfTheDay(){
 
 /* ---------------- Daily reminder notification ----------------
    A single repeating local notification ("your talk of the day is
-   ready") at a fixed 8:00 AM local time, meant to pair with the streak
-   above — the nudge that actually gets someone to open the app each day,
-   not just a number that sits unseen until they remember to look.
+   ready") at a local time the person picks (Reminder Time in Settings —
+   8:00 AM by default, see getReminderTime()), meant to pair with the
+   streak above — the nudge that actually gets someone to open the app
+   each day, not just a number that sits unseen until they remember to
+   look.
    Web-only (no server, no accounts) so this uses @capacitor/local-
    notifications, which only exists inside the wrapped iOS/Android app —
    window.Capacitor is absent entirely when this page is opened as a
@@ -2553,7 +2739,10 @@ function renderTalkOfTheDay(){
    product decision to prompt early rather than bury this behind a
    settings toggle nobody finds) — findATalkNotifPrompted gates that so
    later launches never ask again, matching whatever the person chose
-   (or dismissed) that first time.
+   (or dismissed) that first time. There IS now a settings toggle (see
+   initReminderSettingsToggle() below, in the Settings modal) for anyone
+   who declined that first ask, or later changes their mind either way —
+   it just isn't how the permission gets asked for the first time.
    Before that ask ever reaches the OS, a custom explainer modal shows
    why we want the permission — a user-suggested step, since a bare OS
    prompt with no context tends to get reflexively denied. Declining our
@@ -2561,7 +2750,36 @@ function renderTalkOfTheDay(){
    sets the "prompted" flag so we never nag again, matching the existing
    ask-once philosophy above. */
 const NOTIF_PROMPTED_KEY = 'findATalkNotifPrompted';
+// Tracks whether the reminder should be ON, as distinct from whether OS
+// permission is granted — someone can grant permission once, then flip
+// the Settings toggle off without revoking it at the OS level, and this
+// is what remembers that. Absent (never touched the toggle) is treated
+// as "on" as long as permission is granted, matching the original
+// no-toggle behavior where granting permission was the only signal.
+const REMINDER_ENABLED_KEY = 'findATalkReminderEnabled';
+// Hour/minute (24h, local time) the daily reminder fires at. Absent
+// (nobody has touched the Reminder Time picker yet) means "8:00 AM",
+// matching the original fixed time this replaced.
+const REMINDER_HOUR_KEY = 'findATalkReminderHour';
+const REMINDER_MINUTE_KEY = 'findATalkReminderMinute';
 const DAILY_REMINDER_ID = 1;
+
+function getReminderTime(){
+  let hour = 8, minute = 0;
+  try {
+    const h = parseInt(localStorage.getItem(REMINDER_HOUR_KEY), 10);
+    const m = parseInt(localStorage.getItem(REMINDER_MINUTE_KEY), 10);
+    if (Number.isInteger(h) && h >= 0 && h <= 23) hour = h;
+    if (Number.isInteger(m) && m >= 0 && m <= 59) minute = m;
+  } catch(err){ /* ignore — fall back to 8:00 */ }
+  return { hour, minute };
+}
+function setReminderTime(hour, minute){
+  try {
+    localStorage.setItem(REMINDER_HOUR_KEY, String(hour));
+    localStorage.setItem(REMINDER_MINUTE_KEY, String(minute));
+  } catch(err){ /* ignore */ }
+}
 
 function showNotifPermModal(){
   return new Promise((resolve)=>{
@@ -2579,6 +2797,23 @@ function showNotifPermModal(){
     allowBtn.addEventListener('click', onAllow);
     skipBtn.addEventListener('click', onSkip);
     overlay.hidden = false;
+  });
+}
+
+// `schedule.on` with only hour/minute set (no day/month/year) is a
+// recurring trigger, not a one-off — Capacitor fires it every day at
+// that local time. Re-scheduling the same id on a later launch (or from
+// the Settings toggle, or the Reminder Time picker) just replaces this
+// one entry. Time comes from getReminderTime() (defaults to 8:00 AM).
+async function scheduleDailyReminder(LocalNotifications){
+  const { hour, minute } = getReminderTime();
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: DAILY_REMINDER_ID,
+      title: 'Find a Talk',
+      body: 'Your talk of the day is ready to read.',
+      schedule: { on: { hour, minute }, allowWhileIdle: true }
+    }]
   });
 }
 
@@ -2601,20 +2836,74 @@ async function setupDailyReminder(){
     }
     if (perm.display !== 'granted') return;
 
-    // `schedule.on` with only hour/minute set (no day/month/year) is a
-    // recurring trigger, not a one-off — Capacitor fires it every day at
-    // that local time. Re-scheduling the same id on a later launch just
-    // replaces this one entry, so it's safe to call again if we ever
-    // want to (e.g. a future "change reminder time" setting).
-    await LocalNotifications.schedule({
-      notifications: [{
-        id: DAILY_REMINDER_ID,
-        title: 'Find a Talk',
-        body: 'Your talk of the day is ready to read.',
-        schedule: { on: { hour: 8, minute: 0 }, allowWhileIdle: true }
-      }]
-    });
+    await scheduleDailyReminder(LocalNotifications);
   } catch(err){ /* permission denied, plugin unavailable, etc. — not fatal */ }
+}
+
+/* Wires up the Daily Reminder switch and Reminder Time picker in the
+   Settings modal. Hidden entirely on the plain web build (window.Capacitor
+   absent), since notifications are a no-op there anyway. The switch
+   reflects OS permission AND REMINDER_ENABLED_KEY together: granted-but-
+   toggled-off still shows off, and toggling on re-requests permission if
+   it was never granted (e.g. the person skipped the first-launch prompt).
+   The time picker is disabled while the reminder is off — there's nothing
+   to reschedule until it's on — and re-schedules the existing notification
+   immediately on change, same replace-in-place behavior scheduleDailyReminder()
+   already relies on elsewhere. */
+async function initReminderSettingsToggle(){
+  const cap = window.Capacitor;
+  const section = document.getElementById('reminderSettingsSection');
+  const toggle = document.getElementById('reminderToggle');
+  const timeInput = document.getElementById('reminderTimeInput');
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const LocalNotifications = cap.Plugins && cap.Plugins.LocalNotifications;
+  if (!LocalNotifications) return;
+  section.hidden = false;
+
+  const pad2 = (n)=> String(n).padStart(2, '0');
+  const { hour, minute } = getReminderTime();
+  timeInput.value = pad2(hour) + ':' + pad2(minute);
+
+  let enabledPref = null;
+  try { enabledPref = localStorage.getItem(REMINDER_ENABLED_KEY); } catch(err){ /* ignore */ }
+
+  try {
+    const perm = await LocalNotifications.checkPermissions();
+    toggle.checked = perm.display === 'granted' && enabledPref !== '0';
+  } catch(err){ toggle.checked = false; }
+  timeInput.disabled = !toggle.checked;
+
+  toggle.addEventListener('change', async ()=>{
+    const turningOn = toggle.checked;
+    try {
+      if (turningOn){
+        let perm = await LocalNotifications.checkPermissions();
+        if (perm.display !== 'granted'){
+          perm = await LocalNotifications.requestPermissions();
+        }
+        if (perm.display !== 'granted'){
+          toggle.checked = false; // OS-level denial — nothing more we can do from here
+          return;
+        }
+        await scheduleDailyReminder(LocalNotifications);
+        try { localStorage.setItem(REMINDER_ENABLED_KEY, '1'); } catch(err){ /* ignore */ }
+      } else {
+        await LocalNotifications.cancel({ notifications: [{ id: DAILY_REMINDER_ID }] });
+        try { localStorage.setItem(REMINDER_ENABLED_KEY, '0'); } catch(err){ /* ignore */ }
+      }
+    } catch(err){ /* plugin unavailable, etc. — leave the switch as the user set it */ }
+    timeInput.disabled = !toggle.checked;
+  });
+
+  timeInput.addEventListener('change', async ()=>{
+    const parts = (timeInput.value || '').split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (!Number.isInteger(h) || !Number.isInteger(m)) return; // cleared/invalid — leave prior pref alone
+    setReminderTime(h, m);
+    if (!toggle.checked) return; // nothing scheduled to update yet
+    try { await scheduleDailyReminder(LocalNotifications); } catch(err){ /* ignore */ }
+  });
 }
 // NOTE: the actual renderTalkOfTheDay() call happens at the very end of
 // initApp(), not here — buildListItemRow() → createFavoriteButton() reads
@@ -3488,6 +3777,7 @@ newCollectionInput.addEventListener('keydown', (e)=>{
 renderTalkOfTheDay();
 renderStreak();
 setupDailyReminder();
+initReminderSettingsToggle();
 }
 
 /* ---------------------------------------------------------------
