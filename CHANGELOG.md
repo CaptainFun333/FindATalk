@@ -17,6 +17,9 @@ this updated.
 - The home-screen "Talk of the Day" widget now follows your phone's dark mode setting too, instead of always showing the light version.
 - If you pick Light or Dark with the in-app toggle, the widget now matches that choice too, instead of only ever following the phone's overall setting.
 
+### Changed
+- The "From General Conference of The Church of Jesus Christ of Latter-day Saints" line at the top of the page now wraps at the same fixed spot on every device, instead of the browser breaking it differently depending on screen width.
+
 ### Fixed
 - The home-screen "Talk of the Day" widget could show a different talk than the app for the same day. It now always picks the same one.
 - The widget's streak count could sit stale for a long time after your streak actually changed. It now updates right away.
