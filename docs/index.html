@@ -624,7 +624,11 @@
     font-weight:600;
   }
   .search-input-wrap{ position:relative; }
-  #querySearch{
+  /* Shared with #querySearch below: the .search-input/.search-clear
+     classes let the My Notes and My Lists search boxes (added for the
+     "search my notes" / "search my lists" feature) reuse this exact same
+     look instead of duplicating the block per page. */
+  #querySearch, .search-input{
     width:100%;
     background:var(--paper-raised);
     border:1px solid var(--line);
@@ -640,16 +644,16 @@
     color:var(--ink);
     transition:border-color .15s;
   }
-  #querySearch:hover{ border-color:var(--brass); }
-  #querySearch:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
-  #queryClear{
+  #querySearch:hover, .search-input:hover{ border-color:var(--brass); }
+  #querySearch:focus-visible, .search-input:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
+  #queryClear, .search-clear{
     position:absolute; right:8px; top:50%; transform:translateY(-50%);
     width:26px; height:26px; line-height:1;
     border:none; background:none; cursor:pointer;
     font-size:20px; color:var(--ink-soft);
     border-radius:50%;
   }
-  #queryClear:hover{ color:var(--burgundy); background:var(--tint); }
+  #queryClear:hover, .search-clear:hover{ color:var(--burgundy); background:var(--tint); }
 
   /* ---------- filters ---------- */
   .filters{
@@ -1423,17 +1427,6 @@
 
   <div class="filters">
     <div class="field">
-      <label id="roleLabel">Calling at the Time of the Talk</label>
-      <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
-        <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="rolePanel" hidden>
-        <div class="ms-options" id="roleOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
       <label id="topicLabel">Topic</label>
       <button type="button" class="ms-trigger" id="topicTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="topicLabel topicTriggerText">
         <span class="ms-trigger-text" id="topicTriggerText">Any topic</span>
@@ -1443,6 +1436,17 @@
         <input type="text" class="ms-search" id="topicSearch" placeholder="Search topics…" autocomplete="off">
         <div class="ms-options" id="topicOptions"></div>
         <div class="ms-panel-footer"><button type="button" class="ms-clear" id="topicClear">Clear</button></div>
+      </div>
+    </div>
+    <div class="field">
+      <label id="roleLabel">Calling at the Time of the Talk</label>
+      <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
+        <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="rolePanel" hidden>
+        <div class="ms-options" id="roleOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
       </div>
     </div>
     <div class="field">
@@ -1602,10 +1606,18 @@
     <div class="page-header">
       <h2 class="page-title">My Notes</h2>
     </div>
+    <div class="search-field">
+      <label id="notesQueryLabel" for="notesQuery">Search your notes</label>
+      <div class="search-input-wrap">
+        <input type="text" id="notesQuery" class="search-input" placeholder="Search what you wrote, or the talk's title/speaker…" autocomplete="off" aria-labelledby="notesQueryLabel">
+        <button type="button" id="notesQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
     <div class="filters" id="notesFilters"></div>
     <div class="filters-actions">
       <div class="sort-toggle" id="notesSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Noted</button>
+        <button type="button" class="sort-toggle-btn" data-sort="alpha">Alphabetical</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
       <button type="button" class="reset-link" id="notesFilterReset">Reset filters</button>
@@ -1630,6 +1642,19 @@
       <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
     </div>
     <p class="backup-hint">Favorites, notes, and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
+    <div class="search-field" id="collectionsSearchField">
+      <label id="collectionsQueryLabel" for="collectionsQuery">Search your lists</label>
+      <div class="search-input-wrap">
+        <input type="text" id="collectionsQuery" class="search-input" placeholder="Search list names…" autocomplete="off" aria-labelledby="collectionsQueryLabel">
+        <button type="button" id="collectionsQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
+    <div class="filters-actions" id="collectionsSortRow">
+      <div class="sort-toggle" id="collectionsSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Updated</button>
+        <button type="button" class="sort-toggle-btn" data-sort="alpha">Alphabetical</button>
+      </div>
+    </div>
     <div class="collections-index-list" id="collectionsIndexList"></div>
     <div class="list-empty" id="collectionsIndexEmpty">You haven't created any lists yet — name one above to get started.</div>
   </div>
@@ -2321,7 +2346,7 @@ function saveCollectionMembers(){
 }
 function createCollection(name){
   const id = 'col_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  collections.push({id, name});
+  collections.push({id, name, updatedAt: Date.now()});
   collectionMembers[id] = [];
   saveCollections();
   saveCollectionMembers();
@@ -2336,6 +2361,15 @@ function deleteCollection(id){
 function isInCollection(id, talk){
   return (collectionMembers[id] || []).includes(talkKey(talk));
 }
+// Bumps a list's `updatedAt` — feeds the "Recently Updated" sort on the My
+// Lists page. Deliberately only called when a talk is actually *added* to
+// a list (see addTalkToCollection/addTalksToCollection below), not on
+// removal or on every open — matches "most recently added to," which is
+// what was actually asked for, not a generic last-touched timestamp.
+function touchCollection(id){
+  const col = collections.find(c=> c.id === id);
+  if (col) col.updatedAt = Date.now();
+}
 /* Names of every list (in creation order) a talk currently belongs to —
    used to badge a talk as "already on a list" and say which one(s),
    without the caller needing to loop over `collections` itself. */
@@ -2345,7 +2379,7 @@ function talkListNames(talk){
 function addTalkToCollection(id, talk){
   const key = talkKey(talk);
   const arr = collectionMembers[id] || (collectionMembers[id] = []);
-  if (!arr.includes(key)) arr.push(key);
+  if (!arr.includes(key)){ arr.push(key); touchCollection(id); }
 }
 function removeTalkFromCollection(id, talk){
   const key = talkKey(talk);
@@ -2355,6 +2389,7 @@ function removeTalkFromCollection(id, talk){
 }
 function toggleCollectionMember(id, talk){
   if (isInCollection(id, talk)) removeTalkFromCollection(id, talk); else addTalkToCollection(id, talk);
+  saveCollections();
   saveCollectionMembers();
 }
 /* Bulk variants — add/remove several talks at once (one save at the end
@@ -2362,10 +2397,12 @@ function toggleCollectionMember(id, talk){
    acting on more than one talk, e.g. a multi-select from "Show a List". */
 function addTalksToCollection(id, talks){
   talks.forEach(t=> addTalkToCollection(id, t));
+  saveCollections();
   saveCollectionMembers();
 }
 function removeTalksFromCollection(id, talks){
   talks.forEach(t=> removeTalkFromCollection(id, t));
+  saveCollections();
   saveCollectionMembers();
 }
 
@@ -2571,20 +2608,6 @@ function valuesForDim(pool, dim){
    whether the panel gets a search box (only the two long lists — Speaker
    and Topic — need one), and the DOM refs it's wired to. */
 const DIM_CONFIG = {
-  year: {
-    allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
-    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
-    trigger: document.getElementById('yearTrigger'), triggerText: document.getElementById('yearTriggerText'),
-    panel: document.getElementById('yearPanel'), options: document.getElementById('yearOptions'),
-    search: null, clearBtn: document.getElementById('yearClear')
-  },
-  speaker: {
-    allValues: allSpeakers, anyLabel:'Any speaker', noun:'speakers', searchable:true,
-    labelFor: v=>speakerDisplayName(v),
-    trigger: document.getElementById('speakerTrigger'), triggerText: document.getElementById('speakerTriggerText'),
-    panel: document.getElementById('speakerPanel'), options: document.getElementById('speakerOptions'),
-    search: document.getElementById('speakerSearch'), clearBtn: document.getElementById('speakerClear')
-  },
   topic: {
     allValues: allTopics, anyLabel:'Any topic', noun:'topics', searchable:true,
     labelFor: v=>TOPIC_LABELS[v],
@@ -2598,6 +2621,20 @@ const DIM_CONFIG = {
     trigger: document.getElementById('roleTrigger'), triggerText: document.getElementById('roleTriggerText'),
     panel: document.getElementById('rolePanel'), options: document.getElementById('roleOptions'),
     search: null, clearBtn: document.getElementById('roleClear')
+  },
+  speaker: {
+    allValues: allSpeakers, anyLabel:'Any speaker', noun:'speakers', searchable:true,
+    labelFor: v=>speakerDisplayName(v),
+    trigger: document.getElementById('speakerTrigger'), triggerText: document.getElementById('speakerTriggerText'),
+    panel: document.getElementById('speakerPanel'), options: document.getElementById('speakerOptions'),
+    search: document.getElementById('speakerSearch'), clearBtn: document.getElementById('speakerClear')
+  },
+  year: {
+    allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
+    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
+    trigger: document.getElementById('yearTrigger'), triggerText: document.getElementById('yearTriggerText'),
+    panel: document.getElementById('yearPanel'), options: document.getElementById('yearOptions'),
+    search: null, clearBtn: document.getElementById('yearClear')
   },
   session: {
     allValues: allSessions, anyLabel:'Any Session', noun:'sessions', searchable:false,
@@ -3999,11 +4036,20 @@ const collectionFilterResetBtn = document.getElementById('collectionFilterReset'
 const collectionFilterCountEl = document.getElementById('collectionFilterCount');
 collectionFilterResetBtn.addEventListener('click', ()=> collectionFilterPanel.reset());
 
-/* Renders one subset page (Recently Viewed or Favorites) from its filter
-   panel's already-computed currentPool() — shared by both so the "no
-   talks saved at all" vs. "talks saved, but none match the filters"
-   distinction stays consistent between them. */
-function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filterPanel, noTalksMessage, noMatchMessage){
+/* Renders one subset page (Recently Viewed, Favorites, My Notes, or a
+   single List) from its filter panel's already-computed currentPool() —
+   shared so the "no talks saved at all" vs. "talks saved, but none match
+   the filters" distinction stays consistent across all of them.
+   `searchQuery`/`searchMatch` are optional (only My Notes uses them so
+   far, for the "search my notes" feature) — when given, they narrow
+   `currentPool()`'s result further, on top of whatever the structured
+   Speaker/Calling/Conference/Topic filters already picked. `total` is
+   deliberately still based on the *unfiltered* base pool (ignoring both
+   the structured filters and the search box), so a search that matches
+   nothing shows "no notes match your search" rather than the "you haven't
+   noted anything yet" empty state — and importantly keeps the filters/
+   search UI visible so the person can actually clear it. */
+function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filterPanel, noTalksMessage, noMatchMessage, searchQuery, searchMatch){
   const total = filterPanel.baseCount();
   itemsEl.innerHTML = '';
   if (total === 0){
@@ -4017,7 +4063,8 @@ function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filter
   }
   filtersEl.style.display = '';
   resetBtn.style.display = '';
-  const filtered = filterPanel.currentPool();
+  let filtered = filterPanel.currentPool();
+  if (searchQuery && searchMatch) filtered = filtered.filter(pick=> searchMatch(pick, searchQuery));
   if (filtered.length === 0){
     itemsEl.style.display = 'none';
     emptyEl.style.display = 'block';
@@ -4061,13 +4108,49 @@ function renderNotesPage(){
   // an edited note's position current instead of stuck at its first save.
   let picks = Object.keys(noteMap).reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (notesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  else if (notesSortToggle.mode === 'alpha') picks = picks.slice().sort((a,b)=> a[0].localeCompare(b[0]));
   notesFilterPanel.setBasePool(picks);
 }
-notesFilterPanel.onChange = ()=> renderSubsetList(
-  notesItemsEl, notesEmptyEl, notesFilterCountEl, document.getElementById('notesFilters'), notesFilterResetBtn,
-  notesFilterPanel, "No notes yet — tap the note icon on any talk to jot down what you learned.",
-  'No notes match those filters.'
-);
+
+// "Search your notes" — matches the note text itself, or the talk's title/
+// speaker (someone often remembers "something about tithing" without
+// recalling their own exact wording). Deliberately plain substring
+// matching, not a search index: notes are a handful-to-dozens of short,
+// on-device strings, not the thousands of official talk texts idea #5
+// (full-text talk search) would need to deal with.
+let notesQuery = '';
+function matchesNotesSearch(pick, query){
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const note = noteMap[talkKey(pick)] || '';
+  return note.toLowerCase().includes(needle)
+    || pick[0].toLowerCase().includes(needle)
+    || pick[1].toLowerCase().includes(needle);
+}
+function refreshNotesList(){
+  const q = notesQuery.trim();
+  renderSubsetList(
+    notesItemsEl, notesEmptyEl, notesFilterCountEl, document.getElementById('notesFilters'), notesFilterResetBtn,
+    notesFilterPanel, "No notes yet — tap the note icon on any talk to jot down what you learned.",
+    q ? `No notes match "${q}".` : 'No notes match those filters.',
+    q, matchesNotesSearch
+  );
+}
+notesFilterPanel.onChange = refreshNotesList;
+const notesQueryEl = document.getElementById('notesQuery');
+const notesQueryClearBtn = document.getElementById('notesQueryClear');
+notesQueryEl.addEventListener('input', ()=>{
+  notesQuery = notesQueryEl.value;
+  notesQueryClearBtn.hidden = !notesQuery;
+  refreshNotesList();
+});
+notesQueryClearBtn.addEventListener('click', ()=>{
+  notesQuery = '';
+  notesQueryEl.value = '';
+  notesQueryClearBtn.hidden = true;
+  notesQueryEl.focus();
+  refreshNotesList();
+});
 
 
 /* ---------------- My Lists (self-defined collections) ---------------- */
@@ -4092,18 +4175,45 @@ collectionFilterPanel.onChange = ()=> renderSubsetList(
   'No talks in this list match those filters.'
 );
 
+// "Search your lists" + sort — filters/sorts the list of *list names*
+// (not talks inside them, that's what each list's own page/filters are
+// for). Same plain-substring approach as Notes search: this is a handful
+// of short, on-device strings, no index needed.
+let collectionsQuery = '';
+function visibleCollections(){
+  const q = collectionsQuery.trim().toLowerCase();
+  const list = q ? collections.filter(c=> c.name.toLowerCase().includes(q)) : collections.slice();
+  if (collectionsSortToggle.mode === 'alpha') list.sort((a,b)=> a.name.localeCompare(b.name));
+  else list.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0)); // 'default' = most recently added to
+  return list;
+}
+
 function renderCollectionsIndexPage(){
   const listEl = document.getElementById('collectionsIndexList');
   const emptyEl = document.getElementById('collectionsIndexEmpty');
+  const searchFieldEl = document.getElementById('collectionsSearchField');
+  const sortRowEl = document.getElementById('collectionsSortRow');
   listEl.innerHTML = '';
   if (!collections.length){
     listEl.style.display = 'none';
     emptyEl.style.display = 'block';
+    emptyEl.textContent = "You haven't created any lists yet — name one above to get started.";
+    searchFieldEl.style.display = 'none';
+    sortRowEl.style.display = 'none';
+    return;
+  }
+  searchFieldEl.style.display = '';
+  sortRowEl.style.display = '';
+  const visible = visibleCollections();
+  if (!visible.length){
+    listEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.textContent = `No lists match "${collectionsQuery.trim()}".`;
     return;
   }
   listEl.style.display = '';
   emptyEl.style.display = 'none';
-  collections.forEach(col=>{
+  visible.forEach(col=>{
     const row = document.createElement('div');
     row.className = 'collection-row';
 
@@ -4140,6 +4250,21 @@ function renderCollectionsIndexPage(){
   });
 }
 
+const collectionsSortToggle = createSortToggle(document.getElementById('collectionsSortToggle'), renderCollectionsIndexPage);
+const collectionsQueryEl = document.getElementById('collectionsQuery');
+const collectionsQueryClearBtn = document.getElementById('collectionsQueryClear');
+collectionsQueryEl.addEventListener('input', ()=>{
+  collectionsQuery = collectionsQueryEl.value;
+  collectionsQueryClearBtn.hidden = !collectionsQuery;
+  renderCollectionsIndexPage();
+});
+collectionsQueryClearBtn.addEventListener('click', ()=>{
+  collectionsQuery = '';
+  collectionsQueryEl.value = '';
+  collectionsQueryClearBtn.hidden = true;
+  collectionsQueryEl.focus();
+  renderCollectionsIndexPage();
+});
 
 const collectionsIndexNewInput = document.getElementById('collectionsIndexNewInput');
 document.getElementById('collectionsIndexNewBtn').addEventListener('click', ()=>{
@@ -4256,12 +4381,17 @@ function mergeBackupData(data){
     if (!col || typeof col.id !== 'string' || typeof col.name !== 'string') return;
     const incomingMembers = (data.collectionMembers && data.collectionMembers[col.id]) || [];
     if (!collections.some(c=> c.id === col.id)){
-      collections.push({id: col.id, name: col.name});
+      // Older backups predate `updatedAt` — fall back to "now" rather than
+      // leaving it undefined, so the My Lists "Recently Updated" sort
+      // still has something to compare against.
+      collections.push({id: col.id, name: col.name, updatedAt: typeof col.updatedAt === 'number' ? col.updatedAt : Date.now()});
       collectionMembers[col.id] = [...incomingMembers];
       addedLists++;
     } else {
       const existing = collectionMembers[col.id] || (collectionMembers[col.id] = []);
-      incomingMembers.forEach(key=>{ if (!existing.includes(key)) existing.push(key); });
+      let addedAny = false;
+      incomingMembers.forEach(key=>{ if (!existing.includes(key)){ existing.push(key); addedAny = true; } });
+      if (addedAny) touchCollection(col.id);
       mergedLists++;
     }
   });

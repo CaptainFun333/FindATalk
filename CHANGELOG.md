@@ -24,7 +24,7 @@ this updated.
 - Added a new "Session" filter (Saturday AM/PM, Sunday AM/PM, General Priesthood, General Women's, or Other) alongside the existing four. For now every talk shows up under "Other" — tagging talks with their real session is a separate, in-progress data project.
 
 ### Changed
-- Reordered the filters to Calling, Topic, Speaker, General Conference, Session, Recent/Favorites, and moved the "Search titles & summaries" box to sit below the filters instead of above them.
+- Reordered the filters to Topic, Calling, Speaker, General Conference, Session, Recent/Favorites, and moved the "Search titles & summaries" box to sit below the filters instead of above them.
 - The "From General Conference of The Church of Jesus Christ of Latter-day Saints" line at the top of the page now wraps at the same fixed spot on every device, instead of the browser breaking it differently depending on screen width.
 - The Settings gear icon no longer floats over the page while you scroll — it now sits quietly in the top-right corner of the page itself, styled to match the thin divider line under the title instead of standing out.
 - Replaced the app's headline font with Lora, a calmer, more traditional serif — used for the title, talk titles, list items, and menu headers throughout.
