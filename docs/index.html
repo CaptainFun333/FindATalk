@@ -2045,23 +2045,24 @@ const ROLE_ORDER = ["president","first-presidency","apostle","relief-society","p
 function talkKey(talk){ return `${talk[2]}|${talk[3]}|${talk[4]}`; }
 
 /* ---------------------------------------------------------------
-   Session filter — SCAFFOLD ONLY. Which session of conference a talk
-   was given in (Saturday/Sunday AM/PM, the two standalone General
-   Priesthood/General Women's sessions, or "other" for anything that
-   doesn't fit that modern pattern — older standalone conferences,
-   solemn assemblies, etc.). SESSION_LOOKUP is not yet backfilled with
-   real per-talk data (that's a separate research pass over each
-   conference's session listing pages, same shape as the Role/Topic
-   backfills above) — applyData() below tolerates a missing
-   `sessionLookup` in data.json and falls back to `{}`, so until that
-   backfill lands, talkSession() defaults every talk to 'other' and
-   the Session filter panel will only ever show that one option. Order
-   here is display order, oldest-in-the-day first, "other" last —
+   Session filter. Which session of conference a talk was given in —
+   backfilled from the real Church conference contents pages (see
+   PROJECT_HANDOFF.md / memory for the extraction method). "other"
+   covers everything that doesn't cleanly fit the eight tracked
+   categories: welfare-focused meetings, the old Friday/Tuesday/Thursday
+   slots used before the modern 2-day pattern settled, one-off
+   firesides/broadcasts, etc. Note "sat-evening" is its own bucket, NOT
+   folded into priesthood — the post-2020 "Saturday Evening Session"
+   replaced the standalone Priesthood Session broadcast but isn't
+   priesthood-specific anymore (open to everyone), so it's tracked
+   separately rather than force-fit into either priesthood or other.
+   Order here is display order, oldest-in-the-day first, "other" last —
    matching the pattern ROLE_ORDER already sets above. */
-const SESSION_ORDER = ["sat-am","sat-pm","sun-am","sun-pm","priesthood","womens","other"];
+const SESSION_ORDER = ["sat-am","sat-pm","sat-evening","sun-am","sun-pm","priesthood","womens","other"];
 const SESSION_LABELS = {
-  "sat-am": "Saturday AM", "sat-pm": "Saturday PM",
-  "sun-am": "Sunday AM", "sun-pm": "Sunday PM",
+  "sat-am": "Saturday Morning", "sat-pm": "Saturday Afternoon",
+  "sat-evening": "Saturday Evening (post-2020)",
+  "sun-am": "Sunday Morning", "sun-pm": "Sunday Afternoon",
   "priesthood": "General Priesthood", "womens": "General Women’s",
   "other": "Other"
 };
@@ -4102,13 +4103,23 @@ favoritesFilterPanel.onChange = ()=> renderSubsetList(
   'No favorites match those filters.'
 );
 
+// Strips a leading quotation mark before comparing, so quoted-title talks
+// (a lot of them — 440 of 4054 in the current dataset, e.g. "“My Sheep
+// Hear My Voice”") sort by their first real letter instead of all
+// clumping together ahead of/behind everything else by the punctuation
+// character itself. Caught by actually testing Alphabetical sort here —
+// without this, "“My Sheep..." sorted *before* "Blessed and Happy...",
+// which is not what "Alphabetical" should mean to anyone using it.
+function alphaSortKey(title){
+  return title.replace(/^[“‘"']\s*/, '');
+}
 function renderNotesPage(){
   // noteMap's key order reflects most-recently-noted-first once reversed —
   // see the comment on setNote() above for why a delete-then-reset keeps
   // an edited note's position current instead of stuck at its first save.
   let picks = Object.keys(noteMap).reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (notesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
-  else if (notesSortToggle.mode === 'alpha') picks = picks.slice().sort((a,b)=> a[0].localeCompare(b[0]));
+  else if (notesSortToggle.mode === 'alpha') picks = picks.slice().sort((a,b)=> alphaSortKey(a[0]).localeCompare(alphaSortKey(b[0])));
   notesFilterPanel.setBasePool(picks);
 }
 
