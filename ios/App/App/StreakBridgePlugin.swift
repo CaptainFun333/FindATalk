@@ -23,7 +23,8 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "StreakBridge"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "setStreak", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setThemePreference", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setThemePreference", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setPalettePreference", returnType: CAPPluginReturnPromise)
     ]
 
     // Must match the group ID entered under Signing & Capabilities ->
@@ -35,6 +36,9 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     // Must match the native-mirror key mirrorThemeToNative() writes to
     // in docs/index.html.
     static let themeKey = "findATalkTheme"
+    // Must match the native-mirror key mirrorPaletteToNative() writes to
+    // in docs/index.html.
+    static let paletteKey = "findATalkPalette"
 
     // Must match the `kind` in TalkOfDayWidget.swift.
     static let widgetKind = "TalkOfDayWidget"
@@ -69,6 +73,20 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         UserDefaults(suiteName: StreakBridgePlugin.appGroupID)?.set(theme, forKey: StreakBridgePlugin.themeKey)
+        WidgetCenter.shared.reloadTimelines(ofKind: StreakBridgePlugin.widgetKind)
+        call.resolve()
+    }
+
+    /// Mirrors the Color Palette choice from Settings, same idea as
+    /// setThemePreference above but its own key — independent of the
+    /// light/dark choice, a person can have a palette without an explicit
+    /// theme override and vice versa.
+    @objc func setPalettePreference(_ call: CAPPluginCall) {
+        guard let palette = call.getString("palette") else {
+            call.reject("Missing palette")
+            return
+        }
+        UserDefaults(suiteName: StreakBridgePlugin.appGroupID)?.set(palette, forKey: StreakBridgePlugin.paletteKey)
         WidgetCenter.shared.reloadTimelines(ofKind: StreakBridgePlugin.widgetKind)
         call.resolve()
     }

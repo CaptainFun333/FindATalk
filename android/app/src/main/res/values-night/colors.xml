@@ -7,7 +7,7 @@
          keep the two in sync if either changes. -->
     <color name="widget_paper">#161B26</color>
     <color name="widget_paper_raised">#1F2635</color>
-    <color name="widget_ink">#F3EFE2</color>
+    <color name="widget_ink">#FFFFFF</color>
     <color name="widget_ink_soft">#B7BDCF</color>
     <color name="widget_brass">#CAA550</color>
     <color name="widget_burgundy">#D98A93</color>

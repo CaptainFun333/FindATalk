@@ -2457,3 +2457,235 @@ talk-only, same as before this feature).
 If the group ID ever needs to change, update it in all three places it's
 hardcoded: `StreakBridgePlugin.swift` (`appGroupID`), `TalkOfDayWidget.swift`
 (`StreakStore.appGroupID`), and whatever you set in Xcode.
+
+## ✅ Done: Color Palette setting (Brass/Rose/Slate/Sage), plus widget sync
+
+Added a second, independent Settings axis alongside Light/Dark/System:
+**Color Palette**, with four options — **Brass** (the original look, still
+the default), **Rose**, **Slate**, **Sage** — in that fixed order.
+
+**Web (`docs/index.html`)**:
+- `themePalette` in `localStorage` holds `'rose'`/`'slate'`/`'sage'`;
+  absent means Brass. Applied as `data-palette` on `<html>`, mirroring the
+  existing `data-theme` pattern exactly (same anti-flash `<head>` script,
+  same pre-paint timing).
+- A new CSS "color palettes" block (right after the existing dark-mode
+  `@media` block) defines three full token sets — light, explicit dark,
+  and `prefers-color-scheme: dark` — for Rose/Slate/Sage. Brass needs no
+  override; it's already the base `:root`. Each non-Brass palette also
+  redefines `--accent-grad-start/-end`/`--accent-fill`/`--accent-fill-hover`
+  (the fixed-regardless-of-theme solid-button colors), same idea as
+  Brass's own already had.
+- Settings modal: a new "Color Palette" segmented-control section (same
+  `.segmented` component as Appearance), each button carrying a small
+  literal-hex `.palette-swatch` dot so people can see the hue before
+  picking it.
+- `setPalette()`/`getStoredPalette()`/`updatePaletteToggleUI()` mirror the
+  shape of `setTheme()`/`getStoredTheme()`/`updateThemeToggleUI()` exactly,
+  as a fully independent axis — picking a palette never touches
+  `themePreference`, and vice versa.
+
+**Native widget sync** (this was explicitly requested as a fast-follow —
+the palette shipped first without it, then this was added): `setPalette()`
+now also calls `mirrorPaletteToNative(palette)`, the same
+platform-branching shape as the existing `mirrorThemeToNative()`:
+- **Android**: writes `findATalkPalette` via `@capacitor/preferences`
+  (removed entirely for `'brass'`, same "missing key = default" pattern
+  the theme mirror already used), then calls `WidgetRefresh.refresh()`.
+  `TalkOfDayWidgetProvider.java`'s old `applyThemeOverride()` became
+  `applyAppearanceOverride()` — now reads **both** `THEME_KEY` and the new
+  `PALETTE_KEY`, and only early-returns (leaving the layout's
+  auto-following `@color/widget_*`/`values-night` resources alone) in the
+  one case that needs nothing extra: Brass with no explicit theme choice
+  either. Any other combination resolves a literal color set from a new
+  per-palette constant matrix (`LIGHT_ROSE_INK`, `DARK_SLATE_ACCENT2`,
+  etc.) and one of **6 new drawables**
+  (`widget_background_{rose,slate,sage}_{light,dark}.xml`) — plain
+  rounded-rect shapes mirroring the existing Brass pair, literal hex only
+  (no `@color/` refs, same reasoning as the Brass ones: a resource
+  reference would re-resolve against whatever the device's *current*
+  system night mode is, defeating an explicit override). A new
+  `isSystemDark(Context)` helper covers the case a non-Brass palette is
+  set but no explicit Light/Dark choice was made — it can't rely on
+  `values-night` doing that automatically like Brass could, since
+  `@color/widget_*` only ever resolves to Brass's hex values.
+  - **Real bug caught by actually running `./gradlew`, worth remembering**:
+    the first draft of those 6 drawables had XML comments mentioning CSS
+    variable names like `--paper-raised` — literal `--` **inside** an XML
+    comment body is invalid (XML spec forbids it, unlike HTML), and Android's
+    resource compiler rejects it with a fairly obscure
+    `XMLStreamException`/"The string "--" is not permitted within
+    comments" error, not a friendly one. Fixed by dropping the leading
+    `--` when referring to a CSS custom property name inside an XML
+    comment (write `paper-raised`, not `--paper-raised`). Both
+    `compileDebugJavaWithJavac` and a full `assembleDebug` were run to
+    confirm — this wasn't just a syntax skim.
+- **iOS**: `StreakBridgePlugin` gained a second bridge method,
+  `setPalettePreference`, writing `findATalkPalette` to the same App Group
+  `UserDefaults` suite as the streak/theme keys, then reloading the widget
+  timeline — same shape as the existing `setThemePreference`.
+  `TalkOfDayWidget.swift`'s `TalkPalette` enum was restructured from a
+  single light/dark pair into four `PaletteSet`s (`brass`/`rose`/`slate`/
+  `sage`, each still holding its own light+dark `Scheme`); `TalkEntry`
+  gained a `paletteOverride: String?` field alongside the existing
+  `themeOverride`, read via a new `PaletteStore` (mirrors `ThemeStore`
+  exactly). `TalkPalette.resolve()` now takes both overrides — palette
+  picks which `PaletteSet`, theme (or the system `colorScheme` if no
+  explicit theme choice) picks light vs. dark within it. Verified with
+  `swiftc -typecheck` on `TalkModel.swift`/`TalkOfDayWidget.swift` (clean,
+  zero errors — these only import system frameworks) and `swiftc -parse`
+  on `StreakBridgePlugin.swift` (clean syntax; full typecheck isn't
+  possible standalone since it imports Capacitor, same limitation noted
+  elsewhere in this doc — needs a real Xcode build to fully confirm).
+
+All three platforms' hex values were hand-derived from the same four
+palette definitions and must be kept in sync if a palette's colors ever
+change — the CSS block, the Android constant matrix, and the Swift
+`PaletteSet`s are three independent copies of the same numbers, exactly
+like the pre-existing Brass light/dark values already were across all
+three before this feature existed.
+
+## ✅ Done: palette color rebalance + a real on-device WebKit bug found and fixed
+
+Two follow-ups to the Color Palette feature above, from the same session,
+both worth remembering in detail.
+
+**Color rebalance**, from live feedback after actually looking at all four
+palettes on-device: (1) Rose's light-mode background was too close to
+Brass's own ivory to read as a distinct palette at a glance — boosted the
+saturation of `--paper`/`--paper-raised`/`--line`/`--tint`/`--chip-*`/
+`--bg-glow-*` (ink/accent colors unchanged). (2) Every dark-mode `--ink`
+across all four palettes (including Brass) changed to pure `#ffffff`,
+not a tinted off-white — a tinted dark-mode ink is the app's single
+dominant text color, so any hue there read as "a color filter over the
+whole screen," worst on Sage. (3) Sage's light mode had the same root
+problem in miniature: `--ink`/`--ink-soft`/`--brass`/`--line` all carried
+real saturation toward green, on top of the already-green `--paper`,
+compounding into the same wash effect. Pulled all of those back toward
+neutral, matching the principle Brass itself already followed: only the
+two accent roles (`--brass`, `--burgundy`) should carry real saturation;
+neutral roles (`ink`, `paper`, `line`, `tint`, `chip`) stay close to
+neutral so the accents read as deliberate color choices, not a tint over
+everything. All three platforms (CSS, Android color constants +
+drawables, Swift `PaletteSet`s) were updated with the exact same new hex
+values and re-verified.
+
+**The WebKit bug** — found because the rebalance work above led to
+testing every palette live in the iOS Simulator (not just in a desktop
+browser), which the original Color Palette build never did. Rose (and
+only Rose) rendered as plain Brass no matter what — the Settings button
+showed "Rose" pressed, `localStorage` had `'rose'`, the DOM's
+`data-palette` attribute was genuinely `"rose"` (confirmed with a
+temporary live `getComputedStyle` debug readout injected into the page),
+but `getComputedStyle(document.documentElement).getPropertyValue('--ink')`
+kept resolving to Brass's ink, not Rose's. Reproduced identically in
+plain mobile Safari (not just the Capacitor WKWebView), ruling out
+anything Capacitor-specific. A Chromium-based browser (the Browser-pane
+tool used throughout this project) did **not** reproduce it at all —
+this is WebKit-only.
+
+**Root cause, confirmed empirically**: it isn't about the word "rose".
+Physically swapping the Rose and Slate CSS blocks in the stylesheet moved
+the failure to Slate (now first) while Rose (now second) started working
+— proven twice, in both directions, with a live debug readout each time.
+WebKit does not reliably wire up dynamic-attribute-change invalidation
+for the **first** CSS rule anywhere in a stylesheet that uses a brand-new
+attribute name in an attribute selector (here, `[data-palette="..."]`).
+Change that attribute's value via JS afterward and the DOM attribute is
+correct, but the matching rule silently never applies — the cascade just
+keeps resolving to whatever rule *did* get bucketed correctly (the base
+`:root{}`, i.e. Brass). Two other fixes were tried and **did not work on
+their own**, worth remembering so nobody retries them expecting a
+different result: (1) reordering the blocks (just relocates the bug); (2)
+having `data-palette="brass"` present in the static HTML from initial
+parse, so the attribute always exists and only its *value* ever changes
+(still failed identically on a fresh origin, no prior page load, ruling
+out "attribute presence at parse time" as the deciding factor).
+
+**The actual fix**: a single harmless, permanently-unmatched dummy rule —
+`:root[data-palette="_warmup"]{ --ink: inherit; }` — placed as the
+literal first `[data-palette="..."]` rule in the stylesheet, before
+Rose/Slate/Sage's real rules. This "pre-registers" whatever internal
+selector bucket WebKit uses for that attribute name, so every real rule
+after it (first, second, or third) gets normal, correctly-invalidated
+updates. Verified extensively after adding it: fresh app installs, first
+click in a fresh Safari origin, and reordering Rose/Slate back to their
+original positions — all four palettes (including Rose, repeatedly) now
+apply correctly, confirmed both by `getComputedStyle` readouts and by
+pixel-sampling real screenshots for exact hex matches (not eyeballing —
+screenshot colors at a distance are unreliable, and this session
+misjudged them more than once before switching to programmatic pixel
+checks).
+
+**Do not remove the `_warmup` rule, and do not move it after the real
+palette rules** — it only works by being the literal first
+`[data-palette]` rule in the file. Its own code comment (right above it,
+in the "color palettes" CSS section of `docs/index.html`) carries this
+same warning. If a fifth palette is ever added, it does not need a
+`_warmup` rule of its own — one already covers the whole attribute name.
+This is a WebKit engine quirk, not something tied to this app's specific
+markup, so it's plausible (though unconfirmed) that the same fix would be
+needed for any future `[data-xxx="..."]`-driven dynamic styling added to
+this app — if a brand-new attribute-selector-driven feature ever seems to
+silently not apply on iOS/Safari specifically while working fine in a
+desktop browser, this bug is the first thing to suspect.
+
+## ✅ Done: Notes ("what I learned" per talk) and a My Notes page
+Added a fifth per-talk action alongside Favorite/Add to List/Share: a
+pencil icon that opens a small modal for a free-text note, plus a new "My
+Notes" page in the tab bar (Home/Recents/Favorites/**My Notes**/My Lists).
+Fully local (no accounts/sync), same as Favorites/My Lists/streak.
+
+- **Storage**: `NOTES_KEY = 'findATalkNotes'`, `noteMap` — a plain object
+  (`talkKey() -> note text`), not a Set/array like `favoriteKeys`, since
+  each talk holds at most one note and the text itself is needed, not
+  just membership. `setNote()` trims and **deletes** the key on an empty
+  string rather than storing `""`, so `hasNote()` never has to
+  special-case a blank value sitting in storage.
+- **"Recently Noted" ordering quirk worth remembering**: plain-object key
+  order is insertion order, but JS does **not** move a key to the end on
+  reassignment the way `favoriteKeys` (a `Set`) does on re-add. `setNote()`
+  works around this by `delete`-then-`re-set`ting on every save, so
+  editing an existing note bumps it to the front of "Recently Noted" the
+  same way re-favoriting already does for Favorites — without this, only
+  the first-ever save of a note would affect its sort position.
+- **UI reuse**: the note icon button (`createNoteButton()`) is the same
+  `.share-btn-icon` circle pattern as `createFavoriteButton()`/
+  `createCollectionButton()` — filled/brass once a note exists, tooltip
+  shows a preview, `dataset.talkKey` + `refreshNoteBadgesFor()` re-syncs
+  every on-page copy after a save/delete (identical pattern to
+  `refreshCollectionBadgesFor()`). The note preview itself
+  (`.list-item-note`, "Your note: …") renders on **every** row that has
+  one — list rows, Recently Viewed, Favorites, My Lists, My Notes — not
+  just the My Notes page, same "surface it everywhere the talk appears"
+  spirit as the kicker/read badge.
+- **My Notes page**: built with the exact same `createSubsetFilterPanel()`
+  / `createSortToggle()` / `renderSubsetList()` machinery Recently Viewed
+  and Favorites already use — full Speaker/Calling/Conference/Topic
+  filters, "Recently Noted" vs. "Conference Date" sort, same empty-state
+  pattern. No new page-rendering code was needed, just another instance
+  pointed at `noteMap`'s keys instead of `favoriteKeys`/`recentKeys`.
+- **Modal**: `#noteModalOverlay`, reuses the existing `.modal`/`.modal-
+  header`/`.modal-copy` styling from the "Add to a List" modal, plus one
+  new `.note-textarea` rule. Save / Cancel / Delete Note (Delete only
+  shown when a note already exists). Same overlay-click/Escape-to-close
+  pattern as every other modal in the app — each modal wires its own
+  listener rather than sharing one generic handler, matching existing
+  style (see the Settings and Add-to-List modals).
+- **Backup export/import**: `notes: noteMap` added to
+  `exportBackupData()`. `mergeBackupData()` never overwrites a note
+  already on the device — an incoming backup only fills in talks that
+  don't have a local note yet — same "import never destroys" guarantee
+  as Favorites/My Lists, plus a returned `addedNotes` count now shown in
+  the import summary toast.
+- **Verified live** in the Browser pane against a local `python3 -m
+  http.server` copy (not `file://` — local `fetch()` of `data.json` is
+  blocked under `file://`, per the existing note on this in the Phase 1
+  section above): added a note from the Talk of the Day card, confirmed
+  the pencil icon filled brass immediately, confirmed it appears on the
+  My Notes page with filters/sort working, edited it (modal correctly
+  prefilled the existing text and showed "Delete Note"), deleted it, and
+  confirmed the empty-state message. No console errors. Also verified via
+  `node --check` on the extracted inline script (no syntax errors) and a
+  full `getElementById`-vs-`id=` cross-check (no dangling references)
+  before ever loading it in a browser.

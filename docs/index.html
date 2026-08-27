@@ -1,20 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- data-palette="brass" is present from the start (not added later by JS)
+     as one part of a two-part workaround for a real on-device WebKit bug
+     — see the `_warmup` rule in <style> (the "color palettes" section)
+     for the actual fix and the full story. Keeping the attribute present
+     here too, rather than absent-means-Brass, means setPalette() can
+     always SET a value and never needs to add/remove the attribute
+     itself, which is one less moving part now that a value change is the
+     only kind of update this attribute ever goes through. -->
+<html lang="en" data-palette="brass">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pick a Talk — General Conference</title>
-<!-- Applies a saved dark-mode choice (if any) before first paint, so the
-     page never flashes light-then-dark on load. Must run before the
-     <style> block below is parsed. If no explicit choice was ever saved,
-     this does nothing and the `prefers-color-scheme` media query in the
-     stylesheet handles following the system setting instead. -->
+<!-- Applies a saved dark-mode choice and a saved color palette (if any)
+     before first paint, so the page never flashes light-then-dark, or
+     Brass-then-something-else, on load. Must run before the <style> block
+     below is parsed. If no explicit theme choice was ever saved, this does
+     nothing for theme and the `prefers-color-scheme` media query in the
+     stylesheet handles following the system setting instead. Palette has
+     no "system" equivalent — the <html> tag's own data-palette="brass"
+     (see its comment above) is already the correct default, so this
+     script only needs to overwrite that value when localStorage holds an
+     explicit rose/slate/sage choice, never add the attribute fresh. -->
 <script>
 (function(){
   try{
     var t = localStorage.getItem('themePreference');
     if (t==='dark' || t==='light') document.documentElement.setAttribute('data-theme', t);
   } catch(err){ /* ignore — falls back to system preference */ }
+  try{
+    var p = localStorage.getItem('themePalette');
+    if (p==='rose' || p==='slate' || p==='sage') document.documentElement.setAttribute('data-palette', p);
+  } catch(err){ /* ignore — falls back to Brass, the default */ }
 })();
 </script>
 <meta name="theme-color" id="themeColorMeta" content="#f3efe2">
@@ -67,7 +84,7 @@
      itself is set to dark. */
   :root[data-theme="dark"]{
     color-scheme: dark;
-    --ink:#f3efe2;
+    --ink:#ffffff;
     --ink-soft:#b7bdcf;
     --paper:#161b26;
     --paper-raised:#1f2635;
@@ -89,7 +106,7 @@
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       color-scheme: dark;
-      --ink:#f3efe2;
+      --ink:#ffffff;
       --ink-soft:#b7bdcf;
       --paper:#161b26;
       --paper-raised:#1f2635;
@@ -109,6 +126,256 @@
       --time-icon-filter: invert(1);
     }
   }
+
+  /* ---------- color palettes ----------
+     A second, independent axis from Appearance (Light/Dark/System) above.
+     Brass is the default and needs no override — it's just what the base
+     :root and the two dark-mode blocks above already define. Each other
+     palette (Rose/Slate/Sage) gets three blocks: a plain `[data-palette]`
+     override (light-mode token values, plus the --accent-grad-*/
+     --accent-fill* pair, which — like Brass's own — stays fixed across
+     light AND dark within one palette, so it only needs to be set here,
+     not repeated below), a `[data-theme="dark"][data-palette]` override
+     (dark-mode token values, explicit choice), and the matching
+     `prefers-color-scheme: dark` block (dark-mode token values, "System"
+     appearance). Combining two attribute selectors always outranks the
+     single-attribute Appearance-only dark blocks above, regardless of
+     source order, so switching palette never fights with switching
+     Light/Dark. `themePalette` in localStorage holds the choice ('rose'/
+     'slate'/'sage'); absent means Brass. Wired up alongside the
+     Appearance segmented control, further down in the page's JS.
+
+     The `_warmup` rule right below is a real fix for a real on-device
+     WebKit bug, found the hard way while testing this feature in the iOS
+     Simulator and confirmed with a live getComputedStyle readout: the
+     FIRST CSS rule anywhere in the stylesheet to use a given attribute
+     name in an attribute selector (here, `[data-palette="..."]`) does not
+     reliably get wired up for dynamic-attribute-change invalidation on
+     WebKit — set that attribute via JS afterward and the DOM attribute is
+     genuinely correct (confirmed), but the matching rule silently never
+     applies and the base :root values keep winning. This isn't about the
+     word "rose": reordering the three real palette blocks just moved the
+     failure to whichever one ended up first. A harmless, permanently-
+     unmatched dummy rule using the same attribute name, placed first,
+     "pre-registers" that selector bucket so every real rule after it
+     — first, second, or third — gets normal, correctly-invalidated
+     updates. Do not remove this rule, and do not reorder it after the
+     real ones: it only works by being the literal first `[data-palette]`
+     rule in the file. If a fifth palette is ever added, it doesn't need
+     its own warmup — one is enough for the whole attribute name. */
+  :root[data-palette="_warmup"]{ --ink: inherit; }
+  :root[data-palette="rose"]{
+    --ink:#3c2530;
+    --ink-soft:#6b4c58;
+    /* Paper/line/tint/chip surfaces below carry noticeably more saturation
+       than a typical light-palette background — this was deliberately
+       turned up from a first draft that was too close to Brass's own
+       ivory to read as a distinct palette at a glance (user feedback:
+       "I don't see a shift in palette from Light/Brass to Light/Rose"). */
+    --paper:#f7e2df;
+    --paper-raised:#fbece8;
+    --brass:#a45a72;
+    --brass-bright:#c07992;
+    --burgundy:#a3792f;
+    --burgundy-hover:#8a6527;
+    --line:#e0b7ba;
+    --shadow: 0 18px 40px -20px rgba(60,37,48,0.35);
+    --shadow-hover: 0 22px 44px -18px rgba(60,37,48,.45);
+    --overlay: rgba(60,37,48,.45);
+    --tint:#f3d9d7;
+    --bg-glow-1:#faeae7;
+    --bg-glow-2:#f3d9d7;
+    --chip-border:#e6bcbf;
+    --chip-bg:#fae3e0;
+    --accent-grad-start:#5c3a48;
+    --accent-grad-end:#3c2530;
+    --accent-fill:#8a6527;
+    --accent-fill-hover:#714f1c;
+  }
+  :root[data-theme="dark"][data-palette="rose"]{
+    --ink:#ffffff;
+    --ink-soft:#c9b3ba;
+    --paper:#1e1519;
+    --paper-raised:#271a20;
+    --brass:#d491a8;
+    --brass-bright:#e3aabd;
+    --burgundy:#c9a35e;
+    --burgundy-hover:#dab97c;
+    --line:#3d2c33;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+    --overlay: rgba(0,0,0,.65);
+    --tint:#2e2126;
+    --bg-glow-1:rgba(255,255,255,.05);
+    --bg-glow-2:rgba(212,145,168,.07);
+    --chip-border:#4a2f38;
+    --chip-bg:#26181d;
+    --time-icon-filter: invert(1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"])[data-palette="rose"]{
+      --ink:#ffffff;
+      --ink-soft:#c9b3ba;
+      --paper:#1e1519;
+      --paper-raised:#271a20;
+      --brass:#d491a8;
+      --brass-bright:#e3aabd;
+      --burgundy:#c9a35e;
+      --burgundy-hover:#dab97c;
+      --line:#3d2c33;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+      --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+      --overlay: rgba(0,0,0,.65);
+      --tint:#2e2126;
+      --bg-glow-1:rgba(255,255,255,.05);
+      --bg-glow-2:rgba(212,145,168,.07);
+      --chip-border:#4a2f38;
+      --chip-bg:#26181d;
+      --time-icon-filter: invert(1);
+    }
+  }
+
+  :root[data-palette="slate"]{
+    --ink:#202b3a;
+    --ink-soft:#4c5a6c;
+    --paper:#eceff3;
+    --paper-raised:#f5f7fa;
+    --brass:#4a6f92;
+    --brass-bright:#6a8bab;
+    --burgundy:#6a3b5c;
+    --burgundy-hover:#55304a;
+    --line:#c3cbd4;
+    --shadow: 0 18px 40px -20px rgba(32,43,58,0.35);
+    --shadow-hover: 0 22px 44px -18px rgba(32,43,58,.45);
+    --overlay: rgba(32,43,58,.45);
+    --tint:#dde3ea;
+    --bg-glow-1:#f6f8fa;
+    --bg-glow-2:#dde3ea;
+    --chip-border:#c9d2dc;
+    --chip-bg:#eff2f6;
+    --accent-grad-start:#334759;
+    --accent-grad-end:#202b3a;
+    --accent-fill:#55304a;
+    --accent-fill-hover:#43263a;
+  }
+  :root[data-theme="dark"][data-palette="slate"]{
+    --ink:#ffffff;
+    --ink-soft:#b3bdc9;
+    --paper:#131a22;
+    --paper-raised:#1b232e;
+    --brass:#7fa9c9;
+    --brass-bright:#9dc0dc;
+    --burgundy:#c98bb0;
+    --burgundy-hover:#d9a3c1;
+    --line:#2c3846;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+    --overlay: rgba(0,0,0,.65);
+    --tint:#212b37;
+    --bg-glow-1:rgba(255,255,255,.05);
+    --bg-glow-2:rgba(127,169,201,.07);
+    --chip-border:#324152;
+    --chip-bg:#1a222b;
+    --time-icon-filter: invert(1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"])[data-palette="slate"]{
+      --ink:#ffffff;
+      --ink-soft:#b3bdc9;
+      --paper:#131a22;
+      --paper-raised:#1b232e;
+      --brass:#7fa9c9;
+      --brass-bright:#9dc0dc;
+      --burgundy:#c98bb0;
+      --burgundy-hover:#d9a3c1;
+      --line:#2c3846;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+      --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+      --overlay: rgba(0,0,0,.65);
+      --tint:#212b37;
+      --bg-glow-1:rgba(255,255,255,.05);
+      --bg-glow-2:rgba(127,169,201,.07);
+      --chip-border:#324152;
+      --chip-bg:#1a222b;
+      --time-icon-filter: invert(1);
+    }
+  }
+
+  :root[data-palette="sage"]{
+    /* ink/ink-soft/paper/line/tint/chip below were pulled MUCH closer to
+       neutral than a first draft that saturated every one of those roles
+       toward green, which read as "a green filter over everything" (user
+       feedback) rather than a palette — same root cause the "keep dark
+       ink pure white" fix above addresses for dark mode. The lesson,
+       matching how Brass itself already works: only the two accent roles
+       (--brass/--burgundy here) should carry real saturation; ink/paper/
+       line/tint/chip stay close to neutral so the accents read as color
+       choices rather than a wash over the whole page. */
+    --ink:#28322a;
+    --ink-soft:#5c645d;
+    --paper:#f2f0e4;
+    --paper-raised:#f8f7ec;
+    --brass:#6f7c3f;
+    --brass-bright:#8a9853;
+    --burgundy:#8c4a2f;
+    --burgundy-hover:#733c26;
+    --line:#cac7ba;
+    --shadow: 0 18px 40px -20px rgba(38,59,44,0.35);
+    --shadow-hover: 0 22px 44px -18px rgba(38,59,44,.45);
+    --overlay: rgba(38,59,44,.45);
+    --tint:#e8e6da;
+    --bg-glow-1:#f9f8ee;
+    --bg-glow-2:#e8e6da;
+    --chip-border:#d5d3bf;
+    --chip-bg:#f0eee0;
+    --accent-grad-start:#3f4c41;
+    --accent-grad-end:#28322a;
+    --accent-fill:#733c26;
+    --accent-fill-hover:#5c301e;
+  }
+  :root[data-theme="dark"][data-palette="sage"]{
+    --ink:#ffffff;
+    --ink-soft:#b9c2b5;
+    --paper:#171e18;
+    --paper-raised:#202920;
+    --brass:#9db06a;
+    --brass-bright:#b4c586;
+    --burgundy:#d98a63;
+    --burgundy-hover:#e4a17e;
+    --line:#334033;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+    --overlay: rgba(0,0,0,.65);
+    --tint:#26301f;
+    --bg-glow-1:rgba(255,255,255,.05);
+    --bg-glow-2:rgba(157,176,106,.07);
+    --chip-border:#3d4a30;
+    --chip-bg:#1e2618;
+    --time-icon-filter: invert(1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"])[data-palette="sage"]{
+      --ink:#ffffff;
+      --ink-soft:#b9c2b5;
+      --paper:#171e18;
+      --paper-raised:#202920;
+      --brass:#9db06a;
+      --brass-bright:#b4c586;
+      --burgundy:#d98a63;
+      --burgundy-hover:#e4a17e;
+      --line:#334033;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+      --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+      --overlay: rgba(0,0,0,.65);
+      --tint:#26301f;
+      --bg-glow-1:rgba(255,255,255,.05);
+      --bg-glow-2:rgba(157,176,106,.07);
+      --chip-border:#3d4a30;
+      --chip-bg:#1e2618;
+      --time-icon-filter: invert(1);
+    }
+  }
+
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -254,6 +521,16 @@
   }
   .segmented button[aria-pressed="true"]:hover{ color:var(--on-accent); }
   .segmented button:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:-2px; }
+  /* Color Palette segmented control — same .segmented base as Appearance,
+     plus a small fixed-color dot per option so people can see the hue
+     before picking it. The dot's own color is a literal per-palette hex
+     value (not a CSS var), since it must show that palette's color
+     regardless of which palette is currently active. */
+  .palette-swatch{
+    display:inline-block; width:10px; height:10px; border-radius:50%;
+    margin-right:6px; vertical-align:-1px; flex-shrink:0;
+  }
+  .palette-segmented button{ display:inline-flex; align-items:center; justify-content:center; }
   /* Daily-reminder on/off switch, native app only. */
   .settings-row{
     display:flex; align-items:center; justify-content:space-between; gap:16px;
@@ -838,6 +1115,12 @@
 
   #collectionBtn.in-collection{ border-color:var(--brass); color:var(--burgundy); }
 
+  .note-btn-icon svg{ width:14px; height:14px; }
+  .note-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .note-btn-icon.has-note{ border-color:var(--brass); color:var(--brass); }
+
+  #noteBtn.has-note{ border-color:var(--brass); color:var(--burgundy); }
+
   /* ---------- read badge ---------- */
   /* [hidden] is called out explicitly below because it ties in
      specificity with the plain class rule (both 0,1,0) — without this,
@@ -941,6 +1224,22 @@
   .modal-actions{
     display:flex; justify-content:flex-end; gap:10px;
   }
+  .modal-actions .reset-link{ margin-right:auto; align-self:center; }
+
+  /* ---------- note modal ---------- */
+  .note-textarea{
+    width:100%;
+    min-height:130px;
+    resize:vertical;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink); /* see #querySearch's comment on iOS zoom-on-focus */
+    line-height:1.5;
+    box-sizing:border-box;
+  }
+  .note-textarea:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
 
   /* ---------- My Lists index page ---------- */
   .collections-new-row{
@@ -1026,6 +1325,19 @@
     line-height:1.5;
     color:var(--ink-soft);
   }
+  .list-item-note{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    line-height:1.5;
+    color:var(--ink);
+    background:var(--paper-raised);
+    border-left:2px solid var(--brass);
+    padding:6px 10px;
+    margin-top:8px;
+    border-radius:2px;
+    white-space:pre-wrap;
+  }
+  .list-item-note strong{ color:var(--brass); font-weight:600; }
   .list-footer{ text-align:center; margin-top:16px; }
   .list-pagination{
     display:flex; align-items:center; justify-content:center;
@@ -1109,14 +1421,6 @@
     <div class="streak-badge" id="streakBadge" hidden></div>
   </div>
 
-  <div class="search-field">
-    <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
-    <div class="search-input-wrap">
-      <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
-      <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
-    </div>
-  </div>
-
   <div class="filters">
     <div class="field">
       <label id="roleLabel">Calling at the Time of the Talk</label>
@@ -1165,6 +1469,17 @@
       </div>
     </div>
     <div class="field">
+      <label id="sessionLabel">Session</label>
+      <button type="button" class="ms-trigger" id="sessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="sessionLabel sessionTriggerText">
+        <span class="ms-trigger-text" id="sessionTriggerText">Any Session</span>
+        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ms-panel" id="sessionPanel" hidden>
+        <div class="ms-options" id="sessionOptions"></div>
+        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="sessionClear">Clear</button></div>
+      </div>
+    </div>
+    <div class="field">
       <label id="mineLabel">Recent/Favorites</label>
       <button type="button" class="ms-trigger" id="mineTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="mineLabel mineTriggerText">
         <span class="ms-trigger-text" id="mineTriggerText">All talks</span>
@@ -1174,6 +1489,14 @@
         <div class="ms-options" id="mineOptions"></div>
         <div class="ms-panel-footer"><button type="button" class="ms-clear" id="mineClear">Clear</button></div>
       </div>
+    </div>
+  </div>
+
+  <div class="search-field">
+    <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
+    <div class="search-input-wrap">
+      <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
+      <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
     </div>
   </div>
 
@@ -1211,6 +1534,7 @@
         <button class="btn btn-ghost" id="shareBtn" type="button">Share</button>
         <button class="btn btn-ghost" id="favoriteBtn" type="button">☆ Favorite</button>
         <button class="btn btn-ghost" id="collectionBtn" type="button">+ Add to List</button>
+        <button class="btn btn-ghost" id="noteBtn" type="button">📝 Add Note</button>
         <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
         <button class="btn btn-ghost" id="forwardBtn" type="button" disabled>Next →</button>
         <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
@@ -1273,6 +1597,24 @@
     <div class="list-empty" id="favoritesEmpty"></div>
   </div>
 
+  <div id="notesZone" style="display:none">
+    <div class="page-nav" id="notesZoneNav"></div>
+    <div class="page-header">
+      <h2 class="page-title">My Notes</h2>
+    </div>
+    <div class="filters" id="notesFilters"></div>
+    <div class="filters-actions">
+      <div class="sort-toggle" id="notesSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Noted</button>
+        <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
+      </div>
+      <button type="button" class="reset-link" id="notesFilterReset">Reset filters</button>
+    </div>
+    <div class="pool-count" id="notesFilterCount"></div>
+    <div class="list-items" id="notesItems"></div>
+    <div class="list-empty" id="notesEmpty"></div>
+  </div>
+
   <div id="collectionsIndexZone" style="display:none">
     <div class="page-nav" id="collectionsIndexZoneNav"></div>
     <div class="page-header">
@@ -1287,7 +1629,7 @@
       <button type="button" id="backupImportBtn">Import Backup</button>
       <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
     </div>
-    <p class="backup-hint">Favorites and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
+    <p class="backup-hint">Favorites, notes, and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
     <div class="collections-index-list" id="collectionsIndexList"></div>
     <div class="list-empty" id="collectionsIndexEmpty">You haven't created any lists yet — name one above to get started.</div>
   </div>
@@ -1320,6 +1662,22 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="noteModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="noteModalTitle">
+      <div class="modal-header">
+        <h3 id="noteModalTitle">My Note</h3>
+        <button type="button" class="modal-close" id="noteModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy" id="noteModalTalkInfo"></p>
+      <textarea class="note-textarea" id="noteModalTextarea" placeholder="What did you learn from this talk?" aria-label="Your note"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="reset-link" id="noteModalDeleteBtn" hidden>Delete Note</button>
+        <button type="button" class="btn btn-ghost" id="noteModalCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="noteModalSaveBtn">Save Note</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="notifPermModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifPermModalTitle">
       <div class="modal-header">
@@ -1346,6 +1704,16 @@
           <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
           <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
           <button type="button" data-theme-choice="system" aria-pressed="false">System</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <p class="settings-label">Color Palette</p>
+        <div class="segmented palette-segmented" role="group" aria-label="Color Palette">
+          <button type="button" data-palette-choice="brass" aria-pressed="false"><span class="palette-swatch" style="background:#a9822f"></span>Brass</button>
+          <button type="button" data-palette-choice="rose" aria-pressed="false"><span class="palette-swatch" style="background:#a45a72"></span>Rose</button>
+          <button type="button" data-palette-choice="slate" aria-pressed="false"><span class="palette-swatch" style="background:#4a6f92"></span>Slate</button>
+          <button type="button" data-palette-choice="sage" aria-pressed="false"><span class="palette-swatch" style="background:#6f7c3f"></span>Sage</button>
         </div>
       </div>
 
@@ -1477,6 +1845,81 @@ if (window.matchMedia){
 }
 
 /* ---------------------------------------------------------------
+   Color Palette. Independent of the Appearance/dark-mode logic above —
+   see the "color palettes" CSS comment for why the two axes don't
+   conflict. `themePalette` in localStorage holds 'rose'/'slate'/'sage';
+   absent means Brass, the default — the <html> tag starts with
+   data-palette="brass" already on it, so setPalette() always sets a
+   value, never removes the attribute (see its own function comment, and
+   the `_warmup` CSS rule, for the WebKit bug this is all in service of).
+   Also mirrored to native storage (see
+   mirrorPaletteToNative() below) so the home-screen widgets can match it,
+   same idea as mirrorThemeToNative() above but its own key — the two
+   bridges are independent, a person can pick a palette without an
+   explicit Light/Dark choice and vice versa.
+------------------------------------------------------------------*/
+const PALETTE_KEY = 'themePalette';
+const VALID_PALETTES = ['rose', 'slate', 'sage'];
+function getStoredPalette(){
+  try {
+    const p = localStorage.getItem(PALETTE_KEY);
+    return VALID_PALETTES.includes(p) ? p : null;
+  } catch(err){ return null; }
+}
+function updatePaletteToggleUI(){
+  const active = getStoredPalette() || 'brass';
+  document.querySelectorAll('[data-palette-choice]').forEach((btn)=>{
+    btn.setAttribute('aria-pressed', String(btn.dataset.paletteChoice === active));
+  });
+}
+function setPalette(palette){
+  // Always SETS a value, never removes the attribute, matching the
+  // <html> tag already starting with data-palette="brass" rather than no
+  // attribute at all — one less state to keep in sync. The actual fix for
+  // the WebKit bug that motivated this is the `_warmup` CSS rule (see its
+  // comment in the "color palettes" section); this alone wouldn't have
+  // been enough on its own.
+  document.documentElement.setAttribute('data-palette', palette);
+  if (palette === 'brass'){
+    try { localStorage.removeItem(PALETTE_KEY); } catch(err){ /* ignore */ }
+  } else {
+    try { localStorage.setItem(PALETTE_KEY, palette); } catch(err){ /* ignore */ }
+  }
+  updatePaletteToggleUI();
+  mirrorPaletteToNative(palette);
+}
+/* Copies the Color Palette choice into native storage so the home-screen
+   widgets can match it — same problem and same two platform-specific
+   paths as mirrorThemeToNative() above: a widget runs in a separate
+   process from this WebView and can't see localStorage. 'brass' clears
+   the native override (missing key = Brass, the default) rather than
+   writing the literal string, mirroring how mirrorThemeToNative() clears
+   rather than writes 'system'. */
+async function mirrorPaletteToNative(palette){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const platform = cap.getPlatform ? cap.getPlatform() : '';
+  try {
+    if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
+      if (palette === 'brass'){
+        await cap.Plugins.Preferences.remove({key: 'findATalkPalette'});
+      } else {
+        await cap.Plugins.Preferences.set({key: 'findATalkPalette', value: palette});
+      }
+      if (cap.Plugins.WidgetRefresh){
+        try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
+      }
+    } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
+      await cap.Plugins.StreakBridge.setPalettePreference({palette});
+    }
+  } catch(err){ /* native widget just won't see the fresh choice this time — not fatal */ }
+}
+document.querySelectorAll('[data-palette-choice]').forEach((btn)=>{
+  btn.addEventListener('click', ()=> setPalette(btn.dataset.paletteChoice));
+});
+updatePaletteToggleUI();
+
+/* ---------------------------------------------------------------
    Settings modal — houses Appearance above and the Daily Reminder
    toggle below. Same open/close pattern as the "Add to a List" modal
    (see closeCollectionModal() further down): overlay click, Escape,
@@ -1575,6 +2018,30 @@ const ROLE_ORDER = ["president","first-presidency","apostle","relief-society","p
    TOPIC_LOOKUP/KICKER_LOOKUP above, reused here so recents/favorites can
    be stored as plain strings in localStorage and looked back up later. */
 function talkKey(talk){ return `${talk[2]}|${talk[3]}|${talk[4]}`; }
+
+/* ---------------------------------------------------------------
+   Session filter — SCAFFOLD ONLY. Which session of conference a talk
+   was given in (Saturday/Sunday AM/PM, the two standalone General
+   Priesthood/General Women's sessions, or "other" for anything that
+   doesn't fit that modern pattern — older standalone conferences,
+   solemn assemblies, etc.). SESSION_LOOKUP is not yet backfilled with
+   real per-talk data (that's a separate research pass over each
+   conference's session listing pages, same shape as the Role/Topic
+   backfills above) — applyData() below tolerates a missing
+   `sessionLookup` in data.json and falls back to `{}`, so until that
+   backfill lands, talkSession() defaults every talk to 'other' and
+   the Session filter panel will only ever show that one option. Order
+   here is display order, oldest-in-the-day first, "other" last —
+   matching the pattern ROLE_ORDER already sets above. */
+const SESSION_ORDER = ["sat-am","sat-pm","sun-am","sun-pm","priesthood","womens","other"];
+const SESSION_LABELS = {
+  "sat-am": "Saturday AM", "sat-pm": "Saturday PM",
+  "sun-am": "Sunday AM", "sun-pm": "Sunday PM",
+  "priesthood": "General Priesthood", "womens": "General Women’s",
+  "other": "Other"
+};
+let SESSION_LOOKUP;
+function talkSession(talk){ return SESSION_LOOKUP[talkKey(talk)] || 'other'; }
 
 /* ---------------------------------------------------------------
    Recently-viewed and favorited talks — both purely local to this
@@ -1902,6 +2369,50 @@ function removeTalksFromCollection(id, talks){
   saveCollectionMembers();
 }
 
+/* ---------------------------------------------------------------
+   Notes — a short free-text "what I learned" note a person can attach to
+   any talk, purely local to this device (no accounts/sync, same as
+   Favorites and My Lists above). Stored as a plain object keyed by
+   talkKey() -> note text, rather than a Set/array like favoriteKeys,
+   since each talk holds at most one note and we need the text itself, not
+   just membership. An empty/whitespace-only note is treated as "no note"
+   and removes the key entirely (setNote() trims and deletes rather than
+   storing ""), so hasNote()/noteCount() never have to special-case a
+   blank string sitting in storage. Included in backup export/import
+   alongside favorites/read/collections/streak — see the Backup
+   export/import section further down. ------------------------------- */
+const NOTES_KEY = 'findATalkNotes';
+let noteMap = {};
+function loadNotes(){
+  try {
+    const raw = localStorage.getItem(NOTES_KEY);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      noteMap = (parsed && typeof parsed === 'object') ? parsed : {};
+    }
+  } catch(err){ noteMap = {}; }
+}
+loadNotes();
+function saveNotes(){
+  try { localStorage.setItem(NOTES_KEY, JSON.stringify(noteMap)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+}
+function getNote(talk){ return noteMap[talkKey(talk)] || ''; }
+function hasNote(talk){ return !!getNote(talk); }
+/* Plain-object key order in JS is insertion order, but reassigning an
+   EXISTING key's value doesn't move it — unlike a Set/Map, which is how
+   favoriteKeys gets its "re-favoriting bumps to the end" behavior (see the
+   comment above FAVORITES_KEY). Deleting the key first before re-setting
+   it mirrors that same semantic here, so the My Notes page's "Recently
+   Noted" order reflects the most recent edit, not just first-written. */
+function setNote(talk, text){
+  const key = talkKey(talk);
+  const trimmed = (text || '').trim();
+  delete noteMap[key];
+  if (trimmed) noteMap[key] = trimmed;
+  saveNotes();
+}
+
 /* Splits a speaker's full name into { last, first, suffix } so the
    Speaker dropdown can be alphabetized by last name and displayed as
    "Last, First" (e.g. "Hinckley, Gordon B."). Handles a trailing
@@ -1950,6 +2461,14 @@ const allSpeakers = [...new Set(TALKS.map(t=>t[1]))]
   .sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
 const allTopics = Object.keys(TOPIC_LABELS);
 const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
+// Unlike allRoles (untagged talks just have no role), talkSession() always
+// resolves to a real value — 'other' by default — so this has to check
+// which values actually occur across TALKS, not just what's in the lookup
+// object. Until the Session backfill lands, SESSION_LOOKUP is empty and
+// every talk falls through to 'other', so this correctly evaluates to
+// just ['other'] for now — the other six options appear automatically
+// once real per-talk data starts populating SESSION_LOOKUP.
+const allSessions = SESSION_ORDER.filter(s=>TALKS.some(t=>talkSession(t)===s));
 
 document.getElementById('totalCount').textContent = TALKS.length;
 
@@ -1989,7 +2508,7 @@ function sortByConferenceDate(picks){
    separately (matchesSearch()) rather than through matchesDim/DIM_CONFIG,
    since it has no checkbox panel and no "available values" concept. It
    still AND's with everything else, same as any other active filter. */
-const filterState = { year: [], speaker: [], topic: [], role: [], mine: [], query: '' };
+const filterState = { year: [], speaker: [], topic: [], role: [], session: [], mine: [], query: '' };
 
 // "Show a List" pagination state — declared up here (not down by the rest
 // of the list-pagination code) because refreshCount() resets it on every
@@ -2010,6 +2529,7 @@ function matchesDim(t, dim, values){
   if (dim==='speaker') return values.includes(t[1]);
   if (dim==='topic') return talkTopics(t).some(tp=>values.includes(tp));
   if (dim==='role') return values.includes(talkRole(t));
+  if (dim==='session') return values.includes(talkSession(t));
   if (dim==='mine') return values.some(v=> v==='recent' ? recentKeys.includes(talkKey(t)) : isFavorite(t));
   return true;
 }
@@ -2038,6 +2558,7 @@ function valuesForDim(pool, dim){
   if (dim==='speaker') pool.forEach(t=>set.add(t[1]));
   if (dim==='topic') pool.forEach(t=>talkTopics(t).forEach(tp=>set.add(tp)));
   if (dim==='role') pool.forEach(t=>{ const r=talkRole(t); if(r) set.add(r); });
+  if (dim==='session') pool.forEach(t=>set.add(talkSession(t)));
   if (dim==='mine'){
     if (pool.some(t=>recentKeys.includes(talkKey(t)))) set.add('recent');
     if (pool.some(t=>isFavorite(t))) set.add('favorite');
@@ -2078,6 +2599,13 @@ const DIM_CONFIG = {
     panel: document.getElementById('rolePanel'), options: document.getElementById('roleOptions'),
     search: null, clearBtn: document.getElementById('roleClear')
   },
+  session: {
+    allValues: allSessions, anyLabel:'Any Session', noun:'sessions', searchable:false,
+    labelFor: v=>SESSION_LABELS[v],
+    trigger: document.getElementById('sessionTrigger'), triggerText: document.getElementById('sessionTriggerText'),
+    panel: document.getElementById('sessionPanel'), options: document.getElementById('sessionOptions'),
+    search: null, clearBtn: document.getElementById('sessionClear')
+  },
   mine: {
     allValues: ['recent','favorite'], anyLabel:'All talks', noun:'filters', searchable:false,
     labelFor: v=> v==='recent' ? 'Recently Viewed' : 'Favorites',
@@ -2089,7 +2617,7 @@ const DIM_CONFIG = {
 // The set of values still reachable for each dim given the OTHER active
 // filters — recomputed on every filter change, same "reachable" concept
 // the old single-select cascading used, just feeding checkboxes now.
-const availableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set(), mine:new Set() };
+const availableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set(), session:new Set(), mine:new Set() };
 
 /* Renders one dim's checkbox list from its current available set, current
    selections (never hidden even if no longer "available" — a choice
@@ -2245,6 +2773,9 @@ const recentEmptyEl = document.getElementById('recentEmpty');
 const favoritesZone = document.getElementById('favoritesZone');
 const favoritesItemsEl = document.getElementById('favoritesItems');
 const favoritesEmptyEl = document.getElementById('favoritesEmpty');
+const notesZone = document.getElementById('notesZone');
+const notesItemsEl = document.getElementById('notesItems');
+const notesEmptyEl = document.getElementById('notesEmpty');
 const collectionsIndexZone = document.getElementById('collectionsIndexZone');
 const collectionZone = document.getElementById('collectionZone');
 const collectionItemsEl = document.getElementById('collectionItems');
@@ -2297,6 +2828,18 @@ collectionBtn.addEventListener('click', ()=>{
   openCollectionModal(lastPicked);
 });
 
+const noteBtn = document.getElementById('noteBtn');
+function syncNoteBtn(){
+  const note = lastPicked ? getNote(lastPicked) : '';
+  noteBtn.textContent = note ? '✓ Note Added' : '📝 Add Note';
+  noteBtn.classList.toggle('has-note', !!note);
+  noteBtn.title = note ? `Your note: ${note}` : '';
+}
+noteBtn.addEventListener('click', ()=>{
+  if (!lastPicked) return;
+  openNoteModal(lastPicked);
+});
+
 // Reflects whether the currently-shown talk has already been opened at
 // least once (see markRead(), called from recordOpened() above) — a
 // small non-interactive line, same "already read" flag as the one shown
@@ -2345,6 +2888,7 @@ function showTicket(pick){
   lastPicked = pick;
   syncFavoriteBtn();
   syncCollectionBtn();
+  syncNoteBtn();
   syncReadBadge();
 
   const [title, speaker, year, month, slug] = pick;
@@ -2570,6 +3114,7 @@ function buildListItemRow(pick, {selectable=false}={}){
   actions.className = 'list-item-actions';
   actions.appendChild(createFavoriteButton(pick));
   actions.appendChild(createCollectionButton(pick));
+  actions.appendChild(createNoteButton(pick));
 
   const shareIconBtn = document.createElement('button');
   shareIconBtn.type = 'button';
@@ -2597,6 +3142,19 @@ function buildListItemRow(pick, {selectable=false}={}){
     summaryEl.className = 'list-item-summary';
     summaryEl.textContent = kicker;
     item.appendChild(summaryEl);
+  }
+
+  // Shows the person's own "what I learned" note, if they've written one
+  // for this talk — visible everywhere this row appears (Show a List,
+  // Recently Viewed, Favorites, My Lists, My Notes), not just on the My
+  // Notes page itself, same "surface it wherever the talk shows up"
+  // spirit as the read badge and kicker above.
+  if (hasNote(pick)){
+    const noteEl = document.createElement('div');
+    noteEl.className = 'list-item-note';
+    noteEl.innerHTML = `<strong>Your note:</strong> `;
+    noteEl.appendChild(document.createTextNode(getNote(pick)));
+    item.appendChild(noteEl);
   }
 
   return item;
@@ -2673,6 +3231,44 @@ function refreshCollectionBadgesFor(talk){
     if (btn.dataset.talkKey === key && btn._syncCollectionBadge) btn._syncCollectionBadge();
   });
   if (lastPicked && talkKey(lastPicked) === key) syncCollectionBtn();
+}
+
+/* A small icon button (same .share-btn-icon circle styling as Favorite/
+   Add-to-List) that opens the note modal for this talk. Doubles as a
+   badge exactly like createCollectionButton() above: filled/brass once a
+   note exists, tooltip shows a short preview. `_syncNoteBadge` and
+   `dataset.talkKey` let refreshNoteBadgesFor() re-sync every copy of this
+   button on the page after the modal saves/deletes a note, without
+   re-rendering (and, for "Show a List", re-shuffling) the list it's in. */
+function createNoteButton(pick){
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'share-btn-icon note-btn-icon';
+  btn.innerHTML = NOTE_ICON_SVG;
+  btn.dataset.talkKey = talkKey(pick);
+  const sync = ()=>{
+    const note = getNote(pick);
+    btn.classList.toggle('has-note', !!note);
+    btn.title = note ? `Your note: ${note}` : '';
+    btn.setAttribute('aria-label', note ? `Edit your note on "${pick[0]}"` : `Add a note to "${pick[0]}"`);
+  };
+  btn._syncNoteBadge = sync;
+  sync();
+  btn.addEventListener('click', ()=> openNoteModal(pick));
+  return btn;
+}
+/* Re-syncs every on-page copy of a talk's note badge (list rows plus the
+   ticket's own button) after a note was saved/deleted in the modal — same
+   reasoning as refreshCollectionBadgesFor() above. Also swaps in/out the
+   .list-item-note preview block on any row currently showing this talk,
+   since that block (unlike the badges) isn't rebuilt by a simple re-sync. */
+function refreshNoteBadgesFor(talk){
+  if (!talk) return;
+  const key = talkKey(talk);
+  document.querySelectorAll('.note-btn-icon').forEach(btn=>{
+    if (btn.dataset.talkKey === key && btn._syncNoteBadge) btn._syncNoteBadge();
+  });
+  if (lastPicked && talkKey(lastPicked) === key) syncNoteBtn();
 }
 
 /* ---------------- Talk of the Day ---------------- */
@@ -3007,6 +3603,7 @@ const SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 const STAR_ICON_SVG = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>';
 const COLLECTION_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
 const CHECK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>';
+const NOTE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
 /* Copies text with the modern async Clipboard API first, falling back to
    the older execCommand('copy') technique (a hidden, focused, selected
@@ -3092,9 +3689,10 @@ const NAV_ITEMS = [
   {zone:'home', label:'Home'},
   {zone:'recent', label:'Recents'},
   {zone:'favorites', label:'Favorites'},
+  {zone:'notes', label:'My Notes'},
   {zone:'collectionsIndex', label:'My Lists'}
 ];
-const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
+const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','notesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
 function renderNavBars(currentZone){
   // The individual list-detail page isn't one of the four tabs — treat
   // it as part of "My Lists" for bolding purposes. Unlike an exact match
@@ -3124,6 +3722,7 @@ document.body.addEventListener('click', (e)=>{
   const zone = btn.getAttribute('data-nav-zone');
   if (zone==='recent') renderRecentPage();
   else if (zone==='favorites') renderFavoritesPage();
+  else if (zone==='notes') renderNotesPage();
   else if (zone==='collectionsIndex') renderCollectionsIndexPage();
   showZone(zone);
 });
@@ -3133,6 +3732,7 @@ function showZone(name){
   homeZone.style.display = name==='home' ? '' : 'none';
   recentZone.style.display = name==='recent' ? 'block' : 'none';
   favoritesZone.style.display = name==='favorites' ? 'block' : 'none';
+  notesZone.style.display = name==='notes' ? 'block' : 'none';
   collectionsIndexZone.style.display = name==='collectionsIndex' ? 'block' : 'none';
   collectionZone.style.display = name==='collection' ? 'block' : 'none';
   renderNavBars(name);
@@ -3383,6 +3983,12 @@ const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
 favoritesFilterResetBtn.addEventListener('click', ()=> favoritesFilterPanel.reset());
 const favoritesSortToggle = createSortToggle(document.getElementById('favoritesSortToggle'), ()=> renderFavoritesPage());
 
+const notesFilterPanel = createSubsetFilterPanel('notes', document.getElementById('notesFilters'));
+const notesFilterResetBtn = document.getElementById('notesFilterReset');
+const notesFilterCountEl = document.getElementById('notesFilterCount');
+notesFilterResetBtn.addEventListener('click', ()=> notesFilterPanel.reset());
+const notesSortToggle = createSortToggle(document.getElementById('notesSortToggle'), ()=> renderNotesPage());
+
 // One filter-panel instance reused for whichever single collection is
 // currently open (its base pool is swapped via setBasePool() each time a
 // different collection is viewed) — same pattern as recent/favorites,
@@ -3447,6 +4053,20 @@ favoritesFilterPanel.onChange = ()=> renderSubsetList(
   favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, document.getElementById('favoritesFilters'), favoritesFilterResetBtn,
   favoritesFilterPanel, "No favorites yet — tap the star on any talk to save it here.",
   'No favorites match those filters.'
+);
+
+function renderNotesPage(){
+  // noteMap's key order reflects most-recently-noted-first once reversed —
+  // see the comment on setNote() above for why a delete-then-reset keeps
+  // an edited note's position current instead of stuck at its first save.
+  let picks = Object.keys(noteMap).reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  if (notesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  notesFilterPanel.setBasePool(picks);
+}
+notesFilterPanel.onChange = ()=> renderSubsetList(
+  notesItemsEl, notesEmptyEl, notesFilterCountEl, document.getElementById('notesFilters'), notesFilterResetBtn,
+  notesFilterPanel, "No notes yet — tap the note icon on any talk to jot down what you learned.",
+  'No notes match those filters.'
 );
 
 
@@ -3559,6 +4179,7 @@ function exportBackupData(){
     read: [...readKeys],
     collections,
     collectionMembers,
+    notes: noteMap,
     streak: loadStreak()
   };
 }
@@ -3621,7 +4242,7 @@ function mergeStreakData(incoming){
   saveStreak(merged);
 }
 function mergeBackupData(data){
-  let addedFavorites = 0, addedLists = 0, mergedLists = 0;
+  let addedFavorites = 0, addedLists = 0, mergedLists = 0, addedNotes = 0;
   (data.favorites || []).forEach(key=>{
     if (typeof key === 'string' && !favoriteKeys.has(key)){ favoriteKeys.add(key); addedFavorites++; }
   });
@@ -3644,12 +4265,27 @@ function mergeBackupData(data){
       mergedLists++;
     }
   });
+  // `notes` is a later addition than `favorites`/`collections` too — same
+  // no-op-on-older-files handling as `read` above. Never overwrites a note
+  // already sitting on this device (a local edit always wins over
+  // whatever an older backup happened to have) — only fills in talks that
+  // don't have a note here yet.
+  if (data.notes && typeof data.notes === 'object'){
+    Object.keys(data.notes).forEach(key=>{
+      const text = data.notes[key];
+      if (typeof text === 'string' && text.trim() && !noteMap[key]){
+        noteMap[key] = text.trim();
+        addedNotes++;
+      }
+    });
+  }
   mergeStreakData(data.streak);
   saveFavorites();
   saveRead();
   saveCollections();
   saveCollectionMembers();
-  return {addedFavorites, addedLists, mergedLists};
+  saveNotes();
+  return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
 function importBackupFile(file, onDone){
   const reader = new FileReader();
@@ -3682,11 +4318,12 @@ backupImportInput.addEventListener('change', ()=>{
   if (!file) return;
   importBackupFile(file, (result, err)=>{
     if (err){ flashShareButton(backupImportBtn, 'Import failed'); return; }
-    const {addedFavorites, addedLists, mergedLists} = result;
+    const {addedFavorites, addedLists, mergedLists, addedNotes} = result;
     const listsTouched = addedLists + mergedLists;
-    flashShareButton(backupImportBtn, `Added ${addedFavorites} favorite${addedFavorites===1?'':'s'}, ${listsTouched} list${listsTouched===1?'':'s'}`);
+    flashShareButton(backupImportBtn, `Added ${addedFavorites} favorite${addedFavorites===1?'':'s'}, ${listsTouched} list${listsTouched===1?'':'s'}, ${addedNotes} note${addedNotes===1?'':'s'}`);
     renderCollectionsIndexPage();
     if (favoritesZone.style.display === 'block') renderFavoritesPage();
+    if (notesZone.style.display === 'block') renderNotesPage();
     renderStreak();
   });
 });
@@ -3793,6 +4430,52 @@ newCollectionInput.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') document.getElementById('newCollectionBtn').click();
 });
 
+/* ---------------- "My Note" modal ---------------- */
+const noteModalOverlay = document.getElementById('noteModalOverlay');
+const noteModalTalkInfo = document.getElementById('noteModalTalkInfo');
+const noteModalTextarea = document.getElementById('noteModalTextarea');
+const noteModalDeleteBtn = document.getElementById('noteModalDeleteBtn');
+// The talk the modal is currently open for — set by openNoteModal(),
+// cleared by closeNoteModal(), same single-target pattern as
+// currentCollectionId above (notes are one-per-talk, no bulk variant
+// needed the way "Add to a List" has for Show a List's multi-select).
+let noteModalTalk = null;
+
+function openNoteModal(talk){
+  noteModalTalk = talk;
+  noteModalTalkInfo.textContent = `${talk[0]} — ${talk[1]}`;
+  noteModalTextarea.value = getNote(talk);
+  noteModalDeleteBtn.hidden = !hasNote(talk);
+  noteModalOverlay.hidden = false;
+  noteModalTextarea.focus();
+}
+function closeNoteModal(){
+  noteModalOverlay.hidden = true;
+  noteModalTalk = null;
+}
+document.getElementById('noteModalSaveBtn').addEventListener('click', ()=>{
+  if (!noteModalTalk) return;
+  setNote(noteModalTalk, noteModalTextarea.value);
+  refreshNoteBadgesFor(noteModalTalk);
+  if (notesZone.style.display === 'block') renderNotesPage();
+  closeNoteModal();
+});
+noteModalDeleteBtn.addEventListener('click', ()=>{
+  if (!noteModalTalk) return;
+  setNote(noteModalTalk, '');
+  refreshNoteBadgesFor(noteModalTalk);
+  if (notesZone.style.display === 'block') renderNotesPage();
+  closeNoteModal();
+});
+document.getElementById('noteModalCancelBtn').addEventListener('click', closeNoteModal);
+document.getElementById('noteModalClose').addEventListener('click', closeNoteModal);
+noteModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === noteModalOverlay) closeNoteModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !noteModalOverlay.hidden) closeNoteModal();
+});
+
 renderTalkOfTheDay();
 renderStreak();
 watchForDayRollover();
@@ -3823,6 +4506,10 @@ function applyData(data){
   TOPIC_LOOKUP = data.topicLookup;
   TOPIC_LABELS = data.topicLabels;
   KICKER_LOOKUP = data.kickerLookup;
+  // Not backfilled yet (see the Session-filter scaffold comment above
+  // talkSession()) — falls back to {} so every talk reads as 'other'
+  // until data.json actually carries a real sessionLookup.
+  SESSION_LOOKUP = data.sessionLookup || {};
 }
 function cacheData(data){
   try { localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(data)); }

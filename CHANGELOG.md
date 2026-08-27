@@ -18,8 +18,13 @@ this updated.
 - The Settings menu now also lets you pick what time your daily reminder shows up, instead of it always being fixed at 8:00 AM.
 - The home-screen "Talk of the Day" widget now follows your phone's dark mode setting too, instead of always showing the light version.
 - If you pick Light or Dark in Settings, the widget now matches that choice too, instead of only ever following the phone's overall setting.
+- The Settings menu now has a Color Palette choice — Brass (the original look), Rose, Slate, or Sage — that works alongside Light/Dark/System and applies instantly.
+- The home-screen "Talk of the Day" widget now matches your chosen Color Palette too, not just Light/Dark.
+- Added a note button (the pencil icon) on every talk, next to Favorite and Add to List, for jotting down a quick "what I learned" note. Notes show up wherever that talk appears, and there's a new "My Notes" page (next to My Lists in the menu) for browsing everything you've written, with the same filtering and sorting as Favorites. Notes are backed up along with Favorites and My Lists in Export/Import Backup.
+- Added a new "Session" filter (Saturday AM/PM, Sunday AM/PM, General Priesthood, General Women's, or Other) alongside the existing four. For now every talk shows up under "Other" — tagging talks with their real session is a separate, in-progress data project.
 
 ### Changed
+- Reordered the filters to Calling, Topic, Speaker, General Conference, Session, Recent/Favorites, and moved the "Search titles & summaries" box to sit below the filters instead of above them.
 - The "From General Conference of The Church of Jesus Christ of Latter-day Saints" line at the top of the page now wraps at the same fixed spot on every device, instead of the browser breaking it differently depending on screen width.
 - The Settings gear icon no longer floats over the page while you scroll — it now sits quietly in the top-right corner of the page itself, styled to match the thin divider line under the title instead of standing out.
 - Replaced the app's headline font with Lora, a calmer, more traditional serif — used for the title, talk titles, list items, and menu headers throughout.
