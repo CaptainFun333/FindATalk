@@ -2717,11 +2717,30 @@ function talkOfTheDay(){
   });
   return sorted[splitmix32(localDayNumber()) % sorted.length];
 }
+// Local calendar day (see localDayNumber()) that renderTalkOfTheDay() last
+// ran for. Used by watchForDayRollover() below to notice when it's stale.
+let lastRenderedDayNumber = null;
 function renderTalkOfTheDay(){
+  lastRenderedDayNumber = localDayNumber();
   const pick = talkOfTheDay();
   const totdItemsEl = document.getElementById('totdItems');
   totdItemsEl.innerHTML = '';
   if (pick) totdItemsEl.appendChild(buildListItemRow(pick));
+}
+/* Backgrounding the native app doesn't reload the WebView — Android (and
+   iOS) just suspend it, so whatever was on screen at last launch stays
+   there untouched. Without this, someone who opens the app after local
+   midnight without a fresh cold-start keeps seeing yesterday's Talk of
+   the Day and streak badge until they force-quit and relaunch. Checked
+   on every return to the foreground; a no-op unless the local calendar
+   date has actually moved on since the last render. */
+function watchForDayRollover(){
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState !== 'visible') return;
+    if (lastRenderedDayNumber !== null && localDayNumber() === lastRenderedDayNumber) return;
+    renderTalkOfTheDay();
+    renderStreak();
+  });
 }
 
 /* ---------------- Daily reminder notification ----------------
@@ -3776,6 +3795,7 @@ newCollectionInput.addEventListener('keydown', (e)=>{
 
 renderTalkOfTheDay();
 renderStreak();
+watchForDayRollover();
 setupDailyReminder();
 initReminderSettingsToggle();
 }
