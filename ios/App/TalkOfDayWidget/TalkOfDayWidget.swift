@@ -9,6 +9,10 @@ struct TalkEntry: TimelineEntry {
     // in-app toggle, nil if they haven't (still following the system
     // setting) — see ThemeStore below.
     let themeOverride: String?
+    // "rose" / "slate" / "sage" if the person picked a Color Palette in
+    // Settings, nil if they haven't (still Brass, the default) — see
+    // PaletteStore below.
+    let paletteOverride: String?
 }
 
 /// Read-only mirror of an explicit light/dark choice made with the in-app
@@ -24,6 +28,20 @@ private enum ThemeStore {
 
     static func currentOverride() -> String? {
         UserDefaults(suiteName: appGroupID)?.string(forKey: themeKey)
+    }
+}
+
+/// Read-only mirror of a Color Palette choice made in Settings (see
+/// mirrorPaletteToNative() in docs/index.html and
+/// StreakBridgePlugin.setPalettePreference). nil means Brass, the
+/// default.
+private enum PaletteStore {
+    // Must match StreakBridgePlugin.appGroupID/.paletteKey.
+    static let appGroupID = "group.com.captainfun333.findatalk"
+    static let paletteKey = "findATalkPalette"
+
+    static func currentOverride() -> String? {
+        UserDefaults(suiteName: appGroupID)?.string(forKey: paletteKey)
     }
 }
 
@@ -59,20 +77,21 @@ struct TalkOfDayProvider: TimelineProvider {
             date: Date(),
             talk: Talk(title: "Why Not Now?", speaker: "Neal A. Maxwell", year: 1974, month: "10", urlSlug: "why-not-now"),
             streakText: "🔥 122 of the last 365 — 10-day streak",
-            themeOverride: ThemeStore.currentOverride()
+            themeOverride: ThemeStore.currentOverride(),
+            paletteOverride: PaletteStore.currentOverride()
         )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TalkEntry) -> Void) {
         let pick = TalkStore.talkOfTheDay(from: TalkStore.loadTalks())
-        completion(TalkEntry(date: Date(), talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride()))
+        completion(TalkEntry(date: Date(), talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride(), paletteOverride: PaletteStore.currentOverride()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TalkEntry>) -> Void) {
         let talks = TalkStore.loadTalks()
         let now = Date()
         let pick = TalkStore.talkOfTheDay(from: talks, date: now)
-        let entry = TalkEntry(date: now, talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride())
+        let entry = TalkEntry(date: now, talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride(), paletteOverride: PaletteStore.currentOverride())
 
         // Reload right after local midnight so tomorrow's pick shows up
         // promptly, rather than waiting on WidgetKit's own daily budget.
@@ -85,11 +104,14 @@ struct TalkOfDayProvider: TimelineProvider {
     }
 }
 
-// Palette mirrors docs/index.html's :root custom properties (light) and
-// :root[data-theme="dark"] (dark) — keep both in sync with the web app.
-// Unlike Android (values-night/colors.xml, resolved automatically by the
-// OS), SwiftUI has no resource-qualifier system for plain Color values, so
-// the view below picks light/dark explicitly from @Environment(\.colorScheme).
+// Palette mirrors docs/index.html's :root custom properties (per
+// data-palette, light and dark) — keep all four in sync with the web app's
+// CSS "color palettes" block and Android's TalkOfDayWidgetProvider color
+// constants. Unlike Android (values-night/colors.xml, resolved
+// automatically by the OS for the no-override case), SwiftUI has no
+// resource-qualifier system for plain Color values, so the view below
+// always picks explicitly, folding in @Environment(\.colorScheme) only
+// when there's no explicit theme override.
 private enum TalkPalette {
     struct Scheme {
         let paperRaised: Color
@@ -100,37 +122,131 @@ private enum TalkPalette {
         let burgundy: Color
     }
 
-    static let light = Scheme(
-        paperRaised: Color(red: 0.980, green: 0.969, blue: 0.933),
-        ink: Color(red: 0.110, green: 0.173, blue: 0.259),
-        inkSoft: Color(red: 0.239, green: 0.302, blue: 0.392),
-        brass: Color(red: 0.663, green: 0.510, blue: 0.184),
-        line: Color(red: 0.788, green: 0.749, blue: 0.635),
-        burgundy: Color(red: 0.431, green: 0.169, blue: 0.204)
+    struct PaletteSet {
+        let light: Scheme
+        let dark: Scheme
+    }
+
+    static let brass = PaletteSet(
+        light: Scheme(
+            paperRaised: Color(red: 0.980, green: 0.969, blue: 0.933),
+            ink: Color(red: 0.110, green: 0.173, blue: 0.259),
+            inkSoft: Color(red: 0.239, green: 0.302, blue: 0.392),
+            brass: Color(red: 0.663, green: 0.510, blue: 0.184),
+            line: Color(red: 0.788, green: 0.749, blue: 0.635),
+            burgundy: Color(red: 0.431, green: 0.169, blue: 0.204)
+        ),
+        dark: Scheme(
+            paperRaised: Color(red: 0.122, green: 0.149, blue: 0.208),
+            // Pure white, not a tinted off-white — see the "dark palettes
+            // use pure white ink" comment below the PaletteSet definitions.
+            ink: Color(red: 1.0, green: 1.0, blue: 1.0),
+            inkSoft: Color(red: 0.718, green: 0.741, blue: 0.812),
+            brass: Color(red: 0.792, green: 0.647, blue: 0.314),
+            line: Color(red: 0.200, green: 0.235, blue: 0.310),
+            burgundy: Color(red: 0.851, green: 0.541, blue: 0.576)
+        )
     )
 
-    static let dark = Scheme(
-        paperRaised: Color(red: 0.122, green: 0.149, blue: 0.208),
-        ink: Color(red: 0.953, green: 0.937, blue: 0.886),
-        inkSoft: Color(red: 0.718, green: 0.741, blue: 0.812),
-        brass: Color(red: 0.792, green: 0.647, blue: 0.314),
-        line: Color(red: 0.200, green: 0.235, blue: 0.310),
-        burgundy: Color(red: 0.851, green: 0.541, blue: 0.576)
+    static let rose = PaletteSet(
+        light: Scheme(
+            // paperRaised/line pulled more saturated than a first draft
+            // that read too close to Brass's own ivory — see the
+            // "boosted Rose's light-mode saturation" comment below.
+            paperRaised: Color(red: 0.984, green: 0.925, blue: 0.910),
+            ink: Color(red: 0.235, green: 0.145, blue: 0.188),
+            inkSoft: Color(red: 0.420, green: 0.298, blue: 0.345),
+            brass: Color(red: 0.643, green: 0.353, blue: 0.447),
+            line: Color(red: 0.878, green: 0.718, blue: 0.729),
+            burgundy: Color(red: 0.639, green: 0.475, blue: 0.184)
+        ),
+        dark: Scheme(
+            paperRaised: Color(red: 0.153, green: 0.102, blue: 0.125),
+            ink: Color(red: 1.0, green: 1.0, blue: 1.0),
+            inkSoft: Color(red: 0.788, green: 0.702, blue: 0.729),
+            brass: Color(red: 0.831, green: 0.569, blue: 0.659),
+            line: Color(red: 0.239, green: 0.173, blue: 0.200),
+            burgundy: Color(red: 0.788, green: 0.639, blue: 0.369)
+        )
     )
 
-    static func forScheme(_ colorScheme: ColorScheme) -> Scheme {
-        colorScheme == .dark ? dark : light
+    static let slate = PaletteSet(
+        light: Scheme(
+            paperRaised: Color(red: 0.961, green: 0.969, blue: 0.980),
+            ink: Color(red: 0.125, green: 0.169, blue: 0.227),
+            inkSoft: Color(red: 0.298, green: 0.353, blue: 0.424),
+            brass: Color(red: 0.290, green: 0.435, blue: 0.573),
+            line: Color(red: 0.765, green: 0.796, blue: 0.831),
+            burgundy: Color(red: 0.416, green: 0.231, blue: 0.361)
+        ),
+        dark: Scheme(
+            paperRaised: Color(red: 0.106, green: 0.137, blue: 0.180),
+            ink: Color(red: 1.0, green: 1.0, blue: 1.0),
+            inkSoft: Color(red: 0.702, green: 0.741, blue: 0.788),
+            brass: Color(red: 0.498, green: 0.663, blue: 0.788),
+            line: Color(red: 0.173, green: 0.220, blue: 0.275),
+            burgundy: Color(red: 0.788, green: 0.545, blue: 0.690)
+        )
+    )
+
+    static let sage = PaletteSet(
+        light: Scheme(
+            // ink/inkSoft/brass/line pulled back toward neutral from a
+            // first draft that saturated too many roles toward green,
+            // which read as a color wash over the whole widget rather
+            // than a palette — see the "rebalanced Sage" comment below.
+            paperRaised: Color(red: 0.973, green: 0.969, blue: 0.925),
+            ink: Color(red: 0.157, green: 0.196, blue: 0.165),
+            inkSoft: Color(red: 0.361, green: 0.392, blue: 0.365),
+            brass: Color(red: 0.435, green: 0.486, blue: 0.247),
+            line: Color(red: 0.792, green: 0.780, blue: 0.729),
+            burgundy: Color(red: 0.549, green: 0.290, blue: 0.184)
+        ),
+        dark: Scheme(
+            paperRaised: Color(red: 0.125, green: 0.161, blue: 0.125),
+            ink: Color(red: 1.0, green: 1.0, blue: 1.0),
+            inkSoft: Color(red: 0.725, green: 0.761, blue: 0.710),
+            brass: Color(red: 0.616, green: 0.690, blue: 0.416),
+            line: Color(red: 0.200, green: 0.251, blue: 0.200),
+            burgundy: Color(red: 0.851, green: 0.541, blue: 0.388)
+        )
+    )
+
+    // Two fixes from user feedback after reviewing all four palettes live:
+    // (1) every dark Scheme.ink above is now pure white (1,1,1), not a
+    // tinted off-white — dark ink dominates the widget's visual weight
+    // (the talk title), so any hue there read as "a color filter over the
+    // whole thing," worst on Sage. (2) Rose's light paperRaised/line were
+    // too close to Brass's own ivory to feel like a distinct palette;
+    // Sage's light ink/inkSoft/brass/line were pulled back toward neutral
+    // for the same reason (1) fixes in dark — only the brass/burgundy
+    // accent roles should carry real saturation, matching how Brass
+    // itself already works. Keep docs/index.html's CSS palette block and
+    // Android's TalkOfDayWidgetProvider color constants in sync with
+    // these exact values if either changes again.
+
+    /// nil or any unrecognized string falls back to Brass, the default —
+    /// same rule as setPalette()'s 'brass' case in docs/index.html.
+    static func paletteSet(for palette: String?) -> PaletteSet {
+        switch palette {
+        case "rose": return rose
+        case "slate": return slate
+        case "sage": return sage
+        default: return brass
+        }
     }
 
     /// An explicit "light"/"dark" from entry.themeOverride wins over the
     /// system colorScheme; any other value (nil — no choice made yet, or
     /// unrecognized) falls back to following the system, same as before
-    /// the in-app toggle existed.
-    static func resolve(override: String?, colorScheme: ColorScheme) -> Scheme {
-        switch override {
-        case "light": return light
-        case "dark": return dark
-        default: return forScheme(colorScheme)
+    /// palettes existed. The palette override picks which of the four
+    /// PaletteSets to resolve light/dark within, independent of that.
+    static func resolve(paletteOverride: String?, themeOverride: String?, colorScheme: ColorScheme) -> Scheme {
+        let set = paletteSet(for: paletteOverride)
+        switch themeOverride {
+        case "light": return set.light
+        case "dark": return set.dark
+        default: return colorScheme == .dark ? set.dark : set.light
         }
     }
 }
@@ -140,7 +256,7 @@ struct TalkOfDayWidgetEntryView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let palette = TalkPalette.resolve(override: entry.themeOverride, colorScheme: colorScheme)
+        let palette = TalkPalette.resolve(paletteOverride: entry.paletteOverride, themeOverride: entry.themeOverride, colorScheme: colorScheme)
 
         VStack(alignment: .leading, spacing: 4) {
             Text("TALK OF THE DAY")

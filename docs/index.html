@@ -1,25 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- data-palette="brass" is present from the start (not added later by JS)
+     as one part of a two-part workaround for a real on-device WebKit bug
+     — see the `_warmup` rule in <style> (the "color palettes" section)
+     for the actual fix and the full story. Keeping the attribute present
+     here too, rather than absent-means-Brass, means setPalette() can
+     always SET a value and never needs to add/remove the attribute
+     itself, which is one less moving part now that a value change is the
+     only kind of update this attribute ever goes through. -->
+<html lang="en" data-palette="brass">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pick a Talk — General Conference</title>
-<!-- Applies a saved dark-mode choice (if any) before first paint, so the
-     page never flashes light-then-dark on load. Must run before the
-     <style> block below is parsed. If no explicit choice was ever saved,
-     this does nothing and the `prefers-color-scheme` media query in the
-     stylesheet handles following the system setting instead. -->
+<!-- Applies a saved dark-mode choice and a saved color palette (if any)
+     before first paint, so the page never flashes light-then-dark, or
+     Brass-then-something-else, on load. Must run before the <style> block
+     below is parsed. If no explicit theme choice was ever saved, this does
+     nothing for theme and the `prefers-color-scheme` media query in the
+     stylesheet handles following the system setting instead. Palette has
+     no "system" equivalent — the <html> tag's own data-palette="brass"
+     (see its comment above) is already the correct default, so this
+     script only needs to overwrite that value when localStorage holds an
+     explicit rose/slate/sage choice, never add the attribute fresh. -->
 <script>
 (function(){
   try{
     var t = localStorage.getItem('themePreference');
     if (t==='dark' || t==='light') document.documentElement.setAttribute('data-theme', t);
   } catch(err){ /* ignore — falls back to system preference */ }
+  try{
+    var p = localStorage.getItem('themePalette');
+    if (p==='rose' || p==='slate' || p==='sage') document.documentElement.setAttribute('data-palette', p);
+  } catch(err){ /* ignore — falls back to Brass, the default */ }
 })();
 </script>
 <meta name="theme-color" id="themeColorMeta" content="#f3efe2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     color-scheme: light;
@@ -67,7 +84,7 @@
      itself is set to dark. */
   :root[data-theme="dark"]{
     color-scheme: dark;
-    --ink:#f3efe2;
+    --ink:#ffffff;
     --ink-soft:#b7bdcf;
     --paper:#161b26;
     --paper-raised:#1f2635;
@@ -84,11 +101,12 @@
     --bg-glow-2:rgba(202,165,80,.06);
     --chip-border:#4a3d2a;
     --chip-bg:#241f14;
+    --time-icon-filter: invert(1);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       color-scheme: dark;
-      --ink:#f3efe2;
+      --ink:#ffffff;
       --ink-soft:#b7bdcf;
       --paper:#161b26;
       --paper-raised:#1f2635;
@@ -105,8 +123,259 @@
       --bg-glow-2:rgba(202,165,80,.06);
       --chip-border:#4a3d2a;
       --chip-bg:#241f14;
+      --time-icon-filter: invert(1);
     }
   }
+
+  /* ---------- color palettes ----------
+     A second, independent axis from Appearance (Light/Dark/System) above.
+     Brass is the default and needs no override — it's just what the base
+     :root and the two dark-mode blocks above already define. Each other
+     palette (Rose/Slate/Sage) gets three blocks: a plain `[data-palette]`
+     override (light-mode token values, plus the --accent-grad-*/
+     --accent-fill* pair, which — like Brass's own — stays fixed across
+     light AND dark within one palette, so it only needs to be set here,
+     not repeated below), a `[data-theme="dark"][data-palette]` override
+     (dark-mode token values, explicit choice), and the matching
+     `prefers-color-scheme: dark` block (dark-mode token values, "System"
+     appearance). Combining two attribute selectors always outranks the
+     single-attribute Appearance-only dark blocks above, regardless of
+     source order, so switching palette never fights with switching
+     Light/Dark. `themePalette` in localStorage holds the choice ('rose'/
+     'slate'/'sage'); absent means Brass. Wired up alongside the
+     Appearance segmented control, further down in the page's JS.
+
+     The `_warmup` rule right below is a real fix for a real on-device
+     WebKit bug, found the hard way while testing this feature in the iOS
+     Simulator and confirmed with a live getComputedStyle readout: the
+     FIRST CSS rule anywhere in the stylesheet to use a given attribute
+     name in an attribute selector (here, `[data-palette="..."]`) does not
+     reliably get wired up for dynamic-attribute-change invalidation on
+     WebKit — set that attribute via JS afterward and the DOM attribute is
+     genuinely correct (confirmed), but the matching rule silently never
+     applies and the base :root values keep winning. This isn't about the
+     word "rose": reordering the three real palette blocks just moved the
+     failure to whichever one ended up first. A harmless, permanently-
+     unmatched dummy rule using the same attribute name, placed first,
+     "pre-registers" that selector bucket so every real rule after it
+     — first, second, or third — gets normal, correctly-invalidated
+     updates. Do not remove this rule, and do not reorder it after the
+     real ones: it only works by being the literal first `[data-palette]`
+     rule in the file. If a fifth palette is ever added, it doesn't need
+     its own warmup — one is enough for the whole attribute name. */
+  :root[data-palette="_warmup"]{ --ink: inherit; }
+  :root[data-palette="rose"]{
+    --ink:#3c2530;
+    --ink-soft:#6b4c58;
+    /* Paper/line/tint/chip surfaces below carry noticeably more saturation
+       than a typical light-palette background — this was deliberately
+       turned up from a first draft that was too close to Brass's own
+       ivory to read as a distinct palette at a glance (user feedback:
+       "I don't see a shift in palette from Light/Brass to Light/Rose"). */
+    --paper:#f7e2df;
+    --paper-raised:#fbece8;
+    --brass:#a45a72;
+    --brass-bright:#c07992;
+    --burgundy:#a3792f;
+    --burgundy-hover:#8a6527;
+    --line:#e0b7ba;
+    --shadow: 0 18px 40px -20px rgba(60,37,48,0.35);
+    --shadow-hover: 0 22px 44px -18px rgba(60,37,48,.45);
+    --overlay: rgba(60,37,48,.45);
+    --tint:#f3d9d7;
+    --bg-glow-1:#faeae7;
+    --bg-glow-2:#f3d9d7;
+    --chip-border:#e6bcbf;
+    --chip-bg:#fae3e0;
+    --accent-grad-start:#5c3a48;
+    --accent-grad-end:#3c2530;
+    --accent-fill:#8a6527;
+    --accent-fill-hover:#714f1c;
+  }
+  :root[data-theme="dark"][data-palette="rose"]{
+    --ink:#ffffff;
+    --ink-soft:#c9b3ba;
+    --paper:#1e1519;
+    --paper-raised:#271a20;
+    --brass:#d491a8;
+    --brass-bright:#e3aabd;
+    --burgundy:#c9a35e;
+    --burgundy-hover:#dab97c;
+    --line:#3d2c33;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+    --overlay: rgba(0,0,0,.65);
+    --tint:#2e2126;
+    --bg-glow-1:rgba(255,255,255,.05);
+    --bg-glow-2:rgba(212,145,168,.07);
+    --chip-border:#4a2f38;
+    --chip-bg:#26181d;
+    --time-icon-filter: invert(1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"])[data-palette="rose"]{
+      --ink:#ffffff;
+      --ink-soft:#c9b3ba;
+      --paper:#1e1519;
+      --paper-raised:#271a20;
+      --brass:#d491a8;
+      --brass-bright:#e3aabd;
+      --burgundy:#c9a35e;
+      --burgundy-hover:#dab97c;
+      --line:#3d2c33;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+      --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+      --overlay: rgba(0,0,0,.65);
+      --tint:#2e2126;
+      --bg-glow-1:rgba(255,255,255,.05);
+      --bg-glow-2:rgba(212,145,168,.07);
+      --chip-border:#4a2f38;
+      --chip-bg:#26181d;
+      --time-icon-filter: invert(1);
+    }
+  }
+
+  :root[data-palette="slate"]{
+    --ink:#202b3a;
+    --ink-soft:#4c5a6c;
+    --paper:#eceff3;
+    --paper-raised:#f5f7fa;
+    --brass:#4a6f92;
+    --brass-bright:#6a8bab;
+    --burgundy:#6a3b5c;
+    --burgundy-hover:#55304a;
+    --line:#c3cbd4;
+    --shadow: 0 18px 40px -20px rgba(32,43,58,0.35);
+    --shadow-hover: 0 22px 44px -18px rgba(32,43,58,.45);
+    --overlay: rgba(32,43,58,.45);
+    --tint:#dde3ea;
+    --bg-glow-1:#f6f8fa;
+    --bg-glow-2:#dde3ea;
+    --chip-border:#c9d2dc;
+    --chip-bg:#eff2f6;
+    --accent-grad-start:#334759;
+    --accent-grad-end:#202b3a;
+    --accent-fill:#55304a;
+    --accent-fill-hover:#43263a;
+  }
+  :root[data-theme="dark"][data-palette="slate"]{
+    --ink:#ffffff;
+    --ink-soft:#b3bdc9;
+    --paper:#131a22;
+    --paper-raised:#1b232e;
+    --brass:#7fa9c9;
+    --brass-bright:#9dc0dc;
+    --burgundy:#c98bb0;
+    --burgundy-hover:#d9a3c1;
+    --line:#2c3846;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+    --overlay: rgba(0,0,0,.65);
+    --tint:#212b37;
+    --bg-glow-1:rgba(255,255,255,.05);
+    --bg-glow-2:rgba(127,169,201,.07);
+    --chip-border:#324152;
+    --chip-bg:#1a222b;
+    --time-icon-filter: invert(1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"])[data-palette="slate"]{
+      --ink:#ffffff;
+      --ink-soft:#b3bdc9;
+      --paper:#131a22;
+      --paper-raised:#1b232e;
+      --brass:#7fa9c9;
+      --brass-bright:#9dc0dc;
+      --burgundy:#c98bb0;
+      --burgundy-hover:#d9a3c1;
+      --line:#2c3846;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+      --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+      --overlay: rgba(0,0,0,.65);
+      --tint:#212b37;
+      --bg-glow-1:rgba(255,255,255,.05);
+      --bg-glow-2:rgba(127,169,201,.07);
+      --chip-border:#324152;
+      --chip-bg:#1a222b;
+      --time-icon-filter: invert(1);
+    }
+  }
+
+  :root[data-palette="sage"]{
+    /* ink/ink-soft/paper/line/tint/chip below were pulled MUCH closer to
+       neutral than a first draft that saturated every one of those roles
+       toward green, which read as "a green filter over everything" (user
+       feedback) rather than a palette — same root cause the "keep dark
+       ink pure white" fix above addresses for dark mode. The lesson,
+       matching how Brass itself already works: only the two accent roles
+       (--brass/--burgundy here) should carry real saturation; ink/paper/
+       line/tint/chip stay close to neutral so the accents read as color
+       choices rather than a wash over the whole page. */
+    --ink:#28322a;
+    --ink-soft:#5c645d;
+    --paper:#f2f0e4;
+    --paper-raised:#f8f7ec;
+    --brass:#6f7c3f;
+    --brass-bright:#8a9853;
+    --burgundy:#8c4a2f;
+    --burgundy-hover:#733c26;
+    --line:#cac7ba;
+    --shadow: 0 18px 40px -20px rgba(38,59,44,0.35);
+    --shadow-hover: 0 22px 44px -18px rgba(38,59,44,.45);
+    --overlay: rgba(38,59,44,.45);
+    --tint:#e8e6da;
+    --bg-glow-1:#f9f8ee;
+    --bg-glow-2:#e8e6da;
+    --chip-border:#d5d3bf;
+    --chip-bg:#f0eee0;
+    --accent-grad-start:#3f4c41;
+    --accent-grad-end:#28322a;
+    --accent-fill:#733c26;
+    --accent-fill-hover:#5c301e;
+  }
+  :root[data-theme="dark"][data-palette="sage"]{
+    --ink:#ffffff;
+    --ink-soft:#b9c2b5;
+    --paper:#171e18;
+    --paper-raised:#202920;
+    --brass:#9db06a;
+    --brass-bright:#b4c586;
+    --burgundy:#d98a63;
+    --burgundy-hover:#e4a17e;
+    --line:#334033;
+    --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+    --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+    --overlay: rgba(0,0,0,.65);
+    --tint:#26301f;
+    --bg-glow-1:rgba(255,255,255,.05);
+    --bg-glow-2:rgba(157,176,106,.07);
+    --chip-border:#3d4a30;
+    --chip-bg:#1e2618;
+    --time-icon-filter: invert(1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"])[data-palette="sage"]{
+      --ink:#ffffff;
+      --ink-soft:#b9c2b5;
+      --paper:#171e18;
+      --paper-raised:#202920;
+      --brass:#9db06a;
+      --brass-bright:#b4c586;
+      --burgundy:#d98a63;
+      --burgundy-hover:#e4a17e;
+      --line:#334033;
+      --shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
+      --shadow-hover: 0 22px 44px -18px rgba(0,0,0,.7);
+      --overlay: rgba(0,0,0,.65);
+      --tint:#26301f;
+      --bg-glow-1:rgba(255,255,255,.05);
+      --bg-glow-2:rgba(157,176,106,.07);
+      --chip-border:#3d4a30;
+      --chip-bg:#1e2618;
+      --time-icon-filter: invert(1);
+    }
+  }
+
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -127,7 +396,7 @@
     display:flex;
     justify-content:center;
   }
-  .wrap{ width:100%; max-width:760px; }
+  .wrap{ width:100%; max-width:760px; position:relative; }
 
   /* ---------- header ---------- */
   .eyebrow{
@@ -141,7 +410,7 @@
     margin-bottom:14px;
   }
   h1{
-    font-family:'Fraunces', serif;
+    font-family:'Lora', serif;
     font-optical-sizing:auto;
     font-weight:600;
     font-size:clamp(34px,6vw,52px);
@@ -181,34 +450,147 @@
   }
   .divider svg{ width:16px; height:16px; color:var(--brass); flex-shrink:0; }
 
-  /* ---------- dark-mode toggle ---------- */
-  .theme-toggle-btn{
-    position:fixed;
-    /* Fixed-position elements render edge-to-edge in iOS WKWebView (the
-       Capacitor app) even though normal document flow correctly clears
-       the status bar/notch — a well-known WebKit quirk. Without this,
-       the button lands half-hidden under the status bar/Dynamic Island
-       and is untappable there (confirmed on-device in the Simulator).
-       env(safe-area-inset-*) needs `viewport-fit=cover` in the viewport
-       meta tag to resolve to a real value; the max()/plain-18px fallback
-       keeps this correct on the plain web build too, where the inset is
-       always 0. */
-    top:max(18px, calc(env(safe-area-inset-top) + 8px));
-    right:max(18px, calc(env(safe-area-inset-right) + 18px));
-    z-index:50;
+  /* ---------- settings button ---------- */
+  .settings-btn{
+    /* Absolute within .wrap (see .wrap's position:relative below), not
+       fixed to the viewport — it scrolls away with the rest of the page
+       instead of floating over content at all times. Anchored to the
+       top-right corner of .wrap, which already clears the status
+       bar/notch via body's safe-area-aware top padding, so no
+       env(safe-area-inset-*) handling is needed here (that was only
+       ever needed for position:fixed, which renders edge-to-edge in iOS
+       WKWebView regardless of normal document flow). */
+    position:absolute;
+    top:0; right:0;
     width:38px; height:38px;
     display:flex; align-items:center; justify-content:center;
     background:var(--paper-raised);
+    /* Subtle by design — colored like the divider lines under the
+       title, not a call-to-action, since this is a settle-it-once
+       preference, not something people need to notice. */
     border:1px solid var(--line);
     border-radius:50%;
-    color:var(--ink-soft);
+    color:var(--line);
     cursor:pointer;
     box-shadow:var(--shadow);
     transition:border-color .15s, color .15s;
   }
-  .theme-toggle-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
-  .theme-toggle-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
-  .theme-toggle-btn svg{ width:19px; height:19px; }
+  .settings-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .settings-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .settings-btn svg{ width:19px; height:19px; }
+
+  /* ---------- settings modal ---------- */
+  .settings-section{ margin-bottom:22px; }
+  .settings-section:last-child{ margin-bottom:0; }
+  .settings-label{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin:0 0 10px;
+  }
+  .settings-sub{
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.5;
+    color:var(--ink-soft); margin:6px 0 0;
+  }
+  /* Light/Dark/System segmented control. */
+  .segmented{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .segmented button{
+    flex:1;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    background:var(--paper-raised);
+    border:none;
+    padding:10px 8px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .segmented button + button{ border-left:1px solid var(--line); }
+  .segmented button:hover{ color:var(--burgundy); }
+  .segmented button[aria-pressed="true"]{
+    background:var(--accent-fill); color:var(--on-accent);
+  }
+  .segmented button[aria-pressed="true"]:hover{ color:var(--on-accent); }
+  .segmented button:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:-2px; }
+  /* Color Palette segmented control — same .segmented base as Appearance,
+     plus a small fixed-color dot per option so people can see the hue
+     before picking it. The dot's own color is a literal per-palette hex
+     value (not a CSS var), since it must show that palette's color
+     regardless of which palette is currently active. */
+  .palette-swatch{
+    display:inline-block; width:10px; height:10px; border-radius:50%;
+    margin-right:6px; vertical-align:-1px; flex-shrink:0;
+  }
+  .palette-segmented button{ display:inline-flex; align-items:center; justify-content:center; }
+  /* Daily-reminder on/off switch, native app only. */
+  .settings-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .settings-row + .settings-row{ margin-top:14px; }
+  .settings-row-text strong{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:14.5px; font-weight:600; color:var(--ink);
+  }
+  .settings-row-text span{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft); margin-top:2px;
+  }
+  .switch{
+    position:relative; flex-shrink:0;
+    width:44px; height:26px;
+  }
+  .switch input{
+    position:absolute; inset:0; opacity:0; margin:0; cursor:pointer;
+  }
+  .switch-track{
+    position:absolute; inset:0;
+    background:var(--line);
+    border-radius:999px;
+    transition:background .15s;
+    pointer-events:none;
+  }
+  .switch-track::before{
+    content:"";
+    position:absolute; top:3px; left:3px;
+    width:20px; height:20px;
+    background:var(--paper-raised);
+    border-radius:50%;
+    box-shadow:var(--shadow);
+    transition:transform .15s;
+  }
+  .switch input:checked + .switch-track{ background:var(--accent-fill); }
+  .switch input:checked + .switch-track::before{ transform:translateX(18px); }
+  .switch input:focus-visible + .switch-track{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  /* Reminder-time picker, shown right under the Daily Reminder switch.
+     Styled to match the app's paper/ink palette rather than the raw OS
+     widget default so it doesn't look bolted on. */
+  #reminderTimeInput{
+    flex-shrink:0;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:7px 10px;
+    -webkit-appearance:none;
+  }
+  #reminderTimeInput:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  #reminderTimeInput:disabled{ opacity:.45; }
+  /* Safari/WKWebView renders the time value's own tiny AM/PM + clear
+     controls in solid black by default, which reads as a stray black
+     blob in dark mode — recolor to match the rest of the field. */
+  #reminderTimeInput::-webkit-datetime-edit{ color:var(--ink); }
+  #reminderTimeInput::-webkit-calendar-picker-indicator{ filter:var(--time-icon-filter, none); }
 
   /* ---------- talk of the day ---------- */
   .totd-zone{ margin-bottom:36px; }
@@ -242,7 +624,11 @@
     font-weight:600;
   }
   .search-input-wrap{ position:relative; }
-  #querySearch{
+  /* Shared with #querySearch below: the .search-input/.search-clear
+     classes let the My Notes and My Lists search boxes (added for the
+     "search my notes" / "search my lists" feature) reuse this exact same
+     look instead of duplicating the block per page. */
+  #querySearch, .search-input{
     width:100%;
     background:var(--paper-raised);
     border:1px solid var(--line);
@@ -258,16 +644,48 @@
     color:var(--ink);
     transition:border-color .15s;
   }
-  #querySearch:hover{ border-color:var(--brass); }
-  #querySearch:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
-  #queryClear{
+  #querySearch:hover, .search-input:hover{ border-color:var(--brass); }
+  #querySearch:focus-visible, .search-input:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
+  #queryClear, .search-clear{
     position:absolute; right:8px; top:50%; transform:translateY(-50%);
     width:26px; height:26px; line-height:1;
     border:none; background:none; cursor:pointer;
     font-size:20px; color:var(--ink-soft);
     border-radius:50%;
   }
-  #queryClear:hover{ color:var(--burgundy); background:var(--tint); }
+  #queryClear:hover, .search-clear:hover{ color:var(--burgundy); background:var(--tint); }
+
+  /* ---------- "narrow it down" box ----------
+     Wraps the six filters + search + reset + pool count. Always expanded
+     (no click needed to see or use a filter) — this is a label on a
+     group of controls that are already visible, not a disclosure/
+     accordion, so the header below is a plain div, not a button. Exists
+     so the filters read as a secondary, optional narrowing step under
+     the primary "Find Another" action above, rather than being the
+     first thing on the page. */
+  .narrow-box{
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:var(--paper-raised);
+    overflow:hidden;
+  }
+  .narrow-box-header{
+    display:flex; align-items:center; gap:9px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .narrow-box-header .nb-icon{
+    width:26px; height:26px; border-radius:50%; flex-shrink:0;
+    background:var(--tint); color:var(--brass);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .narrow-box-header .nb-icon svg{ width:13px; height:13px; }
+  .narrow-box-body{ padding:20px 18px 22px; }
+  .narrow-box-body > *:last-child{ margin-bottom:0; }
 
   /* ---------- filters ---------- */
   .filters{
@@ -376,6 +794,20 @@
     padding:8px 6px;
     text-align:center;
   }
+  .ms-alias-suggestion{
+    display:block;
+    margin:6px auto 0;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--brass);
+    background:none; border:none; cursor:pointer;
+    padding:4px 6px;
+    text-decoration:underline;
+    text-decoration-color:transparent;
+    transition:text-decoration-color .15s;
+  }
+  .ms-alias-suggestion:hover{ color:var(--burgundy); text-decoration-color:currentColor; }
   .ms-panel-footer{
     display:flex; justify-content:flex-end;
     padding-top:2px;
@@ -444,11 +876,21 @@
   .reset-link:hover{ color:var(--burgundy); text-decoration-color:var(--burgundy); }
   .reset-link:disabled{ opacity:.45; cursor:default; text-decoration-color:transparent; }
 
-  /* ---------- top nav (Recently Viewed / Favorites) ---------- */
+  /* ---------- top nav (Home / Recents / Favorites / Notes / Lists) ----------
+     Five items now (was four before Notes) — on a narrow phone there
+     isn't room left for a stray word inside any one item to wrap onto its
+     own line, which reads as two ragged rows instead of one clean one.
+     `white-space:nowrap` on every piece stops that; the slightly tighter
+     `gap` (was 12px) buys back a little of the width that cost, and the
+     short "Notes"/"Lists" labels (see NAV_ITEMS above) do the rest. If a
+     6th tab is ever added, revisit this row's width budget again rather
+     than assuming it'll still fit. */
   .page-nav{
-    display:flex; justify-content:center; align-items:center; gap:12px;
+    display:flex; justify-content:center; align-items:center; gap:9px;
     margin:0 0 32px;
+    flex-wrap:wrap;
   }
+  .page-nav .reset-link, .page-nav .nav-current{ white-space:nowrap; }
   .nav-sep{ color:var(--line); font-family:'Inter',sans-serif; font-size:12.5px; }
   .nav-current{
     font-family:'Inter',sans-serif;
@@ -466,7 +908,7 @@
     margin-bottom:24px;
   }
   .page-title{
-    font-family:'Fraunces',serif;
+    font-family:'Lora',serif;
     font-weight:600;
     font-size:26px;
     margin:0;
@@ -491,7 +933,7 @@
   .pool-count strong{ color:var(--burgundy); font-weight:600; }
 
   /* ---------- draw button ---------- */
-  .draw-zone{ text-align:center; margin-bottom:8px; }
+  .draw-zone{ text-align:center; margin-bottom:34px; }
   .draw-buttons{
     display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
   }
@@ -558,7 +1000,7 @@
   }
 
   /* ---------- result card (the "ticket") ---------- */
-  #resultZone{ margin-top:46px; display:none; }
+  #resultZone{ margin-top:34px; margin-bottom:34px; display:none; }
   .ticket{
     position:relative;
     background:var(--paper-raised);
@@ -581,7 +1023,7 @@
     pointer-events:none;
   }
   .ticket h2{
-    font-family:'Fraunces',serif;
+    font-family:'Lora',serif;
     font-weight:600;
     font-size:clamp(24px,4vw,30px);
     line-height:1.2;
@@ -627,7 +1069,14 @@
     padding:4px 10px;
     border-radius:20px;
   }
+  /* Three fixed rows (Open This Talk + Find Another; Previous + Next;
+     Favorite/Add to List/Add Note/Share), not one flex-wrap group —
+     grouped by what the buttons do, not just packed by width, so the
+     row a button lands on doesn't shift with screen size. */
   .ticket-actions{
+    display:flex; flex-direction:column; gap:10px; align-items:center;
+  }
+  .ticket-actions-row{
     display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
   }
 
@@ -688,7 +1137,7 @@
     margin-bottom:6px;
   }
   .list-item-title{
-    font-family:'Fraunces',serif;
+    font-family:'Lora',serif;
     font-weight:600;
     font-size:18px;
     line-height:1.3;
@@ -725,13 +1174,13 @@
   .favorite-btn-icon.is-favorited{ border-color:var(--brass); color:var(--brass); }
   .favorite-btn-icon.is-favorited svg{ fill:var(--brass); }
 
-  #favoriteBtn.is-favorited{ border-color:var(--brass); color:var(--burgundy); }
-
   .collection-btn-icon svg{ width:14px; height:14px; }
   .collection-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
   .collection-btn-icon.in-collection{ border-color:var(--brass); color:var(--brass); }
 
-  #collectionBtn.in-collection{ border-color:var(--brass); color:var(--burgundy); }
+  .note-btn-icon svg{ width:14px; height:14px; }
+  .note-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .note-btn-icon.has-note{ border-color:var(--brass); color:var(--brass); }
 
   /* ---------- read badge ---------- */
   /* [hidden] is called out explicitly below because it ties in
@@ -784,7 +1233,7 @@
     margin-bottom:16px;
   }
   .modal-header h3{
-    font-family:'Fraunces',serif; font-weight:600; font-size:20px; margin:0;
+    font-family:'Lora',serif; font-weight:600; font-size:20px; margin:0;
   }
   .modal-close{
     background:none; border:none; cursor:pointer;
@@ -836,6 +1285,22 @@
   .modal-actions{
     display:flex; justify-content:flex-end; gap:10px;
   }
+  .modal-actions .reset-link{ margin-right:auto; align-self:center; }
+
+  /* ---------- note modal ---------- */
+  .note-textarea{
+    width:100%;
+    min-height:130px;
+    resize:vertical;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink); /* see #querySearch's comment on iOS zoom-on-focus */
+    line-height:1.5;
+    box-sizing:border-box;
+  }
+  .note-textarea:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
 
   /* ---------- My Lists index page ---------- */
   .collections-new-row{
@@ -885,7 +1350,7 @@
   }
   .collection-row-main:hover{ background:var(--tint); }
   .collection-row-name{
-    font-family:'Fraunces',serif; font-weight:600; font-size:17px; color:var(--ink);
+    font-family:'Lora',serif; font-weight:600; font-size:17px; color:var(--ink);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
   .collection-row-count{
@@ -921,6 +1386,19 @@
     line-height:1.5;
     color:var(--ink-soft);
   }
+  .list-item-note{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    line-height:1.5;
+    color:var(--ink);
+    background:var(--paper-raised);
+    border-left:2px solid var(--brass);
+    padding:6px 10px;
+    margin-top:8px;
+    border-radius:2px;
+    white-space:pre-wrap;
+  }
+  .list-item-note strong{ color:var(--brass); font-weight:600; }
   .list-footer{ text-align:center; margin-top:16px; }
   .list-pagination{
     display:flex; align-items:center; justify-content:center;
@@ -976,15 +1454,20 @@
 <body>
 <div class="wrap">
 
-  <!-- Fixed so it stays reachable from every page (Home, Recents,
-       Favorites, My Lists) without living inside any one zone's markup —
+  <!-- A direct child of .wrap (not any one zone's markup) so it stays
+       reachable from every page (Home, Recents, Favorites, My Lists) —
        those get their innerHTML replaced on navigation, which would wipe
-       a button placed inside them. Icon/label are filled in by
-       updateThemeToggleIcon() at load. -->
-  <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Switch to dark mode"></button>
+       a button placed inside them. Positioned absolute within .wrap
+       (see .settings-btn CSS), so it sits in the top-right corner of the
+       page and scrolls away with it, rather than floating fixed over
+       the content. Opens the Settings modal below, which holds
+       Appearance (Light/Dark/System) and the Daily Reminder toggle. -->
+  <button type="button" class="settings-btn" id="settingsBtn" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L14.9 3h-3.8l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h3.8l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z"/></svg>
+  </button>
 
   <div class="eyebrow">From General Conference of<br>The Church of Jesus Christ<br>of Latter-day Saints</div>
-  <h1>Find a Talk</h1>
+  <h1>FindATalk</h1>
 
   <div class="divider">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
@@ -999,83 +1482,14 @@
     <div class="streak-badge" id="streakBadge" hidden></div>
   </div>
 
-  <div class="search-field">
-    <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
-    <div class="search-input-wrap">
-      <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
-      <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
-    </div>
-  </div>
-
-  <div class="filters">
-    <div class="field">
-      <label id="roleLabel">Calling at the Time of the Talk</label>
-      <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
-        <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="rolePanel" hidden>
-        <div class="ms-options" id="roleOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="topicLabel">Topic</label>
-      <button type="button" class="ms-trigger" id="topicTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="topicLabel topicTriggerText">
-        <span class="ms-trigger-text" id="topicTriggerText">Any topic</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="topicPanel" hidden>
-        <input type="text" class="ms-search" id="topicSearch" placeholder="Search topics…" autocomplete="off">
-        <div class="ms-options" id="topicOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="topicClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="speakerLabel">Speaker</label>
-      <button type="button" class="ms-trigger" id="speakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="speakerLabel speakerTriggerText">
-        <span class="ms-trigger-text" id="speakerTriggerText">Any speaker</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="speakerPanel" hidden>
-        <input type="text" class="ms-search" id="speakerSearch" placeholder="Search speakers…" autocomplete="off">
-        <div class="ms-options" id="speakerOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="yearLabel">General Conference</label>
-      <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
-        <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="yearPanel" hidden>
-        <div class="ms-options" id="yearOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="mineLabel">Recent/Favorites</label>
-      <button type="button" class="ms-trigger" id="mineTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="mineLabel mineTriggerText">
-        <span class="ms-trigger-text" id="mineTriggerText">All talks</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="minePanel" hidden>
-        <div class="ms-options" id="mineOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="mineClear">Clear</button></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="filters-actions">
-    <button type="button" id="resetBtn" class="reset-link">Reset filters</button>
-  </div>
-
-  <div class="pool-count" id="poolCount"></div>
-
+  <!-- The primary action — "Find Another" (today's Talk of the Day is
+       your first random pick; this gets you another) plus the secondary
+       "Show a List" — sits directly under Talk of the Day, above the
+       filters. Filters are an optional narrowing step, not the first
+       thing on the page; see the "narrow it down" box below. -->
   <div class="draw-zone">
     <div class="draw-buttons">
-      <button id="drawBtn">Find a Talk</button>
+      <button id="drawBtn">Find Another</button>
       <button id="listBtn">Show a List</button>
     </div>
     <div class="list-size-row">
@@ -1088,6 +1502,11 @@
     <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
   </div>
 
+  <!-- A single drawn talk is the direct answer to the button just
+       pressed, not something being browsed or filtered further, so it
+       sits right after that button rather than below the filters —
+       unlike "Show a List" below, which is a browsing surface and stays
+       next to the controls that shape it. -->
   <div id="resultZone">
     <div class="ticket" id="ticket">
       <h2 id="ticketTitle"></h2>
@@ -1097,14 +1516,130 @@
       <div class="ticket-read-badge" id="ticketReadBadge" hidden></div>
       <div class="topics" id="ticketTopics"></div>
       <div class="ticket-actions">
-        <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
-        <button class="btn btn-ghost" id="shareBtn" type="button">Share</button>
-        <button class="btn btn-ghost" id="favoriteBtn" type="button">☆ Favorite</button>
-        <button class="btn btn-ghost" id="collectionBtn" type="button">+ Add to List</button>
-        <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
-        <button class="btn btn-ghost" id="forwardBtn" type="button" disabled>Next →</button>
-        <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
+        <div class="ticket-actions-row">
+          <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
+          <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
+        </div>
+        <div class="ticket-actions-row">
+          <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
+          <button class="btn btn-ghost" id="forwardBtn" type="button" disabled>Next →</button>
+        </div>
+        <!-- Same icon-circle style as every list row and the Talk of the
+             Day card (.share-btn-icon + its favorite/collection/note
+             variants) — this row is a secondary action, usually reached
+             for after a talk's already been opened and read, so it
+             doesn't need a spelled-out label every time the way the
+             primary buttons above do. State (favorited, on a list, has a
+             note) shows as a filled/brass circle plus a tooltip, the same
+             way it already does on every list row. -->
+        <div class="ticket-actions-row">
+          <button class="share-btn-icon favorite-btn-icon" id="favoriteBtn" type="button" aria-label="Add to favorites" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>
+          </button>
+          <button class="share-btn-icon collection-btn-icon" id="collectionBtn" type="button" aria-label="Add to a list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button class="share-btn-icon note-btn-icon" id="noteBtn" type="button" aria-label="Add a note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <button class="share-btn-icon" id="shareBtn" type="button" aria-label="Share this talk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+          </button>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <div class="narrow-box">
+    <div class="narrow-box-header">
+      <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
+      <span>Looking for something more specific?</span>
+    </div>
+    <div class="narrow-box-body">
+      <div class="filters">
+        <div class="field">
+          <label id="topicLabel">Topic</label>
+          <button type="button" class="ms-trigger" id="topicTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="topicLabel topicTriggerText">
+            <span class="ms-trigger-text" id="topicTriggerText">Any topic</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="topicPanel" hidden>
+            <input type="text" class="ms-search" id="topicSearch" placeholder="Search topics…" autocomplete="off">
+            <div class="ms-options" id="topicOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="topicClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="roleLabel">Calling at the Time of the Talk</label>
+          <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
+            <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="rolePanel" hidden>
+            <div class="ms-options" id="roleOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="speakerLabel">Speaker</label>
+          <button type="button" class="ms-trigger" id="speakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="speakerLabel speakerTriggerText">
+            <span class="ms-trigger-text" id="speakerTriggerText">Any speaker</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="speakerPanel" hidden>
+            <input type="text" class="ms-search" id="speakerSearch" placeholder="Search speakers…" autocomplete="off">
+            <div class="ms-options" id="speakerOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="yearLabel">General Conference</label>
+          <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
+            <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="yearPanel" hidden>
+            <div class="ms-options" id="yearOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="sessionLabel">Session</label>
+          <button type="button" class="ms-trigger" id="sessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="sessionLabel sessionTriggerText">
+            <span class="ms-trigger-text" id="sessionTriggerText">Any Session</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="sessionPanel" hidden>
+            <div class="ms-options" id="sessionOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="sessionClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="mineLabel">Recent/Favorites</label>
+          <button type="button" class="ms-trigger" id="mineTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="mineLabel mineTriggerText">
+            <span class="ms-trigger-text" id="mineTriggerText">All talks</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="minePanel" hidden>
+            <div class="ms-options" id="mineOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="mineClear">Clear</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-field">
+        <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
+        <div class="search-input-wrap">
+          <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
+          <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
+        </div>
+      </div>
+
+      <div class="filters-actions">
+        <button type="button" id="resetBtn" class="reset-link">Reset filters</button>
+      </div>
+
+      <div class="pool-count" id="poolCount"></div>
     </div>
   </div>
 
@@ -1132,13 +1667,18 @@
     <div class="page-header">
       <h2 class="page-title">Recently Viewed</h2>
     </div>
-    <div class="filters" id="recentFilters"></div>
+    <div class="search-field" id="recentSearchField">
+      <label id="recentQueryLabel" for="recentQuery">Search your recently viewed</label>
+      <div class="search-input-wrap">
+        <input type="text" id="recentQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="recentQueryLabel">
+        <button type="button" id="recentQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
     <div class="filters-actions">
       <div class="sort-toggle" id="recentSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Viewed</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
-      <button type="button" class="reset-link" id="recentFilterReset">Reset filters</button>
     </div>
     <div class="pool-count" id="recentFilterCount"></div>
     <div class="list-items" id="recentItems"></div>
@@ -1150,17 +1690,45 @@
     <div class="page-header">
       <h2 class="page-title">Favorites</h2>
     </div>
-    <div class="filters" id="favoritesFilters"></div>
+    <div class="search-field" id="favoritesSearchField">
+      <label id="favoritesQueryLabel" for="favoritesQuery">Search your favorites</label>
+      <div class="search-input-wrap">
+        <input type="text" id="favoritesQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="favoritesQueryLabel">
+        <button type="button" id="favoritesQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
     <div class="filters-actions">
       <div class="sort-toggle" id="favoritesSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Favorited</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
-      <button type="button" class="reset-link" id="favoritesFilterReset">Reset filters</button>
     </div>
     <div class="pool-count" id="favoritesFilterCount"></div>
     <div class="list-items" id="favoritesItems"></div>
     <div class="list-empty" id="favoritesEmpty"></div>
+  </div>
+
+  <div id="notesZone" style="display:none">
+    <div class="page-nav" id="notesZoneNav"></div>
+    <div class="page-header">
+      <h2 class="page-title">My Notes</h2>
+    </div>
+    <div class="search-field" id="notesSearchField">
+      <label id="notesQueryLabel" for="notesQuery">Search your notes</label>
+      <div class="search-input-wrap">
+        <input type="text" id="notesQuery" class="search-input" placeholder="Search what you wrote, or the talk's title/speaker/calling/topic…" autocomplete="off" aria-labelledby="notesQueryLabel">
+        <button type="button" id="notesQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
+    <div class="filters-actions">
+      <div class="sort-toggle" id="notesSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Noted</button>
+        <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
+      </div>
+    </div>
+    <div class="pool-count" id="notesFilterCount"></div>
+    <div class="list-items" id="notesItems"></div>
+    <div class="list-empty" id="notesEmpty"></div>
   </div>
 
   <div id="collectionsIndexZone" style="display:none">
@@ -1172,14 +1740,27 @@
       <input type="text" id="collectionsIndexNewInput" placeholder="New list name…" autocomplete="off">
       <button type="button" id="collectionsIndexNewBtn">Create</button>
     </div>
+    <div class="search-field" id="collectionsSearchField">
+      <label id="collectionsQueryLabel" for="collectionsQuery">Search your lists</label>
+      <div class="search-input-wrap">
+        <input type="text" id="collectionsQuery" class="search-input" placeholder="Search list names…" autocomplete="off" aria-labelledby="collectionsQueryLabel">
+        <button type="button" id="collectionsQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
+    <div class="filters-actions" id="collectionsSortRow">
+      <div class="sort-toggle" id="collectionsSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Updated</button>
+        <button type="button" class="sort-toggle-btn" data-sort="alpha">Alphabetical</button>
+      </div>
+    </div>
+    <div class="collections-index-list" id="collectionsIndexList"></div>
+    <div class="list-empty" id="collectionsIndexEmpty">You haven't created any lists yet — name one above to get started.</div>
     <div class="collections-backup-row">
       <button type="button" id="backupExportBtn">Export Backup</button>
       <button type="button" id="backupImportBtn">Import Backup</button>
       <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
     </div>
-    <p class="backup-hint">Favorites and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
-    <div class="collections-index-list" id="collectionsIndexList"></div>
-    <div class="list-empty" id="collectionsIndexEmpty">You haven't created any lists yet — name one above to get started.</div>
+    <p class="backup-hint">Favorites, notes, and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
   </div>
 
   <div id="collectionZone" style="display:none">
@@ -1187,9 +1768,18 @@
     <div class="page-header">
       <h2 class="page-title" id="collectionTitle">List</h2>
     </div>
-    <div class="filters" id="collectionFilters"></div>
+    <div class="search-field" id="collectionSearchField">
+      <label id="collectionQueryLabel" for="collectionQuery">Search this list</label>
+      <div class="search-input-wrap">
+        <input type="text" id="collectionQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="collectionQueryLabel">
+        <button type="button" id="collectionQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
     <div class="filters-actions">
-      <button type="button" class="reset-link" id="collectionFilterReset">Reset filters</button>
+      <div class="sort-toggle" id="collectionSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Added</button>
+        <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
+      </div>
     </div>
     <div class="pool-count" id="collectionFilterCount"></div>
     <div class="list-items" id="collectionItems"></div>
@@ -1210,15 +1800,80 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="noteModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="noteModalTitle">
+      <div class="modal-header">
+        <h3 id="noteModalTitle">My Note</h3>
+        <button type="button" class="modal-close" id="noteModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy" id="noteModalTalkInfo"></p>
+      <textarea class="note-textarea" id="noteModalTextarea" placeholder="What did you learn from this talk?" aria-label="Your note"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="reset-link" id="noteModalDeleteBtn" hidden>Delete Note</button>
+        <button type="button" class="btn btn-ghost" id="noteModalCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="noteModalSaveBtn">Save Note</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="notifPermModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifPermModalTitle">
       <div class="modal-header">
         <h3 id="notifPermModalTitle">Get a daily nudge?</h3>
       </div>
-      <p class="modal-copy">Find a Talk can send one reminder a day, at 8:00 AM, with your talk of the day ready to read. Your phone will ask you to allow notifications next — this is just a heads-up on why.</p>
+      <p class="modal-copy">Find a Talk can send one reminder a day, at 8:00 AM by default, with your talk of the day ready to read — you can change the time anytime in Settings. Your phone will ask you to allow notifications next — this is just a heads-up on why.</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="notifPermSkipBtn">Not Now</button>
         <button type="button" class="btn btn-primary" id="notifPermAllowBtn">Enable Reminders</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="settingsModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <div class="modal-header">
+        <h3 id="settingsModalTitle">Settings</h3>
+        <button type="button" class="modal-close" id="settingsModalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="settings-section">
+        <p class="settings-label">Appearance</p>
+        <div class="segmented" role="group" aria-label="Appearance">
+          <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+          <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+          <button type="button" data-theme-choice="system" aria-pressed="false">System</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <p class="settings-label">Color Palette</p>
+        <div class="segmented palette-segmented" role="group" aria-label="Color Palette">
+          <button type="button" data-palette-choice="brass" aria-pressed="false"><span class="palette-swatch" style="background:#a9822f"></span>Brass</button>
+          <button type="button" data-palette-choice="rose" aria-pressed="false"><span class="palette-swatch" style="background:#a45a72"></span>Rose</button>
+          <button type="button" data-palette-choice="slate" aria-pressed="false"><span class="palette-swatch" style="background:#4a6f92"></span>Slate</button>
+          <button type="button" data-palette-choice="sage" aria-pressed="false"><span class="palette-swatch" style="background:#6f7c3f"></span>Sage</button>
+        </div>
+      </div>
+
+      <div class="settings-section" id="reminderSettingsSection" hidden>
+        <p class="settings-label">Notifications</p>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <strong>Daily Reminder</strong>
+            <span>One nudge a day with your talk ready to read.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="reminderToggle">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+        <div class="settings-row" id="reminderTimeRow">
+          <div class="settings-row-text">
+            <strong>Reminder Time</strong>
+            <span>When the nudge shows up each day.</span>
+          </div>
+          <input type="time" id="reminderTimeInput" aria-label="Reminder time">
+        </div>
       </div>
     </div>
   </div>
@@ -1233,18 +1888,17 @@
 <script>
 /* ---------------------------------------------------------------
    Dark mode. `themePreference` in localStorage holds an EXPLICIT
-   choice ('light'/'dark') from the toggle button below; when it's
-   absent, the app follows `prefers-color-scheme` instead (handled
-   entirely in CSS — see the @media block in <style>). This runs
-   immediately, independent of loadData()/initApp() below, since the
-   toggle button is static markup present from first paint. A
+   choice ('light'/'dark') made from the Appearance control in the
+   Settings modal below; when it's absent (the "System" choice), the
+   app follows `prefers-color-scheme` instead (handled entirely in CSS
+   — see the @media block in <style>). This runs immediately,
+   independent of loadData()/initApp() below, since the Settings
+   button/modal are static markup present from first paint. A
    duplicate of the "apply a saved choice" logic also runs inline in
    <head>, before <style> is parsed, purely to avoid a light-then-dark
-   flash on load — this copy is what actually wires up the button.
+   flash on load — this copy is what actually wires up the controls.
 ------------------------------------------------------------------*/
 const THEME_KEY = 'themePreference';
-const SUN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>';
-const MOON_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.3A8.4 8.4 0 1 1 9.7 4a6.6 6.6 0 0 0 10.3 10.3z"/></svg>';
 function getStoredTheme(){
   try { return localStorage.getItem(THEME_KEY); } catch(err){ return null; }
 }
@@ -1257,43 +1911,56 @@ function effectiveTheme(){
   const stored = getStoredTheme();
   return (stored==='light' || stored==='dark') ? stored : (systemPrefersDark() ? 'dark' : 'light');
 }
+// Reflects the current choice in the Appearance segmented control
+// (Light/Dark/System) and the status-bar color meta tag. "System" is
+// just the absence of an explicit stored choice.
 function updateThemeToggleUI(){
-  const btn = document.getElementById('themeToggleBtn');
-  if (!btn) return;
   const isDark = effectiveTheme()==='dark';
-  btn.innerHTML = isDark ? SUN_ICON_SVG : MOON_ICON_SVG;
-  btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
   const meta = document.getElementById('themeColorMeta');
   if (meta) meta.setAttribute('content', isDark ? '#161b26' : '#f3efe2');
+  const active = getStoredTheme() || 'system';
+  document.querySelectorAll('[data-theme-choice]').forEach((btn)=>{
+    btn.setAttribute('aria-pressed', String(btn.dataset.themeChoice === active));
+  });
 }
-// Sets an EXPLICIT theme (from a user tap), overriding the system
-// setting from then on. To go back to following the system automatically,
-// a person would need to clear site data — there's no "system" option in
-// the toggle itself, just light/dark, matching how most apps' simple
-// two-state toggles work.
+// Sets the Appearance choice from a tap in the Settings modal.
+// 'light'/'dark' store an explicit override; 'system' clears it so the
+// app goes back to following prefers-color-scheme.
 function setTheme(theme){
-  document.documentElement.setAttribute('data-theme', theme);
-  try { localStorage.setItem(THEME_KEY, theme); } catch(err){ /* ignore */ }
+  if (theme === 'system'){
+    document.documentElement.removeAttribute('data-theme');
+    try { localStorage.removeItem(THEME_KEY); } catch(err){ /* ignore */ }
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch(err){ /* ignore */ }
+  }
   updateThemeToggleUI();
   mirrorThemeToNative(theme);
 }
-/* Copies an explicit light/dark choice into native storage so the
-   home-screen widgets can match it — same problem and same two
-   platform-specific paths as mirrorStreakToNative() below: a widget runs
-   in a separate process from this WebView and can't see localStorage.
-   Only ever called with an explicit 'light'/'dark' value (never to reset
-   back to "follow system" — there's no UI for that yet, same as the
-   in-app toggle itself), so the native side only needs to know "was an
-   explicit choice ever made, and if so which" — absence of this key
-   there means "still following the system setting", same meaning as
-   getStoredTheme() returning null here. */
+/* Copies the Appearance choice into native storage so the home-screen
+   widgets can match it — same problem and same two platform-specific
+   paths as mirrorStreakToNative() below: a widget runs in a separate
+   process from this WebView and can't see localStorage.
+   For 'light'/'dark' this mirrors an explicit override. For 'system'
+   it needs to put the native side back into "no override, follow the
+   OS setting" — on Android that means actually removing the
+   preferences key (TalkOfDayWidgetProvider treats a *missing* key as
+   "no override", not a value of "system"); on iOS the widget's
+   TalkPalette.resolve() already falls back to the system scheme for
+   any override string it doesn't recognize as "light"/"dark", so
+   writing the literal string "system" there works just as well as
+   removing it. */
 async function mirrorThemeToNative(theme){
   const cap = window.Capacitor;
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const platform = cap.getPlatform ? cap.getPlatform() : '';
   try {
     if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
-      await cap.Plugins.Preferences.set({key: 'findATalkTheme', value: theme});
+      if (theme === 'system'){
+        await cap.Plugins.Preferences.remove({key: 'findATalkTheme'});
+      } else {
+        await cap.Plugins.Preferences.set({key: 'findATalkTheme', value: theme});
+      }
       if (cap.Plugins.WidgetRefresh){
         try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
       }
@@ -1302,17 +1969,115 @@ async function mirrorThemeToNative(theme){
     }
   } catch(err){ /* native widget just won't see the fresh choice this time — not fatal */ }
 }
-document.getElementById('themeToggleBtn').addEventListener('click', ()=>{
-  setTheme(effectiveTheme()==='dark' ? 'light' : 'dark');
+document.querySelectorAll('[data-theme-choice]').forEach((btn)=>{
+  btn.addEventListener('click', ()=> setTheme(btn.dataset.themeChoice));
 });
 updateThemeToggleUI();
-// No explicit choice saved yet: keep the icon and status-bar color in
-// sync if the OS-level setting changes while the app is open.
+// No explicit choice saved (following "System"): keep the segmented
+// control and status-bar color in sync if the OS-level setting changes
+// while the app is open.
 if (window.matchMedia){
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
     if (!getStoredTheme()) updateThemeToggleUI();
   });
 }
+
+/* ---------------------------------------------------------------
+   Color Palette. Independent of the Appearance/dark-mode logic above —
+   see the "color palettes" CSS comment for why the two axes don't
+   conflict. `themePalette` in localStorage holds 'rose'/'slate'/'sage';
+   absent means Brass, the default — the <html> tag starts with
+   data-palette="brass" already on it, so setPalette() always sets a
+   value, never removes the attribute (see its own function comment, and
+   the `_warmup` CSS rule, for the WebKit bug this is all in service of).
+   Also mirrored to native storage (see
+   mirrorPaletteToNative() below) so the home-screen widgets can match it,
+   same idea as mirrorThemeToNative() above but its own key — the two
+   bridges are independent, a person can pick a palette without an
+   explicit Light/Dark choice and vice versa.
+------------------------------------------------------------------*/
+const PALETTE_KEY = 'themePalette';
+const VALID_PALETTES = ['rose', 'slate', 'sage'];
+function getStoredPalette(){
+  try {
+    const p = localStorage.getItem(PALETTE_KEY);
+    return VALID_PALETTES.includes(p) ? p : null;
+  } catch(err){ return null; }
+}
+function updatePaletteToggleUI(){
+  const active = getStoredPalette() || 'brass';
+  document.querySelectorAll('[data-palette-choice]').forEach((btn)=>{
+    btn.setAttribute('aria-pressed', String(btn.dataset.paletteChoice === active));
+  });
+}
+function setPalette(palette){
+  // Always SETS a value, never removes the attribute, matching the
+  // <html> tag already starting with data-palette="brass" rather than no
+  // attribute at all — one less state to keep in sync. The actual fix for
+  // the WebKit bug that motivated this is the `_warmup` CSS rule (see its
+  // comment in the "color palettes" section); this alone wouldn't have
+  // been enough on its own.
+  document.documentElement.setAttribute('data-palette', palette);
+  if (palette === 'brass'){
+    try { localStorage.removeItem(PALETTE_KEY); } catch(err){ /* ignore */ }
+  } else {
+    try { localStorage.setItem(PALETTE_KEY, palette); } catch(err){ /* ignore */ }
+  }
+  updatePaletteToggleUI();
+  mirrorPaletteToNative(palette);
+}
+/* Copies the Color Palette choice into native storage so the home-screen
+   widgets can match it — same problem and same two platform-specific
+   paths as mirrorThemeToNative() above: a widget runs in a separate
+   process from this WebView and can't see localStorage. 'brass' clears
+   the native override (missing key = Brass, the default) rather than
+   writing the literal string, mirroring how mirrorThemeToNative() clears
+   rather than writes 'system'. */
+async function mirrorPaletteToNative(palette){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const platform = cap.getPlatform ? cap.getPlatform() : '';
+  try {
+    if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
+      if (palette === 'brass'){
+        await cap.Plugins.Preferences.remove({key: 'findATalkPalette'});
+      } else {
+        await cap.Plugins.Preferences.set({key: 'findATalkPalette', value: palette});
+      }
+      if (cap.Plugins.WidgetRefresh){
+        try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
+      }
+    } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
+      await cap.Plugins.StreakBridge.setPalettePreference({palette});
+    }
+  } catch(err){ /* native widget just won't see the fresh choice this time — not fatal */ }
+}
+document.querySelectorAll('[data-palette-choice]').forEach((btn)=>{
+  btn.addEventListener('click', ()=> setPalette(btn.dataset.paletteChoice));
+});
+updatePaletteToggleUI();
+
+/* ---------------------------------------------------------------
+   Settings modal — houses Appearance above and the Daily Reminder
+   toggle below. Same open/close pattern as the "Add to a List" modal
+   (see closeCollectionModal() further down): overlay click, Escape,
+   or the × all close it.
+------------------------------------------------------------------*/
+const settingsModalOverlay = document.getElementById('settingsModalOverlay');
+function openSettingsModal(){
+  settingsModalOverlay.hidden = false;
+}
+function closeSettingsModal(){
+  settingsModalOverlay.hidden = true;
+}
+document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
+document.getElementById('settingsModalClose').addEventListener('click', closeSettingsModal);
+settingsModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === settingsModalOverlay) closeSettingsModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !settingsModalOverlay.hidden) closeSettingsModal();
+});
 
 /* ---------------------------------------------------------------
    Verified talk data: title, speaker, year, month, url-slug.
@@ -1391,6 +2156,31 @@ const ROLE_ORDER = ["president","first-presidency","apostle","relief-society","p
    TOPIC_LOOKUP/KICKER_LOOKUP above, reused here so recents/favorites can
    be stored as plain strings in localStorage and looked back up later. */
 function talkKey(talk){ return `${talk[2]}|${talk[3]}|${talk[4]}`; }
+
+/* ---------------------------------------------------------------
+   Session filter. Which session of conference a talk was given in —
+   backfilled from the real Church conference contents pages (see
+   PROJECT_HANDOFF.md / memory for the extraction method). "other"
+   covers everything that doesn't cleanly fit the eight tracked
+   categories: welfare-focused meetings, the old Friday/Tuesday/Thursday
+   slots used before the modern 2-day pattern settled, one-off
+   firesides/broadcasts, etc. Note "sat-evening" is its own bucket, NOT
+   folded into priesthood — the post-2020 "Saturday Evening Session"
+   replaced the standalone Priesthood Session broadcast but isn't
+   priesthood-specific anymore (open to everyone), so it's tracked
+   separately rather than force-fit into either priesthood or other.
+   Order here is display order, oldest-in-the-day first, "other" last —
+   matching the pattern ROLE_ORDER already sets above. */
+const SESSION_ORDER = ["sat-am","sat-pm","sat-evening","sun-am","sun-pm","priesthood","womens","other"];
+const SESSION_LABELS = {
+  "sat-am": "Saturday Morning", "sat-pm": "Saturday Afternoon",
+  "sat-evening": "Saturday Evening (post-2020)",
+  "sun-am": "Sunday Morning", "sun-pm": "Sunday Afternoon",
+  "priesthood": "General Priesthood", "womens": "General Women’s",
+  "other": "Other"
+};
+let SESSION_LOOKUP;
+function talkSession(talk){ return SESSION_LOOKUP[talkKey(talk)] || 'other'; }
 
 /* ---------------------------------------------------------------
    Recently-viewed and favorited talks — both purely local to this
@@ -1670,7 +2460,7 @@ function saveCollectionMembers(){
 }
 function createCollection(name){
   const id = 'col_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  collections.push({id, name});
+  collections.push({id, name, updatedAt: Date.now()});
   collectionMembers[id] = [];
   saveCollections();
   saveCollectionMembers();
@@ -1685,6 +2475,15 @@ function deleteCollection(id){
 function isInCollection(id, talk){
   return (collectionMembers[id] || []).includes(talkKey(talk));
 }
+// Bumps a list's `updatedAt` — feeds the "Recently Updated" sort on the My
+// Lists page. Deliberately only called when a talk is actually *added* to
+// a list (see addTalkToCollection/addTalksToCollection below), not on
+// removal or on every open — matches "most recently added to," which is
+// what was actually asked for, not a generic last-touched timestamp.
+function touchCollection(id){
+  const col = collections.find(c=> c.id === id);
+  if (col) col.updatedAt = Date.now();
+}
 /* Names of every list (in creation order) a talk currently belongs to —
    used to badge a talk as "already on a list" and say which one(s),
    without the caller needing to loop over `collections` itself. */
@@ -1694,7 +2493,7 @@ function talkListNames(talk){
 function addTalkToCollection(id, talk){
   const key = talkKey(talk);
   const arr = collectionMembers[id] || (collectionMembers[id] = []);
-  if (!arr.includes(key)) arr.push(key);
+  if (!arr.includes(key)){ arr.push(key); touchCollection(id); }
 }
 function removeTalkFromCollection(id, talk){
   const key = talkKey(talk);
@@ -1704,6 +2503,7 @@ function removeTalkFromCollection(id, talk){
 }
 function toggleCollectionMember(id, talk){
   if (isInCollection(id, talk)) removeTalkFromCollection(id, talk); else addTalkToCollection(id, talk);
+  saveCollections();
   saveCollectionMembers();
 }
 /* Bulk variants — add/remove several talks at once (one save at the end
@@ -1711,11 +2511,57 @@ function toggleCollectionMember(id, talk){
    acting on more than one talk, e.g. a multi-select from "Show a List". */
 function addTalksToCollection(id, talks){
   talks.forEach(t=> addTalkToCollection(id, t));
+  saveCollections();
   saveCollectionMembers();
 }
 function removeTalksFromCollection(id, talks){
   talks.forEach(t=> removeTalkFromCollection(id, t));
+  saveCollections();
   saveCollectionMembers();
+}
+
+/* ---------------------------------------------------------------
+   Notes — a short free-text "what I learned" note a person can attach to
+   any talk, purely local to this device (no accounts/sync, same as
+   Favorites and My Lists above). Stored as a plain object keyed by
+   talkKey() -> note text, rather than a Set/array like favoriteKeys,
+   since each talk holds at most one note and we need the text itself, not
+   just membership. An empty/whitespace-only note is treated as "no note"
+   and removes the key entirely (setNote() trims and deletes rather than
+   storing ""), so hasNote()/noteCount() never have to special-case a
+   blank string sitting in storage. Included in backup export/import
+   alongside favorites/read/collections/streak — see the Backup
+   export/import section further down. ------------------------------- */
+const NOTES_KEY = 'findATalkNotes';
+let noteMap = {};
+function loadNotes(){
+  try {
+    const raw = localStorage.getItem(NOTES_KEY);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      noteMap = (parsed && typeof parsed === 'object') ? parsed : {};
+    }
+  } catch(err){ noteMap = {}; }
+}
+loadNotes();
+function saveNotes(){
+  try { localStorage.setItem(NOTES_KEY, JSON.stringify(noteMap)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+}
+function getNote(talk){ return noteMap[talkKey(talk)] || ''; }
+function hasNote(talk){ return !!getNote(talk); }
+/* Plain-object key order in JS is insertion order, but reassigning an
+   EXISTING key's value doesn't move it — unlike a Set/Map, which is how
+   favoriteKeys gets its "re-favoriting bumps to the end" behavior (see the
+   comment above FAVORITES_KEY). Deleting the key first before re-setting
+   it mirrors that same semantic here, so the My Notes page's "Recently
+   Noted" order reflects the most recent edit, not just first-written. */
+function setNote(talk, text){
+  const key = talkKey(talk);
+  const trimmed = (text || '').trim();
+  delete noteMap[key];
+  if (trimmed) noteMap[key] = trimmed;
+  saveNotes();
 }
 
 /* Splits a speaker's full name into { last, first, suffix } so the
@@ -1765,7 +2611,67 @@ const allConfs = [...new Set(TALKS.map(confKey))].sort().reverse();
 const allSpeakers = [...new Set(TALKS.map(t=>t[1]))]
   .sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
 const allTopics = Object.keys(TOPIC_LABELS);
+
+// Common terms people actually type that don't match any official topic
+// label verbatim — mapped to the real topic key so a failed topic search
+// can offer a "Did you mean" suggestion instead of just "No matches".
+// Keyed by the alias term (lowercase); NOT meant to be exhaustive — add to
+// this as real search misses turn up (e.g. from a future search-analytics
+// pass, see idea 6 in the feature-ideas memory). Every value here must be a
+// real key in TOPIC_LABELS — a stale/typo'd value fails silently (the
+// suggestion button just wouldn't render a label), so double-check against
+// the official topic list before adding more.
+const TOPIC_ALIASES = {
+  'chastity': 'sexual-purity',
+  'premarital sex': 'sexual-purity',
+  'masturbation': 'sexual-purity',
+  'courtship': 'dating',
+  'gay': 'homosexuality',
+  'lgbt': 'homosexuality',
+  'lgbtq': 'homosexuality',
+  'same-sex attraction': 'homosexuality',
+  'same sex attraction': 'homosexuality',
+  'alcohol': 'word-of-wisdom',
+  'drinking': 'word-of-wisdom',
+  'smoking': 'word-of-wisdom',
+  'tobacco': 'word-of-wisdom',
+  'coffee': 'word-of-wisdom',
+  'drugs': 'addiction',
+  'lying': 'honesty',
+  'stealing': 'honesty',
+  'cursing': 'profanity',
+  'swearing': 'profanity',
+  'grief': 'death',
+  'loss of a loved one': 'death',
+  'self worth': 'individual-worth',
+  'self-worth': 'individual-worth',
+  'self harm': 'mental-illness',
+  'self-harm': 'mental-illness',
+  'lgbt marriage': 'marriage',
+  'gay marriage': 'marriage',
+  'same-sex marriage': 'marriage',
+};
+
+// Looks up a "did you mean" suggestion for a failed topic search. Tries an
+// exact match on the typed query first, then falls back to any alias key
+// that contains the query as a substring (so "chast" while still typing
+// "chastity" already surfaces the suggestion, matching how the option list
+// itself does substring matching). Returns a topic key, or null.
+function findTopicAlias(query){
+  if (!query) return null;
+  if (TOPIC_ALIASES[query]) return TOPIC_ALIASES[query];
+  const hit = Object.keys(TOPIC_ALIASES).find(k => k.includes(query));
+  return hit ? TOPIC_ALIASES[hit] : null;
+}
 const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
+// Unlike allRoles (untagged talks just have no role), talkSession() always
+// resolves to a real value — 'other' by default — so this has to check
+// which values actually occur across TALKS, not just what's in the lookup
+// object. Until the Session backfill lands, SESSION_LOOKUP is empty and
+// every talk falls through to 'other', so this correctly evaluates to
+// just ['other'] for now — the other six options appear automatically
+// once real per-talk data starts populating SESSION_LOOKUP.
+const allSessions = SESSION_ORDER.filter(s=>TALKS.some(t=>talkSession(t)===s));
 
 document.getElementById('totalCount').textContent = TALKS.length;
 
@@ -1805,7 +2711,7 @@ function sortByConferenceDate(picks){
    separately (matchesSearch()) rather than through matchesDim/DIM_CONFIG,
    since it has no checkbox panel and no "available values" concept. It
    still AND's with everything else, same as any other active filter. */
-const filterState = { year: [], speaker: [], topic: [], role: [], mine: [], query: '' };
+const filterState = { year: [], speaker: [], topic: [], role: [], session: [], mine: [], query: '' };
 
 // "Show a List" pagination state — declared up here (not down by the rest
 // of the list-pagination code) because refreshCount() resets it on every
@@ -1826,6 +2732,7 @@ function matchesDim(t, dim, values){
   if (dim==='speaker') return values.includes(t[1]);
   if (dim==='topic') return talkTopics(t).some(tp=>values.includes(tp));
   if (dim==='role') return values.includes(talkRole(t));
+  if (dim==='session') return values.includes(talkSession(t));
   if (dim==='mine') return values.some(v=> v==='recent' ? recentKeys.includes(talkKey(t)) : isFavorite(t));
   return true;
 }
@@ -1854,6 +2761,7 @@ function valuesForDim(pool, dim){
   if (dim==='speaker') pool.forEach(t=>set.add(t[1]));
   if (dim==='topic') pool.forEach(t=>talkTopics(t).forEach(tp=>set.add(tp)));
   if (dim==='role') pool.forEach(t=>{ const r=talkRole(t); if(r) set.add(r); });
+  if (dim==='session') pool.forEach(t=>set.add(talkSession(t)));
   if (dim==='mine'){
     if (pool.some(t=>recentKeys.includes(talkKey(t)))) set.add('recent');
     if (pool.some(t=>isFavorite(t))) set.add('favorite');
@@ -1866,20 +2774,6 @@ function valuesForDim(pool, dim){
    whether the panel gets a search box (only the two long lists — Speaker
    and Topic — need one), and the DOM refs it's wired to. */
 const DIM_CONFIG = {
-  year: {
-    allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
-    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
-    trigger: document.getElementById('yearTrigger'), triggerText: document.getElementById('yearTriggerText'),
-    panel: document.getElementById('yearPanel'), options: document.getElementById('yearOptions'),
-    search: null, clearBtn: document.getElementById('yearClear')
-  },
-  speaker: {
-    allValues: allSpeakers, anyLabel:'Any speaker', noun:'speakers', searchable:true,
-    labelFor: v=>speakerDisplayName(v),
-    trigger: document.getElementById('speakerTrigger'), triggerText: document.getElementById('speakerTriggerText'),
-    panel: document.getElementById('speakerPanel'), options: document.getElementById('speakerOptions'),
-    search: document.getElementById('speakerSearch'), clearBtn: document.getElementById('speakerClear')
-  },
   topic: {
     allValues: allTopics, anyLabel:'Any topic', noun:'topics', searchable:true,
     labelFor: v=>TOPIC_LABELS[v],
@@ -1894,6 +2788,27 @@ const DIM_CONFIG = {
     panel: document.getElementById('rolePanel'), options: document.getElementById('roleOptions'),
     search: null, clearBtn: document.getElementById('roleClear')
   },
+  speaker: {
+    allValues: allSpeakers, anyLabel:'Any speaker', noun:'speakers', searchable:true,
+    labelFor: v=>speakerDisplayName(v),
+    trigger: document.getElementById('speakerTrigger'), triggerText: document.getElementById('speakerTriggerText'),
+    panel: document.getElementById('speakerPanel'), options: document.getElementById('speakerOptions'),
+    search: document.getElementById('speakerSearch'), clearBtn: document.getElementById('speakerClear')
+  },
+  year: {
+    allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
+    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
+    trigger: document.getElementById('yearTrigger'), triggerText: document.getElementById('yearTriggerText'),
+    panel: document.getElementById('yearPanel'), options: document.getElementById('yearOptions'),
+    search: null, clearBtn: document.getElementById('yearClear')
+  },
+  session: {
+    allValues: allSessions, anyLabel:'Any Session', noun:'sessions', searchable:false,
+    labelFor: v=>SESSION_LABELS[v],
+    trigger: document.getElementById('sessionTrigger'), triggerText: document.getElementById('sessionTriggerText'),
+    panel: document.getElementById('sessionPanel'), options: document.getElementById('sessionOptions'),
+    search: null, clearBtn: document.getElementById('sessionClear')
+  },
   mine: {
     allValues: ['recent','favorite'], anyLabel:'All talks', noun:'filters', searchable:false,
     labelFor: v=> v==='recent' ? 'Recently Viewed' : 'Favorites',
@@ -1905,7 +2820,7 @@ const DIM_CONFIG = {
 // The set of values still reachable for each dim given the OTHER active
 // filters — recomputed on every filter change, same "reachable" concept
 // the old single-select cascading used, just feeding checkboxes now.
-const availableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set(), mine:new Set() };
+const availableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set(), session:new Set(), mine:new Set() };
 
 /* Renders one dim's checkbox list from its current available set, current
    selections (never hidden even if no longer "available" — a choice
@@ -1943,7 +2858,23 @@ function renderOptions(dim){
   if (shown === 0){
     const empty = document.createElement('div');
     empty.className = 'ms-empty';
-    empty.textContent = query ? 'No matches' : 'No options available';
+    const aliasKey = dim === 'topic' ? findTopicAlias(query) : null;
+    if (aliasKey){
+      empty.textContent = 'No exact match.';
+      const sugg = document.createElement('button');
+      sugg.type = 'button';
+      sugg.className = 'ms-alias-suggestion';
+      sugg.textContent = `Did you mean "${TOPIC_LABELS[aliasKey]}"?`;
+      sugg.addEventListener('click', ()=>{
+        if (!filterState.topic.includes(aliasKey)) filterState.topic.push(aliasKey);
+        cfg.search.value = '';
+        refreshCount();
+        cfg.search.focus();
+      });
+      empty.appendChild(sugg);
+    } else {
+      empty.textContent = query ? 'No matches' : 'No options available';
+    }
     cfg.options.appendChild(empty);
   }
 }
@@ -2061,14 +2992,18 @@ const recentEmptyEl = document.getElementById('recentEmpty');
 const favoritesZone = document.getElementById('favoritesZone');
 const favoritesItemsEl = document.getElementById('favoritesItems');
 const favoritesEmptyEl = document.getElementById('favoritesEmpty');
+const notesZone = document.getElementById('notesZone');
+const notesItemsEl = document.getElementById('notesItems');
+const notesEmptyEl = document.getElementById('notesEmpty');
 const collectionsIndexZone = document.getElementById('collectionsIndexZone');
 const collectionZone = document.getElementById('collectionZone');
 const collectionItemsEl = document.getElementById('collectionItems');
 const collectionEmptyEl = document.getElementById('collectionEmpty');
 let lastPicked = null;
 // Stack of talks shown before the current one, so "← Previous" can step
-// back through what "Find a Talk"/"Find Another" already surfaced this
-// session. Not persisted — this is in-memory navigation, not the
+// back through what "Find Another" (drawBtn, then drawAgainBtn on the
+// ticket) already surfaced this session. Not persisted — this is
+// in-memory navigation, not the
 // "recently viewed" history (see RECENT_KEY above).
 let pickHistory = [];
 // Talks stepped away from via "← Previous", so "Next →" can redo those
@@ -2087,11 +3022,16 @@ document.getElementById('openLink').addEventListener('click', ()=>{
   syncReadBadge();
 });
 
+// Icon-only now (same .share-btn-icon family as every list row) — state
+// shows as a filled/brass circle plus a title/aria-label, not relabeled
+// button text, so these only toggle a class and the accessible name
+// rather than touching textContent (which would also wipe out the SVG).
 const favoriteBtn = document.getElementById('favoriteBtn');
 function syncFavoriteBtn(){
   const fav = !!(lastPicked && isFavorite(lastPicked));
-  favoriteBtn.textContent = fav ? '★ Favorited' : '☆ Favorite';
   favoriteBtn.classList.toggle('is-favorited', fav);
+  favoriteBtn.setAttribute('aria-pressed', String(fav));
+  favoriteBtn.setAttribute('aria-label', fav ? 'Remove from favorites' : 'Add to favorites');
 }
 favoriteBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
@@ -2104,13 +3044,27 @@ favoriteBtn.addEventListener('click', ()=>{
 const collectionBtn = document.getElementById('collectionBtn');
 function syncCollectionBtn(){
   const names = lastPicked ? talkListNames(lastPicked) : [];
-  collectionBtn.textContent = names.length ? `✓ On ${names.length === 1 ? '1 List' : names.length + ' Lists'}` : '+ Add to List';
   collectionBtn.classList.toggle('in-collection', names.length > 0);
   collectionBtn.title = names.length ? `On your list: ${names.join(', ')}` : '';
+  collectionBtn.setAttribute('aria-label', names.length
+    ? `On ${names.length === 1 ? names[0] : `${names.length} lists`} — manage lists`
+    : 'Add to a list');
 }
 collectionBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
   openCollectionModal(lastPicked);
+});
+
+const noteBtn = document.getElementById('noteBtn');
+function syncNoteBtn(){
+  const note = lastPicked ? getNote(lastPicked) : '';
+  noteBtn.classList.toggle('has-note', !!note);
+  noteBtn.title = note ? `Your note: ${note}` : '';
+  noteBtn.setAttribute('aria-label', note ? 'Edit your note' : 'Add a note');
+}
+noteBtn.addEventListener('click', ()=>{
+  if (!lastPicked) return;
+  openNoteModal(lastPicked);
 });
 
 // Reflects whether the currently-shown talk has already been opened at
@@ -2161,6 +3115,7 @@ function showTicket(pick){
   lastPicked = pick;
   syncFavoriteBtn();
   syncCollectionBtn();
+  syncNoteBtn();
   syncReadBadge();
 
   const [title, speaker, year, month, slug] = pick;
@@ -2386,6 +3341,7 @@ function buildListItemRow(pick, {selectable=false}={}){
   actions.className = 'list-item-actions';
   actions.appendChild(createFavoriteButton(pick));
   actions.appendChild(createCollectionButton(pick));
+  actions.appendChild(createNoteButton(pick));
 
   const shareIconBtn = document.createElement('button');
   shareIconBtn.type = 'button';
@@ -2413,6 +3369,19 @@ function buildListItemRow(pick, {selectable=false}={}){
     summaryEl.className = 'list-item-summary';
     summaryEl.textContent = kicker;
     item.appendChild(summaryEl);
+  }
+
+  // Shows the person's own "what I learned" note, if they've written one
+  // for this talk — visible everywhere this row appears (Show a List,
+  // Recently Viewed, Favorites, My Lists, My Notes), not just on the My
+  // Notes page itself, same "surface it wherever the talk shows up"
+  // spirit as the read badge and kicker above.
+  if (hasNote(pick)){
+    const noteEl = document.createElement('div');
+    noteEl.className = 'list-item-note';
+    noteEl.innerHTML = `<strong>Your note:</strong> `;
+    noteEl.appendChild(document.createTextNode(getNote(pick)));
+    item.appendChild(noteEl);
   }
 
   return item;
@@ -2491,6 +3460,44 @@ function refreshCollectionBadgesFor(talk){
   if (lastPicked && talkKey(lastPicked) === key) syncCollectionBtn();
 }
 
+/* A small icon button (same .share-btn-icon circle styling as Favorite/
+   Add-to-List) that opens the note modal for this talk. Doubles as a
+   badge exactly like createCollectionButton() above: filled/brass once a
+   note exists, tooltip shows a short preview. `_syncNoteBadge` and
+   `dataset.talkKey` let refreshNoteBadgesFor() re-sync every copy of this
+   button on the page after the modal saves/deletes a note, without
+   re-rendering (and, for "Show a List", re-shuffling) the list it's in. */
+function createNoteButton(pick){
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'share-btn-icon note-btn-icon';
+  btn.innerHTML = NOTE_ICON_SVG;
+  btn.dataset.talkKey = talkKey(pick);
+  const sync = ()=>{
+    const note = getNote(pick);
+    btn.classList.toggle('has-note', !!note);
+    btn.title = note ? `Your note: ${note}` : '';
+    btn.setAttribute('aria-label', note ? `Edit your note on "${pick[0]}"` : `Add a note to "${pick[0]}"`);
+  };
+  btn._syncNoteBadge = sync;
+  sync();
+  btn.addEventListener('click', ()=> openNoteModal(pick));
+  return btn;
+}
+/* Re-syncs every on-page copy of a talk's note badge (list rows plus the
+   ticket's own button) after a note was saved/deleted in the modal — same
+   reasoning as refreshCollectionBadgesFor() above. Also swaps in/out the
+   .list-item-note preview block on any row currently showing this talk,
+   since that block (unlike the badges) isn't rebuilt by a simple re-sync. */
+function refreshNoteBadgesFor(talk){
+  if (!talk) return;
+  const key = talkKey(talk);
+  document.querySelectorAll('.note-btn-icon').forEach(btn=>{
+    if (btn.dataset.talkKey === key && btn._syncNoteBadge) btn._syncNoteBadge();
+  });
+  if (lastPicked && talkKey(lastPicked) === key) syncNoteBtn();
+}
+
 /* ---------------- Talk of the Day ---------------- */
 /* Integer mixing hash (splitmix32) — used instead of hashing the date
    string directly. A prior DJB2-on-string version hashed values like
@@ -2533,18 +3540,39 @@ function talkOfTheDay(){
   });
   return sorted[splitmix32(localDayNumber()) % sorted.length];
 }
+// Local calendar day (see localDayNumber()) that renderTalkOfTheDay() last
+// ran for. Used by watchForDayRollover() below to notice when it's stale.
+let lastRenderedDayNumber = null;
 function renderTalkOfTheDay(){
+  lastRenderedDayNumber = localDayNumber();
   const pick = talkOfTheDay();
   const totdItemsEl = document.getElementById('totdItems');
   totdItemsEl.innerHTML = '';
   if (pick) totdItemsEl.appendChild(buildListItemRow(pick));
 }
+/* Backgrounding the native app doesn't reload the WebView — Android (and
+   iOS) just suspend it, so whatever was on screen at last launch stays
+   there untouched. Without this, someone who opens the app after local
+   midnight without a fresh cold-start keeps seeing yesterday's Talk of
+   the Day and streak badge until they force-quit and relaunch. Checked
+   on every return to the foreground; a no-op unless the local calendar
+   date has actually moved on since the last render. */
+function watchForDayRollover(){
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState !== 'visible') return;
+    if (lastRenderedDayNumber !== null && localDayNumber() === lastRenderedDayNumber) return;
+    renderTalkOfTheDay();
+    renderStreak();
+  });
+}
 
 /* ---------------- Daily reminder notification ----------------
    A single repeating local notification ("your talk of the day is
-   ready") at a fixed 8:00 AM local time, meant to pair with the streak
-   above — the nudge that actually gets someone to open the app each day,
-   not just a number that sits unseen until they remember to look.
+   ready") at a local time the person picks (Reminder Time in Settings —
+   8:00 AM by default, see getReminderTime()), meant to pair with the
+   streak above — the nudge that actually gets someone to open the app
+   each day, not just a number that sits unseen until they remember to
+   look.
    Web-only (no server, no accounts) so this uses @capacitor/local-
    notifications, which only exists inside the wrapped iOS/Android app —
    window.Capacitor is absent entirely when this page is opened as a
@@ -2553,7 +3581,10 @@ function renderTalkOfTheDay(){
    product decision to prompt early rather than bury this behind a
    settings toggle nobody finds) — findATalkNotifPrompted gates that so
    later launches never ask again, matching whatever the person chose
-   (or dismissed) that first time.
+   (or dismissed) that first time. There IS now a settings toggle (see
+   initReminderSettingsToggle() below, in the Settings modal) for anyone
+   who declined that first ask, or later changes their mind either way —
+   it just isn't how the permission gets asked for the first time.
    Before that ask ever reaches the OS, a custom explainer modal shows
    why we want the permission — a user-suggested step, since a bare OS
    prompt with no context tends to get reflexively denied. Declining our
@@ -2561,7 +3592,36 @@ function renderTalkOfTheDay(){
    sets the "prompted" flag so we never nag again, matching the existing
    ask-once philosophy above. */
 const NOTIF_PROMPTED_KEY = 'findATalkNotifPrompted';
+// Tracks whether the reminder should be ON, as distinct from whether OS
+// permission is granted — someone can grant permission once, then flip
+// the Settings toggle off without revoking it at the OS level, and this
+// is what remembers that. Absent (never touched the toggle) is treated
+// as "on" as long as permission is granted, matching the original
+// no-toggle behavior where granting permission was the only signal.
+const REMINDER_ENABLED_KEY = 'findATalkReminderEnabled';
+// Hour/minute (24h, local time) the daily reminder fires at. Absent
+// (nobody has touched the Reminder Time picker yet) means "8:00 AM",
+// matching the original fixed time this replaced.
+const REMINDER_HOUR_KEY = 'findATalkReminderHour';
+const REMINDER_MINUTE_KEY = 'findATalkReminderMinute';
 const DAILY_REMINDER_ID = 1;
+
+function getReminderTime(){
+  let hour = 8, minute = 0;
+  try {
+    const h = parseInt(localStorage.getItem(REMINDER_HOUR_KEY), 10);
+    const m = parseInt(localStorage.getItem(REMINDER_MINUTE_KEY), 10);
+    if (Number.isInteger(h) && h >= 0 && h <= 23) hour = h;
+    if (Number.isInteger(m) && m >= 0 && m <= 59) minute = m;
+  } catch(err){ /* ignore — fall back to 8:00 */ }
+  return { hour, minute };
+}
+function setReminderTime(hour, minute){
+  try {
+    localStorage.setItem(REMINDER_HOUR_KEY, String(hour));
+    localStorage.setItem(REMINDER_MINUTE_KEY, String(minute));
+  } catch(err){ /* ignore */ }
+}
 
 function showNotifPermModal(){
   return new Promise((resolve)=>{
@@ -2579,6 +3639,23 @@ function showNotifPermModal(){
     allowBtn.addEventListener('click', onAllow);
     skipBtn.addEventListener('click', onSkip);
     overlay.hidden = false;
+  });
+}
+
+// `schedule.on` with only hour/minute set (no day/month/year) is a
+// recurring trigger, not a one-off — Capacitor fires it every day at
+// that local time. Re-scheduling the same id on a later launch (or from
+// the Settings toggle, or the Reminder Time picker) just replaces this
+// one entry. Time comes from getReminderTime() (defaults to 8:00 AM).
+async function scheduleDailyReminder(LocalNotifications){
+  const { hour, minute } = getReminderTime();
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: DAILY_REMINDER_ID,
+      title: 'Find a Talk',
+      body: 'Your talk of the day is ready to read.',
+      schedule: { on: { hour, minute }, allowWhileIdle: true }
+    }]
   });
 }
 
@@ -2601,20 +3678,74 @@ async function setupDailyReminder(){
     }
     if (perm.display !== 'granted') return;
 
-    // `schedule.on` with only hour/minute set (no day/month/year) is a
-    // recurring trigger, not a one-off — Capacitor fires it every day at
-    // that local time. Re-scheduling the same id on a later launch just
-    // replaces this one entry, so it's safe to call again if we ever
-    // want to (e.g. a future "change reminder time" setting).
-    await LocalNotifications.schedule({
-      notifications: [{
-        id: DAILY_REMINDER_ID,
-        title: 'Find a Talk',
-        body: 'Your talk of the day is ready to read.',
-        schedule: { on: { hour: 8, minute: 0 }, allowWhileIdle: true }
-      }]
-    });
+    await scheduleDailyReminder(LocalNotifications);
   } catch(err){ /* permission denied, plugin unavailable, etc. — not fatal */ }
+}
+
+/* Wires up the Daily Reminder switch and Reminder Time picker in the
+   Settings modal. Hidden entirely on the plain web build (window.Capacitor
+   absent), since notifications are a no-op there anyway. The switch
+   reflects OS permission AND REMINDER_ENABLED_KEY together: granted-but-
+   toggled-off still shows off, and toggling on re-requests permission if
+   it was never granted (e.g. the person skipped the first-launch prompt).
+   The time picker is disabled while the reminder is off — there's nothing
+   to reschedule until it's on — and re-schedules the existing notification
+   immediately on change, same replace-in-place behavior scheduleDailyReminder()
+   already relies on elsewhere. */
+async function initReminderSettingsToggle(){
+  const cap = window.Capacitor;
+  const section = document.getElementById('reminderSettingsSection');
+  const toggle = document.getElementById('reminderToggle');
+  const timeInput = document.getElementById('reminderTimeInput');
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const LocalNotifications = cap.Plugins && cap.Plugins.LocalNotifications;
+  if (!LocalNotifications) return;
+  section.hidden = false;
+
+  const pad2 = (n)=> String(n).padStart(2, '0');
+  const { hour, minute } = getReminderTime();
+  timeInput.value = pad2(hour) + ':' + pad2(minute);
+
+  let enabledPref = null;
+  try { enabledPref = localStorage.getItem(REMINDER_ENABLED_KEY); } catch(err){ /* ignore */ }
+
+  try {
+    const perm = await LocalNotifications.checkPermissions();
+    toggle.checked = perm.display === 'granted' && enabledPref !== '0';
+  } catch(err){ toggle.checked = false; }
+  timeInput.disabled = !toggle.checked;
+
+  toggle.addEventListener('change', async ()=>{
+    const turningOn = toggle.checked;
+    try {
+      if (turningOn){
+        let perm = await LocalNotifications.checkPermissions();
+        if (perm.display !== 'granted'){
+          perm = await LocalNotifications.requestPermissions();
+        }
+        if (perm.display !== 'granted'){
+          toggle.checked = false; // OS-level denial — nothing more we can do from here
+          return;
+        }
+        await scheduleDailyReminder(LocalNotifications);
+        try { localStorage.setItem(REMINDER_ENABLED_KEY, '1'); } catch(err){ /* ignore */ }
+      } else {
+        await LocalNotifications.cancel({ notifications: [{ id: DAILY_REMINDER_ID }] });
+        try { localStorage.setItem(REMINDER_ENABLED_KEY, '0'); } catch(err){ /* ignore */ }
+      }
+    } catch(err){ /* plugin unavailable, etc. — leave the switch as the user set it */ }
+    timeInput.disabled = !toggle.checked;
+  });
+
+  timeInput.addEventListener('change', async ()=>{
+    const parts = (timeInput.value || '').split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (!Number.isInteger(h) || !Number.isInteger(m)) return; // cleared/invalid — leave prior pref alone
+    setReminderTime(h, m);
+    if (!toggle.checked) return; // nothing scheduled to update yet
+    try { await scheduleDailyReminder(LocalNotifications); } catch(err){ /* ignore */ }
+  });
 }
 // NOTE: the actual renderTalkOfTheDay() call happens at the very end of
 // initApp(), not here — buildListItemRow() → createFavoriteButton() reads
@@ -2699,6 +3830,7 @@ const SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 const STAR_ICON_SVG = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>';
 const COLLECTION_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
 const CHECK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>';
+const NOTE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
 /* Copies text with the modern async Clipboard API first, falling back to
    the older execCommand('copy') technique (a hidden, focused, selected
@@ -2749,10 +3881,10 @@ async function shareTalk(pick, btnEl){
   flashShareButton(btnEl, copied ? 'Link copied!' : 'Copy failed');
 }
 /* Briefly swaps a share button's content to a confirmation message, then
-   restores its original label/icon. Works for both the ticket's text
-   button and the list's icon-only buttons (the icon button also gets a
-   temporary width-expanding class so the confirmation text isn't clipped
-   inside its normal 30px circle). */
+   restores its original icon. The ticket's share button and every list
+   row's share button are both plain .share-btn-icon circles now, so
+   both get the same temporary width-expanding class so the confirmation
+   text isn't clipped inside the normal 30px circle. */
 function flashShareButton(btnEl, message){
   if (!btnEl) return;
   if (btnEl.dataset.flashTimer) clearTimeout(Number(btnEl.dataset.flashTimer));
@@ -2780,13 +3912,19 @@ shareBtn.addEventListener('click', ()=>{
 // clickable links to jump straight there. The same markup is rendered
 // into a placeholder on each zone (rather than living in one shared
 // element) so it stays visible no matter which zone is on screen.
+// Labels here are deliberately terser than their page titles ("Notes" vs.
+// the page's own "My Notes" heading, "Lists" vs. "My Lists") — this row
+// has to fit all five on one line even on a narrow phone, and "My" added
+// nothing beyond padding out the width; see the CSS comment on .page-nav
+// for the rest of the narrow-width fix.
 const NAV_ITEMS = [
   {zone:'home', label:'Home'},
   {zone:'recent', label:'Recents'},
   {zone:'favorites', label:'Favorites'},
-  {zone:'collectionsIndex', label:'My Lists'}
+  {zone:'notes', label:'Notes'},
+  {zone:'collectionsIndex', label:'Lists'}
 ];
-const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
+const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','notesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
 function renderNavBars(currentZone){
   // The individual list-detail page isn't one of the four tabs — treat
   // it as part of "My Lists" for bolding purposes. Unlike an exact match
@@ -2816,6 +3954,7 @@ document.body.addEventListener('click', (e)=>{
   const zone = btn.getAttribute('data-nav-zone');
   if (zone==='recent') renderRecentPage();
   else if (zone==='favorites') renderFavoritesPage();
+  else if (zone==='notes') renderNotesPage();
   else if (zone==='collectionsIndex') renderCollectionsIndexPage();
   showZone(zone);
 });
@@ -2825,220 +3964,57 @@ function showZone(name){
   homeZone.style.display = name==='home' ? '' : 'none';
   recentZone.style.display = name==='recent' ? 'block' : 'none';
   favoritesZone.style.display = name==='favorites' ? 'block' : 'none';
+  notesZone.style.display = name==='notes' ? 'block' : 'none';
   collectionsIndexZone.style.display = name==='collectionsIndex' ? 'block' : 'none';
   collectionZone.style.display = name==='collection' ? 'block' : 'none';
   renderNavBars(name);
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-/* Same AND-across-dims/OR-within-a-dim semantics as poolExcept()/
-   currentPool() above, just parameterized over an arbitrary pool and
-   filterState instead of always using TALKS/the home page's filterState —
-   lets Recently Viewed and Favorites each filter their own (much smaller,
-   changing-over-time) collection with the same logic. */
-function subsetPoolExcept(pool, filterState, excludeDim){
-  return pool.filter(t=> SUBSET_DIM_ORDER.every(dim=> dim===excludeDim || matchesDim(t, dim, filterState[dim])));
+/* Resets the screen back to the pristine Home tab — no drawn ticket, no
+   "Show a List" open, no modal open. Called by native code (see
+   MainActivity.java's onNewIntent()/maybeGoHome() and SceneDelegate.swift's
+   openURLContexts handling) whenever the app is opened from the
+   "Talk of the Day" widget's tap, since backgrounding the native app
+   doesn't reload the WebView — it just suspends it, so without this the
+   app resumes exactly wherever it was left (mid-scroll in a list, a
+   modal open, Recently Viewed, etc.) instead of going to Home like the
+   widget promises. Ordinary foregrounding (app switcher, Home button)
+   intentionally does NOT call this — only an explicit widget tap should
+   force the reset.
+   Explicitly assigned onto `window` (not just declared) because this
+   whole function body lives inside initApp()'s closure like everything
+   else on this page — a bare top-level `function` declaration here would
+   only be visible to other code inside that same closure, not to a
+   native evaluateJavascript() call, which runs in the page's outer
+   scope. window.goToHomeScreen is the only bridge for that call to reach
+   this by name. */
+window.goToHomeScreen = function goToHomeScreen(){
+  document.querySelectorAll('.modal-overlay').forEach(el=> el.hidden = true);
+  resultZone.style.display = 'none';
+  listZone.style.display = 'none';
+  showZone('home');
+};
+
+/* ---------------- personal-collection pages: search, not filters ----
+   Recently Viewed, Favorites, My Notes, and a single List used to each
+   have their own copy of the Speaker/Calling/Conference/Topic filter
+   panels (a second, parallel implementation of the home page's filter
+   architecture, repeated four times). A personal collection is small —
+   dozens of talks, not the 4,054-talk pool Home searches — so faceted
+   filtering was overkill there; a single broad search box does the same
+   job with far less UI. Matches title, speaker, calling, and topic tags,
+   so typing "faith" or "apostle" still narrows things down the way the
+   old Topic/Calling filters did, just via typing instead of checkboxes.
+   `extra` is optional additional text to also match (My Notes passes the
+   note text itself). */
+function subsetSearchHaystack(pick, extra){
+  const role = talkRole(pick);
+  const topics = talkTopics(pick).map(tp=>TOPIC_LABELS[tp]).join(' ');
+  return [pick[0], pick[1], role ? ROLE_LABELS[role] : '', topics, extra || ''].join(' ').toLowerCase();
 }
-function subsetCurrentPool(pool, filterState){
-  return pool.filter(t=> SUBSET_DIM_ORDER.every(dim=> matchesDim(t, dim, filterState[dim])));
-}
-function subsetOrderedValues(dim, presentSet){
-  if (dim==='year') return [...presentSet].sort().reverse();
-  if (dim==='speaker') return [...presentSet].sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
-  if (dim==='topic') return Object.keys(TOPIC_LABELS).filter(tp=>presentSet.has(tp));
-  if (dim==='role') return ROLE_ORDER.filter(r=>presentSet.has(r));
-  return [...presentSet];
-}
-function subsetLabelFor(dim, val){
-  if (dim==='year'){ const [y,m]=val.split('-'); return `${monthName(m)} ${y}`; }
-  if (dim==='speaker') return speakerDisplayName(val);
-  if (dim==='topic') return TOPIC_LABELS[val];
-  return ROLE_LABELS[val];
-}
-
-const SUBSET_DIM_ORDER = ['role','topic','speaker','year'];
-const SUBSET_DIM_LABEL = { speaker:'Speaker', role:'Calling at the Time of the Talk', year:'General Conference', topic:'Topic' };
-const SUBSET_DIM_ANY = { speaker:'Any speaker', role:'Any Calling', year:'Any Conference', topic:'Any topic' };
-const SUBSET_DIM_NOUN = { speaker:'speakers', role:'callings', year:'conferences', topic:'topics' };
-const SUBSET_DIM_SEARCHABLE = { speaker:true, role:false, year:false, topic:true };
-
-/* Builds one independent set of Speaker/Calling/Conference/Topic
-   multi-select panels (same ms-trigger/ms-panel markup and cascading-
-   availability behavior as the home page's own filters above, just built
-   in JS instead of hand-written HTML since there are now three copies of
-   this UI) inside `containerEl`, scoped to whatever pool is passed to
-   setBasePool() rather than the whole TALKS array. Used once for
-   Recently Viewed and once for Favorites — fully independent of each
-   other and of the home page's filters. */
-function createSubsetFilterPanel(prefix, containerEl){
-  const filterState = { speaker:[], role:[], year:[], topic:[] };
-  const availableSets = { speaker:new Set(), role:new Set(), year:new Set(), topic:new Set() };
-  const dimConfig = {};
-  let openDim = null;
-  let basePool = [];
-  // `api` is declared with `let` (not `const`) below and assigned last,
-  // but recompute() only ever runs from an event handler or setBasePool()
-  // called after createSubsetFilterPanel() has returned — by which point
-  // `api` is set — so this forward reference is safe.
-  let api;
-
-  SUBSET_DIM_ORDER.forEach(dim=>{
-    const field = document.createElement('div');
-    field.className = 'field';
-
-    const labelId = `${prefix}${dim}Label`;
-    const label = document.createElement('label');
-    label.id = labelId;
-    label.textContent = SUBSET_DIM_LABEL[dim];
-    field.appendChild(label);
-
-    const trigger = document.createElement('button');
-    trigger.type = 'button';
-    trigger.className = 'ms-trigger';
-    trigger.setAttribute('aria-haspopup', 'true');
-    trigger.setAttribute('aria-expanded', 'false');
-    const triggerTextId = `${prefix}${dim}TriggerText`;
-    trigger.setAttribute('aria-labelledby', `${labelId} ${triggerTextId}`);
-    const triggerText = document.createElement('span');
-    triggerText.className = 'ms-trigger-text';
-    triggerText.id = triggerTextId;
-    triggerText.textContent = SUBSET_DIM_ANY[dim];
-    trigger.appendChild(triggerText);
-    trigger.insertAdjacentHTML('beforeend', '<svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>');
-    field.appendChild(trigger);
-
-    const panel = document.createElement('div');
-    panel.className = 'ms-panel';
-    panel.hidden = true;
-
-    let search = null;
-    if (SUBSET_DIM_SEARCHABLE[dim]){
-      search = document.createElement('input');
-      search.type = 'text';
-      search.className = 'ms-search';
-      search.placeholder = dim === 'speaker' ? 'Search speakers…' : 'Search topics…';
-      search.autocomplete = 'off';
-      panel.appendChild(search);
-    }
-
-    const options = document.createElement('div');
-    options.className = 'ms-options';
-    panel.appendChild(options);
-
-    const footer = document.createElement('div');
-    footer.className = 'ms-panel-footer';
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'ms-clear';
-    clearBtn.textContent = 'Clear';
-    footer.appendChild(clearBtn);
-    panel.appendChild(footer);
-
-    field.appendChild(panel);
-    containerEl.appendChild(field);
-
-    dimConfig[dim] = { trigger, triggerText, panel, options, search, clearBtn };
-  });
-
-  function closePanel(dim){
-    dimConfig[dim].panel.hidden = true;
-    dimConfig[dim].trigger.setAttribute('aria-expanded', 'false');
-    if (openDim === dim) openDim = null;
-  }
-  function closeAllPanels(){ SUBSET_DIM_ORDER.forEach(closePanel); }
-  function openPanel(dim){
-    if (openDim && openDim !== dim) closePanel(openDim);
-    dimConfig[dim].panel.hidden = false;
-    dimConfig[dim].trigger.setAttribute('aria-expanded', 'true');
-    openDim = dim;
-    if (dimConfig[dim].search){ dimConfig[dim].search.value = ''; renderDimOptions(dim); dimConfig[dim].search.focus(); }
-  }
-
-  function renderDimOptions(dim){
-    const cfg = dimConfig[dim];
-    const selected = filterState[dim];
-    const query = cfg.search ? cfg.search.value.trim().toLowerCase() : '';
-    cfg.options.innerHTML = '';
-    const values = subsetOrderedValues(dim, new Set([...availableSets[dim], ...selected]));
-    let shown = 0;
-    values.forEach(val=>{
-      const label = subsetLabelFor(dim, val);
-      if (query && !label.toLowerCase().includes(query)) return;
-      shown++;
-      const row = document.createElement('label');
-      row.className = 'ms-option';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = val;
-      cb.checked = selected.includes(val);
-      cb.addEventListener('change', ()=>{
-        const arr = filterState[dim];
-        const idx = arr.indexOf(val);
-        if (cb.checked && idx===-1) arr.push(val);
-        if (!cb.checked && idx!==-1) arr.splice(idx, 1);
-        recompute();
-      });
-      const span = document.createElement('span');
-      span.textContent = label;
-      row.appendChild(cb); row.appendChild(span);
-      cfg.options.appendChild(row);
-    });
-    if (shown === 0){
-      const empty = document.createElement('div');
-      empty.className = 'ms-empty';
-      empty.textContent = query ? 'No matches' : 'No options available';
-      cfg.options.appendChild(empty);
-    }
-  }
-  function updateDimTrigger(dim){
-    const cfg = dimConfig[dim];
-    const n = filterState[dim].length;
-    cfg.triggerText.textContent =
-      n === 0 ? SUBSET_DIM_ANY[dim] :
-      n === 1 ? subsetLabelFor(dim, filterState[dim][0]) :
-      `${n} ${SUBSET_DIM_NOUN[dim]} selected`;
-    cfg.clearBtn.disabled = n === 0;
-  }
-  function recompute(){
-    SUBSET_DIM_ORDER.forEach(dim=>{
-      availableSets[dim] = valuesForDim(subsetPoolExcept(basePool, filterState, dim), dim);
-      renderDimOptions(dim);
-      updateDimTrigger(dim);
-    });
-    if (api.onChange) api.onChange();
-  }
-
-  SUBSET_DIM_ORDER.forEach(dim=>{
-    const cfg = dimConfig[dim];
-    cfg.trigger.addEventListener('click', ()=>{
-      if (cfg.panel.hidden) openPanel(dim); else closePanel(dim);
-    });
-    if (cfg.search) cfg.search.addEventListener('input', ()=>renderDimOptions(dim));
-    cfg.clearBtn.addEventListener('click', ()=>{ filterState[dim] = []; recompute(); });
-  });
-  document.addEventListener('click', (e)=>{
-    if (!openDim) return;
-    const field = dimConfig[openDim].trigger.closest('.field');
-    if (field && !field.contains(e.target)) closeAllPanels();
-  });
-  document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape' && openDim){
-      const dim = openDim;
-      closePanel(dim);
-      dimConfig[dim].trigger.focus();
-    }
-  });
-
-  api = {
-    filterState,
-    onChange: null, // set by the caller; invoked after every recompute()
-    setBasePool(pool){ basePool = pool; recompute(); },
-    currentPool(){ return subsetCurrentPool(basePool, filterState); },
-    baseCount(){ return basePool.length; },
-    hasActiveFilters(){ return SUBSET_DIM_ORDER.some(dim=>filterState[dim].length); },
-    reset(){ SUBSET_DIM_ORDER.forEach(dim=>{ filterState[dim] = []; }); recompute(); }
-  };
-  return api;
+function matchesSubsetSearch(pick, query, extra){
+  return subsetSearchHaystack(pick, extra).includes(query.trim().toLowerCase());
 }
 
 /* Wires the "Recently Viewed/Favorited" vs. "Conference Date" toggle
@@ -3063,47 +4039,50 @@ function createSortToggle(containerEl, onChange){
   return { get mode(){ return mode; } };
 }
 
-const recentFilterPanel = createSubsetFilterPanel('recent', document.getElementById('recentFilters'));
-const recentFilterResetBtn = document.getElementById('recentFilterReset');
-const recentFilterCountEl = document.getElementById('recentFilterCount');
-recentFilterResetBtn.addEventListener('click', ()=> recentFilterPanel.reset());
-const recentSortToggle = createSortToggle(document.getElementById('recentSortToggle'), ()=> renderRecentPage());
+/* Wires a search box (input + clear button, same search-field markup as
+   the home page's own search box) to a render callback — used by
+   Recently Viewed, Favorites, My Notes, and a single List's page, each
+   with its own query string closed over here rather than a shared
+   global one. */
+function createSearchBox(inputEl, clearBtnEl, onChange){
+  let query = '';
+  inputEl.addEventListener('input', ()=>{
+    query = inputEl.value;
+    clearBtnEl.hidden = !query;
+    onChange();
+  });
+  clearBtnEl.addEventListener('click', ()=>{
+    query = '';
+    inputEl.value = '';
+    clearBtnEl.hidden = true;
+    inputEl.focus();
+    onChange();
+  });
+  return { get query(){ return query; } };
+}
 
-const favoritesFilterPanel = createSubsetFilterPanel('favorites', document.getElementById('favoritesFilters'));
-const favoritesFilterResetBtn = document.getElementById('favoritesFilterReset');
-const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
-favoritesFilterResetBtn.addEventListener('click', ()=> favoritesFilterPanel.reset());
-const favoritesSortToggle = createSortToggle(document.getElementById('favoritesSortToggle'), ()=> renderFavoritesPage());
-
-// One filter-panel instance reused for whichever single collection is
-// currently open (its base pool is swapped via setBasePool() each time a
-// different collection is viewed) — same pattern as recent/favorites,
-// just re-pointed at a different collection's talks instead of having
-// one instance per collection.
-const collectionFilterPanel = createSubsetFilterPanel('collection', document.getElementById('collectionFilters'));
-const collectionFilterResetBtn = document.getElementById('collectionFilterReset');
-const collectionFilterCountEl = document.getElementById('collectionFilterCount');
-collectionFilterResetBtn.addEventListener('click', ()=> collectionFilterPanel.reset());
-
-/* Renders one subset page (Recently Viewed or Favorites) from its filter
-   panel's already-computed currentPool() — shared by both so the "no
-   talks saved at all" vs. "talks saved, but none match the filters"
-   distinction stays consistent between them. */
-function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filterPanel, noTalksMessage, noMatchMessage){
-  const total = filterPanel.baseCount();
+/* Renders one personal-collection page (Recently Viewed, Favorites, My
+   Notes, or a single List) from `pool` (already sorted by the caller) —
+   shared so the "nothing saved at all" vs. "nothing matches your search"
+   distinction stays consistent across all of them. `total` is
+   deliberately based on the *unsearched* pool, so a search that matches
+   nothing shows "no talks match your search" rather than the "you
+   haven't saved anything yet" empty state — and importantly keeps the
+   search/sort controls visible so the person can actually clear it. */
+function renderSubsetList(itemsEl, emptyEl, countEl, controlsEls, pool, query, matcher, noTalksMessage, noMatchMessage){
+  const total = pool.length;
   itemsEl.innerHTML = '';
   if (total === 0){
     itemsEl.style.display = 'none';
     emptyEl.style.display = 'block';
     emptyEl.textContent = noTalksMessage;
     countEl.textContent = '';
-    filtersEl.style.display = 'none';
-    resetBtn.style.display = 'none';
+    controlsEls.forEach(el=> el.style.display = 'none');
     return;
   }
-  filtersEl.style.display = '';
-  resetBtn.style.display = '';
-  const filtered = filterPanel.currentPool();
+  controlsEls.forEach(el=> el.style.display = '');
+  const q = query.trim();
+  const filtered = q ? pool.filter(pick=> matcher(pick, q)) : pool;
   if (filtered.length === 0){
     itemsEl.style.display = 'none';
     emptyEl.style.display = 'block';
@@ -3118,64 +4097,144 @@ function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filter
     : `Showing ${filtered.length} of ${total} talk${total===1?'':'s'}`;
 }
 
+const recentFilterCountEl = document.getElementById('recentFilterCount');
+const recentSearchFieldEl = document.getElementById('recentSearchField');
+const recentSortRowEl = document.getElementById('recentSortToggle').closest('.filters-actions');
+const recentSortToggle = createSortToggle(document.getElementById('recentSortToggle'), ()=> renderRecentPage());
+const recentSearch = createSearchBox(document.getElementById('recentQuery'), document.getElementById('recentQueryClear'), ()=> renderRecentPage());
 function renderRecentPage(){
   let picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (recentSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
-  recentFilterPanel.setBasePool(picks);
+  const q = recentSearch.query;
+  renderSubsetList(
+    recentItemsEl, recentEmptyEl, recentFilterCountEl, [recentSearchFieldEl, recentSortRowEl],
+    picks, q, matchesSubsetSearch,
+    "You haven't opened any talks yet — talks you open from a ticket or a list will show up here.",
+    `No recently viewed talks match "${q.trim()}".`
+  );
 }
+
+const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
+const favoritesSearchFieldEl = document.getElementById('favoritesSearchField');
+const favoritesSortRowEl = document.getElementById('favoritesSortToggle').closest('.filters-actions');
+const favoritesSortToggle = createSortToggle(document.getElementById('favoritesSortToggle'), ()=> renderFavoritesPage());
+const favoritesSearch = createSearchBox(document.getElementById('favoritesQuery'), document.getElementById('favoritesQueryClear'), ()=> renderFavoritesPage());
 function renderFavoritesPage(){
   // Sets preserve insertion order, and re-favoriting after unfavoriting
   // re-inserts at the end — so reversing gives most-recently-favorited first.
   let picks = [...favoriteKeys].reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (favoritesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
-  favoritesFilterPanel.setBasePool(picks);
+  const q = favoritesSearch.query;
+  renderSubsetList(
+    favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, [favoritesSearchFieldEl, favoritesSortRowEl],
+    picks, q, matchesSubsetSearch,
+    "No favorites yet — tap the star on any talk to save it here.",
+    `No favorites match "${q.trim()}".`
+  );
 }
-recentFilterPanel.onChange = ()=> renderSubsetList(
-  recentItemsEl, recentEmptyEl, recentFilterCountEl, document.getElementById('recentFilters'), recentFilterResetBtn,
-  recentFilterPanel, "You haven't opened any talks yet — talks you open from a ticket or a list will show up here.",
-  'No recently viewed talks match those filters.'
-);
-favoritesFilterPanel.onChange = ()=> renderSubsetList(
-  favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, document.getElementById('favoritesFilters'), favoritesFilterResetBtn,
-  favoritesFilterPanel, "No favorites yet — tap the star on any talk to save it here.",
-  'No favorites match those filters.'
-);
 
+const notesFilterCountEl = document.getElementById('notesFilterCount');
+const notesSearchFieldEl = document.getElementById('notesSearchField');
+const notesSortRowEl = document.getElementById('notesSortToggle').closest('.filters-actions');
+const notesSortToggle = createSortToggle(document.getElementById('notesSortToggle'), ()=> renderNotesPage());
+const notesSearch = createSearchBox(document.getElementById('notesQuery'), document.getElementById('notesQueryClear'), ()=> renderNotesPage());
+// "Search your notes" — matches the note text itself, plus (via
+// matchesSubsetSearch's shared haystack) the talk's title/speaker/
+// calling/topics, since someone often remembers "something about
+// tithing" without recalling their own exact wording. Deliberately plain
+// substring matching, not a search index: notes are a handful-to-dozens
+// of short, on-device strings, not the thousands of official talk texts
+// idea #5 (full-text talk search) would need to deal with.
+function matchesNotesSearch(pick, query){
+  return matchesSubsetSearch(pick, query, noteMap[talkKey(pick)]);
+}
+function renderNotesPage(){
+  // noteMap's key order reflects most-recently-noted-first once reversed —
+  // see the comment on setNote() above for why a delete-then-reset keeps
+  // an edited note's position current instead of stuck at its first save.
+  let picks = Object.keys(noteMap).reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  if (notesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  const q = notesSearch.query;
+  renderSubsetList(
+    notesItemsEl, notesEmptyEl, notesFilterCountEl, [notesSearchFieldEl, notesSortRowEl],
+    picks, q, matchesNotesSearch,
+    "No notes yet — tap the note icon on any talk to jot down what you learned.",
+    `No notes match "${q.trim()}".`
+  );
+}
 
 /* ---------------- My Lists (self-defined collections) ---------------- */
 // Which collection collectionZone is currently showing, if any — lets a
 // membership change made via the modal (e.g. removing this same talk
 // from this same collection while its page happens to be open) refresh
 // the visible list immediately, same live-sync the Favorites page already
-// does for its own star.
+// does for its own star. Also read by the search/sort controls below so
+// they know which collection to re-render.
 let currentCollectionId = null;
 
+const collectionFilterCountEl = document.getElementById('collectionFilterCount');
+const collectionSearchFieldEl = document.getElementById('collectionSearchField');
+const collectionSortRowEl = document.getElementById('collectionSortToggle').closest('.filters-actions');
+const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=> renderCollectionPage(currentCollectionId));
+const collectionSearch = createSearchBox(document.getElementById('collectionQuery'), document.getElementById('collectionQueryClear'), ()=> renderCollectionPage(currentCollectionId));
 function renderCollectionPage(id){
   currentCollectionId = id;
   const col = collections.find(c=> c.id === id);
   document.getElementById('collectionTitle').textContent = col ? col.name : 'List';
-  const keys = collectionMembers[id] || [];
-  const picks = keys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
-  collectionFilterPanel.setBasePool(picks);
+  // Membership array is in the order talks were added; reversed gives
+  // most-recently-added first, same "recent first" default as
+  // Favorites/Recently Viewed above.
+  const keys = (collectionMembers[id] || []).slice().reverse();
+  let picks = keys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  if (collectionSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  const q = collectionSearch.query;
+  renderSubsetList(
+    collectionItemsEl, collectionEmptyEl, collectionFilterCountEl, [collectionSearchFieldEl, collectionSortRowEl],
+    picks, q, matchesSubsetSearch,
+    'No talks in this list yet.',
+    `No talks in this list match "${q.trim()}".`
+  );
 }
-collectionFilterPanel.onChange = ()=> renderSubsetList(
-  collectionItemsEl, collectionEmptyEl, collectionFilterCountEl, document.getElementById('collectionFilters'), collectionFilterResetBtn,
-  collectionFilterPanel, 'No talks in this list yet.',
-  'No talks in this list match those filters.'
-);
+
+// "Search your lists" + sort — filters/sorts the list of *list names*
+// (not talks inside them, that's what each list's own page/filters are
+// for). Same plain-substring approach as Notes search: this is a handful
+// of short, on-device strings, no index needed.
+let collectionsQuery = '';
+function visibleCollections(){
+  const q = collectionsQuery.trim().toLowerCase();
+  const list = q ? collections.filter(c=> c.name.toLowerCase().includes(q)) : collections.slice();
+  if (collectionsSortToggle.mode === 'alpha') list.sort((a,b)=> a.name.localeCompare(b.name));
+  else list.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0)); // 'default' = most recently added to
+  return list;
+}
 
 function renderCollectionsIndexPage(){
   const listEl = document.getElementById('collectionsIndexList');
   const emptyEl = document.getElementById('collectionsIndexEmpty');
+  const searchFieldEl = document.getElementById('collectionsSearchField');
+  const sortRowEl = document.getElementById('collectionsSortRow');
   listEl.innerHTML = '';
   if (!collections.length){
     listEl.style.display = 'none';
     emptyEl.style.display = 'block';
+    emptyEl.textContent = "You haven't created any lists yet — name one above to get started.";
+    searchFieldEl.style.display = 'none';
+    sortRowEl.style.display = 'none';
+    return;
+  }
+  searchFieldEl.style.display = '';
+  sortRowEl.style.display = '';
+  const visible = visibleCollections();
+  if (!visible.length){
+    listEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.textContent = `No lists match "${collectionsQuery.trim()}".`;
     return;
   }
   listEl.style.display = '';
   emptyEl.style.display = 'none';
-  collections.forEach(col=>{
+  visible.forEach(col=>{
     const row = document.createElement('div');
     row.className = 'collection-row';
 
@@ -3212,6 +4271,21 @@ function renderCollectionsIndexPage(){
   });
 }
 
+const collectionsSortToggle = createSortToggle(document.getElementById('collectionsSortToggle'), renderCollectionsIndexPage);
+const collectionsQueryEl = document.getElementById('collectionsQuery');
+const collectionsQueryClearBtn = document.getElementById('collectionsQueryClear');
+collectionsQueryEl.addEventListener('input', ()=>{
+  collectionsQuery = collectionsQueryEl.value;
+  collectionsQueryClearBtn.hidden = !collectionsQuery;
+  renderCollectionsIndexPage();
+});
+collectionsQueryClearBtn.addEventListener('click', ()=>{
+  collectionsQuery = '';
+  collectionsQueryEl.value = '';
+  collectionsQueryClearBtn.hidden = true;
+  collectionsQueryEl.focus();
+  renderCollectionsIndexPage();
+});
 
 const collectionsIndexNewInput = document.getElementById('collectionsIndexNewInput');
 document.getElementById('collectionsIndexNewBtn').addEventListener('click', ()=>{
@@ -3251,6 +4325,7 @@ function exportBackupData(){
     read: [...readKeys],
     collections,
     collectionMembers,
+    notes: noteMap,
     streak: loadStreak()
   };
 }
@@ -3313,7 +4388,7 @@ function mergeStreakData(incoming){
   saveStreak(merged);
 }
 function mergeBackupData(data){
-  let addedFavorites = 0, addedLists = 0, mergedLists = 0;
+  let addedFavorites = 0, addedLists = 0, mergedLists = 0, addedNotes = 0;
   (data.favorites || []).forEach(key=>{
     if (typeof key === 'string' && !favoriteKeys.has(key)){ favoriteKeys.add(key); addedFavorites++; }
   });
@@ -3327,21 +4402,41 @@ function mergeBackupData(data){
     if (!col || typeof col.id !== 'string' || typeof col.name !== 'string') return;
     const incomingMembers = (data.collectionMembers && data.collectionMembers[col.id]) || [];
     if (!collections.some(c=> c.id === col.id)){
-      collections.push({id: col.id, name: col.name});
+      // Older backups predate `updatedAt` — fall back to "now" rather than
+      // leaving it undefined, so the My Lists "Recently Updated" sort
+      // still has something to compare against.
+      collections.push({id: col.id, name: col.name, updatedAt: typeof col.updatedAt === 'number' ? col.updatedAt : Date.now()});
       collectionMembers[col.id] = [...incomingMembers];
       addedLists++;
     } else {
       const existing = collectionMembers[col.id] || (collectionMembers[col.id] = []);
-      incomingMembers.forEach(key=>{ if (!existing.includes(key)) existing.push(key); });
+      let addedAny = false;
+      incomingMembers.forEach(key=>{ if (!existing.includes(key)){ existing.push(key); addedAny = true; } });
+      if (addedAny) touchCollection(col.id);
       mergedLists++;
     }
   });
+  // `notes` is a later addition than `favorites`/`collections` too — same
+  // no-op-on-older-files handling as `read` above. Never overwrites a note
+  // already sitting on this device (a local edit always wins over
+  // whatever an older backup happened to have) — only fills in talks that
+  // don't have a note here yet.
+  if (data.notes && typeof data.notes === 'object'){
+    Object.keys(data.notes).forEach(key=>{
+      const text = data.notes[key];
+      if (typeof text === 'string' && text.trim() && !noteMap[key]){
+        noteMap[key] = text.trim();
+        addedNotes++;
+      }
+    });
+  }
   mergeStreakData(data.streak);
   saveFavorites();
   saveRead();
   saveCollections();
   saveCollectionMembers();
-  return {addedFavorites, addedLists, mergedLists};
+  saveNotes();
+  return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
 function importBackupFile(file, onDone){
   const reader = new FileReader();
@@ -3374,11 +4469,12 @@ backupImportInput.addEventListener('change', ()=>{
   if (!file) return;
   importBackupFile(file, (result, err)=>{
     if (err){ flashShareButton(backupImportBtn, 'Import failed'); return; }
-    const {addedFavorites, addedLists, mergedLists} = result;
+    const {addedFavorites, addedLists, mergedLists, addedNotes} = result;
     const listsTouched = addedLists + mergedLists;
-    flashShareButton(backupImportBtn, `Added ${addedFavorites} favorite${addedFavorites===1?'':'s'}, ${listsTouched} list${listsTouched===1?'':'s'}`);
+    flashShareButton(backupImportBtn, `Added ${addedFavorites} favorite${addedFavorites===1?'':'s'}, ${listsTouched} list${listsTouched===1?'':'s'}, ${addedNotes} note${addedNotes===1?'':'s'}`);
     renderCollectionsIndexPage();
     if (favoritesZone.style.display === 'block') renderFavoritesPage();
+    if (notesZone.style.display === 'block') renderNotesPage();
     renderStreak();
   });
 });
@@ -3485,9 +4581,57 @@ newCollectionInput.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') document.getElementById('newCollectionBtn').click();
 });
 
+/* ---------------- "My Note" modal ---------------- */
+const noteModalOverlay = document.getElementById('noteModalOverlay');
+const noteModalTalkInfo = document.getElementById('noteModalTalkInfo');
+const noteModalTextarea = document.getElementById('noteModalTextarea');
+const noteModalDeleteBtn = document.getElementById('noteModalDeleteBtn');
+// The talk the modal is currently open for — set by openNoteModal(),
+// cleared by closeNoteModal(), same single-target pattern as
+// currentCollectionId above (notes are one-per-talk, no bulk variant
+// needed the way "Add to a List" has for Show a List's multi-select).
+let noteModalTalk = null;
+
+function openNoteModal(talk){
+  noteModalTalk = talk;
+  noteModalTalkInfo.textContent = `${talk[0]} — ${talk[1]}`;
+  noteModalTextarea.value = getNote(talk);
+  noteModalDeleteBtn.hidden = !hasNote(talk);
+  noteModalOverlay.hidden = false;
+  noteModalTextarea.focus();
+}
+function closeNoteModal(){
+  noteModalOverlay.hidden = true;
+  noteModalTalk = null;
+}
+document.getElementById('noteModalSaveBtn').addEventListener('click', ()=>{
+  if (!noteModalTalk) return;
+  setNote(noteModalTalk, noteModalTextarea.value);
+  refreshNoteBadgesFor(noteModalTalk);
+  if (notesZone.style.display === 'block') renderNotesPage();
+  closeNoteModal();
+});
+noteModalDeleteBtn.addEventListener('click', ()=>{
+  if (!noteModalTalk) return;
+  setNote(noteModalTalk, '');
+  refreshNoteBadgesFor(noteModalTalk);
+  if (notesZone.style.display === 'block') renderNotesPage();
+  closeNoteModal();
+});
+document.getElementById('noteModalCancelBtn').addEventListener('click', closeNoteModal);
+document.getElementById('noteModalClose').addEventListener('click', closeNoteModal);
+noteModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === noteModalOverlay) closeNoteModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !noteModalOverlay.hidden) closeNoteModal();
+});
+
 renderTalkOfTheDay();
 renderStreak();
+watchForDayRollover();
 setupDailyReminder();
+initReminderSettingsToggle();
 }
 
 /* ---------------------------------------------------------------
@@ -3513,6 +4657,10 @@ function applyData(data){
   TOPIC_LOOKUP = data.topicLookup;
   TOPIC_LABELS = data.topicLabels;
   KICKER_LOOKUP = data.kickerLookup;
+  // Not backfilled yet (see the Session-filter scaffold comment above
+  // talkSession()) — falls back to {} so every talk reads as 'other'
+  // until data.json actually carries a real sessionLookup.
+  SESSION_LOOKUP = data.sessionLookup || {};
 }
 function cacheData(data){
   try { localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(data)); }
