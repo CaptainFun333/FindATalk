@@ -35,6 +35,7 @@ this updated.
 - Rebalanced the Home page around picking a random talk instead of filtering: "Find Another" and "Show a List" now sit right under Talk of the Day, above the filters, instead of below them. The filters are grouped under a "Looking for something more specific?" box further down the page. A talk you draw appears right above that box; a list you show still appears below it.
 - Reordered the buttons on a drawn talk into three clear groups: Open This Talk + Find Another first, then Previous/Next, then Favorite/Add to List/Add Note/Share — instead of one run-together row.
 - The Favorite/Add to List/Add Note/Share buttons on a drawn talk are now small circle icons (matching Talk of the Day and every list row) instead of labeled buttons, so they fit on one line under Previous/Next instead of stacking into four separate rows on a phone. Whether a talk's already favorited, on a list, or has a note now shows as a filled icon plus a tooltip, the same way it already works everywhere else in the app.
+- Moved the Sort control (Random / Most Recent) from under the Find Another/Show a List buttons to right above the list itself in "Show a List," so it's never scrolled out of reach once a long list is on screen. (It only ever affected "Show a List" anyway — "Find Another" was always a true random pick.)
 
 ### Fixed
 - The home-screen "Talk of the Day" widget could show a different talk than the app for the same day. It now always picks the same one.
