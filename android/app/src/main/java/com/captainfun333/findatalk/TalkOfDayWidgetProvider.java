@@ -124,6 +124,9 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         // moved.
         Intent launchIntent = new Intent(context, MainActivity.class);
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        // Tells MainActivity to reset the WebView back to Home instead of
+        // resuming wherever it was left — see maybeGoHome() there.
+        launchIntent.putExtra(MainActivity.EXTRA_OPEN_HOME, true);
         PendingIntent pendingIntent = PendingIntent.getActivity(
             context,
             appWidgetId,

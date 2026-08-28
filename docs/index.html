@@ -762,6 +762,20 @@
     padding:8px 6px;
     text-align:center;
   }
+  .ms-alias-suggestion{
+    display:block;
+    margin:6px auto 0;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--brass);
+    background:none; border:none; cursor:pointer;
+    padding:4px 6px;
+    text-decoration:underline;
+    text-decoration-color:transparent;
+    transition:text-decoration-color .15s;
+  }
+  .ms-alias-suggestion:hover{ color:var(--burgundy); text-decoration-color:currentColor; }
   .ms-panel-footer{
     display:flex; justify-content:flex-end;
     padding-top:2px;
@@ -830,11 +844,21 @@
   .reset-link:hover{ color:var(--burgundy); text-decoration-color:var(--burgundy); }
   .reset-link:disabled{ opacity:.45; cursor:default; text-decoration-color:transparent; }
 
-  /* ---------- top nav (Recently Viewed / Favorites) ---------- */
+  /* ---------- top nav (Home / Recents / Favorites / Notes / Lists) ----------
+     Five items now (was four before Notes) — on a narrow phone there
+     isn't room left for a stray word inside any one item to wrap onto its
+     own line, which reads as two ragged rows instead of one clean one.
+     `white-space:nowrap` on every piece stops that; the slightly tighter
+     `gap` (was 12px) buys back a little of the width that cost, and the
+     short "Notes"/"Lists" labels (see NAV_ITEMS above) do the rest. If a
+     6th tab is ever added, revisit this row's width budget again rather
+     than assuming it'll still fit. */
   .page-nav{
-    display:flex; justify-content:center; align-items:center; gap:12px;
+    display:flex; justify-content:center; align-items:center; gap:9px;
     margin:0 0 32px;
+    flex-wrap:wrap;
   }
+  .page-nav .reset-link, .page-nav .nav-current{ white-space:nowrap; }
   .nav-sep{ color:var(--line); font-family:'Inter',sans-serif; font-size:12.5px; }
   .nav-current{
     font-family:'Inter',sans-serif;
@@ -2498,6 +2522,58 @@ const allConfs = [...new Set(TALKS.map(confKey))].sort().reverse();
 const allSpeakers = [...new Set(TALKS.map(t=>t[1]))]
   .sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
 const allTopics = Object.keys(TOPIC_LABELS);
+
+// Common terms people actually type that don't match any official topic
+// label verbatim — mapped to the real topic key so a failed topic search
+// can offer a "Did you mean" suggestion instead of just "No matches".
+// Keyed by the alias term (lowercase); NOT meant to be exhaustive — add to
+// this as real search misses turn up (e.g. from a future search-analytics
+// pass, see idea 6 in the feature-ideas memory). Every value here must be a
+// real key in TOPIC_LABELS — a stale/typo'd value fails silently (the
+// suggestion button just wouldn't render a label), so double-check against
+// the official topic list before adding more.
+const TOPIC_ALIASES = {
+  'chastity': 'sexual-purity',
+  'premarital sex': 'sexual-purity',
+  'masturbation': 'sexual-purity',
+  'courtship': 'dating',
+  'gay': 'homosexuality',
+  'lgbt': 'homosexuality',
+  'lgbtq': 'homosexuality',
+  'same-sex attraction': 'homosexuality',
+  'same sex attraction': 'homosexuality',
+  'alcohol': 'word-of-wisdom',
+  'drinking': 'word-of-wisdom',
+  'smoking': 'word-of-wisdom',
+  'tobacco': 'word-of-wisdom',
+  'coffee': 'word-of-wisdom',
+  'drugs': 'addiction',
+  'lying': 'honesty',
+  'stealing': 'honesty',
+  'cursing': 'profanity',
+  'swearing': 'profanity',
+  'grief': 'death',
+  'loss of a loved one': 'death',
+  'self worth': 'individual-worth',
+  'self-worth': 'individual-worth',
+  'self harm': 'mental-illness',
+  'self-harm': 'mental-illness',
+  'lgbt marriage': 'marriage',
+  'gay marriage': 'marriage',
+  'same-sex marriage': 'marriage',
+};
+
+// Looks up a "did you mean" suggestion for a failed topic search. Tries an
+// exact match on the typed query first, then falls back to any alias key
+// that contains the query as a substring (so "chast" while still typing
+// "chastity" already surfaces the suggestion, matching how the option list
+// itself does substring matching). Returns a topic key, or null.
+function findTopicAlias(query){
+  if (!query) return null;
+  if (TOPIC_ALIASES[query]) return TOPIC_ALIASES[query];
+  const hit = Object.keys(TOPIC_ALIASES).find(k => k.includes(query));
+  return hit ? TOPIC_ALIASES[hit] : null;
+}
 const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 // Unlike allRoles (untagged talks just have no role), talkSession() always
 // resolves to a real value — 'other' by default — so this has to check
@@ -2693,7 +2769,23 @@ function renderOptions(dim){
   if (shown === 0){
     const empty = document.createElement('div');
     empty.className = 'ms-empty';
-    empty.textContent = query ? 'No matches' : 'No options available';
+    const aliasKey = dim === 'topic' ? findTopicAlias(query) : null;
+    if (aliasKey){
+      empty.textContent = 'No exact match.';
+      const sugg = document.createElement('button');
+      sugg.type = 'button';
+      sugg.className = 'ms-alias-suggestion';
+      sugg.textContent = `Did you mean "${TOPIC_LABELS[aliasKey]}"?`;
+      sugg.addEventListener('click', ()=>{
+        if (!filterState.topic.includes(aliasKey)) filterState.topic.push(aliasKey);
+        cfg.search.value = '';
+        refreshCount();
+        cfg.search.focus();
+      });
+      empty.appendChild(sugg);
+    } else {
+      empty.textContent = query ? 'No matches' : 'No options available';
+    }
     cfg.options.appendChild(empty);
   }
 }
@@ -3723,12 +3815,17 @@ shareBtn.addEventListener('click', ()=>{
 // clickable links to jump straight there. The same markup is rendered
 // into a placeholder on each zone (rather than living in one shared
 // element) so it stays visible no matter which zone is on screen.
+// Labels here are deliberately terser than their page titles ("Notes" vs.
+// the page's own "My Notes" heading, "Lists" vs. "My Lists") — this row
+// has to fit all five on one line even on a narrow phone, and "My" added
+// nothing beyond padding out the width; see the CSS comment on .page-nav
+// for the rest of the narrow-width fix.
 const NAV_ITEMS = [
   {zone:'home', label:'Home'},
   {zone:'recent', label:'Recents'},
   {zone:'favorites', label:'Favorites'},
-  {zone:'notes', label:'My Notes'},
-  {zone:'collectionsIndex', label:'My Lists'}
+  {zone:'notes', label:'Notes'},
+  {zone:'collectionsIndex', label:'Lists'}
 ];
 const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','notesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
 function renderNavBars(currentZone){
@@ -3776,6 +3873,31 @@ function showZone(name){
   renderNavBars(name);
   window.scrollTo({top:0, behavior:'smooth'});
 }
+
+/* Resets the screen back to the pristine Home tab — no drawn ticket, no
+   "Show a List" open, no modal open. Called by native code (see
+   MainActivity.java's onNewIntent()/maybeGoHome() and SceneDelegate.swift's
+   openURLContexts handling) whenever the app is opened from the
+   "Talk of the Day" widget's tap, since backgrounding the native app
+   doesn't reload the WebView — it just suspends it, so without this the
+   app resumes exactly wherever it was left (mid-scroll in a list, a
+   modal open, Recently Viewed, etc.) instead of going to Home like the
+   widget promises. Ordinary foregrounding (app switcher, Home button)
+   intentionally does NOT call this — only an explicit widget tap should
+   force the reset.
+   Explicitly assigned onto `window` (not just declared) because this
+   whole function body lives inside initApp()'s closure like everything
+   else on this page — a bare top-level `function` declaration here would
+   only be visible to other code inside that same closure, not to a
+   native evaluateJavascript() call, which runs in the page's outer
+   scope. window.goToHomeScreen is the only bridge for that call to reach
+   this by name. */
+window.goToHomeScreen = function goToHomeScreen(){
+  document.querySelectorAll('.modal-overlay').forEach(el=> el.hidden = true);
+  resultZone.style.display = 'none';
+  listZone.style.display = 'none';
+  showZone('home');
+};
 
 /* Same AND-across-dims/OR-within-a-dim semantics as poolExcept()/
    currentPool() above, just parameterized over an arbitrary pool and

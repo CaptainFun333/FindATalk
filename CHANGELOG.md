@@ -35,11 +35,13 @@ this updated.
 - The home-screen "Talk of the Day" widget could show a different talk than the app for the same day. It now always picks the same one.
 - The widget's streak count could sit stale for a long time after your streak actually changed. It now updates right away.
 - Tapping the "Talk of the Day" widget now opens the app instead of jumping straight to the talk in your browser — open it from there once you're in the app.
+- Tapping the widget when the app was already open in the background could drop you wherever you'd left it (mid-list, a note open, etc.) instead of the Home screen. It now always opens to Home.
 - On iPhone, the new Settings button sat partly under the status bar / Dynamic Island and couldn't be tapped. It's now positioned clear of them.
 - The "Find a Talk" button's text was unreadable in dark mode (dark text on a dark button). It's light text again.
 - On Android, a long talk title in the small widget size could spill text out past the bottom of the card. The title now stays on one line (shortened with "…" if needed), the widget's spacing is tighter so there's reliably enough room for the streak line too, and the speaker name is a touch smaller for a cleaner look.
 - On some tablets, the widget defaulted to a much taller size than needed. It should now offer the same compact size as on phones (remove and re-add the widget to get the new default — an existing placed widget won't resize itself).
 - If the app was left open in the background overnight, the "Talk of the Day" and streak badge could keep showing yesterday's pick after midnight until you fully closed and reopened it. They now refresh automatically as soon as you bring the app back to the foreground.
+- On a narrow phone screen, the "My Notes" and "My Lists" menu labels could wrap onto two lines each, making the top menu look ragged. Shortened them to "Notes" and "Lists" and tightened the spacing between menu items so the whole row fits on one line.
 
 ## [1.0.0] — initial release
 
