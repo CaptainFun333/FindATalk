@@ -1492,13 +1492,6 @@
       <button id="drawBtn">Find Another</button>
       <button id="listBtn">Show a List</button>
     </div>
-    <div class="list-size-row">
-      <span class="list-size-label">Sort</span>
-      <div class="list-size-options" id="listSortOptions">
-        <button type="button" class="list-size-btn" data-sort="random">Random</button>
-        <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
-      </div>
-    </div>
     <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
   </div>
 
@@ -1644,6 +1637,18 @@
   </div>
 
   <div id="listZone">
+    <!-- Sort only ever changes what "Show a List" shows (a single "Find
+         Another" draw is always genuinely random regardless of this
+         setting) — it lives here, right above the list it controls,
+         instead of up by the buttons, so it's never scrolled out of
+         reach once a long list is on screen. -->
+    <div class="list-size-row">
+      <span class="list-size-label">Sort</span>
+      <div class="list-size-options" id="listSortOptions">
+        <button type="button" class="list-size-btn" data-sort="random">Random</button>
+        <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
+      </div>
+    </div>
     <div class="list-header" id="listHeader"></div>
     <div class="list-bulk-bar" id="listBulkBar" hidden>
       <span id="listBulkCount"></span>
