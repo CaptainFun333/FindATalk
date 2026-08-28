@@ -18,6 +18,7 @@ this updated.
 
 ### Fixed
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
+- On a narrow phone screen, a talk's title in Show a List (and Recents, Favorites, My Lists, My Notes) could wrap awkwardly onto a second line well before it needed to, because it was sharing its row with the Favorite/List/Note/Share icons and only got a sliver of the space. Longer titles now get the whole row to themselves, with the icons dropping to their own line underneath.
 
 ## [1.2] — 2026-08-28
 

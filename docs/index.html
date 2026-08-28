@@ -1124,6 +1124,20 @@
   .list-item-title-group{
     display:flex; align-items:flex-start; flex-wrap:wrap;
     gap:9px; min-width:0;
+    /* This group is itself a flex item inside .list-item-head, sharing
+       that row with .list-item-actions (the 4 circular icon buttons —
+       roughly 140px on their own). On a phone-width card, giving this
+       group only its shrink-to-fit share of the row (its old behavior)
+       left as little as ~130px for the title text, so a title as short
+       as "Mothers Who Know" would wrap mid-word-run with room clearly
+       left elsewhere on the card. flex-basis/min-width of 65% reserves
+       enough of the row that .list-item-head's flex-wrap (above) kicks
+       the actions icons down to their own line instead, whenever the
+       title genuinely needs more than the actions can spare — so most
+       titles still share the row with the icons, and only the ones that
+       don't fit push the icons below. */
+    flex:1 1 65%;
+    min-width:65%;
   }
   .list-item-select{
     display:flex; align-items:center; flex-shrink:0;
@@ -1152,6 +1166,8 @@
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
+    flex-wrap:wrap;
+    row-gap:6px;
     gap:10px;
     margin-bottom:6px;
   }
@@ -1162,10 +1178,25 @@
     line-height:1.3;
     color:var(--ink);
     text-decoration:none;
+    /* Without flex-grow, a text-wrapping flex item sizes to its own
+       shrink-to-fit content box instead of the row's actual available
+       width — so a two-word title like "Mothers Who Know" could wrap
+       after "Who" with a wide dead zone to its right, well short of the
+       card's real edge. flex-grow (plus min-width:0 so it can still
+       shrink below its unwrapped width) lets it claim the row's full
+       remaining space, so it only wraps where the real edge is. */
+    flex:1 1 auto;
+    min-width:0;
   }
   .list-item-title:hover{ color:var(--burgundy); }
   .list-item-actions{
     display:flex; gap:6px; flex-shrink:0;
+    /* margin-left:auto (rather than relying only on .list-item-head's
+       justify-content:space-between) keeps this row pinned to the right
+       edge even when it wraps onto its own line below the title — with
+       only one item on that line, space-between alone would leave it
+       sitting at the left instead. */
+    margin-left:auto;
   }
   .share-btn-icon{
     flex-shrink:0;
