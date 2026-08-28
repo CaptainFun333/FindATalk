@@ -1084,6 +1084,12 @@
   .ticket-actions-row{
     display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
   }
+  /* "Open This Talk" no longer shares its row with "Find Another" — the
+     ticket now sits right above the Find Another/Show a List buttons (see
+     #resultZone's position in the markup), so a second "Find Another"
+     inside the ticket would just be repeating a button an inch away. Open
+     This Talk gets the freed-up row to itself, full width. */
+  #openLink{ width:100%; justify-content:center; }
 
   /* ---------- results list (up to 10 matching talks at once) ---------- */
   /* scroll-margin-top: "Show a List"'s auto-scroll (see listBtn's click
@@ -1412,6 +1418,30 @@
     white-space:pre-wrap;
   }
   .list-item-note strong{ color:var(--brass); font-weight:600; }
+  .list-item-note-text{
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .list-item-note.expanded .list-item-note-text{
+    display:block;
+    overflow:visible;
+    -webkit-line-clamp:unset;
+  }
+  .list-item-note-toggle{
+    display:none;
+    margin-top:4px;
+    background:none;
+    border:none;
+    padding:0;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--brass);
+    cursor:pointer;
+    text-decoration:underline;
+  }
   .list-footer{ text-align:center; margin-top:16px; }
   .list-pagination{
     display:flex; align-items:center; justify-content:center;
@@ -1504,24 +1534,15 @@
     </div>
   </div>
 
-  <!-- The primary action — "Find Another" (today's Talk of the Day is
-       your first random pick; this gets you another) plus the secondary
-       "Show a List" — sits directly under Talk of the Day, above the
-       filters. Filters are an optional narrowing step, not the first
-       thing on the page; see the "narrow it down" box below. -->
-  <div class="draw-zone">
-    <div class="draw-buttons">
-      <button id="drawBtn">Find Another</button>
-      <button id="listBtn">Show a List</button>
-    </div>
-    <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
-  </div>
-
-  <!-- A single drawn talk is the direct answer to the button just
-       pressed, not something being browsed or filtered further, so it
-       sits right after that button rather than below the filters —
-       unlike "Show a List" below, which is a browsing surface and stays
-       next to the controls that shape it. -->
+  <!-- A single drawn talk is the direct answer to the "Find Another"
+       button right below it, not something being browsed or filtered
+       further, so it sits right above that button rather than below the
+       filters — unlike "Show a List" below, which is a browsing surface
+       and stays next to the controls that shape it. Keeping the ticket
+       above the buttons (rather than below, as it used to be) also means
+       the Find Another/Show a List row is always a short, fixed hop from
+       the filter box beneath it, whether or not a talk's currently
+       drawn. -->
   <div id="resultZone">
     <div class="ticket" id="ticket">
       <h2 id="ticketTitle"></h2>
@@ -1533,7 +1554,6 @@
       <div class="ticket-actions">
         <div class="ticket-actions-row">
           <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
-          <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
         </div>
         <div class="ticket-actions-row">
           <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
@@ -1563,6 +1583,20 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Find Another / Show a List sits right below the ticket (or right
+       below Talk of the Day if nothing's been drawn yet) and directly
+       above the filters, so it's always a short hop from both — pressing
+       Find Another lands a new ticket right above it, and adjusting a
+       filter then pressing Show a List never means scrolling back up
+       past a drawn talk to reach the button. -->
+  <div class="draw-zone">
+    <div class="draw-buttons">
+      <button id="drawBtn">Find Another</button>
+      <button id="listBtn">Show a List</button>
+    </div>
+    <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
   </div>
 
   <div class="narrow-box">
@@ -2576,6 +2610,38 @@ function saveNotes(){
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
 }
 function getNote(talk){ return noteMap[talkKey(talk)] || ''; }
+/* Fills a `.list-item-note` block with the "Your note:" label, the note
+   text (clamped to 3 lines via CSS), and a "Show more"/"Show less" toggle
+   that's only revealed once the text actually overflows those 3 lines —
+   long notes stop blowing out the tile's height in a long list, without
+   ever hiding a short note behind a pointless toggle. Shared by
+   buildListItemRow() and refreshNoteBadgesFor() so both stay in sync. */
+function fillNoteBlock(noteEl, note){
+  noteEl.classList.remove('expanded');
+  noteEl.innerHTML = '';
+  const label = document.createElement('strong');
+  label.textContent = 'Your note:';
+  noteEl.appendChild(label);
+  noteEl.appendChild(document.createTextNode(' '));
+  const textEl = document.createElement('span');
+  textEl.className = 'list-item-note-text';
+  textEl.textContent = note;
+  noteEl.appendChild(textEl);
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'list-item-note-toggle';
+  toggle.textContent = 'Show more';
+  toggle.addEventListener('click', ()=>{
+    const expanded = noteEl.classList.toggle('expanded');
+    toggle.textContent = expanded ? 'Show less' : 'Show more';
+  });
+  noteEl.appendChild(toggle);
+  // Only reveal the toggle once the clamped text is actually taller than
+  // its 3-line box — needs a layout pass first, so defer to the next frame.
+  requestAnimationFrame(()=>{
+    if (textEl.scrollHeight > textEl.clientHeight + 1) toggle.style.display = 'inline';
+  });
+}
 function hasNote(talk){ return !!getNote(talk); }
 /* Plain-object key order in JS is insertion order, but reassigning an
    EXISTING key's value doesn't move it — unlike a Set/Map, which is how
@@ -3028,14 +3094,13 @@ const collectionItemsEl = document.getElementById('collectionItems');
 const collectionEmptyEl = document.getElementById('collectionEmpty');
 let lastPicked = null;
 // Stack of talks shown before the current one, so "← Previous" can step
-// back through what "Find Another" (drawBtn, then drawAgainBtn on the
-// ticket) already surfaced this session. Not persisted — this is
-// in-memory navigation, not the
+// back through what "Find Another" (drawBtn) already surfaced this
+// session. Not persisted — this is in-memory navigation, not the
 // "recently viewed" history (see RECENT_KEY above).
 let pickHistory = [];
 // Talks stepped away from via "← Previous", so "Next →" can redo those
-// steps. A fresh draw (drawBtn/drawAgainBtn) clears this — same as a
-// browser's forward history being dropped once you navigate somewhere new.
+// steps. A fresh draw (drawBtn) clears this — same as a browser's forward
+// history being dropped once you navigate somewhere new.
 let pickFuture = [];
 
 // Recording "opened" only happens here (the ticket's real open link) and
@@ -3192,7 +3257,6 @@ function showTicket(pick){
 }
 
 drawBtn.addEventListener('click', draw);
-document.getElementById('drawAgainBtn').addEventListener('click', draw);
 const backBtn = document.getElementById('backBtn');
 backBtn.addEventListener('click', goBack);
 const forwardBtn = document.getElementById('forwardBtn');
@@ -3407,8 +3471,7 @@ function buildListItemRow(pick, {selectable=false}={}){
   if (hasNote(pick)){
     const noteEl = document.createElement('div');
     noteEl.className = 'list-item-note';
-    noteEl.innerHTML = `<strong>Your note:</strong> `;
-    noteEl.appendChild(document.createTextNode(getNote(pick)));
+    fillNoteBlock(noteEl, getNote(pick));
     item.appendChild(noteEl);
   }
 
@@ -3540,8 +3603,7 @@ function refreshNoteBadgesFor(talk){
         noteEl.className = 'list-item-note';
         item.appendChild(noteEl);
       }
-      noteEl.innerHTML = `<strong>Your note:</strong> `;
-      noteEl.appendChild(document.createTextNode(note));
+      fillNoteBlock(noteEl, note);
     } else if (noteEl){
       noteEl.remove();
     }

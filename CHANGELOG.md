@@ -10,6 +10,12 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- Long notes no longer stretch a talk's tile out of shape — they're now clipped to 3 lines with a "Show more" link that expands the tile to show the whole note (and "Show less" to collapse it back), wherever a note preview appears (Show a List, Recently Viewed, Favorites, My Lists, My Notes).
+
+### Changed
+- A talk you draw with "Find Another" now appears above the Find Another/Show a List buttons instead of below them, so those buttons stay a short, fixed distance from the filters underneath — no more scrolling past a drawn talk to reach "Show a List" after adjusting a filter. The now-redundant "Find Another" button inside the drawn talk's card was removed (the one right below it does the same thing), letting "Open This Talk" take the full width of its row.
+
 ### Fixed
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
 
