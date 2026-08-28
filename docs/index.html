@@ -1109,6 +1109,12 @@
     margin-bottom:10px;
   }
   .list-header strong{ color:var(--burgundy); font-weight:600; }
+  .list-select-row{
+    max-width:620px;
+    margin:0 auto 10px;
+    display:flex; justify-content:center; gap:10px;
+  }
+  .list-select-row[hidden]{ display:none; }
   .list-bulk-bar{
     max-width:620px;
     margin:0 auto 14px;
@@ -1122,26 +1128,20 @@
   .list-bulk-bar[hidden]{ display:none; }
   .list-bulk-bar #listBulkCount{ font-weight:600; margin-right:auto; }
   .list-item-title-group{
-    display:flex; align-items:flex-start; flex-wrap:wrap;
+    display:flex; align-items:center;
     gap:9px; min-width:0;
-    /* This group is itself a flex item inside .list-item-head, sharing
-       that row with .list-item-actions (the 4 circular icon buttons —
-       roughly 140px on their own). On a phone-width card, giving this
-       group only its shrink-to-fit share of the row (its old behavior)
-       left as little as ~130px for the title text, so a title as short
-       as "Mothers Who Know" would wrap mid-word-run with room clearly
-       left elsewhere on the card. flex-basis/min-width of 65% reserves
-       enough of the row that .list-item-head's flex-wrap (above) kicks
-       the actions icons down to their own line instead, whenever the
-       title genuinely needs more than the actions can spare — so most
-       titles still share the row with the icons, and only the ones that
-       don't fit push the icons below. */
-    flex:1 1 65%;
-    min-width:65%;
+    /* No flex-wrap here: the actions icons live in their own row at the
+       bottom of the tile (see .list-item-actions below), so this group
+       only ever has the checkbox and the title side by side. flex-wrap
+       would let the two of them split onto separate lines by themselves
+       whenever they *just* don't fit together (checkbox alone on line
+       1, title alone and unindented on line 2) — we want the title's
+       own text to wrap internally next to a steady, vertically-centered
+       checkbox instead, which happens automatically without flex-wrap. */
+    flex:1 1 auto;
   }
   .list-item-select{
     display:flex; align-items:center; flex-shrink:0;
-    padding-top:3px; /* nudges the checkbox to align with the title's cap-height */
     cursor:pointer;
   }
   .list-item-select input{
@@ -1164,11 +1164,6 @@
   .list-item:last-child{ border-bottom:none; }
   .list-item-head{
     display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    row-gap:6px;
-    gap:10px;
     margin-bottom:6px;
   }
   .list-item-title{
@@ -1184,19 +1179,18 @@
        after "Who" with a wide dead zone to its right, well short of the
        card's real edge. flex-grow (plus min-width:0 so it can still
        shrink below its unwrapped width) lets it claim the row's full
-       remaining space, so it only wraps where the real edge is. */
+       remaining space next to the checkbox, so it only wraps where the
+       real edge is. */
     flex:1 1 auto;
     min-width:0;
   }
   .list-item-title:hover{ color:var(--burgundy); }
+  /* Sits at the bottom of the tile now (see buildListItemRow), below the
+     summary/note, centered — matching the drawn-talk ticket's own icon
+     row — instead of squeezed into the header next to the title. */
   .list-item-actions{
-    display:flex; gap:6px; flex-shrink:0;
-    /* margin-left:auto (rather than relying only on .list-item-head's
-       justify-content:space-between) keeps this row pinned to the right
-       edge even when it wraps onto its own line below the title — with
-       only one item on that line, space-between alone would leave it
-       sitting at the left instead. */
-    margin-left:auto;
+    display:flex; gap:6px; justify-content:center;
+    margin-top:14px;
   }
   .share-btn-icon{
     flex-shrink:0;
@@ -1736,6 +1730,10 @@
         <button type="button" class="list-size-btn" data-sort="random">Random</button>
         <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
       </div>
+    </div>
+    <div class="list-select-row" id="listSelectRow">
+      <button type="button" class="btn btn-ghost" id="listSelectFirstBtn">Select First 10</button>
+      <button type="button" class="btn btn-ghost" id="listSelectAllBtn">Select All</button>
     </div>
     <div class="list-bulk-bar" id="listBulkBar" hidden>
       <span id="listBulkCount"></span>
@@ -2845,9 +2843,23 @@ const filterState = { year: [], speaker: [], topic: [], role: [], session: [], m
 // has to live above refreshCount(), not just above its first call site.
 let listPage = 0;
 let listRandomOrder = null;
+// Selection state for "Show a List" (talkKey -> pick), declared up here for
+// the same temporal-dead-zone reason as listPage/listRandomOrder above —
+// resetListPaging() (called from refreshCount() on every filter change,
+// which runs near the top of the script) needs to clear it too. Kept as a
+// Map rather than a plain array so a re-checked row never produces a
+// duplicate entry. See the fuller comment by its old declaration site
+// (search "list of up to LIST_SIZE") for the selection UI itself.
+let listSelection = new Map();
 function resetListPaging(){
   listPage = 0;
   listRandomOrder = null;
+  // A genuinely new pool (new filters, a fresh draw, a sort switch) means
+  // the old selection no longer refers to "what's in front of you" in any
+  // coherent way — clear it. Plain pagination (Prev/Next) does NOT call
+  // this, so selection persists across pages within the same pool/sort —
+  // see showList()'s comment for why that matters for "Select All".
+  listSelection.clear();
 }
 
 function matchesDim(t, dim, values){
@@ -3305,10 +3317,10 @@ const listAgainBtn = document.getElementById('listAgainBtn');
 /* Multi-select on "Show a List": which talks (talkKey -> pick) are
    currently checked, so they can all be added to a personal list in one
    trip through the "Add to a List" modal instead of one row at a time.
-   Keyed by talkKey rather than being a plain array so a re-checked row
-   doesn't produce a duplicate entry. Cleared whenever the list is
-   re-drawn (showList()) since the rows themselves are being replaced. */
-let listSelection = new Map();
+   `listSelection` itself is declared up near listPage/listRandomOrder (see
+   the comment there) — it now survives page turns and sort switches within
+   the same pool, only cleared by resetListPaging() on a genuinely new draw
+   or filter change, or by the explicit "Clear selection" button below. */
 const listBulkBar = document.getElementById('listBulkBar');
 const listBulkCount = document.getElementById('listBulkCount');
 const listBulkAddBtn = document.getElementById('listBulkAddBtn');
@@ -3328,6 +3340,34 @@ listBulkClearBtn.addEventListener('click', clearListSelection);
 listBulkAddBtn.addEventListener('click', ()=>{
   if (!listSelection.size) return;
   openCollectionModalFor([...listSelection.values()], clearListSelection);
+});
+
+/* "Select First 10" / "Select All" — populated by showList() every render
+   (see its comment) so these handlers never have to recompute sort/shuffle
+   order themselves. Select First 10 only ever touches the current page (at
+   most LIST_SIZE talks) so it never needs a confirmation. Select All can
+   reach far beyond what's on screen, so it confirms whenever the pool is
+   bigger than one page — i.e. selecting anything the person hasn't actually
+   seen yet on page 1 — same LIST_SIZE=10 threshold the pagination itself
+   already uses to decide "does this even fit on one page." */
+let listCurrentPagePicks = [];
+let listCurrentSource = [];
+const listSelectFirstBtn = document.getElementById('listSelectFirstBtn');
+const listSelectAllBtn = document.getElementById('listSelectAllBtn');
+function checkAllRenderedRows(){
+  listItemsEl.querySelectorAll('.list-item-select input').forEach(cb=> cb.checked = listSelection.has(cb.closest('.list-item').dataset.talkKey));
+}
+listSelectFirstBtn.addEventListener('click', ()=>{
+  listCurrentPagePicks.forEach(pick=> listSelection.set(talkKey(pick), pick));
+  checkAllRenderedRows();
+  syncListBulkBar();
+});
+listSelectAllBtn.addEventListener('click', ()=>{
+  const total = listCurrentSource.length;
+  if (total > LIST_SIZE && !confirm(`Select all ${total} matching talks?`)) return;
+  listCurrentSource.forEach(pick=> listSelection.set(talkKey(pick), pick));
+  checkAllRenderedRows();
+  syncListBulkBar();
 });
 
 // Sort toggle — "Random" (the original shuffle) vs "Most Recent" (top
@@ -3412,10 +3452,11 @@ function buildListItemRow(pick, {selectable=false}={}){
   const head = document.createElement('div');
   head.className = 'list-item-head';
 
-  // Groups the (optional) select checkbox with the title and read badge,
-  // so this is a single flex item on the left of `head` — keeping `head`
-  // itself a simple 2-item space-between (this group, then `actions`)
-  // regardless of whether a checkbox is present.
+  // Groups the (optional) select checkbox with the title and read badge —
+  // `head` just wraps this group (the Favorite/List/Note/Share icons live
+  // in their own `actions` row at the bottom of the tile instead, see
+  // below), so the checkbox stays vertically centered against the title
+  // even when the title wraps onto two lines.
   const titleGroup = document.createElement('div');
   titleGroup.className = 'list-item-title-group';
 
@@ -3474,7 +3515,6 @@ function buildListItemRow(pick, {selectable=false}={}){
   shareIconBtn.addEventListener('click', ()=> shareTalk(pick, shareIconBtn));
   actions.appendChild(shareIconBtn);
 
-  head.appendChild(actions);
   item.appendChild(head);
 
   const speakerEl = document.createElement('div');
@@ -3505,6 +3545,11 @@ function buildListItemRow(pick, {selectable=false}={}){
     fillNoteBlock(noteEl, getNote(pick));
     item.appendChild(noteEl);
   }
+
+  // Favorite/List/Note/Share, centered at the bottom of the tile —
+  // matching the drawn-talk ticket's own icon row — rather than squeezed
+  // into the header next to the title (see .list-item-actions above).
+  item.appendChild(actions);
 
   return item;
 }
@@ -3923,8 +3968,21 @@ function showList(){
   const start = listPage * LIST_SIZE;
   const picks = source.slice(start, start + LIST_SIZE);
 
-  listSelection.clear();
+  // Stashed for the Select First 10 / Select All buttons (see below) — the
+  // current page's rows and the full ordered pool behind them, so those
+  // handlers don't need to recompute sort/shuffle order themselves (and
+  // for random sort, re-deriving it would risk not matching the cached
+  // listRandomOrder anyway). Selection itself is NOT cleared here anymore
+  // — see resetListPaging()'s comment for why it now survives page turns.
+  listCurrentPagePicks = picks;
+  listCurrentSource = source;
+
   syncListBulkBar();
+  // "Select First 10" is redundant once everything already fits on one
+  // page (identical result to "Select All" at that point) — hide it
+  // rather than leave two buttons that do the same thing.
+  listSelectFirstBtn.hidden = total <= LIST_SIZE;
+  listSelectAllBtn.textContent = total > LIST_SIZE ? `Select All (${total})` : 'Select All';
   listItemsEl.innerHTML = '';
   picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick, {selectable: true})));
 

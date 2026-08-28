@@ -12,13 +12,14 @@ this updated.
 
 ### Added
 - Long notes no longer stretch a talk's tile out of shape — they're now clipped to 3 lines with a "Show more" link that expands the tile to show the whole note (and "Show less" to collapse it back), wherever a note preview appears (Show a List, Recently Viewed, Favorites, My Lists, My Notes).
+- Show a List now has "Select First 10" and "Select All" buttons above the results, so you can add a whole page — or every matching talk, across every page — to a list in one action instead of checking boxes one at a time. Selecting more than what's shown on the first page asks you to confirm first, since it could mean adding a lot of talks at once. A selection now also stays checked as you page through results, instead of being cleared every time you click Next/Previous.
 
 ### Changed
 - A talk you draw with "Find Another" now appears above the Find Another/Show a List buttons instead of below them, so those buttons stay a short, fixed distance from the filters underneath — no more scrolling past a drawn talk to reach "Show a List" after adjusting a filter. The now-redundant "Find Another" button inside the drawn talk's card was removed (the one right below it does the same thing), letting "Open This Talk" take the full width of its row.
+- On every talk row (Show a List, Recently Viewed, Favorites, My Lists, My Notes), the Favorite/Add to List/Add Note/Share icons moved from squeezed in next to the title down to a centered row at the bottom of the tile — matching how they already look on a drawn talk. The title now always gets the full width of its row (fixing an awkward early line-break some titles had), and the select checkbox in Show a List stays centered beside the title even when it wraps onto two lines.
 
 ### Fixed
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
-- On a narrow phone screen, a talk's title in Show a List (and Recents, Favorites, My Lists, My Notes) could wrap awkwardly onto a second line well before it needed to, because it was sharing its row with the Favorite/List/Note/Share icons and only got a sliver of the space. Longer titles now get the whole row to themselves, with the icons dropping to their own line underneath.
 
 ## [1.2] — 2026-08-28
 
