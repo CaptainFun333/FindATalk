@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
 
 ## [1.2] — 2026-08-28
 

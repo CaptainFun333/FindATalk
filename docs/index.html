@@ -3312,6 +3312,7 @@ function buildListItemRow(pick, {selectable=false}={}){
 
   const item = document.createElement('div');
   item.className = 'list-item';
+  item.dataset.talkKey = talkKey(pick);
 
   const head = document.createElement('div');
   head.className = 'list-item-head';
@@ -3523,6 +3524,28 @@ function refreshNoteBadgesFor(talk){
     if (btn.dataset.talkKey === key && btn._syncNoteBadge) btn._syncNoteBadge();
   });
   if (lastPicked && talkKey(lastPicked) === key) syncNoteBtn();
+  // Rebuild the "Your note:" preview block on every currently-rendered row
+  // for this talk (Talk of the Day, Show a List, Recently Viewed,
+  // Favorites, My Lists, My Notes) — the badges above are separate DOM
+  // nodes with their own live sync, but this block is plain text baked in
+  // at buildListItemRow() time, so it needs to be explicitly added,
+  // updated, or removed here to match the note just saved/deleted.
+  const note = getNote(talk);
+  document.querySelectorAll('.list-item').forEach(item=>{
+    if (item.dataset.talkKey !== key) return;
+    let noteEl = item.querySelector('.list-item-note');
+    if (note){
+      if (!noteEl){
+        noteEl = document.createElement('div');
+        noteEl.className = 'list-item-note';
+        item.appendChild(noteEl);
+      }
+      noteEl.innerHTML = `<strong>Your note:</strong> `;
+      noteEl.appendChild(document.createTextNode(note));
+    } else if (noteEl){
+      noteEl.remove();
+    }
+  });
 }
 
 /* ---------------- Talk of the Day ---------------- */
