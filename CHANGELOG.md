@@ -22,7 +22,7 @@ this updated.
 - The home-screen "Talk of the Day" widget now matches your chosen Color Palette too, not just Light/Dark.
 - Added a note button (the pencil icon) on every talk, next to Favorite and Add to List, for jotting down a quick "what I learned" note. Notes show up wherever that talk appears, and there's a new "My Notes" page (next to My Lists in the menu) for browsing everything you've written, with the same filtering and sorting as Favorites. Notes are backed up along with Favorites and My Lists in Export/Import Backup.
 - Added a new "Session" filter (Saturday Morning/Afternoon/Evening, Sunday Morning/Afternoon, General Priesthood, General Women's, or Other) alongside the existing five, with every one of the 4,054 talks correctly tagged to the real session it was given in. "Saturday Evening" is its own option since the Church replaced the old standalone Priesthood broadcast with an open-to-everyone evening session starting in 2020.
-- My Notes now has a search box (searches what you wrote, plus the talk's title and speaker) and an "Alphabetical" sort option alongside "Recently Noted" and "Conference Date."
+- My Notes now has a search box, searching what you wrote plus the talk's title, speaker, calling, and topic.
 - My Lists now has a search box for finding a list by name, and a sort toggle — "Recently Updated" (lists you've added a talk to most recently come first) or "Alphabetical."
 
 ### Changed

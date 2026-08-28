@@ -1650,7 +1650,6 @@
     <div class="filters-actions">
       <div class="sort-toggle" id="notesSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Noted</button>
-        <button type="button" class="sort-toggle-btn" data-sort="alpha">Alphabetical</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
     </div>
@@ -4053,17 +4052,6 @@ function renderFavoritesPage(){
   );
 }
 
-// Strips a leading quotation mark before comparing, so quoted-title talks
-// (a lot of them — 440 of 4054 in the current dataset, e.g. "“My Sheep
-// Hear My Voice”") sort by their first real letter instead of all
-// clumping together ahead of/behind everything else by the punctuation
-// character itself. Caught by actually testing Alphabetical sort here —
-// without this, "“My Sheep..." sorted *before* "Blessed and Happy...",
-// which is not what "Alphabetical" should mean to anyone using it.
-function alphaSortKey(title){
-  return title.replace(/^[“‘"']\s*/, '');
-}
-
 const notesFilterCountEl = document.getElementById('notesFilterCount');
 const notesSearchFieldEl = document.getElementById('notesSearchField');
 const notesSortRowEl = document.getElementById('notesSortToggle').closest('.filters-actions');
@@ -4085,7 +4073,6 @@ function renderNotesPage(){
   // an edited note's position current instead of stuck at its first save.
   let picks = Object.keys(noteMap).reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (notesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
-  else if (notesSortToggle.mode === 'alpha') picks = picks.slice().sort((a,b)=> alphaSortKey(a[0]).localeCompare(alphaSortKey(b[0])));
   const q = notesSearch.query;
   renderSubsetList(
     notesItemsEl, notesEmptyEl, notesFilterCountEl, [notesSearchFieldEl, notesSortRowEl],
