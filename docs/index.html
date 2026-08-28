@@ -655,6 +655,38 @@
   }
   #queryClear:hover, .search-clear:hover{ color:var(--burgundy); background:var(--tint); }
 
+  /* ---------- "narrow it down" box ----------
+     Wraps the six filters + search + reset + pool count. Always expanded
+     (no click needed to see or use a filter) — this is a label on a
+     group of controls that are already visible, not a disclosure/
+     accordion, so the header below is a plain div, not a button. Exists
+     so the filters read as a secondary, optional narrowing step under
+     the primary "Find Another" action above, rather than being the
+     first thing on the page. */
+  .narrow-box{
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:var(--paper-raised);
+    overflow:hidden;
+  }
+  .narrow-box-header{
+    display:flex; align-items:center; gap:9px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .narrow-box-header .nb-icon{
+    width:26px; height:26px; border-radius:50%; flex-shrink:0;
+    background:var(--tint); color:var(--brass);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .narrow-box-header .nb-icon svg{ width:13px; height:13px; }
+  .narrow-box-body{ padding:20px 18px 22px; }
+  .narrow-box-body > *:last-child{ margin-bottom:0; }
+
   /* ---------- filters ---------- */
   .filters{
     display:grid;
@@ -901,7 +933,7 @@
   .pool-count strong{ color:var(--burgundy); font-weight:600; }
 
   /* ---------- draw button ---------- */
-  .draw-zone{ text-align:center; margin-bottom:8px; }
+  .draw-zone{ text-align:center; margin-bottom:34px; }
   .draw-buttons{
     display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
   }
@@ -968,7 +1000,7 @@
   }
 
   /* ---------- result card (the "ticket") ---------- */
-  #resultZone{ margin-top:46px; display:none; }
+  #resultZone{ margin-top:34px; margin-bottom:34px; display:none; }
   .ticket{
     position:relative;
     background:var(--paper-raised);
@@ -1037,7 +1069,14 @@
     padding:4px 10px;
     border-radius:20px;
   }
+  /* Three fixed rows (Open This Talk + Find Another; Previous + Next;
+     Favorite/Add to List/Add Note/Share), not one flex-wrap group —
+     grouped by what the buttons do, not just packed by width, so the
+     row a button lands on doesn't shift with screen size. */
   .ticket-actions{
+    display:flex; flex-direction:column; gap:10px; align-items:center;
+  }
+  .ticket-actions-row{
     display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
   }
 
@@ -1135,19 +1174,13 @@
   .favorite-btn-icon.is-favorited{ border-color:var(--brass); color:var(--brass); }
   .favorite-btn-icon.is-favorited svg{ fill:var(--brass); }
 
-  #favoriteBtn.is-favorited{ border-color:var(--brass); color:var(--burgundy); }
-
   .collection-btn-icon svg{ width:14px; height:14px; }
   .collection-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
   .collection-btn-icon.in-collection{ border-color:var(--brass); color:var(--brass); }
 
-  #collectionBtn.in-collection{ border-color:var(--brass); color:var(--burgundy); }
-
   .note-btn-icon svg{ width:14px; height:14px; }
   .note-btn-icon:hover{ border-color:var(--brass); color:var(--burgundy); }
   .note-btn-icon.has-note{ border-color:var(--brass); color:var(--brass); }
-
-  #noteBtn.has-note{ border-color:var(--brass); color:var(--burgundy); }
 
   /* ---------- read badge ---------- */
   /* [hidden] is called out explicitly below because it ties in
@@ -1449,94 +1482,14 @@
     <div class="streak-badge" id="streakBadge" hidden></div>
   </div>
 
-  <div class="filters">
-    <div class="field">
-      <label id="topicLabel">Topic</label>
-      <button type="button" class="ms-trigger" id="topicTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="topicLabel topicTriggerText">
-        <span class="ms-trigger-text" id="topicTriggerText">Any topic</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="topicPanel" hidden>
-        <input type="text" class="ms-search" id="topicSearch" placeholder="Search topics…" autocomplete="off">
-        <div class="ms-options" id="topicOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="topicClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="roleLabel">Calling at the Time of the Talk</label>
-      <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
-        <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="rolePanel" hidden>
-        <div class="ms-options" id="roleOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="speakerLabel">Speaker</label>
-      <button type="button" class="ms-trigger" id="speakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="speakerLabel speakerTriggerText">
-        <span class="ms-trigger-text" id="speakerTriggerText">Any speaker</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="speakerPanel" hidden>
-        <input type="text" class="ms-search" id="speakerSearch" placeholder="Search speakers…" autocomplete="off">
-        <div class="ms-options" id="speakerOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="yearLabel">General Conference</label>
-      <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
-        <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="yearPanel" hidden>
-        <div class="ms-options" id="yearOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="sessionLabel">Session</label>
-      <button type="button" class="ms-trigger" id="sessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="sessionLabel sessionTriggerText">
-        <span class="ms-trigger-text" id="sessionTriggerText">Any Session</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="sessionPanel" hidden>
-        <div class="ms-options" id="sessionOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="sessionClear">Clear</button></div>
-      </div>
-    </div>
-    <div class="field">
-      <label id="mineLabel">Recent/Favorites</label>
-      <button type="button" class="ms-trigger" id="mineTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="mineLabel mineTriggerText">
-        <span class="ms-trigger-text" id="mineTriggerText">All talks</span>
-        <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="ms-panel" id="minePanel" hidden>
-        <div class="ms-options" id="mineOptions"></div>
-        <div class="ms-panel-footer"><button type="button" class="ms-clear" id="mineClear">Clear</button></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="search-field">
-    <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
-    <div class="search-input-wrap">
-      <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
-      <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
-    </div>
-  </div>
-
-  <div class="filters-actions">
-    <button type="button" id="resetBtn" class="reset-link">Reset filters</button>
-  </div>
-
-  <div class="pool-count" id="poolCount"></div>
-
+  <!-- The primary action — "Find Another" (today's Talk of the Day is
+       your first random pick; this gets you another) plus the secondary
+       "Show a List" — sits directly under Talk of the Day, above the
+       filters. Filters are an optional narrowing step, not the first
+       thing on the page; see the "narrow it down" box below. -->
   <div class="draw-zone">
     <div class="draw-buttons">
-      <button id="drawBtn">Find a Talk</button>
+      <button id="drawBtn">Find Another</button>
       <button id="listBtn">Show a List</button>
     </div>
     <div class="list-size-row">
@@ -1549,6 +1502,11 @@
     <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
   </div>
 
+  <!-- A single drawn talk is the direct answer to the button just
+       pressed, not something being browsed or filtered further, so it
+       sits right after that button rather than below the filters —
+       unlike "Show a List" below, which is a browsing surface and stays
+       next to the controls that shape it. -->
   <div id="resultZone">
     <div class="ticket" id="ticket">
       <h2 id="ticketTitle"></h2>
@@ -1558,15 +1516,130 @@
       <div class="ticket-read-badge" id="ticketReadBadge" hidden></div>
       <div class="topics" id="ticketTopics"></div>
       <div class="ticket-actions">
-        <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
-        <button class="btn btn-ghost" id="shareBtn" type="button">Share</button>
-        <button class="btn btn-ghost" id="favoriteBtn" type="button">☆ Favorite</button>
-        <button class="btn btn-ghost" id="collectionBtn" type="button">+ Add to List</button>
-        <button class="btn btn-ghost" id="noteBtn" type="button">📝 Add Note</button>
-        <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
-        <button class="btn btn-ghost" id="forwardBtn" type="button" disabled>Next →</button>
-        <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
+        <div class="ticket-actions-row">
+          <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
+          <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
+        </div>
+        <div class="ticket-actions-row">
+          <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
+          <button class="btn btn-ghost" id="forwardBtn" type="button" disabled>Next →</button>
+        </div>
+        <!-- Same icon-circle style as every list row and the Talk of the
+             Day card (.share-btn-icon + its favorite/collection/note
+             variants) — this row is a secondary action, usually reached
+             for after a talk's already been opened and read, so it
+             doesn't need a spelled-out label every time the way the
+             primary buttons above do. State (favorited, on a list, has a
+             note) shows as a filled/brass circle plus a tooltip, the same
+             way it already does on every list row. -->
+        <div class="ticket-actions-row">
+          <button class="share-btn-icon favorite-btn-icon" id="favoriteBtn" type="button" aria-label="Add to favorites" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>
+          </button>
+          <button class="share-btn-icon collection-btn-icon" id="collectionBtn" type="button" aria-label="Add to a list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button class="share-btn-icon note-btn-icon" id="noteBtn" type="button" aria-label="Add a note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <button class="share-btn-icon" id="shareBtn" type="button" aria-label="Share this talk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+          </button>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <div class="narrow-box">
+    <div class="narrow-box-header">
+      <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
+      <span>Looking for something more specific?</span>
+    </div>
+    <div class="narrow-box-body">
+      <div class="filters">
+        <div class="field">
+          <label id="topicLabel">Topic</label>
+          <button type="button" class="ms-trigger" id="topicTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="topicLabel topicTriggerText">
+            <span class="ms-trigger-text" id="topicTriggerText">Any topic</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="topicPanel" hidden>
+            <input type="text" class="ms-search" id="topicSearch" placeholder="Search topics…" autocomplete="off">
+            <div class="ms-options" id="topicOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="topicClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="roleLabel">Calling at the Time of the Talk</label>
+          <button type="button" class="ms-trigger" id="roleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="roleLabel roleTriggerText">
+            <span class="ms-trigger-text" id="roleTriggerText">Any Calling</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="rolePanel" hidden>
+            <div class="ms-options" id="roleOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="roleClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="speakerLabel">Speaker</label>
+          <button type="button" class="ms-trigger" id="speakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="speakerLabel speakerTriggerText">
+            <span class="ms-trigger-text" id="speakerTriggerText">Any speaker</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="speakerPanel" hidden>
+            <input type="text" class="ms-search" id="speakerSearch" placeholder="Search speakers…" autocomplete="off">
+            <div class="ms-options" id="speakerOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="yearLabel">General Conference</label>
+          <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
+            <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="yearPanel" hidden>
+            <div class="ms-options" id="yearOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="sessionLabel">Session</label>
+          <button type="button" class="ms-trigger" id="sessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="sessionLabel sessionTriggerText">
+            <span class="ms-trigger-text" id="sessionTriggerText">Any Session</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="sessionPanel" hidden>
+            <div class="ms-options" id="sessionOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="sessionClear">Clear</button></div>
+          </div>
+        </div>
+        <div class="field">
+          <label id="mineLabel">Recent/Favorites</label>
+          <button type="button" class="ms-trigger" id="mineTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="mineLabel mineTriggerText">
+            <span class="ms-trigger-text" id="mineTriggerText">All talks</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="minePanel" hidden>
+            <div class="ms-options" id="mineOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="mineClear">Clear</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-field">
+        <label id="queryLabel" for="querySearch">Search titles &amp; summaries</label>
+        <div class="search-input-wrap">
+          <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
+          <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
+        </div>
+      </div>
+
+      <div class="filters-actions">
+        <button type="button" id="resetBtn" class="reset-link">Reset filters</button>
+      </div>
+
+      <div class="pool-count" id="poolCount"></div>
     </div>
   </div>
 
@@ -2928,8 +3001,9 @@ const collectionItemsEl = document.getElementById('collectionItems');
 const collectionEmptyEl = document.getElementById('collectionEmpty');
 let lastPicked = null;
 // Stack of talks shown before the current one, so "← Previous" can step
-// back through what "Find a Talk"/"Find Another" already surfaced this
-// session. Not persisted — this is in-memory navigation, not the
+// back through what "Find Another" (drawBtn, then drawAgainBtn on the
+// ticket) already surfaced this session. Not persisted — this is
+// in-memory navigation, not the
 // "recently viewed" history (see RECENT_KEY above).
 let pickHistory = [];
 // Talks stepped away from via "← Previous", so "Next →" can redo those
@@ -2948,11 +3022,16 @@ document.getElementById('openLink').addEventListener('click', ()=>{
   syncReadBadge();
 });
 
+// Icon-only now (same .share-btn-icon family as every list row) — state
+// shows as a filled/brass circle plus a title/aria-label, not relabeled
+// button text, so these only toggle a class and the accessible name
+// rather than touching textContent (which would also wipe out the SVG).
 const favoriteBtn = document.getElementById('favoriteBtn');
 function syncFavoriteBtn(){
   const fav = !!(lastPicked && isFavorite(lastPicked));
-  favoriteBtn.textContent = fav ? '★ Favorited' : '☆ Favorite';
   favoriteBtn.classList.toggle('is-favorited', fav);
+  favoriteBtn.setAttribute('aria-pressed', String(fav));
+  favoriteBtn.setAttribute('aria-label', fav ? 'Remove from favorites' : 'Add to favorites');
 }
 favoriteBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
@@ -2965,9 +3044,11 @@ favoriteBtn.addEventListener('click', ()=>{
 const collectionBtn = document.getElementById('collectionBtn');
 function syncCollectionBtn(){
   const names = lastPicked ? talkListNames(lastPicked) : [];
-  collectionBtn.textContent = names.length ? `✓ On ${names.length === 1 ? '1 List' : names.length + ' Lists'}` : '+ Add to List';
   collectionBtn.classList.toggle('in-collection', names.length > 0);
   collectionBtn.title = names.length ? `On your list: ${names.join(', ')}` : '';
+  collectionBtn.setAttribute('aria-label', names.length
+    ? `On ${names.length === 1 ? names[0] : `${names.length} lists`} — manage lists`
+    : 'Add to a list');
 }
 collectionBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
@@ -2977,9 +3058,9 @@ collectionBtn.addEventListener('click', ()=>{
 const noteBtn = document.getElementById('noteBtn');
 function syncNoteBtn(){
   const note = lastPicked ? getNote(lastPicked) : '';
-  noteBtn.textContent = note ? '✓ Note Added' : '📝 Add Note';
   noteBtn.classList.toggle('has-note', !!note);
   noteBtn.title = note ? `Your note: ${note}` : '';
+  noteBtn.setAttribute('aria-label', note ? 'Edit your note' : 'Add a note');
 }
 noteBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
@@ -3800,10 +3881,10 @@ async function shareTalk(pick, btnEl){
   flashShareButton(btnEl, copied ? 'Link copied!' : 'Copy failed');
 }
 /* Briefly swaps a share button's content to a confirmation message, then
-   restores its original label/icon. Works for both the ticket's text
-   button and the list's icon-only buttons (the icon button also gets a
-   temporary width-expanding class so the confirmation text isn't clipped
-   inside its normal 30px circle). */
+   restores its original icon. The ticket's share button and every list
+   row's share button are both plain .share-btn-icon circles now, so
+   both get the same temporary width-expanding class so the confirmation
+   text isn't clipped inside the normal 30px circle. */
 function flashShareButton(btnEl, message){
   if (!btnEl) return;
   if (btnEl.dataset.flashTimer) clearTimeout(Number(btnEl.dataset.flashTimer));
