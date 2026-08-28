@@ -595,6 +595,11 @@
   /* ---------- talk of the day ---------- */
   .totd-zone{ margin-bottom:36px; }
   .totd-eyebrow{ margin-bottom:12px; }
+  /* Purely a width/centering guide (same max-width + auto margins as
+     .list-items above) — no margin/padding of its own, so it adds no
+     space when the badge inside is hidden. The badge keeps its own
+     margin-top so that spacing still collapses away with it. */
+  .streak-badge-row{ max-width:620px; margin:0 auto; }
   .streak-badge[hidden]{ display:none; }
   .streak-badge{
     display:inline-flex;
@@ -980,7 +985,7 @@
 
   .list-size-row{
     display:flex; align-items:center; justify-content:center; gap:10px;
-    margin-top:16px;
+    margin-top:10px; margin-bottom:10px;
   }
   .list-size-label{
     font-family:'Inter',sans-serif; font-size:12px; font-weight:600;
@@ -1081,13 +1086,21 @@
   }
 
   /* ---------- results list (up to 10 matching talks at once) ---------- */
-  #listZone{ margin-top:46px; display:none; }
+  /* scroll-margin-top: "Show a List"'s auto-scroll (see listBtn's click
+     handler) uses scrollIntoView, which by default aligns this element's
+     own top border edge flush with the viewport top — landing right on
+     top of "Showing 1–10 of…" with no breathing room, since the 46px
+     top margin above (the gap back to the filter box) sits outside the
+     element's box and scrolls fully out of view. This tells the browser
+     to stop partway into that margin instead, so the landing point sits
+     roughly centered in the gap between the filter box and this list. */
+  #listZone{ margin-top:46px; scroll-margin-top:23px; display:none; }
   .list-header{
     text-align:center;
     font-family:'Inter',sans-serif;
     font-size:13px;
     color:var(--ink-soft);
-    margin-bottom:18px;
+    margin-bottom:10px;
   }
   .list-header strong{ color:var(--burgundy); font-weight:600; }
   .list-bulk-bar{
@@ -1479,7 +1492,16 @@
   <div class="totd-zone" id="totdZone">
     <div class="eyebrow totd-eyebrow">Talk of the Day</div>
     <div class="list-items" id="totdItems"></div>
-    <div class="streak-badge" id="streakBadge" hidden></div>
+    <!-- Same max-width + centering as .list-items above, so the badge's
+         left edge always lines up with the card's left edge, at every
+         viewport width — not just centered on the page, which would
+         drift away from the card on anything wider than ~620px+padding
+         (i.e. most desktop widths; the card itself is capped at 620px
+         while .streak-badge previously had no such cap, so it hugged
+         the page's left edge instead of the card's). -->
+    <div class="streak-badge-row">
+      <div class="streak-badge" id="streakBadge" hidden></div>
+    </div>
   </div>
 
   <!-- The primary action — "Find Another" (today's Talk of the Day is
@@ -1637,6 +1659,7 @@
   </div>
 
   <div id="listZone">
+    <div class="list-header" id="listHeader"></div>
     <!-- Sort only ever changes what "Show a List" shows (a single "Find
          Another" draw is always genuinely random regardless of this
          setting) — it lives here, right above the list it controls,
@@ -1649,7 +1672,6 @@
         <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
       </div>
     </div>
-    <div class="list-header" id="listHeader"></div>
     <div class="list-bulk-bar" id="listBulkBar" hidden>
       <span id="listBulkCount"></span>
       <button type="button" class="btn btn-ghost" id="listBulkAddBtn">+ Add to List</button>
@@ -3798,8 +3820,8 @@ function showList(){
       : `Showing <strong>${rangeStart}–${rangeEnd}</strong> of <strong>${total}</strong> most recent talks that match`;
   } else {
     listHeader.innerHTML = total <= LIST_SIZE
-      ? `Showing all <strong>${total}</strong> talk${total===1?'':'s'} that match right now`
-      : `Showing <strong>${rangeStart}–${rangeEnd}</strong> of <strong>${total}</strong> talks that match right now`;
+      ? `Showing all <strong>${total}</strong> talk${total===1?'':'s'} that match`
+      : `Showing <strong>${rangeStart}–${rangeEnd}</strong> of <strong>${total}</strong> talks that match`;
   }
 
   // Pagination controls: hide the whole row when everything already fits
