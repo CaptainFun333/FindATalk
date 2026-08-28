@@ -51,6 +51,7 @@ this updated.
 - On some tablets, the widget defaulted to a much taller size than needed. It should now offer the same compact size as on phones (remove and re-add the widget to get the new default — an existing placed widget won't resize itself).
 - If the app was left open in the background overnight, the "Talk of the Day" and streak badge could keep showing yesterday's pick after midnight until you fully closed and reopened it. They now refresh automatically as soon as you bring the app back to the foreground.
 - On a narrow phone screen, the "My Notes" and "My Lists" menu labels could wrap onto two lines each, making the top menu look ragged. Shortened them to "Notes" and "Lists" and tightened the spacing between menu items so the whole row fits on one line.
+- Tapping "Show a List" scrolled a little too far, landing right on top of "Showing 1–10 of…" with almost no room to breathe. It now stops with a bit of the filter box still visible above it.
 
 ## [1.0.0] — initial release
 
