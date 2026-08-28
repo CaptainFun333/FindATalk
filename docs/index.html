@@ -1594,13 +1594,18 @@
     <div class="page-header">
       <h2 class="page-title">Recently Viewed</h2>
     </div>
-    <div class="filters" id="recentFilters"></div>
+    <div class="search-field" id="recentSearchField">
+      <label id="recentQueryLabel" for="recentQuery">Search your recently viewed</label>
+      <div class="search-input-wrap">
+        <input type="text" id="recentQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="recentQueryLabel">
+        <button type="button" id="recentQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
     <div class="filters-actions">
       <div class="sort-toggle" id="recentSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Viewed</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
-      <button type="button" class="reset-link" id="recentFilterReset">Reset filters</button>
     </div>
     <div class="pool-count" id="recentFilterCount"></div>
     <div class="list-items" id="recentItems"></div>
@@ -1612,13 +1617,18 @@
     <div class="page-header">
       <h2 class="page-title">Favorites</h2>
     </div>
-    <div class="filters" id="favoritesFilters"></div>
+    <div class="search-field" id="favoritesSearchField">
+      <label id="favoritesQueryLabel" for="favoritesQuery">Search your favorites</label>
+      <div class="search-input-wrap">
+        <input type="text" id="favoritesQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="favoritesQueryLabel">
+        <button type="button" id="favoritesQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
     <div class="filters-actions">
       <div class="sort-toggle" id="favoritesSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Favorited</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
-      <button type="button" class="reset-link" id="favoritesFilterReset">Reset filters</button>
     </div>
     <div class="pool-count" id="favoritesFilterCount"></div>
     <div class="list-items" id="favoritesItems"></div>
@@ -1630,21 +1640,19 @@
     <div class="page-header">
       <h2 class="page-title">My Notes</h2>
     </div>
-    <div class="search-field">
+    <div class="search-field" id="notesSearchField">
       <label id="notesQueryLabel" for="notesQuery">Search your notes</label>
       <div class="search-input-wrap">
-        <input type="text" id="notesQuery" class="search-input" placeholder="Search what you wrote, or the talk's title/speaker…" autocomplete="off" aria-labelledby="notesQueryLabel">
+        <input type="text" id="notesQuery" class="search-input" placeholder="Search what you wrote, or the talk's title/speaker/calling/topic…" autocomplete="off" aria-labelledby="notesQueryLabel">
         <button type="button" id="notesQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
       </div>
     </div>
-    <div class="filters" id="notesFilters"></div>
     <div class="filters-actions">
       <div class="sort-toggle" id="notesSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Noted</button>
         <button type="button" class="sort-toggle-btn" data-sort="alpha">Alphabetical</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
-      <button type="button" class="reset-link" id="notesFilterReset">Reset filters</button>
     </div>
     <div class="pool-count" id="notesFilterCount"></div>
     <div class="list-items" id="notesItems"></div>
@@ -1660,12 +1668,6 @@
       <input type="text" id="collectionsIndexNewInput" placeholder="New list name…" autocomplete="off">
       <button type="button" id="collectionsIndexNewBtn">Create</button>
     </div>
-    <div class="collections-backup-row">
-      <button type="button" id="backupExportBtn">Export Backup</button>
-      <button type="button" id="backupImportBtn">Import Backup</button>
-      <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
-    </div>
-    <p class="backup-hint">Favorites, notes, and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
     <div class="search-field" id="collectionsSearchField">
       <label id="collectionsQueryLabel" for="collectionsQuery">Search your lists</label>
       <div class="search-input-wrap">
@@ -1681,6 +1683,12 @@
     </div>
     <div class="collections-index-list" id="collectionsIndexList"></div>
     <div class="list-empty" id="collectionsIndexEmpty">You haven't created any lists yet — name one above to get started.</div>
+    <div class="collections-backup-row">
+      <button type="button" id="backupExportBtn">Export Backup</button>
+      <button type="button" id="backupImportBtn">Import Backup</button>
+      <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
+    </div>
+    <p class="backup-hint">Favorites, notes, and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
   </div>
 
   <div id="collectionZone" style="display:none">
@@ -1688,9 +1696,18 @@
     <div class="page-header">
       <h2 class="page-title" id="collectionTitle">List</h2>
     </div>
-    <div class="filters" id="collectionFilters"></div>
+    <div class="search-field" id="collectionSearchField">
+      <label id="collectionQueryLabel" for="collectionQuery">Search this list</label>
+      <div class="search-input-wrap">
+        <input type="text" id="collectionQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="collectionQueryLabel">
+        <button type="button" id="collectionQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </div>
     <div class="filters-actions">
-      <button type="button" class="reset-link" id="collectionFilterReset">Reset filters</button>
+      <div class="sort-toggle" id="collectionSortToggle" role="group" aria-label="Sort order">
+        <button type="button" class="sort-toggle-btn" data-sort="default">Recently Added</button>
+        <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
+      </div>
     </div>
     <div class="pool-count" id="collectionFilterCount"></div>
     <div class="list-items" id="collectionItems"></div>
@@ -3899,214 +3916,25 @@ window.goToHomeScreen = function goToHomeScreen(){
   showZone('home');
 };
 
-/* Same AND-across-dims/OR-within-a-dim semantics as poolExcept()/
-   currentPool() above, just parameterized over an arbitrary pool and
-   filterState instead of always using TALKS/the home page's filterState —
-   lets Recently Viewed and Favorites each filter their own (much smaller,
-   changing-over-time) collection with the same logic. */
-function subsetPoolExcept(pool, filterState, excludeDim){
-  return pool.filter(t=> SUBSET_DIM_ORDER.every(dim=> dim===excludeDim || matchesDim(t, dim, filterState[dim])));
+/* ---------------- personal-collection pages: search, not filters ----
+   Recently Viewed, Favorites, My Notes, and a single List used to each
+   have their own copy of the Speaker/Calling/Conference/Topic filter
+   panels (a second, parallel implementation of the home page's filter
+   architecture, repeated four times). A personal collection is small —
+   dozens of talks, not the 4,054-talk pool Home searches — so faceted
+   filtering was overkill there; a single broad search box does the same
+   job with far less UI. Matches title, speaker, calling, and topic tags,
+   so typing "faith" or "apostle" still narrows things down the way the
+   old Topic/Calling filters did, just via typing instead of checkboxes.
+   `extra` is optional additional text to also match (My Notes passes the
+   note text itself). */
+function subsetSearchHaystack(pick, extra){
+  const role = talkRole(pick);
+  const topics = talkTopics(pick).map(tp=>TOPIC_LABELS[tp]).join(' ');
+  return [pick[0], pick[1], role ? ROLE_LABELS[role] : '', topics, extra || ''].join(' ').toLowerCase();
 }
-function subsetCurrentPool(pool, filterState){
-  return pool.filter(t=> SUBSET_DIM_ORDER.every(dim=> matchesDim(t, dim, filterState[dim])));
-}
-function subsetOrderedValues(dim, presentSet){
-  if (dim==='year') return [...presentSet].sort().reverse();
-  if (dim==='speaker') return [...presentSet].sort((a,b)=>speakerDisplayName(a).localeCompare(speakerDisplayName(b)));
-  if (dim==='topic') return Object.keys(TOPIC_LABELS).filter(tp=>presentSet.has(tp));
-  if (dim==='role') return ROLE_ORDER.filter(r=>presentSet.has(r));
-  return [...presentSet];
-}
-function subsetLabelFor(dim, val){
-  if (dim==='year'){ const [y,m]=val.split('-'); return `${monthName(m)} ${y}`; }
-  if (dim==='speaker') return speakerDisplayName(val);
-  if (dim==='topic') return TOPIC_LABELS[val];
-  return ROLE_LABELS[val];
-}
-
-const SUBSET_DIM_ORDER = ['role','topic','speaker','year'];
-const SUBSET_DIM_LABEL = { speaker:'Speaker', role:'Calling at the Time of the Talk', year:'General Conference', topic:'Topic' };
-const SUBSET_DIM_ANY = { speaker:'Any speaker', role:'Any Calling', year:'Any Conference', topic:'Any topic' };
-const SUBSET_DIM_NOUN = { speaker:'speakers', role:'callings', year:'conferences', topic:'topics' };
-const SUBSET_DIM_SEARCHABLE = { speaker:true, role:false, year:false, topic:true };
-
-/* Builds one independent set of Speaker/Calling/Conference/Topic
-   multi-select panels (same ms-trigger/ms-panel markup and cascading-
-   availability behavior as the home page's own filters above, just built
-   in JS instead of hand-written HTML since there are now three copies of
-   this UI) inside `containerEl`, scoped to whatever pool is passed to
-   setBasePool() rather than the whole TALKS array. Used once for
-   Recently Viewed and once for Favorites — fully independent of each
-   other and of the home page's filters. */
-function createSubsetFilterPanel(prefix, containerEl){
-  const filterState = { speaker:[], role:[], year:[], topic:[] };
-  const availableSets = { speaker:new Set(), role:new Set(), year:new Set(), topic:new Set() };
-  const dimConfig = {};
-  let openDim = null;
-  let basePool = [];
-  // `api` is declared with `let` (not `const`) below and assigned last,
-  // but recompute() only ever runs from an event handler or setBasePool()
-  // called after createSubsetFilterPanel() has returned — by which point
-  // `api` is set — so this forward reference is safe.
-  let api;
-
-  SUBSET_DIM_ORDER.forEach(dim=>{
-    const field = document.createElement('div');
-    field.className = 'field';
-
-    const labelId = `${prefix}${dim}Label`;
-    const label = document.createElement('label');
-    label.id = labelId;
-    label.textContent = SUBSET_DIM_LABEL[dim];
-    field.appendChild(label);
-
-    const trigger = document.createElement('button');
-    trigger.type = 'button';
-    trigger.className = 'ms-trigger';
-    trigger.setAttribute('aria-haspopup', 'true');
-    trigger.setAttribute('aria-expanded', 'false');
-    const triggerTextId = `${prefix}${dim}TriggerText`;
-    trigger.setAttribute('aria-labelledby', `${labelId} ${triggerTextId}`);
-    const triggerText = document.createElement('span');
-    triggerText.className = 'ms-trigger-text';
-    triggerText.id = triggerTextId;
-    triggerText.textContent = SUBSET_DIM_ANY[dim];
-    trigger.appendChild(triggerText);
-    trigger.insertAdjacentHTML('beforeend', '<svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>');
-    field.appendChild(trigger);
-
-    const panel = document.createElement('div');
-    panel.className = 'ms-panel';
-    panel.hidden = true;
-
-    let search = null;
-    if (SUBSET_DIM_SEARCHABLE[dim]){
-      search = document.createElement('input');
-      search.type = 'text';
-      search.className = 'ms-search';
-      search.placeholder = dim === 'speaker' ? 'Search speakers…' : 'Search topics…';
-      search.autocomplete = 'off';
-      panel.appendChild(search);
-    }
-
-    const options = document.createElement('div');
-    options.className = 'ms-options';
-    panel.appendChild(options);
-
-    const footer = document.createElement('div');
-    footer.className = 'ms-panel-footer';
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'ms-clear';
-    clearBtn.textContent = 'Clear';
-    footer.appendChild(clearBtn);
-    panel.appendChild(footer);
-
-    field.appendChild(panel);
-    containerEl.appendChild(field);
-
-    dimConfig[dim] = { trigger, triggerText, panel, options, search, clearBtn };
-  });
-
-  function closePanel(dim){
-    dimConfig[dim].panel.hidden = true;
-    dimConfig[dim].trigger.setAttribute('aria-expanded', 'false');
-    if (openDim === dim) openDim = null;
-  }
-  function closeAllPanels(){ SUBSET_DIM_ORDER.forEach(closePanel); }
-  function openPanel(dim){
-    if (openDim && openDim !== dim) closePanel(openDim);
-    dimConfig[dim].panel.hidden = false;
-    dimConfig[dim].trigger.setAttribute('aria-expanded', 'true');
-    openDim = dim;
-    if (dimConfig[dim].search){ dimConfig[dim].search.value = ''; renderDimOptions(dim); dimConfig[dim].search.focus(); }
-  }
-
-  function renderDimOptions(dim){
-    const cfg = dimConfig[dim];
-    const selected = filterState[dim];
-    const query = cfg.search ? cfg.search.value.trim().toLowerCase() : '';
-    cfg.options.innerHTML = '';
-    const values = subsetOrderedValues(dim, new Set([...availableSets[dim], ...selected]));
-    let shown = 0;
-    values.forEach(val=>{
-      const label = subsetLabelFor(dim, val);
-      if (query && !label.toLowerCase().includes(query)) return;
-      shown++;
-      const row = document.createElement('label');
-      row.className = 'ms-option';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = val;
-      cb.checked = selected.includes(val);
-      cb.addEventListener('change', ()=>{
-        const arr = filterState[dim];
-        const idx = arr.indexOf(val);
-        if (cb.checked && idx===-1) arr.push(val);
-        if (!cb.checked && idx!==-1) arr.splice(idx, 1);
-        recompute();
-      });
-      const span = document.createElement('span');
-      span.textContent = label;
-      row.appendChild(cb); row.appendChild(span);
-      cfg.options.appendChild(row);
-    });
-    if (shown === 0){
-      const empty = document.createElement('div');
-      empty.className = 'ms-empty';
-      empty.textContent = query ? 'No matches' : 'No options available';
-      cfg.options.appendChild(empty);
-    }
-  }
-  function updateDimTrigger(dim){
-    const cfg = dimConfig[dim];
-    const n = filterState[dim].length;
-    cfg.triggerText.textContent =
-      n === 0 ? SUBSET_DIM_ANY[dim] :
-      n === 1 ? subsetLabelFor(dim, filterState[dim][0]) :
-      `${n} ${SUBSET_DIM_NOUN[dim]} selected`;
-    cfg.clearBtn.disabled = n === 0;
-  }
-  function recompute(){
-    SUBSET_DIM_ORDER.forEach(dim=>{
-      availableSets[dim] = valuesForDim(subsetPoolExcept(basePool, filterState, dim), dim);
-      renderDimOptions(dim);
-      updateDimTrigger(dim);
-    });
-    if (api.onChange) api.onChange();
-  }
-
-  SUBSET_DIM_ORDER.forEach(dim=>{
-    const cfg = dimConfig[dim];
-    cfg.trigger.addEventListener('click', ()=>{
-      if (cfg.panel.hidden) openPanel(dim); else closePanel(dim);
-    });
-    if (cfg.search) cfg.search.addEventListener('input', ()=>renderDimOptions(dim));
-    cfg.clearBtn.addEventListener('click', ()=>{ filterState[dim] = []; recompute(); });
-  });
-  document.addEventListener('click', (e)=>{
-    if (!openDim) return;
-    const field = dimConfig[openDim].trigger.closest('.field');
-    if (field && !field.contains(e.target)) closeAllPanels();
-  });
-  document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape' && openDim){
-      const dim = openDim;
-      closePanel(dim);
-      dimConfig[dim].trigger.focus();
-    }
-  });
-
-  api = {
-    filterState,
-    onChange: null, // set by the caller; invoked after every recompute()
-    setBasePool(pool){ basePool = pool; recompute(); },
-    currentPool(){ return subsetCurrentPool(basePool, filterState); },
-    baseCount(){ return basePool.length; },
-    hasActiveFilters(){ return SUBSET_DIM_ORDER.some(dim=>filterState[dim].length); },
-    reset(){ SUBSET_DIM_ORDER.forEach(dim=>{ filterState[dim] = []; }); recompute(); }
-  };
-  return api;
+function matchesSubsetSearch(pick, query, extra){
+  return subsetSearchHaystack(pick, extra).includes(query.trim().toLowerCase());
 }
 
 /* Wires the "Recently Viewed/Favorited" vs. "Conference Date" toggle
@@ -4131,63 +3959,50 @@ function createSortToggle(containerEl, onChange){
   return { get mode(){ return mode; } };
 }
 
-const recentFilterPanel = createSubsetFilterPanel('recent', document.getElementById('recentFilters'));
-const recentFilterResetBtn = document.getElementById('recentFilterReset');
-const recentFilterCountEl = document.getElementById('recentFilterCount');
-recentFilterResetBtn.addEventListener('click', ()=> recentFilterPanel.reset());
-const recentSortToggle = createSortToggle(document.getElementById('recentSortToggle'), ()=> renderRecentPage());
+/* Wires a search box (input + clear button, same search-field markup as
+   the home page's own search box) to a render callback — used by
+   Recently Viewed, Favorites, My Notes, and a single List's page, each
+   with its own query string closed over here rather than a shared
+   global one. */
+function createSearchBox(inputEl, clearBtnEl, onChange){
+  let query = '';
+  inputEl.addEventListener('input', ()=>{
+    query = inputEl.value;
+    clearBtnEl.hidden = !query;
+    onChange();
+  });
+  clearBtnEl.addEventListener('click', ()=>{
+    query = '';
+    inputEl.value = '';
+    clearBtnEl.hidden = true;
+    inputEl.focus();
+    onChange();
+  });
+  return { get query(){ return query; } };
+}
 
-const favoritesFilterPanel = createSubsetFilterPanel('favorites', document.getElementById('favoritesFilters'));
-const favoritesFilterResetBtn = document.getElementById('favoritesFilterReset');
-const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
-favoritesFilterResetBtn.addEventListener('click', ()=> favoritesFilterPanel.reset());
-const favoritesSortToggle = createSortToggle(document.getElementById('favoritesSortToggle'), ()=> renderFavoritesPage());
-
-const notesFilterPanel = createSubsetFilterPanel('notes', document.getElementById('notesFilters'));
-const notesFilterResetBtn = document.getElementById('notesFilterReset');
-const notesFilterCountEl = document.getElementById('notesFilterCount');
-notesFilterResetBtn.addEventListener('click', ()=> notesFilterPanel.reset());
-const notesSortToggle = createSortToggle(document.getElementById('notesSortToggle'), ()=> renderNotesPage());
-
-// One filter-panel instance reused for whichever single collection is
-// currently open (its base pool is swapped via setBasePool() each time a
-// different collection is viewed) — same pattern as recent/favorites,
-// just re-pointed at a different collection's talks instead of having
-// one instance per collection.
-const collectionFilterPanel = createSubsetFilterPanel('collection', document.getElementById('collectionFilters'));
-const collectionFilterResetBtn = document.getElementById('collectionFilterReset');
-const collectionFilterCountEl = document.getElementById('collectionFilterCount');
-collectionFilterResetBtn.addEventListener('click', ()=> collectionFilterPanel.reset());
-
-/* Renders one subset page (Recently Viewed, Favorites, My Notes, or a
-   single List) from its filter panel's already-computed currentPool() —
-   shared so the "no talks saved at all" vs. "talks saved, but none match
-   the filters" distinction stays consistent across all of them.
-   `searchQuery`/`searchMatch` are optional (only My Notes uses them so
-   far, for the "search my notes" feature) — when given, they narrow
-   `currentPool()`'s result further, on top of whatever the structured
-   Speaker/Calling/Conference/Topic filters already picked. `total` is
-   deliberately still based on the *unfiltered* base pool (ignoring both
-   the structured filters and the search box), so a search that matches
-   nothing shows "no notes match your search" rather than the "you haven't
-   noted anything yet" empty state — and importantly keeps the filters/
-   search UI visible so the person can actually clear it. */
-function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filterPanel, noTalksMessage, noMatchMessage, searchQuery, searchMatch){
-  const total = filterPanel.baseCount();
+/* Renders one personal-collection page (Recently Viewed, Favorites, My
+   Notes, or a single List) from `pool` (already sorted by the caller) —
+   shared so the "nothing saved at all" vs. "nothing matches your search"
+   distinction stays consistent across all of them. `total` is
+   deliberately based on the *unsearched* pool, so a search that matches
+   nothing shows "no talks match your search" rather than the "you
+   haven't saved anything yet" empty state — and importantly keeps the
+   search/sort controls visible so the person can actually clear it. */
+function renderSubsetList(itemsEl, emptyEl, countEl, controlsEls, pool, query, matcher, noTalksMessage, noMatchMessage){
+  const total = pool.length;
   itemsEl.innerHTML = '';
   if (total === 0){
     itemsEl.style.display = 'none';
     emptyEl.style.display = 'block';
     emptyEl.textContent = noTalksMessage;
     countEl.textContent = '';
-    filtersEl.style.display = 'none';
-    resetBtn.style.display = 'none';
+    controlsEls.forEach(el=> el.style.display = 'none');
     return;
   }
-  filtersEl.style.display = '';
-  resetBtn.style.display = '';
-  let filtered = filterPanel.currentPool();
-  if (searchQuery && searchMatch) filtered = filtered.filter(pick=> searchMatch(pick, searchQuery));
+  controlsEls.forEach(el=> el.style.display = '');
+  const q = query.trim();
+  const filtered = q ? pool.filter(pick=> matcher(pick, q)) : pool;
   if (filtered.length === 0){
     itemsEl.style.display = 'none';
     emptyEl.style.display = 'block';
@@ -4202,28 +4017,41 @@ function renderSubsetList(itemsEl, emptyEl, countEl, filtersEl, resetBtn, filter
     : `Showing ${filtered.length} of ${total} talk${total===1?'':'s'}`;
 }
 
+const recentFilterCountEl = document.getElementById('recentFilterCount');
+const recentSearchFieldEl = document.getElementById('recentSearchField');
+const recentSortRowEl = document.getElementById('recentSortToggle').closest('.filters-actions');
+const recentSortToggle = createSortToggle(document.getElementById('recentSortToggle'), ()=> renderRecentPage());
+const recentSearch = createSearchBox(document.getElementById('recentQuery'), document.getElementById('recentQueryClear'), ()=> renderRecentPage());
 function renderRecentPage(){
   let picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (recentSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
-  recentFilterPanel.setBasePool(picks);
+  const q = recentSearch.query;
+  renderSubsetList(
+    recentItemsEl, recentEmptyEl, recentFilterCountEl, [recentSearchFieldEl, recentSortRowEl],
+    picks, q, matchesSubsetSearch,
+    "You haven't opened any talks yet — talks you open from a ticket or a list will show up here.",
+    `No recently viewed talks match "${q.trim()}".`
+  );
 }
+
+const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
+const favoritesSearchFieldEl = document.getElementById('favoritesSearchField');
+const favoritesSortRowEl = document.getElementById('favoritesSortToggle').closest('.filters-actions');
+const favoritesSortToggle = createSortToggle(document.getElementById('favoritesSortToggle'), ()=> renderFavoritesPage());
+const favoritesSearch = createSearchBox(document.getElementById('favoritesQuery'), document.getElementById('favoritesQueryClear'), ()=> renderFavoritesPage());
 function renderFavoritesPage(){
   // Sets preserve insertion order, and re-favoriting after unfavoriting
   // re-inserts at the end — so reversing gives most-recently-favorited first.
   let picks = [...favoriteKeys].reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (favoritesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
-  favoritesFilterPanel.setBasePool(picks);
+  const q = favoritesSearch.query;
+  renderSubsetList(
+    favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, [favoritesSearchFieldEl, favoritesSortRowEl],
+    picks, q, matchesSubsetSearch,
+    "No favorites yet — tap the star on any talk to save it here.",
+    `No favorites match "${q.trim()}".`
+  );
 }
-recentFilterPanel.onChange = ()=> renderSubsetList(
-  recentItemsEl, recentEmptyEl, recentFilterCountEl, document.getElementById('recentFilters'), recentFilterResetBtn,
-  recentFilterPanel, "You haven't opened any talks yet — talks you open from a ticket or a list will show up here.",
-  'No recently viewed talks match those filters.'
-);
-favoritesFilterPanel.onChange = ()=> renderSubsetList(
-  favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, document.getElementById('favoritesFilters'), favoritesFilterResetBtn,
-  favoritesFilterPanel, "No favorites yet — tap the star on any talk to save it here.",
-  'No favorites match those filters.'
-);
 
 // Strips a leading quotation mark before comparing, so quoted-title talks
 // (a lot of them — 440 of 4054 in the current dataset, e.g. "“My Sheep
@@ -4235,6 +4063,22 @@ favoritesFilterPanel.onChange = ()=> renderSubsetList(
 function alphaSortKey(title){
   return title.replace(/^[“‘"']\s*/, '');
 }
+
+const notesFilterCountEl = document.getElementById('notesFilterCount');
+const notesSearchFieldEl = document.getElementById('notesSearchField');
+const notesSortRowEl = document.getElementById('notesSortToggle').closest('.filters-actions');
+const notesSortToggle = createSortToggle(document.getElementById('notesSortToggle'), ()=> renderNotesPage());
+const notesSearch = createSearchBox(document.getElementById('notesQuery'), document.getElementById('notesQueryClear'), ()=> renderNotesPage());
+// "Search your notes" — matches the note text itself, plus (via
+// matchesSubsetSearch's shared haystack) the talk's title/speaker/
+// calling/topics, since someone often remembers "something about
+// tithing" without recalling their own exact wording. Deliberately plain
+// substring matching, not a search index: notes are a handful-to-dozens
+// of short, on-device strings, not the thousands of official talk texts
+// idea #5 (full-text talk search) would need to deal with.
+function matchesNotesSearch(pick, query){
+  return matchesSubsetSearch(pick, query, noteMap[talkKey(pick)]);
+}
 function renderNotesPage(){
   // noteMap's key order reflects most-recently-noted-first once reversed —
   // see the comment on setNote() above for why a delete-then-reset keeps
@@ -4242,71 +4086,47 @@ function renderNotesPage(){
   let picks = Object.keys(noteMap).reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (notesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
   else if (notesSortToggle.mode === 'alpha') picks = picks.slice().sort((a,b)=> alphaSortKey(a[0]).localeCompare(alphaSortKey(b[0])));
-  notesFilterPanel.setBasePool(picks);
-}
-
-// "Search your notes" — matches the note text itself, or the talk's title/
-// speaker (someone often remembers "something about tithing" without
-// recalling their own exact wording). Deliberately plain substring
-// matching, not a search index: notes are a handful-to-dozens of short,
-// on-device strings, not the thousands of official talk texts idea #5
-// (full-text talk search) would need to deal with.
-let notesQuery = '';
-function matchesNotesSearch(pick, query){
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  const note = noteMap[talkKey(pick)] || '';
-  return note.toLowerCase().includes(needle)
-    || pick[0].toLowerCase().includes(needle)
-    || pick[1].toLowerCase().includes(needle);
-}
-function refreshNotesList(){
-  const q = notesQuery.trim();
+  const q = notesSearch.query;
   renderSubsetList(
-    notesItemsEl, notesEmptyEl, notesFilterCountEl, document.getElementById('notesFilters'), notesFilterResetBtn,
-    notesFilterPanel, "No notes yet — tap the note icon on any talk to jot down what you learned.",
-    q ? `No notes match "${q}".` : 'No notes match those filters.',
-    q, matchesNotesSearch
+    notesItemsEl, notesEmptyEl, notesFilterCountEl, [notesSearchFieldEl, notesSortRowEl],
+    picks, q, matchesNotesSearch,
+    "No notes yet — tap the note icon on any talk to jot down what you learned.",
+    `No notes match "${q.trim()}".`
   );
 }
-notesFilterPanel.onChange = refreshNotesList;
-const notesQueryEl = document.getElementById('notesQuery');
-const notesQueryClearBtn = document.getElementById('notesQueryClear');
-notesQueryEl.addEventListener('input', ()=>{
-  notesQuery = notesQueryEl.value;
-  notesQueryClearBtn.hidden = !notesQuery;
-  refreshNotesList();
-});
-notesQueryClearBtn.addEventListener('click', ()=>{
-  notesQuery = '';
-  notesQueryEl.value = '';
-  notesQueryClearBtn.hidden = true;
-  notesQueryEl.focus();
-  refreshNotesList();
-});
-
 
 /* ---------------- My Lists (self-defined collections) ---------------- */
 // Which collection collectionZone is currently showing, if any — lets a
 // membership change made via the modal (e.g. removing this same talk
 // from this same collection while its page happens to be open) refresh
 // the visible list immediately, same live-sync the Favorites page already
-// does for its own star.
+// does for its own star. Also read by the search/sort controls below so
+// they know which collection to re-render.
 let currentCollectionId = null;
 
+const collectionFilterCountEl = document.getElementById('collectionFilterCount');
+const collectionSearchFieldEl = document.getElementById('collectionSearchField');
+const collectionSortRowEl = document.getElementById('collectionSortToggle').closest('.filters-actions');
+const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=> renderCollectionPage(currentCollectionId));
+const collectionSearch = createSearchBox(document.getElementById('collectionQuery'), document.getElementById('collectionQueryClear'), ()=> renderCollectionPage(currentCollectionId));
 function renderCollectionPage(id){
   currentCollectionId = id;
   const col = collections.find(c=> c.id === id);
   document.getElementById('collectionTitle').textContent = col ? col.name : 'List';
-  const keys = collectionMembers[id] || [];
-  const picks = keys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
-  collectionFilterPanel.setBasePool(picks);
+  // Membership array is in the order talks were added; reversed gives
+  // most-recently-added first, same "recent first" default as
+  // Favorites/Recently Viewed above.
+  const keys = (collectionMembers[id] || []).slice().reverse();
+  let picks = keys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+  if (collectionSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  const q = collectionSearch.query;
+  renderSubsetList(
+    collectionItemsEl, collectionEmptyEl, collectionFilterCountEl, [collectionSearchFieldEl, collectionSortRowEl],
+    picks, q, matchesSubsetSearch,
+    'No talks in this list yet.',
+    `No talks in this list match "${q.trim()}".`
+  );
 }
-collectionFilterPanel.onChange = ()=> renderSubsetList(
-  collectionItemsEl, collectionEmptyEl, collectionFilterCountEl, document.getElementById('collectionFilters'), collectionFilterResetBtn,
-  collectionFilterPanel, 'No talks in this list yet.',
-  'No talks in this list match those filters.'
-);
 
 // "Search your lists" + sort — filters/sorts the list of *list names*
 // (not talks inside them, that's what each list's own page/filters are

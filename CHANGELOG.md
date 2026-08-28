@@ -27,6 +27,8 @@ this updated.
 
 ### Changed
 - Reordered the filters to Topic, Calling, Speaker, General Conference, Session, Recent/Favorites, and moved the "Search titles & summaries" box to sit below the filters instead of above them.
+- Removed the Speaker/Calling/Conference/Topic filters from Recently Viewed, Favorites, My Notes, and each individual List — those collections are small and personal, so a search box (now on all four, matching title, speaker, calling, and topic — not just title/speaker like before) plus the existing sort options gets you to a talk faster than filter menus did. Also added search and a "Recently Added" / "Conference Date" sort to a List's own page, which had neither before.
+- Moved Export Backup / Import Backup to the bottom of the My Lists page, below your actual lists, instead of at the top.
 - The "From General Conference of The Church of Jesus Christ of Latter-day Saints" line at the top of the page now wraps at the same fixed spot on every device, instead of the browser breaking it differently depending on screen width.
 - The Settings gear icon no longer floats over the page while you scroll — it now sits quietly in the top-right corner of the page itself, styled to match the thin divider line under the title instead of standing out.
 - Replaced the app's headline font with Lora, a calmer, more traditional serif — used for the title, talk titles, list items, and menu headers throughout.
