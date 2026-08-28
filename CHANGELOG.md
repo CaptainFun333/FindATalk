@@ -8,7 +8,11 @@ All notable changes to Find a Talk are logged here. Format loosely follows
 built and submitted to a store — see `CLAUDE.md` for the process that keeps
 this updated.
 
-## [Unreleased] — targeting 1.2
+## [Unreleased]
+
+Nothing yet.
+
+## [1.2] — 2026-08-28
 
 ### Added
 - Before asking for notification permission, the app now shows a short explanation of why (a daily reminder with your talk of the day) instead of the phone's permission prompt appearing out of nowhere.
