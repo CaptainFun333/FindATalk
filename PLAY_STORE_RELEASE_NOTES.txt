@@ -1,14 +1,14 @@
-Version 1.3 — What's new (Google Play Console "release notes" field)
+Version 1.3.1 — What's new (Google Play Console "release notes" field)
 Character count: fits within Play's 500-character limit per language.
 
 ---
 
-New: talks now show which scriptures, hymns, other talks, and Church
-magazine articles they cite, each one tappable. Search Scriptures & Hymns
-right from the home page (try "Alma 32" or "I Am a Child of God").
+Fixed: Export Backup now actually saves a file (previously did nothing),
+and scripture search no longer requires clearing app storage to work.
 
-Show a List can now select the first 10 or every matching talk at once.
-Long notes are trimmed with a "Show more" link instead of stretching tiles.
+New: talks show which scriptures, hymns, other talks, and Church
+magazine articles they cite, each one tappable. Search Scriptures &
+Hymns right from the home page (try "Alma 32" or "I Am a Child of God").
 
-Also: better Topic search suggestions, tidier action icons, and fixes to
-note previews and scripture search accuracy.
+Also: Show a List can select the first 10 or all matches at once, long
+notes trim with "Show more," and better Topic search suggestions.

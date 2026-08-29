@@ -10,6 +10,11 @@ this updated.
 
 ## [Unreleased]
 
+### Fixed
+- Nothing yet.
+
+## [1.3.1] — 2026-08-29
+
 ### Added
 - Long notes no longer stretch a talk's tile out of shape — they're now clipped to 3 lines with a "Show more" link that expands the tile to show the whole note (and "Show less" to collapse it back), wherever a note preview appears (Show a List, Recently Viewed, Favorites, My Lists, My Notes).
 - Show a List now has "Select First 10" and "Select All" buttons above the results, so you can add a whole page — or every matching talk, across every page — to a list in one action instead of checking boxes one at a time. Selecting more than what's shown on the first page asks you to confirm first, since it could mean adding a lot of talks at once. A selection now also stays checked as you page through results, instead of being cleared every time you click Next/Previous.
