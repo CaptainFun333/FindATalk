@@ -948,7 +948,7 @@
   .draw-buttons{
     display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
   }
-  #drawBtn{
+  #drawBtn, .draw-btn-primary{
     font-family:'Inter',sans-serif;
     font-weight:600;
     font-size:15.5px;
@@ -962,11 +962,11 @@
     box-shadow:var(--shadow);
     transition:transform .15s, box-shadow .15s;
   }
-  #drawBtn:hover{ transform:translateY(-2px); box-shadow:var(--shadow-hover); }
-  #drawBtn:active{ transform:translateY(0px) scale(.99); }
-  #drawBtn:disabled{ opacity:.55; cursor:default; transform:none; }
+  #drawBtn:hover, .draw-btn-primary:hover{ transform:translateY(-2px); box-shadow:var(--shadow-hover); }
+  #drawBtn:active, .draw-btn-primary:active{ transform:translateY(0px) scale(.99); }
+  #drawBtn:disabled, .draw-btn-primary:disabled{ opacity:.55; cursor:default; transform:none; }
 
-  #listBtn{
+  #listBtn, .draw-btn-secondary{
     font-family:'Inter',sans-serif;
     font-weight:600;
     font-size:15.5px;
@@ -979,9 +979,19 @@
     cursor:pointer;
     transition:border-color .15s, color .15s, transform .15s;
   }
-  #listBtn:hover{ border-color:var(--brass); color:var(--burgundy); transform:translateY(-2px); }
-  #listBtn:active{ transform:translateY(0px) scale(.99); }
-  #listBtn:disabled{ opacity:.55; cursor:default; transform:none; }
+  #listBtn:hover, .draw-btn-secondary:hover{ border-color:var(--brass); color:var(--burgundy); transform:translateY(-2px); }
+  #listBtn:active, .draw-btn-secondary:active{ transform:translateY(0px) scale(.99); }
+  #listBtn:disabled, .draw-btn-secondary:disabled{ opacity:.55; cursor:default; transform:none; }
+
+  /* Second copy of Find Another / Show a List, repeated at the bottom of
+     the filters panel (see markup near #resetBtn) so you never have to
+     scroll back up past the filters/search fields to reach them — mirrors
+     .draw-buttons above, just closer to the search fields at the bottom
+     of the "Looking for something more specific?" box. */
+  .draw-buttons-repeat{
+    display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+    margin-top:22px; padding-top:18px; border-top:1px solid var(--line);
+  }
 
   .no-match{
     text-align:center; color:var(--ink-soft);
@@ -1792,6 +1802,16 @@
       <div class="filters-actions">
         <div class="pool-count pool-count-inline" id="poolCount"></div>
         <button type="button" id="resetBtn" class="reset-link">Reset filters</button>
+      </div>
+
+      <!-- Repeats Find Another / Show a List right here at the bottom of
+           the filters panel — see .draw-buttons-repeat above — so a
+           search or filter change never means scrolling back up past the
+           dropdowns to reach the buttons. Mirrors #drawBtn/#listBtn
+           exactly; see the click-forwarding wiring near their listeners. -->
+      <div class="draw-buttons-repeat">
+        <button type="button" id="drawBtn2" class="draw-btn-primary">Find Another</button>
+        <button type="button" id="listBtn2" class="draw-btn-secondary">Show a List</button>
       </div>
     </div>
   </div>
@@ -3006,6 +3026,12 @@ const poolCountEl = document.getElementById('poolCount');
 const noMatchEl = document.getElementById('noMatch');
 const drawBtn = document.getElementById('drawBtn');
 const listBtn = document.getElementById('listBtn');
+// Second copy of the two buttons, repeated at the bottom of the filters
+// panel (see .draw-buttons-repeat) so they're reachable without scrolling
+// back up. They just forward to the originals below, rather than
+// duplicating draw()/showList() logic or disabled-state tracking.
+const drawBtn2 = document.getElementById('drawBtn2');
+const listBtn2 = document.getElementById('listBtn2');
 const resetBtn = document.getElementById('resetBtn');
 
 // Year/conference options, newest first
@@ -3470,10 +3496,14 @@ function refreshCount(){
     noMatchEl.style.display = 'block';
     drawBtn.disabled = true;
     listBtn.disabled = true;
+    drawBtn2.disabled = true;
+    listBtn2.disabled = true;
   } else {
     noMatchEl.style.display = 'none';
     drawBtn.disabled = false;
     listBtn.disabled = false;
+    drawBtn2.disabled = false;
+    listBtn2.disabled = false;
     poolCountEl.innerHTML = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''} right now`;
   }
   resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim() && !filterState.citeQuery.trim();
@@ -3758,6 +3788,7 @@ function showTicket(pick){
 }
 
 drawBtn.addEventListener('click', draw);
+drawBtn2.addEventListener('click', draw);
 const backBtn = document.getElementById('backBtn');
 backBtn.addEventListener('click', goBack);
 const forwardBtn = document.getElementById('forwardBtn');
@@ -4476,6 +4507,7 @@ function showList(){
 }
 
 listBtn.addEventListener('click', ()=>{ resetListPaging(); showList(); });
+listBtn2.addEventListener('click', ()=>{ resetListPaging(); showList(); });
 document.getElementById('listAgainBtn').addEventListener('click', ()=>{ resetListPaging(); showList(); });
 listPrevBtn.addEventListener('click', ()=>{
   if (listPage === 0) return;
