@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Fixed
-- Nothing yet.
+- The app was silently re-saving the entire offline talk database on every single launch, even when nothing about it had changed, which could bloat the app's on-device storage over time for no reason. It now only re-saves when the data actually has an update.
 
 ## [1.3.1] — 2026-08-29
 

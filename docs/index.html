@@ -5579,10 +5579,21 @@ async function loadData(){
   // If found, just cache it silently — it's picked up on the NEXT launch
   // via the cached-copy fast path above, rather than hot-swapping data
   // and re-wiring the UI underneath someone mid-session.
+  //
+  // Only actually overwrite the IndexedDB entry when the remote copy is
+  // genuinely newer (compared via data.json's `generatedAt` stamp). This
+  // used to re-put() the full ~4MB blob on every single launch even when
+  // it was byte-identical to what was already cached — harmless
+  // correctness-wise (put() overwrites, it doesn't accumulate rows), but
+  // each overwrite leaves the old version's pages sitting in the WebView's
+  // IndexedDB backing store until it's next compacted, so on-device
+  // storage could balloon between compactions for no reason. Skipping the
+  // write entirely when nothing changed avoids that churn.
+  const currentGeneratedAt = (cached && cached.generatedAt) || null;
   if (REMOTE_DATA_URL){
     fetch(REMOTE_DATA_URL, {cache:'no-store'})
       .then(res => res.ok ? res.json() : Promise.reject())
-      .then(data => cacheData(data))
+      .then(data => { if (data.generatedAt !== currentGeneratedAt) cacheData(data); })
       .catch(()=>{ /* offline or remote unreachable — keep what's cached */ });
   }
 }
