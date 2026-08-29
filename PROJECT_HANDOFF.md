@@ -2689,3 +2689,372 @@ Fully local (no accounts/sync), same as Favorites/My Lists/streak.
   `node --check` on the extracted inline script (no syntax errors) and a
   full `getElementById`-vs-`id=` cross-check (no dangling references)
   before ever loading it in a browser.
+
+## ✅ Done: scripture citation data extraction (idea 18, foundation only)
+Extracted scripture citations for every talk, laying the data foundation for
+the "interact with scripture citations" feature (chips on each talk, a
+Scripture filter/search, and reverse lookup — those three UI pieces are
+**not yet built**, this is the data layer only).
+
+**Extraction**: every General Conference talk page has its scripture
+citations as structured footnote links — `<a class="scripture-ref"
+href="/study/scriptures/{volume}/{book}/{chapter}?...">Display Text</a>` —
+not prose, so this was mechanical/bounded rather than a research task like
+Role tagging. A resumable, checkpointed Python script (curl + BeautifulSoup,
+8-way concurrency) fetched all 4,054 individual talk pages directly from
+churchofjesuschrist.org and parsed every `a.scripture-ref` link. Result:
+**4,054/4,054 talks processed, zero fetch failures**, 47,841 total citation
+instances (19,719 unique), across all four standard works plus Joseph Smith
+Translation footnotes (`bofm`/`nt`/`ot`/`dc-testament`/`pgp`/`jst`). 212
+talks (5.2%) have zero citations — verified as real, not a parsing gap: the
+zero-citation count declines steadily by decade (66 in the 1970s down to 6
+in the 2020s), a plausible real editorial trend, not concentrated in one
+era the way a structural parsing bug would show up.
+
+**Storage — interned, not verbose**: storing the full `{ref, volume, book,
+chapter}` object on every citation instance would have been ~8.6MB (way too
+large — `data.json` was 1.37MB going in). Instead, unique citation identities
+are interned once into `citationRefs` (an array of `[ref, volume, book,
+chapter]` tuples, 19,719 entries) and each talk's `citationLookup` entry is
+just a list of integer indices into that table. Final `data.json`: **2.76MB**
+(up from 1.37MB — a real but proportionate increase, comparable to what the
+Session backfill added). New top-level keys: `citationRefs`,
+`citationLookup` (keyed `year|month|slug`, same convention as
+`sessionLookup`), `citationVolumeLabels` (6 entries: Book of Mormon, New
+Testament, Old Testament, Doctrine and Covenants, Pearl of Great Price,
+Joseph Smith Translation), `citationBookLabels` (101 entries, keyed
+`volume|book`, e.g. `"bofm|alma"` → `"Alma"` — hand-authored from the actual
+101 distinct volume/book slugs found in the real data, not scraped, since
+these are fixed/well-known; do not regex-derive book names from the `ref`
+display text itself — that text is genuine footnote prose with huge
+formatting variance, e.g. "John", "John 17", "verse 17", "vv. 11, 14–15",
+"third chapter of John, verse 16" all exist for the same book, so it does
+**not** reliably reduce to a clean book name).
+
+**Verified**: merged `data.json` round-tripped correctly (all pre-existing
+keys — `talks`, `roleLookup`, `sessionLookup`, etc. — intact, counts
+unchanged), and a spot-check reconstruction (index → ref/volume/book/chapter
+→ real label lookup) confirmed correct for a known talk (Bednar, Oct 2023,
+22 citations).
+
+**Not done yet, still open** (see idea 18 in the feature-ideas memory notes):
+citation chips on the ticket/list rows, the Scripture filter/search
+(book-level, since citation cardinality is far higher than the 317-topic
+taxonomy), and the reverse-lookup page (start from a scripture, find talks
+that cite it). The app's JS doesn't read any of the four new `data.json`
+keys yet — this session was data-extraction only. Native `cap sync` also not
+run yet — no point until the UI actually uses the data.
+
+## ✅ Done: scripture citation chips (idea 18, bullet 1 — real UI, not just data)
+Built the first real UI on top of the citation data extracted earlier (see
+"scripture citation data extraction" above): a "Citations:" pill row,
+designed and iterated on with the user via an Artifact mockup before being
+built for real (chips-vs-dropdown-vs-type-pills tradeoffs, hide-when-empty
+rule, exclusive-expand-per-card behavior, icon design — including a
+pulpit-with-microphone icon matched to the app's own logo silhouette — all
+settled in that mockup first).
+
+**What shipped**: a `<talk>.cite-block` (one unclickable "Citations:" label
++ one pill per citation type that actually has data) appears wherever a talk
+is shown — the drawn-talk ticket, and every talk row (Show a List, Recently
+Viewed, Favorites, My Lists, My Notes, the Talk of the Day card — all of
+these share `buildListItemRow()`, so extending that one function covered
+all of them at once). Only **Scriptures** is real today — Other Talks/
+Hymns/Church Magazines/Other Sources were designed in the mockup but their
+underlying data was never extracted (see the "what about other citation
+types" research earlier in that conversation), so `buildCitationsBlock()`'s
+`groups` array currently has one entry; more can be added later with zero
+changes to the rendering/toggle logic, which was written generically for
+exactly that.
+
+**Behavior**: each pill is click-to-expand/collapse, showing every citation
+as a real link straight to the exact verse on the Church's own scripture
+pages (not just the chapter — see the anchor-precision note below). Only
+one pill's panel is open at a time **within a given ticket or list row** —
+opening a pill in one row never closes a different row's open pill
+(`btn.closest('.ticket, .list-row')` scopes the "close the others" logic).
+A talk with zero citations shows no block at all — verified live against a
+real zero-citation talk ("A Witness and a Blessing," 1971).
+
+**Anchor precision — a real fix made during this build, not in the original
+data merge**: the first `citationRefs` merge (see the earlier section)
+dropped the verse-level `id=`/`#` URL fragment to save space, keeping only
+`[ref, volume, book, chapter]` — meaning every citation link would have
+landed on the top of the chapter page, not the actual cited verse. Caught
+before shipping and fixed by re-merging from the original raw extraction
+(still on disk in scratch) with a 5th tuple element, `anchor` (e.g. `"p17"`,
+`"p5-p6"`, `"p30,32"`) — `data.json` grew from 2.76MB to 2.93MB for this,
+a small trade for exact-verse links matching the precision the rest of the
+app already has (`talkUrl()`/"Open This Talk"). `talkCitations()` splits a
+multi-verse anchor on `,` then `-` to build the `#` fragment (the real
+Church pages use just the first verse for the scroll target, the full
+anchor for the `id=` highlight param) — same pattern the original raw
+`href`s used.
+
+**CSS approach — reused existing tokens, added zero new custom
+properties**: the app now has 4 color palettes (Brass/Rose/Slate/Sage) ×
+2 themes, so a naive port of the mockup's own `--cite-border`/`--cite-bg`/
+`--cite-text` variables would have needed 8 new blocks. Instead, citation
+pills/panels are styled entirely from tokens that already exist in every
+one of those 8 blocks (`--line`, `--paper-raised`, `--ink-soft`, `--brass`,
+`--chip-bg`, `--chip-border`) — confirmed correct with a live
+`getComputedStyle()` check after switching to the Rose palette, no visual
+regression, no new tokens needed anywhere.
+
+**Verified live** (local `python3 -m http.server` copy of `docs/`, real
+browser, not just a syntax check — Browser-pane screenshots were
+unavailable this session for an unrelated pane-visibility reason, so
+verification leaned on DOM/JS state checks instead, which are arguably more
+precise anyway): real per-talk citation counts rendered correctly across
+~10 different talks in a live "Show a List" (1 to 42 citations, matching
+the real extracted data); a known 22-citation talk (Bednar, Oct 2023)
+round-tripped correctly end-to-end including the exact anchored href;
+click-to-expand and click-to-collapse both confirmed via real `aria-pressed`
+state and panel `hidden` toggling; a zero-citation talk confirmed to render
+no block at all via the app's own search+list flow; `node --check` on the
+extracted inline script (clean); a full `getElementById` cross-check
+(`ticketCitations` present both in the HTML and the JS, no dangling refs).
+One real bug hit and fixed **during testing, not the code itself**: a stale
+cached copy of `data.json` in `localStorage` (from an earlier session
+against this same local server) briefly made the new data look completely
+missing after reload — a reminder that `loadData()`'s cache-first design
+(see Phase 1 above) means a locally-tested change needs a clean
+`localStorage` to actually reflect a `data.json` edit, not just a page
+reload.
+
+Synced into the Android project via `npx cap sync android`. Not yet done:
+Other Talks/Hymns/Church Magazines/Other Sources data extraction (a
+follow-up, not blocking), and bullets 2–3 (the Scripture filter/search and
+the reverse-lookup page) from idea 18 are both still fully open.
+
+## 🔍 Research done, not yet built: other citation types beyond Scriptures
+Before building the citation chips above, surveyed a spread of ~48 talks
+across all six decades in the dataset to catalog every footnote type, not
+just `scripture-ref`. Findings, for whoever extracts these next:
+- **`cross-ref`** (~9% of footnotes) — real, structured, clickable links to
+  **other conference talks** and **Ensign/Liahona magazine articles**,
+  sometimes anchored to a specific paragraph in the target. Same extraction
+  technique as scripture-ref would work (a second CSS selector, same pass) —
+  this is "Other Talks" and "Church Magazines" in the mockup/pill UI, and
+  needs splitting into two groups by target domain (a conference-talk URL
+  vs. an Ensign/Liahona URL).
+- **Hymns** — NOT in `cross-ref`. They're plain, unlinked footnote text in a
+  consistent pattern (`"America the Beautiful," Hymns, no. 338.`) — no href,
+  no class. Relatively rare (~1 per 10 talks in the sample). To make these
+  clickable needs a small curated hymn-number → title → URL-slug lookup
+  (~341 hymns, bounded) since the footnote only gives the number, not a
+  link — confirmed the real page pattern is
+  `churchofjesuschrist.org/media/music/songs/{title-slug}`.
+- **Plain-text citations with no link at all** (~18%) — books, magazines,
+  "History of the Church, 5:25," personal correspondence/conversations,
+  devotional talks not hosted online. Not linkable; this is "Other Sources"
+  in the mockup/pill UI (renamed from "Other" since it's mostly not
+  clickable, unlike its siblings).
+- **A small `no-class` residual** (~5%) — real hrefs to non-Church external
+  sites (e.g. josephsmithpapers.org). Folded into "Other Sources" rather
+  than given its own pill.
+
+None of this was extracted — only `scripture-ref` was. See idea 18 in
+See idea 18 in the feature-ideas memory notes for status.
+
+## ✅ Done: the other four citation types (Other Talks/Hymns/Church Magazines/Other Sources)
+Followed up the earlier research pass (see "other citation types" above)
+with a real extraction + merge + UI wiring — all five pills in the
+Citations row are now live, not just Scriptures.
+
+**Real bug caught and fixed before this shipped, not after**: a first-draft
+extraction script only scanned numbered footnote `<li data-marker>`
+elements. Some talks — especially older ones — cite scripture/other talks/
+hymns as an **inline parenthetical right in the body paragraph**, with no
+separate footnote section at all (e.g., `... make you free.” (<a
+class="scripture-ref" href="...">John 8:31–32</a>.)` sitting directly in a
+`<p>`, 1974's "God Will Not Be Mocked" being the exact case that surfaced
+this). Scoping to footnote `<li>`s alone silently missed every citation on
+those talks. Caught by cross-checking this script's own scripture count
+against the already-merged, page-wide `a.scripture-ref` count from the
+first extraction pass — 2,953 of 4,054 talks mismatched on the first run.
+Fixed by classifying `a.scripture-ref`/`a.cross-ref` **page-wide** (not
+`<li>`-scoped) and scanning **every** `p[data-aid]` content paragraph for
+the Hymns pattern, not just footnote paragraphs — re-ran, 0 mismatches
+after the fix (a small number of *higher* counts than the original merge
+remained, expected and correct: the original scripture extraction dedupes
+a citation repeated twice in one talk down to one entry, this cross-check
+count doesn't).
+
+**A second real risk caught before it became bad data**: classifying
+"Other Talks" by bare href pattern (`/study/general-conference/...`)
+instead of requiring the actual `cross-ref` CSS class would have picked up
+a talk page's own table-of-contents sidebar — confirmed on a real page: 57
+unrelated navigation links matching that URL pattern vs. 0 real
+`a.cross-ref` citations on that specific talk. Fixed by requiring the
+`cross-ref` class, same fix shape as the scripture-ref-vs-footnote-`<li>`
+issue above: match the real citation markup, not a loose pattern.
+
+**Extraction results**: all 4,054 talks re-processed, 0 failures.
+2,276 Other Talks citations (**2,275 resolve to a talk already in this
+app's own dataset** — matched by parsing the cited talk's year/month/slug
+out of its href and checking against `TALKS`, so those link to the talk's
+real title via `talkUrl()`, not a raw/possibly-stale footnote text
+snippet; only 1 didn't resolve — a citation to a 1997 sesquicentennial
+pioneer-trek commemorative address that was never part of a normal
+semi-annual conference session, correctly absent from `TALKS`). 365
+Church Magazine citations (Ensign/Liahona/New Era/Friend articles). 626
+Hymn citations, 181 distinct hymns — of which **4 citations (hymn "no.
+386") use the pre-1985 hymnal's numbering**, which doesn't exist in the
+current 341-hymn book; left unlinked (plain text) rather than guessed,
+since there's no reliable old-number-to-new-number mapping available.
+7,085 Other Sources citations (books, personal correspondence, other
+speeches not hosted online, "History of the Church" volume:page
+references, and a small number of real external links like Joseph Smith
+Papers) — spot-checked, genuinely real historical citations, not parsing
+junk.
+
+**Hymn number → title/URL lookup** (needed since a footnote only ever
+gives a number, never a link): fetched the real hymnal table of contents
+at `churchofjesuschrist.org/study/manual/hymns` — 341 entries, numbers 1–
+341, zero gaps, zero conflicts. Real page pattern confirmed:
+`/study/manual/hymns/{title-slug}`.
+
+**Storage**: each type interned into its own shared table, same pattern as
+the original `citationRefs` — `citationTalkRefs` (1,552 unique `[text,
+resolvedTalkKey_or_null, href]`), `citationMagazineRefs` (302 unique
+`[text, href]`), `citationHymnRefs` (181 unique hymn numbers),
+`citationOtherRefs` (6,156 unique citation strings), `citationHymnLabels`
+(the 341-hymn number→`[title, slug]` table), and `citationTypeLookup`
+(talk → `{talk:[idx,...], magazine:[...], hymn:[...], other:[...]}`,
+only non-empty keys present). `data.json` grew from 2.93MB to **4.22MB** —
+the largest single jump so far, mostly the 6,156 Other Sources strings
+(avg 126 chars each); a real, meaningful size cost, flagged plainly rather
+than absorbed silently, but still well within reason for a bundled mobile
+asset or a fetch-once-cache web payload.
+
+**UI wiring**: `buildCitationsBlock()`'s `groups` array (previously just
+Scriptures) now has all five entries — `talkOtherTalkCitations()`,
+`talkMagazineCitations()`, `talkHymnCitations()`,
+`talkOtherSourceCitations()`, each returning the same `{ref, href}` shape
+`talkCitations()` already used, with `href` allowed to be `null` (Other
+Sources; the 4 pre-1985 Hymns citations) — the rendering loop creates a
+plain `<span>` instead of an `<a>` in that case, never a dead link. New
+icons matching the mockup: a pulpit-with-microphone silhouette (Other
+Talks), a music note (Hymns), a magazine/document shape (Church
+Magazines), an info-circle (Other Sources) — all reusing the same palette
+tokens as the Scriptures pill, so still zero new CSS custom properties
+needed across the app's 4 palettes × 2 themes.
+
+**A real scope-boundary bug caught and fixed during this build, worth
+remembering**: `talkOtherTalkCitations()` initially referenced
+`TALKS_BY_KEY` for the internal-talk-title lookup — but that index is
+declared *inside* `initApp()`'s function scope, while this accessor (like
+its `talkTopics()`/`talkKicker()`/`talkCitations()` siblings) lives at
+true top level, *outside* `initApp()`, for direct testability from the
+console. Referencing an inner-scoped variable from an outer-scoped
+function threw `ReferenceError: TALKS_BY_KEY is not defined` at render
+time — caught immediately via `read_console_messages` while testing live,
+not left for later. Fixed with a direct `TALKS.find(t=>talkKey(t)===
+resolvedKey)` instead (cheap enough — called a handful of times per
+render against ~4,054 entries) rather than moving the function inside
+`initApp()`, preserving the existing top-level-accessor pattern. **Any
+future top-level `talkXxx()` accessor needs the same care** — don't
+reach for `TALKS_BY_KEY`/other `initApp()`-local indexes from outside
+that closure.
+
+**Verified live** (fresh local server, `localStorage` cleared before
+testing — a stale cached `data.json` bit this exact workflow during the
+Scriptures-only build too, see above): real talks confirmed for every
+pill type — Other Talks resolving to the correct in-app title +
+`talkUrl()` link (Bednar → Uchtdorf's Apr 2019 talk), Hymns linking to
+the real hymnal page (Oaks → "America the Beautiful"), the pre-1985
+hymn-386 case rendering as unlinked plain text exactly as designed,
+Other Sources rendering as plain unlinked `<span>`s with the real
+citation text, a talk with four simultaneous pill types (Scriptures/
+Other Talks/Hymns/Other Sources) rendering and toggling correctly with
+full mutual exclusivity, and a talk with none of the new types correctly
+showing only its Scriptures pill (no empty/ghost pills). `node --check`
+clean on the extracted script throughout. Synced into the Android project
+via `npx cap sync android`.
+
+## ✅ Done: "Search Scriptures & Hymns" + filter-tile tightening
+Idea 18's bullet 2 (Scripture/Hymn search) landed as a hybrid the user
+proposed after reviewing three architecture options (a new filter
+dimension, a dedicated reverse-lookup page, or extending the existing
+search box) — a **second, separately-labeled search box on Home**, right
+below "Search titles & summaries." Gets verse-level precision (unlike a
+filter dimension, which would've had to coarsen to book-level given
+19,719 unique scripture refs) without a new page, and avoids conflating
+citation matches with title matches in one result stream (a labeled,
+separate box, not a merged search).
+
+**Design process, in order**: three architecture options discussed and
+compared → user proposed the two-search-box hybrid, which was recognized
+as strictly better than all three original options → before building,
+asked whether the filter tile had room without shrinking further, which
+led to a separate design pass on tightening it first (mockups built and
+iterated in an Artifact, a 2-column layout tried and explicitly rejected
+by the user, three other changes tried together and approved, then the
+new search box mocked on top of the *tightened* tile to show the real net
+cost) → all built for real together in one pass.
+
+**What shipped**:
+1. **Removed the "Recent/Favorites" ("mine") filter dimension from Home.**
+   Real capability lost, named explicitly before removing it: combining a
+   personal-collection scope with the *other* Home filters and the draw/
+   list mechanics (e.g. "randomly draw from just my Favorites, filtered to
+   Topic=Family") — the Favorites/Recently Viewed pages' own search+sort
+   (added earlier) only browses the saved list, no random draw, no
+   combining with other filters. Removed anyway per the user's call,
+   trading that capability for the space. `filterState.mine`,
+   `matchesDim()`'s mine branch, `valuesForDim()`'s mine branch,
+   `DIM_CONFIG.mine`, `availableSets.mine`, and the HTML field block all
+   removed cleanly — confirmed zero remaining references.
+2. **Tightened label spacing** on every remaining filter field and both
+   search boxes: margin under the label 7px → 3px, font-size 11px →
+   10.5px, letter-spacing eased slightly (.1em → .08em).
+3. **Merged "Reset filters" and the match-count** into one row (count on
+   the left, Reset on the right) instead of two stacked blocks. Careful
+   about scope: `.pool-count` is a shared class also used standalone by
+   Recently Viewed/Favorites/My Notes/List-detail's own filter-actions
+   rows — added a second class, `.pool-count-inline`, applied only to
+   Home's usage, rather than changing the shared base rule; confirmed live
+   that the other four pages' pool-count styling (centered, its own
+   bottom margin) is untouched.
+4. **Added the "Search Scriptures & Hymns" box** — same `search-input`/
+   `search-clear` shared component the My Notes/My Lists search boxes
+   already reuse, its own `filterState.citeQuery` string (parallel to the
+   existing `query`), AND'd with every other active filter and with the
+   title/kicker search, matched via a new `matchesCiteSearch()` — plain
+   case-insensitive substring matching against `talkCitations()` (scripture
+   refs) and `talkHymnCitations()` (hymn refs, e.g. "I Am a Child of God
+   (Hymns, no. 301)") display text. Deliberately scoped to just these two
+   citation types, not Other Talks/Church Magazines/Other Sources, matching
+   how it was proposed. Wired into `currentPool()`, `poolExcept()`, and
+   `resetBtn`'s handler/disabled-state logic alongside the existing search.
+
+**A real 2-column layout was tried and rejected**: the first option
+explored was lowering the filter grid's `620px` single-column breakpoint
+so 2 columns would survive down to real phone widths (~375–430px) instead
+of only ever applying above tablet width — mocked live with the two
+longest real filter values in the app ("Quorum of the Twelve Apostles,"
+"Saturday Evening (post-2020)") to stress-test truncation. The user
+rejected it outright ("That's not going to work") without needing more
+detail — logged here so a future session doesn't re-propose the same
+2-column idea without knowing it was already tried and turned down.
+
+**Verified live** (fresh local server, `localStorage` cleared before
+testing): 5 filter fields confirmed (was 6), the new search box's label/
+placeholder correct, both boxes reachable by their shared CSS classes
+(confirmed via computed styles, not just visual inspection — a first pass
+forgot to add the shared `.search-input`/`.search-clear` classes to the
+new box's elements, since it wasn't `#querySearch` and had no class,
+caught before it shipped by checking computed styles rather than assuming
+the shared selector applied). "Alma 32" search verified against a real
+"Show a List" result set (176 matches, spot-checked rows' actual
+`talkCitations()` output contains "Alma 32:*"). "I Am a Child of God"
+verified the same way against hymn citations (29 real matches, hymn 301).
+Reset filters confirmed to clear both search boxes and re-disable itself.
+The other four pages' `.pool-count` styling confirmed unaffected by the
+new `.pool-count-inline` override. Tightened label spacing confirmed via
+computed styles (10.5px / 3px). Full mobile-width (375px) screenshot
+confirmed the merged Reset/count row and both search boxes rendering
+cleanly on one screen with no crowding. Zero console errors throughout.
+`node --check` clean. Synced into the Android project via `npx cap sync
+android`.
