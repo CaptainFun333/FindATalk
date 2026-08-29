@@ -29,6 +29,7 @@ this updated.
 - Searching Scriptures & Hymns now understands abbreviations both ways — "D&C 1:38" and "Doctrine and Covenants 1:38" (or "1 Ne." and "1 Nephi," "Ps." and "Psalms," and every other standard scripture abbreviation) now find the exact same talks.
 - Searching a single verse now also finds talks that cite a range including it — searching "Alma 32:3" now finds a talk that cites "Alma 32:1–5," not just an exact "32:3" match.
 - "Doctrine & Covenants" (with the ampersand) is now recognized too, alongside "D&C" and "Doctrine and Covenants" — all three find the same talks.
+- Searching "Eph." (Ephesians) no longer also pulls in unrelated Zephaniah citations (it was matching "Eph." as a piece of "Zeph."). Found and fixed by checking every book's search against the other 100, not just the one being tested at the time.
 
 ## [1.2] — 2026-08-28
 

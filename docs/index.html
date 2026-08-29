@@ -3277,36 +3277,46 @@ function matchesSearch(t){
   const kicker = talkKicker(t);
   return !!(kicker && kicker.toLowerCase().includes(q));
 }
-/* "Search Scriptures & Hymns" — two layers, either one being a hit is
-   enough. Deliberately scoped to just these two citation types, not Other
-   Talks/Church Magazines/Other Sources — matches how this was framed when
-   proposed.
-   1. Plain substring against the real citation display text (e.g.
-      "Alma 32:21", "America the Beautiful (Hymns, no. 338)"), same style
-      as matchesSearch() above — kept as-is and checked first, so this
-      feature can only ever match MORE talks than before, never fewer.
-   2. Structured book/chapter/verse matching (see parseCiteQuery() and
-      citationCoversVerse() above) — catches abbreviation variants ("D&C
-      1:38" finding a citation displayed as "Doctrine and Covenants 1:38")
-      and verse-range overlap ("Alma 32:3" finding a citation logged as
-      "Alma 32:1–5") that plain substring matching can't, since neither of
-      those pairs literally shares the same text. */
+/* "Search Scriptures & Hymns" — two DIFFERENT matching strategies, only
+   one of which ever runs for a given query, decided by whether it's
+   recognized as a scripture book reference at all. Deliberately scoped to
+   just these two citation types, not Other Talks/Church Magazines/Other
+   Sources — matches how this was framed when proposed.
+   1. Recognized as "<book>[ <chapter>[:<verse>[-<verse2>]]]" (see
+      parseCiteQuery()) — matched ONLY structurally, against the
+      citation's real volume/book/chapter/anchor, never against display
+      text at all for this case. This is what makes "D&C 1:38" find a
+      citation displayed as "Doctrine and Covenants 1:38" (or vice versa)
+      and "Alma 32:3" find one logged as a range, "Alma 32:1–5" — neither
+      pair shares literal text, so only structural matching can connect
+      them. Bare plain-substring-against-display-text was tried first in
+      an earlier version and produced real false positives once every
+      citation started displaying abbreviated: "Eph." (Ephesians) matched
+      "Zeph." (Zephaniah) citations too, since the shorter string is a
+      literal substring of the longer one — caught by a full-dataset sweep
+      across all 101 books, not a spot check. Going structural-only once a
+      book is recognized avoids that whole class of collision.
+   2. Not recognized as a book reference at all (a hymn title, a typo,
+      anything parseCiteQuery doesn't understand) — plain substring
+      against both scripture and hymn display text, same as before. This
+      is the fallback for everything structural matching can't handle. */
 function matchesCiteSearch(t){
   const q = filterState.citeQuery.trim().toLowerCase();
   if (!q) return true;
-  if (talkCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
-  if (talkHymnCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
 
   const parsed = parseCiteQuery(q);
-  if (!parsed) return false;
-  const idxs = CITATION_LOOKUP[talkKey(t)];
-  if (!idxs) return false;
-  return idxs.some(i=>{
-    const [, volume, book, chapter, anchor] = CITATION_REFS[i];
-    if (volume !== parsed.volume || book !== parsed.book) return false;
-    if (parsed.chapter != null && chapter !== parsed.chapter) return false;
-    return citationCoversVerse(anchor, parsed.verseStart, parsed.verseEnd);
-  });
+  if (parsed){
+    const idxs = CITATION_LOOKUP[talkKey(t)];
+    return !!(idxs && idxs.some(i=>{
+      const [, volume, book, chapter, anchor] = CITATION_REFS[i];
+      if (volume !== parsed.volume || book !== parsed.book) return false;
+      if (parsed.chapter != null && chapter !== parsed.chapter) return false;
+      return citationCoversVerse(anchor, parsed.verseStart, parsed.verseEnd);
+    }));
+  }
+
+  if (talkCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
+  return talkHymnCitations(t).some(c=>c.ref.toLowerCase().includes(q));
 }
 function poolExcept(excludeDim){
   return TALKS.filter(t=>{

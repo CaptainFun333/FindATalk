@@ -3176,3 +3176,58 @@ accessor function directly). "Doctrine & Covenants 1:38" / "D&C 1:38" /
 pools. Zero console errors. `node --check` clean. `./gradlew
 assembleDebug` — BUILD SUCCESSFUL. Synced into the Android project via
 `npx cap sync android`.
+
+## ✅ Done: broader verification pass on Scripture search — found and fixed a real cross-book false positive
+Per the user's request for a broader check (beyond the handful of manual
+spot-checks each fix so far had gotten), ran a comprehensive, whole-
+dataset validation rather than more samples:
+
+1. **Every one of 19,761 citation refs** run through the display formatter
+   in Python — zero anomalies (no missing book label, no malformed output,
+   every chapter numeric).
+2. **The alias table itself** (186 entries: 101 canonical names + 85
+   abbreviations) checked for internal consistency — zero collisions
+   (no two different books sharing an alias), zero round-trip mismatches
+   (every registered alias resolves back to its own book through the same
+   matching logic the app uses).
+3. **Canonical-name search vs. every registered abbreviation, full result
+   SET comparison** (not just counts) across all 85 books that have an
+   abbreviation — this is what caught the real bug below.
+4. **Cross-book false-positive sweep** — every alias checked against every
+   OTHER book's citations (not just its own), looking for any accidental
+   match. 85 aliases × full dataset.
+5. **Range-overlap logic exhaustively re-verified** — all 11,479 real
+   range citations in the dataset, every verse inside each range checked
+   to confirm it matches (not just one hand-picked example this time).
+
+**Real bug found and fixed by sweep #3/#4, not by inspection**: searching
+"Eph." (Ephesians) matched more talks than searching "Ephesians" —
+373 vs. 377. Root cause: once every citation started displaying in its
+abbreviated form, the old plain-substring-against-display-text layer
+started genuinely colliding — "eph." is a literal substring of "zeph.",
+so searching "Eph." was quietly also matching real Zephaniah citations.
+A second, related pattern in the same sweep (JST citations like "JST,
+Gen. 9:22" containing "gen." as a substring, inflating searches for
+several books' base abbreviation) was the same root cause.
+
+**Fix — go structural-only once a book is recognized, not
+"structural-or-substring."** `matchesCiteSearch()` previously always
+checked plain substring first (kept from before structured matching
+existed) and fell back to structured matching as a second layer. Now: if
+`parseCiteQuery()` recognizes the query as a scripture book reference at
+all, matching is **purely structural** against that talk's real
+`volume`/`book`/`chapter`/`anchor` — display text is never touched for
+that case, so a short abbreviation being a literal substring of a longer,
+unrelated one can no longer cause a false match. Plain substring is still
+used, unchanged, for anything `parseCiteQuery()` doesn't recognize as a
+book reference at all (hymn titles, typos, anything else).
+
+**Re-verified after the fix**: all three sweeps (book-alias consistency,
+cross-book false-positive, range-overlap) — **zero mismatches, zero false
+positives, zero range errors**, across the entire dataset. Confirmed live
+in the browser too: "Eph." / "Ephesians" both now return the identical
+373, "Zeph." independently returns its own correct 4, "Gen." / "Genesis"
+both now return the identical 318 (no more JST bleed-through), and all
+previously-fixed cases (D&C forms, Alma 32:28 range) still pass with no
+regression. Zero console errors. `./gradlew assembleDebug` — BUILD
+SUCCESSFUL. Synced into the Android project via `npx cap sync android`.
