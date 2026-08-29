@@ -3263,6 +3263,45 @@ plugins linked. **Not runtime-verified on a real device/emulator** — none
 available in the dev environment this was built in; sideload-test before
 cutting the next release build.
 
+**Follow-up after the user tested this on their own Android emulator**:
+the share sheet worked (Quickshare, Drive, email all showed up), but there
+was no "save straight to the device" option in it — the share sheet only
+offers whatever's actually installed and registered as a share target,
+and the Android emulator image (and plenty of real devices) don't have
+"Files by Google" or an equivalent, so that option just isn't there to
+offer regardless of what the app does. Fixed by having
+`saveBackupToFile()` also write a real copy straight into the device's
+public Documents directory (`Filesystem.writeFile({directory: 'DOCUMENTS'})`)
+*before* the share-sheet step — best-effort and independent of it, so a
+denied permission or any other failure there doesn't block the share
+sheet from still opening. This guarantees an actual on-device file every
+time, visible in any Files app, with zero dependency on which sharing
+apps happen to be installed. `saveBackupToFile()` now returns `'device'`
+/ `'shared'` / `false` instead of a plain boolean so the confirmation
+message ("Saved to device!" vs. "Saved!") is accurate about what
+actually happened.
+
+Writing to `Directory.DOCUMENTS` needs `WRITE_EXTERNAL_STORAGE` (API
+≤29) / `READ_EXTERNAL_STORAGE` (API ≤32) declared in the app's own
+`AndroidManifest.xml` — `@capacitor/filesystem`'s own plugin manifest
+doesn't declare either (confirmed by reading it directly), so without
+this the plugin's internal runtime-permission request would have nothing
+to grant and would silently fail every time pre-Android-13. Added both,
+each capped with `android:maxSdkVersion` at the API level it stops
+mattering, per Android's own scoped-storage rules (neither is needed at
+all on 33+, and `WRITE` isn't needed on 30-32 either — only `READ` still
+matters there, matching the plugin's own `PUBLIC_STORAGE_ABOVE_ANDROID_10`
+permission alias). No `WRITE_EXTERNAL_STORAGE`/`READ_EXTERNAL_STORAGE`
+runtime permission is expected on the Android 13+ emulator the user
+tested on — writing a new, app-created file to Documents needs neither
+under modern scoped storage, so this should work with no prompt there.
+Verified: merged manifest (`app/build/intermediates/merged_manifest/`)
+confirmed to actually contain both permission lines after `cap sync` +
+`gradlew assembleDebug` (which also built clean). **Still not
+runtime-verified** — same dev-environment limitation as above; the debug
+APK from this build (`app/build/outputs/apk/debug/app-debug.apk`) is
+ready to sideload and test the "Saved to device!" path specifically.
+
 **Bug 2 — citations (and Search Scriptures & Hymns) could permanently
 stop working for anyone upgrading from an older version, fixable only by
 clearing all app storage.** Root cause: adding the citation tables roughly

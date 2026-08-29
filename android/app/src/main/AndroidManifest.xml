@@ -58,4 +58,17 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Export Backup's "save straight to the device's Documents folder"
+         step (see saveBackupToFile() in docs/index.html) needs these on
+         older Android so @capacitor/filesystem's runtime permission
+         request actually has something to grant — without a matching
+         <uses-permission> here, the OS silently denies it every time
+         regardless of what the user picks. Capped at the API level each
+         one still matters for: scoped storage means writing a new,
+         app-created file to a public directory like Documents needs
+         neither on 33+, and doesn't need WRITE on 30-32 either — only
+         READ is still relevant there (per @capacitor/filesystem's own
+         PUBLIC_STORAGE_ABOVE_ANDROID_10 permission alias). -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 </manifest>

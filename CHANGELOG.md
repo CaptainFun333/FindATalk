@@ -31,7 +31,7 @@ this updated.
 
 ### Fixed
 - Talks with citations could silently stop showing them (and Search Scriptures & Hymns could silently stop finding anything) for people upgrading from an older version, unless they cleared the app's storage — which also would have wiped their favorites, notes, lists, and streak. The talk data itself now caches separately from your personal data, so this can't happen and nothing needs to be cleared.
-- Export Backup silently did nothing on Android and iOS — tapping it saved no file anywhere, even though it looked like it worked. It now hands the backup file to the phone's native share sheet, so you can actually save it to Drive, Files, email it to yourself, etc.
+- Export Backup silently did nothing on Android and iOS — tapping it saved no file anywhere, even though it looked like it worked. It now saves a real copy straight to your device (in Files, under Documents) every time, and also opens the share sheet so you can send it to Drive, email, etc. if you'd rather.
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
 - Searching Scriptures & Hymns now understands abbreviations both ways — "D&C 1:38" and "Doctrine and Covenants 1:38" (or "1 Ne." and "1 Nephi," "Ps." and "Psalms," and every other standard scripture abbreviation) now find the exact same talks.
 - Searching a single verse now also finds talks that cite a range including it — searching "Alma 32:3" now finds a talk that cites "Alma 32:1–5," not just an exact "32:3" match.

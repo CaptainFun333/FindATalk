@@ -5080,21 +5080,46 @@ function exportBackupData(){
       routes there via the OS Web Share Target machinery, which plain
       embedded WebViews don't implement) and no DownloadListener for blob:
       URLs either — so both of the other two paths below silently do
-      nothing on-device even though they don't throw. Writing the file to
-      the app's cache dir via Filesystem, then handing that real file URI
-      to Share, opens the actual native share sheet (Drive, Files "Save to
-      device", email, etc.).
+      nothing on-device even though they don't throw.
+      Two things happen here, independently:
+        a. A real copy is written straight into the device's public
+           Documents folder (visible in any Files app), so a copy always
+           lands on-device regardless of what's picked below — the share
+           sheet's options depend entirely on which apps happen to be
+           installed, and plenty of devices (most emulators included)
+           don't have anything registered as a "save to device" share
+           target at all, even though Drive/email/Nearby Share etc. still
+           show up fine. Best-effort: a permission prompt denied by the
+           user (older Android) just means this step is skipped, not a
+           failure — the share sheet below still gets its chance.
+        b. The file is also written to the app's cache dir and handed to
+           the native share sheet, for anyone who wants to send it
+           somewhere else (Drive, email, etc.) instead of/in addition to
+           the on-device copy.
    2. The web Share API — only reachable when this page is opened as a
       website in a browser that supports sharing files (not inside the
       wrapped app; see above).
    3. A plain download link — the fallback for browsers without file
       sharing support, which is what actually fires when this page is
-      opened as a normal website. */
+      opened as a normal website.
+   Returns a status string ('device', 'shared', or false for cancelled/
+   failed) rather than a plain boolean, so the caller can show an accurate
+   confirmation message. */
 async function saveBackupToFile(){
   const filename = `find-a-talk-backup-${new Date().toISOString().slice(0,10)}.json`;
   const json = JSON.stringify(exportBackupData(), null, 2);
   const cap = window.Capacitor;
   if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.Filesystem && cap.Plugins.Share){
+    let savedToDevice = false;
+    try {
+      await cap.Plugins.Filesystem.writeFile({
+        path: filename,
+        data: json,
+        directory: 'DOCUMENTS',
+        encoding: 'utf8'
+      });
+      savedToDevice = true;
+    } catch(err){ /* permission denied, or unsupported on this device — the share sheet below is still tried */ }
     try {
       const { uri } = await cap.Plugins.Filesystem.writeFile({
         path: filename,
@@ -5103,8 +5128,9 @@ async function saveBackupToFile(){
         encoding: 'utf8'
       });
       await cap.Plugins.Share.share({ title: 'Find A Talk backup', url: uri });
-      return true;
+      return savedToDevice ? 'device' : 'shared';
     } catch(err){
+      if (savedToDevice) return 'device'; // still a real success even if sharing itself was cancelled/failed
       if (err && err.message === 'Share canceled') return false; // user dismissed the share sheet
       // anything else falls through to the web paths below, in case this
       // device's WebView build doesn't have the plugins wired up right
@@ -5116,7 +5142,7 @@ async function saveBackupToFile(){
       const file = new File([blob], filename, {type:'application/json'});
       if (navigator.canShare({files:[file]})){
         await navigator.share({files:[file], title:'Find A Talk backup'});
-        return true;
+        return 'shared';
       }
     } catch(err){
       if (err && err.name === 'AbortError') return false; // user cancelled the share sheet
@@ -5132,7 +5158,7 @@ async function saveBackupToFile(){
     a.click();
     document.body.removeChild(a);
     setTimeout(()=> URL.revokeObjectURL(url), 1000);
-    return true;
+    return 'device'; // browser's own downloads folder — a real on-device save
   } catch(err){
     return false;
   }
@@ -5233,8 +5259,9 @@ const backupExportBtn = document.getElementById('backupExportBtn');
 const backupImportBtn = document.getElementById('backupImportBtn');
 const backupImportInput = document.getElementById('backupImportInput');
 backupExportBtn.addEventListener('click', async ()=>{
-  const ok = await saveBackupToFile();
-  if (ok) flashShareButton(backupExportBtn, 'Saved!');
+  const result = await saveBackupToFile();
+  if (result === 'device') flashShareButton(backupExportBtn, 'Saved to device!');
+  else if (result) flashShareButton(backupExportBtn, 'Saved!');
 });
 backupImportBtn.addEventListener('click', ()=> backupImportInput.click());
 backupImportInput.addEventListener('change', ()=>{
