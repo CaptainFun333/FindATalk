@@ -10,10 +10,20 @@ this updated.
 
 ## [Unreleased]
 
-### Fixed
-- Nothing yet.
-
-## [1.3] — 2026-08-28
+Version 1.3 was pulled back after release: two bugs surfaced after the web
+build went out via GitHub Pages and the Android build was uploaded to a
+Play Console closed/open testing track — Export Backup silently produces no
+file inside the wrapped app (no share plugin / download handler registered),
+and the new scripture-search data requires users to clear app storage
+before it works. `docs/index.html` and `docs/data.json` have been reverted
+to the 1.2 build so the live web app is unaffected while these are fixed.
+Play's versionCode can't be reused once uploaded, so `versionCode` in
+`android/app/build.gradle` was bumped to 5 (still `versionName "1.3"`) to
+reserve it for the corrected build that will supersede the broken one on
+the testing track — that build isn't cut yet; the repo's web content
+currently matches 1.2 until both bugs are fixed and 1.3's work below is
+reinstated. The work below is back in Unreleased, to ship again as 1.3 once
+both bugs are resolved.
 
 ### Added
 - Long notes no longer stretch a talk's tile out of shape — they're now clipped to 3 lines with a "Show more" link that expands the tile to show the whole note (and "Show less" to collapse it back), wherever a note preview appears (Show a List, Recently Viewed, Favorites, My Lists, My Notes).

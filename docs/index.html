@@ -617,15 +617,15 @@
   }
 
   /* ---------- keyword search ---------- */
-  .search-field{ margin-bottom:16px; }
+  .search-field{ margin-bottom:20px; }
   .search-field label{
     display:block;
     font-family:'Inter',sans-serif;
-    font-size:10.5px;
-    letter-spacing:.08em;
+    font-size:11px;
+    letter-spacing:.1em;
     text-transform:uppercase;
     color:var(--ink-soft);
-    margin-bottom:3px;
+    margin-bottom:7px;
     font-weight:600;
   }
   .search-input-wrap{ position:relative; }
@@ -704,11 +704,11 @@
   .field label{
     display:block;
     font-family:'Inter',sans-serif;
-    font-size:10.5px;
-    letter-spacing:.08em;
+    font-size:11px;
+    letter-spacing:.1em;
     text-transform:uppercase;
     color:var(--ink-soft);
-    margin-bottom:3px;
+    margin-bottom:7px;
     font-weight:600;
   }
   .field{ position:relative; }
@@ -936,12 +936,6 @@
     margin-bottom:34px;
   }
   .pool-count strong{ color:var(--burgundy); font-weight:600; }
-  /* Home only: sits inline in .filters-actions next to Reset filters
-     instead of centered on its own line below — one merged row instead
-     of two stacked blocks. The base .pool-count rule above (centered, its
-     own bottom margin) stays untouched for Recently Viewed/Favorites/My
-     Notes/List-detail, which still use it standalone. */
-  .pool-count.pool-count-inline{ text-align:left; margin-bottom:0; }
 
   /* ---------- draw button ---------- */
   .draw-zone{ text-align:center; margin-bottom:34px; }
@@ -1080,82 +1074,6 @@
     padding:4px 10px;
     border-radius:20px;
   }
-
-  /* ---------- scripture citations (idea 18, bullet 1) ----------
-     "Citations:" + one pill per citation type actually present — reuses
-     existing palette tokens (--line/--paper-raised/--ink-soft/--brass/
-     --chip-bg) instead of inventing new custom properties, so it already
-     works correctly across all four color palettes and both themes with
-     no extra CSS blocks needed. Only "Scriptures" has real data behind it
-     right now (see buildCitationsBlock() below) — the row/panel markup is
-     written generically so future citation types (Other Talks, Hymns,
-     Church Magazines, Other Sources — designed in the idea-18 mockup but
-     not yet extracted) can slot in without any CSS changes. */
-  .cite-block{ margin-top:16px; }
-  .ticket .cite-block{ margin-top:0; margin-bottom:6px; }
-  .cite-types-row{
-    display:flex; flex-wrap:wrap; align-items:center; gap:8px;
-  }
-  .ticket .cite-types-row{ justify-content:center; }
-  .cite-types-label{
-    font-family:'Inter',sans-serif;
-    font-size:12px;
-    font-weight:600;
-    color:var(--ink-soft);
-  }
-  .type-pill{
-    font-family:'Inter',sans-serif;
-    font-size:11px;
-    font-weight:500;
-    color:var(--ink-soft);
-    background:var(--paper-raised);
-    border:1px solid var(--line);
-    border-radius:20px;
-    padding:4px 11px 4px 8px;
-    display:inline-flex; align-items:center; gap:5px;
-    cursor:pointer;
-  }
-  .type-pill svg{ width:12px; height:12px; color:var(--brass); flex-shrink:0; }
-  .type-pill .n{ color:var(--ink-soft); opacity:.7; font-variant-numeric:tabular-nums; }
-  .type-pill:hover{ border-color:var(--brass); }
-  .type-pill[aria-pressed="true"]{ background:var(--chip-bg); border-color:var(--brass); color:var(--burgundy); }
-  .type-pill.icon-only{ padding:3px 8px 3px 7px; font-size:10.5px; gap:4px; }
-  .type-pill.icon-only svg{ width:11px; height:11px; }
-  .cite-panel, .row-cite-panel{
-    display:flex; flex-wrap:wrap; gap:7px;
-    margin-top:10px;
-  }
-  .ticket .cite-panel{ justify-content:center; }
-  .cite-panel[hidden], .row-cite-panel[hidden]{ display:none; }
-  .cite-panel a.cite-chip{
-    font-family:'Source Serif 4', Georgia, serif;
-    font-size:11.5px;
-    color:var(--ink-soft);
-    border:1px solid var(--chip-border);
-    background:var(--chip-bg);
-    padding:4px 11px;
-    border-radius:20px;
-    text-decoration:none;
-  }
-  .cite-panel a.cite-chip:hover{ border-color:var(--brass); color:var(--burgundy); }
-  .row-cite-panel a{
-    font-family:'Source Serif 4', Georgia, serif;
-    font-size:11.5px;
-    color:var(--ink-soft);
-    text-decoration:none;
-    border-bottom:1px dotted var(--line);
-  }
-  .row-cite-panel a:hover{ color:var(--burgundy); border-bottom-color:var(--burgundy); }
-  /* Unlinked citations (Other Sources; a few pre-1985-numbered Hymns) —
-     same look as their linked siblings minus anything implying a click:
-     no underline, no hover color change, default cursor. */
-  .cite-panel span.cite-chip.is-plain{ cursor:default; }
-  .row-cite-panel span.row-cite-plain{
-    font-family:'Source Serif 4', Georgia, serif;
-    font-size:11.5px;
-    color:var(--ink-soft);
-  }
-
   /* Three fixed rows (Open This Talk + Find Another; Previous + Next;
      Favorite/Add to List/Add Note/Share), not one flex-wrap group —
      grouped by what the buttons do, not just packed by width, so the
@@ -1166,12 +1084,6 @@
   .ticket-actions-row{
     display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
   }
-  /* "Open This Talk" no longer shares its row with "Find Another" — the
-     ticket now sits right above the Find Another/Show a List buttons (see
-     #resultZone's position in the markup), so a second "Find Another"
-     inside the ticket would just be repeating a button an inch away. Open
-     This Talk gets the freed-up row to itself, full width. */
-  #openLink{ width:100%; justify-content:center; }
 
   /* ---------- results list (up to 10 matching talks at once) ---------- */
   /* scroll-margin-top: "Show a List"'s auto-scroll (see listBtn's click
@@ -1191,12 +1103,6 @@
     margin-bottom:10px;
   }
   .list-header strong{ color:var(--burgundy); font-weight:600; }
-  .list-select-row{
-    max-width:620px;
-    margin:0 auto 10px;
-    display:flex; justify-content:center; gap:10px;
-  }
-  .list-select-row[hidden]{ display:none; }
   .list-bulk-bar{
     max-width:620px;
     margin:0 auto 14px;
@@ -1210,20 +1116,12 @@
   .list-bulk-bar[hidden]{ display:none; }
   .list-bulk-bar #listBulkCount{ font-weight:600; margin-right:auto; }
   .list-item-title-group{
-    display:flex; align-items:center;
+    display:flex; align-items:flex-start; flex-wrap:wrap;
     gap:9px; min-width:0;
-    /* No flex-wrap here: the actions icons live in their own row at the
-       bottom of the tile (see .list-item-actions below), so this group
-       only ever has the checkbox and the title side by side. flex-wrap
-       would let the two of them split onto separate lines by themselves
-       whenever they *just* don't fit together (checkbox alone on line
-       1, title alone and unindented on line 2) — we want the title's
-       own text to wrap internally next to a steady, vertically-centered
-       checkbox instead, which happens automatically without flex-wrap. */
-    flex:1 1 auto;
   }
   .list-item-select{
     display:flex; align-items:center; flex-shrink:0;
+    padding-top:3px; /* nudges the checkbox to align with the title's cap-height */
     cursor:pointer;
   }
   .list-item-select input{
@@ -1246,6 +1144,9 @@
   .list-item:last-child{ border-bottom:none; }
   .list-item-head{
     display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
     margin-bottom:6px;
   }
   .list-item-title{
@@ -1255,24 +1156,10 @@
     line-height:1.3;
     color:var(--ink);
     text-decoration:none;
-    /* Without flex-grow, a text-wrapping flex item sizes to its own
-       shrink-to-fit content box instead of the row's actual available
-       width — so a two-word title like "Mothers Who Know" could wrap
-       after "Who" with a wide dead zone to its right, well short of the
-       card's real edge. flex-grow (plus min-width:0 so it can still
-       shrink below its unwrapped width) lets it claim the row's full
-       remaining space next to the checkbox, so it only wraps where the
-       real edge is. */
-    flex:1 1 auto;
-    min-width:0;
   }
   .list-item-title:hover{ color:var(--burgundy); }
-  /* Sits at the bottom of the tile now (see buildListItemRow), below the
-     summary/note, centered — matching the drawn-talk ticket's own icon
-     row — instead of squeezed into the header next to the title. */
   .list-item-actions{
-    display:flex; gap:6px; justify-content:center;
-    margin-top:14px;
+    display:flex; gap:6px; flex-shrink:0;
   }
   .share-btn-icon{
     flex-shrink:0;
@@ -1525,30 +1412,6 @@
     white-space:pre-wrap;
   }
   .list-item-note strong{ color:var(--brass); font-weight:600; }
-  .list-item-note-text{
-    display:-webkit-box;
-    -webkit-line-clamp:3;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
-  }
-  .list-item-note.expanded .list-item-note-text{
-    display:block;
-    overflow:visible;
-    -webkit-line-clamp:unset;
-  }
-  .list-item-note-toggle{
-    display:none;
-    margin-top:4px;
-    background:none;
-    border:none;
-    padding:0;
-    font-family:'Inter',sans-serif;
-    font-size:12px;
-    font-weight:600;
-    color:var(--brass);
-    cursor:pointer;
-    text-decoration:underline;
-  }
   .list-footer{ text-align:center; margin-top:16px; }
   .list-pagination{
     display:flex; align-items:center; justify-content:center;
@@ -1641,15 +1504,24 @@
     </div>
   </div>
 
-  <!-- A single drawn talk is the direct answer to the "Find Another"
-       button right below it, not something being browsed or filtered
-       further, so it sits right above that button rather than below the
-       filters — unlike "Show a List" below, which is a browsing surface
-       and stays next to the controls that shape it. Keeping the ticket
-       above the buttons (rather than below, as it used to be) also means
-       the Find Another/Show a List row is always a short, fixed hop from
-       the filter box beneath it, whether or not a talk's currently
-       drawn. -->
+  <!-- The primary action — "Find Another" (today's Talk of the Day is
+       your first random pick; this gets you another) plus the secondary
+       "Show a List" — sits directly under Talk of the Day, above the
+       filters. Filters are an optional narrowing step, not the first
+       thing on the page; see the "narrow it down" box below. -->
+  <div class="draw-zone">
+    <div class="draw-buttons">
+      <button id="drawBtn">Find Another</button>
+      <button id="listBtn">Show a List</button>
+    </div>
+    <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
+  </div>
+
+  <!-- A single drawn talk is the direct answer to the button just
+       pressed, not something being browsed or filtered further, so it
+       sits right after that button rather than below the filters —
+       unlike "Show a List" below, which is a browsing surface and stays
+       next to the controls that shape it. -->
   <div id="resultZone">
     <div class="ticket" id="ticket">
       <h2 id="ticketTitle"></h2>
@@ -1658,10 +1530,10 @@
       <div class="meta" id="ticketMeta"></div>
       <div class="ticket-read-badge" id="ticketReadBadge" hidden></div>
       <div class="topics" id="ticketTopics"></div>
-      <div id="ticketCitations"></div>
       <div class="ticket-actions">
         <div class="ticket-actions-row">
           <a class="btn btn-primary" id="openLink" href="#" target="_blank" rel="noopener">Open This Talk ↗</a>
+          <button class="btn btn-ghost" id="drawAgainBtn">Find Another</button>
         </div>
         <div class="ticket-actions-row">
           <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
@@ -1691,20 +1563,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Find Another / Show a List sits right below the ticket (or right
-       below Talk of the Day if nothing's been drawn yet) and directly
-       above the filters, so it's always a short hop from both — pressing
-       Find Another lands a new ticket right above it, and adjusting a
-       filter then pressing Show a List never means scrolling back up
-       past a drawn talk to reach the button. -->
-  <div class="draw-zone">
-    <div class="draw-buttons">
-      <button id="drawBtn">Find Another</button>
-      <button id="listBtn">Show a List</button>
-    </div>
-    <div class="no-match" id="noMatch">No talks in the sample match that combination — try widening a filter.</div>
   </div>
 
   <div class="narrow-box">
@@ -1771,6 +1629,17 @@
             <div class="ms-panel-footer"><button type="button" class="ms-clear" id="sessionClear">Clear</button></div>
           </div>
         </div>
+        <div class="field">
+          <label id="mineLabel">Recent/Favorites</label>
+          <button type="button" class="ms-trigger" id="mineTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="mineLabel mineTriggerText">
+            <span class="ms-trigger-text" id="mineTriggerText">All talks</span>
+            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="ms-panel" id="minePanel" hidden>
+            <div class="ms-options" id="mineOptions"></div>
+            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="mineClear">Clear</button></div>
+          </div>
+        </div>
       </div>
 
       <div class="search-field">
@@ -1781,18 +1650,11 @@
         </div>
       </div>
 
-      <div class="search-field">
-        <label id="citeQueryLabel" for="citeQuerySearch">Search Scriptures &amp; Hymns</label>
-        <div class="search-input-wrap">
-          <input type="text" id="citeQuerySearch" class="search-input" placeholder="e.g. Alma 32, I Am a Child of God…" autocomplete="off" aria-labelledby="citeQueryLabel">
-          <button type="button" id="citeQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
-        </div>
-      </div>
-
       <div class="filters-actions">
-        <div class="pool-count pool-count-inline" id="poolCount"></div>
         <button type="button" id="resetBtn" class="reset-link">Reset filters</button>
       </div>
+
+      <div class="pool-count" id="poolCount"></div>
     </div>
   </div>
 
@@ -1809,10 +1671,6 @@
         <button type="button" class="list-size-btn" data-sort="random">Random</button>
         <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
       </div>
-    </div>
-    <div class="list-select-row" id="listSelectRow">
-      <button type="button" class="btn btn-ghost" id="listSelectFirstBtn">Select First 10</button>
-      <button type="button" class="btn btn-ghost" id="listSelectAllBtn">Select All</button>
     </div>
     <div class="list-bulk-bar" id="listBulkBar" hidden>
       <span id="listBulkCount"></span>
@@ -2352,208 +2210,6 @@ let SESSION_LOOKUP;
 function talkSession(talk){ return SESSION_LOOKUP[talkKey(talk)] || 'other'; }
 
 /* ---------------------------------------------------------------
-   Scripture citations, keyed "year|month|slug" like everything else
-   above. See PROJECT_HANDOFF.md's "scripture citation data extraction"
-   section for the full extraction/storage method. */
-let CITATION_REFS;
-let CITATION_LOOKUP;
-/* Every scripture citation is now DISPLAYED in a canonical, always-
-   abbreviated form built from its real volume/book/chapter/anchor —
-   e.g. "D&C 1:38", "1 Cor. 2:4–5" — rather than the raw text scraped
-   from the original footnote link. That raw text turned out to be more
-   than just inconsistently abbreviated (some talks spell a book out in
-   full, others abbreviate it, "D&C" itself almost never appears
-   literally) — a real sample of it turned up entries with NO usable book
-   name at all, just whatever the original author clicked: "verse 79",
-   "chapter 13", "v. 25". Those are meaningless out of context in a chip
-   list. Building the display text from structured data instead fixes
-   both problems in one pass, and is shorter (the whole point) than
-   spelling every book out. `href` still points to the exact real verse,
-   unaffected by any of this — only what's shown changed, not where it
-   links. */
-function formatVerseAnchor(anchor){
-  if (!anchor) return '';
-  return anchor.split(',').map(seg=>{
-    const parts = seg.replace(/p/g,'').split('-');
-    return parts.length > 1 ? `${parts[0]}–${parts[1]}` : parts[0];
-  }).join(', ');
-}
-function formatScriptureRef(volume, book, chapter, anchor){
-  const key = `${volume}|${book}`;
-  const abbrevs = CITATION_BOOK_ABBREVS[key];
-  const name = (abbrevs && abbrevs.length) ? abbrevs[0] : CITATION_BOOK_LABELS[key];
-  const verse = formatVerseAnchor(anchor);
-  return verse ? `${name} ${chapter}:${verse}` : `${name} ${chapter}`;
-}
-function talkCitations(talk){
-  const idxs = CITATION_LOOKUP[talkKey(talk)];
-  if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
-    const [, volume, book, chapter, anchor] = CITATION_REFS[i];
-    // anchor can be a single verse ("p17"), a range ("p5-p6"), or a list
-    // ("p30,32") — the real Church pages use the first token of that for
-    // the URL fragment (scrolls to the first verse) while passing the
-    // whole thing as the id= param (highlights every verse it covers).
-    const firstAnchor = anchor ? anchor.split(',')[0].split('-')[0] : '';
-    const href = `https://www.churchofjesuschrist.org/study/scriptures/${volume}/${book}/${chapter}?lang=eng`
-      + (anchor ? `&id=${anchor}#${firstAnchor}` : '');
-    return {ref: formatScriptureRef(volume, book, chapter, anchor), href};
-  });
-}
-
-/* ---------------------------------------------------------------
-   Other Talks / Church Magazines / Hymns / Other Sources — see
-   PROJECT_HANDOFF.md's citation-chips follow-up section for how these
-   were extracted (page-wide a.cross-ref / p[data-aid] scanning, not
-   footnote-<li>-scoped, so older inline-citation-style talks are covered
-   too) and interned the same way CITATION_REFS above already is. Each
-   accessor returns the same {ref, href} shape talkCitations() does, but
-   href can be null (Other Sources has no link at all; a small number of
-   Hymns citations use the pre-1985 hymnal's numbering, which doesn't
-   match the current 341-hymn book — left unlinked rather than guessed). */
-let CITATION_TALK_REFS, CITATION_MAGAZINE_REFS, CITATION_HYMN_REFS, CITATION_OTHER_REFS;
-let CITATION_HYMN_LABELS, CITATION_TYPE_LOOKUP;
-let CITATION_BOOK_LABELS, CITATION_BOOK_ABBREVS;
-
-function talkOtherTalkCitations(talk){
-  const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).talk;
-  if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
-    const [text, resolvedKey, href] = CITATION_TALK_REFS[i];
-    // Prefer the target talk's own real title/URL when it's in this app's
-    // own dataset (true for 2275 of 2276 cases) — the raw footnote text is
-    // sometimes just a page number or partial quote, not the talk's
-    // actual title. Looked up directly against TALKS (a plain .find(),
-    // not the initApp()-scoped TALKS_BY_KEY index) since this function —
-    // like its talkTopics()/talkKicker()/talkCitations() siblings — lives
-    // at top level, outside initApp()'s closure, and TALKS_BY_KEY isn't
-    // reachable from there. Cheap enough: called a handful of times per
-    // render, against a ~4,054-entry array.
-    const resolved = resolvedKey ? TALKS.find(t=> talkKey(t) === resolvedKey) : null;
-    return {
-      ref: resolved ? resolved[0] : text,
-      href: resolved ? talkUrl(resolved) : `https://www.churchofjesuschrist.org${href}`,
-    };
-  });
-}
-
-function talkMagazineCitations(talk){
-  const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).magazine;
-  if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
-    const [text, href] = CITATION_MAGAZINE_REFS[i];
-    return {ref: text, href: `https://www.churchofjesuschrist.org${href}`};
-  });
-}
-
-function talkHymnCitations(talk){
-  const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).hymn;
-  if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
-    const num = CITATION_HYMN_REFS[i];
-    const label = CITATION_HYMN_LABELS[String(num)];
-    if (!label) return {ref: `Hymns, no. ${num}`, href: null};
-    const [title, slug] = label;
-    return {ref: `${title} (Hymns, no. ${num})`, href: `https://www.churchofjesuschrist.org/study/manual/hymns/${slug}?lang=eng`};
-  });
-}
-
-function talkOtherSourceCitations(talk){
-  const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).other;
-  if (!idxs || !idxs.length) return [];
-  return idxs.map(i=> ({ref: CITATION_OTHER_REFS[i], href: null}));
-}
-
-/* ---------------------------------------------------------------
-   "Search Scriptures & Hymns" — structured book/chapter/verse matching,
-   on top of the plain substring matching matchesCiteSearch() already did.
-   Two real gaps that plain substring matching can't close on its own,
-   since it only ever compares against a citation's raw DISPLAY text:
-     1. Abbreviations — the real footnote text is inconsistently written
-        ("Doctrine and Covenants 38:27" in one talk, "Ps. 24:1" in
-        another), and "D&C" specifically almost never appears in the raw
-        text at all. Typing either the abbreviation or the full name
-        should find the same citations either way.
-     2. Verse ranges — a citation logged as "Alma 32:1–5" should still
-        match a search for "Alma 32:3", even though "32:3" never appears
-        as literal text in "32:1–5".
-   Solved by matching the QUERY against each citation's real structured
-   volume/book/chapter/anchor fields (already used to build the real
-   scripture links) instead of only its display text. This is additive,
-   never subtractive — matchesCiteSearch() still checks plain substring
-   first, so this can only make search find MORE than it used to, never
-   less, even for a query this parser doesn't recognize at all (a hymn
-   title, a typo, anything not shaped like a scripture reference). */
-let CITE_BOOK_ALIASES = [];
-function buildCiteBookAliases(){
-  const list = [];
-  Object.keys(CITATION_BOOK_LABELS).forEach(key=>{
-    const [volume, book] = key.split('|');
-    list.push({alias: CITATION_BOOK_LABELS[key].toLowerCase(), volume, book});
-    (CITATION_BOOK_ABBREVS[key] || []).forEach(ab=>{
-      list.push({alias: ab.toLowerCase(), volume, book});
-    });
-  });
-  // Longest alias first, so "1 nephi" is tried before a hypothetical
-  // shorter alias that happens to be its prefix would be.
-  list.sort((a,b)=> b.alias.length - a.alias.length);
-  CITE_BOOK_ALIASES = list;
-}
-
-/* Recognizes "<book name or abbreviation>[ <chapter>[:<verse>[-<verse2>]]]"
-   — e.g. "Alma 32", "Alma 32:3", "Alma 32:3-5", "D&C 1:38", or a bare book
-   name ("Alma") for the whole book. Returns null (not a recognizable
-   scripture reference) for anything else, including hymn searches — the
-   caller falls back to plain substring matching in that case. */
-function parseCiteQuery(rawQ){
-  // Strip every period, not just a trailing one — an abbreviation's period
-  // sits mid-string once a chapter follows it ("1 ne. 3:7"), not at the
-  // end of the query, so a trailing-only strip left that exact shape
-  // (found live testing: "1 Ne. 3:7" matched 0 talks while "1 Nephi 3:7"
-  // matched 90) never lining up against the alias's own trailing-stripped
-  // form ("1 ne").
-  const q = rawQ.replace(/\./g, '');
-  for (const {alias, volume, book} of CITE_BOOK_ALIASES){
-    const a = alias.replace(/\./g, '');
-    if (q === a){
-      return {volume, book, chapter:null, verseStart:null, verseEnd:null};
-    }
-    if (q.startsWith(a + ' ')){
-      const rest = q.slice(a.length).trim();
-      const m = rest.match(/^(\d+)(?::(\d+)(?:[-–](\d+))?)?$/);
-      if (m){
-        const verseStart = m[2] ? parseInt(m[2],10) : null;
-        return {
-          volume, book, chapter: m[1],
-          verseStart,
-          verseEnd: m[3] ? parseInt(m[3],10) : verseStart,
-        };
-      }
-      // Book alias matched but what follows isn't chapter/verse-shaped
-      // (e.g. "Alma the Younger") — keep trying other aliases rather than
-      // giving up on the whole query.
-    }
-  }
-  return null;
-}
-
-/* Does a citation's real verse anchor (e.g. "p1-p5", "p30,32", or "" for
-   no verse-level detail at all) cover the queried verse/verse-range?
-   Ranges overlap-match (querying 32:3-5 hits a citation logged as
-   32:1-4, not just an exact bound match) — a single queried verse is
-   just the verseStart===verseEnd case of the same check. No verse
-   specified in the query, or no anchor on the citation to check against,
-   both mean "match" (permissive: can't rule it out, so don't). */
-function citationCoversVerse(anchor, verseStart, verseEnd){
-  if (verseStart == null || !anchor) return true;
-  return anchor.split(',').some(seg=>{
-    const parts = seg.replace(/p/g,'').split('-').map(n=>parseInt(n,10));
-    const start = parts[0], end = parts.length > 1 ? parts[1] : parts[0];
-    return start <= verseEnd && end >= verseStart;
-  });
-}
-
-/* ---------------------------------------------------------------
    Recently-viewed and favorited talks — both purely local to this
    device/browser (no accounts, no server), persisted in localStorage as
    arrays of talkKey() strings and looked back up against TALKS_BY_KEY
@@ -2920,38 +2576,6 @@ function saveNotes(){
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
 }
 function getNote(talk){ return noteMap[talkKey(talk)] || ''; }
-/* Fills a `.list-item-note` block with the "Your note:" label, the note
-   text (clamped to 3 lines via CSS), and a "Show more"/"Show less" toggle
-   that's only revealed once the text actually overflows those 3 lines —
-   long notes stop blowing out the tile's height in a long list, without
-   ever hiding a short note behind a pointless toggle. Shared by
-   buildListItemRow() and refreshNoteBadgesFor() so both stay in sync. */
-function fillNoteBlock(noteEl, note){
-  noteEl.classList.remove('expanded');
-  noteEl.innerHTML = '';
-  const label = document.createElement('strong');
-  label.textContent = 'Your note:';
-  noteEl.appendChild(label);
-  noteEl.appendChild(document.createTextNode(' '));
-  const textEl = document.createElement('span');
-  textEl.className = 'list-item-note-text';
-  textEl.textContent = note;
-  noteEl.appendChild(textEl);
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'list-item-note-toggle';
-  toggle.textContent = 'Show more';
-  toggle.addEventListener('click', ()=>{
-    const expanded = noteEl.classList.toggle('expanded');
-    toggle.textContent = expanded ? 'Show less' : 'Show more';
-  });
-  noteEl.appendChild(toggle);
-  // Only reveal the toggle once the clamped text is actually taller than
-  // its 3-line box — needs a layout pass first, so defer to the next frame.
-  requestAnimationFrame(()=>{
-    if (textEl.scrollHeight > textEl.clientHeight + 1) toggle.style.display = 'inline';
-  });
-}
 function hasNote(talk){ return !!getNote(talk); }
 /* Plain-object key order in JS is insertion order, but reassigning an
    EXISTING key's value doesn't move it — unlike a Set/Map, which is how
@@ -3053,116 +2677,6 @@ const TOPIC_ALIASES = {
   'lgbt marriage': 'marriage',
   'gay marriage': 'marriage',
   'same-sex marriage': 'marriage',
-
-  // Batch 2 — same sourcing method: common everyday words/phrases that
-  // don't literally match an official label, mapped to the one real topic
-  // they most clearly point to. Skipped on purpose: broad words that fit
-  // too many topics to pick just one (e.g. "purpose," "identity"), and
-  // terms with no single clean official-topic match (e.g. specific medical
-  // conditions, contested/sensitive terms not covered by an existing
-  // topic) — a wrong or presumptuous suggestion is worse than none.
-  'temper': 'anger',
-  'worry': 'anxiety',
-  'social anxiety': 'anxiety',
-  'adultery': 'sexual-purity',
-  'affair': 'sexual-purity',
-  'unfaithfulness': 'sexual-purity',
-  'cheating': 'honesty',
-  'domestic violence': 'abuse',
-  'materialism': 'worldliness',
-  'consumerism': 'worldliness',
-  'arrogance': 'pride',
-  'laziness': 'diligence',
-  'procrastination': 'diligence',
-  'selfishness': 'charity',
-  'doubt': 'faith',
-  'money': 'financial-management',
-  'finances': 'financial-management',
-  'budgeting': 'financial-management',
-  'debt': 'financial-management',
-  'job': 'employment',
-  'career': 'employment',
-  'temple marriage': 'sealings',
-  'eternal marriage': 'sealings',
-  'video games': 'media',
-  'social media': 'media',
-  'internet': 'technology',
-  'screen time': 'technology',
-  'phones': 'technology',
-  'politics': 'government',
-  'voting': 'government',
-  'war': 'military',
-  'refugees': 'humanitarian-aid',
-  'disaster relief': 'humanitarian-aid',
-  'volunteering': 'service',
-  'volunteer': 'service',
-  'helping others': 'service',
-  'illness': 'healing',
-  'sickness': 'healing',
-  'trauma': 'healing',
-  'ptsd': 'mental-illness',
-  'special needs': 'disabilities',
-  'aging': 'elderly',
-  'old age': 'elderly',
-  'widowhood': 'death',
-  'funeral': 'death',
-  'single parent': 'parenthood',
-  'single mom': 'parenthood',
-  'single dad': 'parenthood',
-  'blended family': 'family',
-  'adoption': 'family',
-  'burnout': 'stress',
-  'overwhelmed': 'stress',
-  'comparison': 'self-esteem',
-  'body image': 'self-esteem',
-  'insecurity': 'self-esteem',
-  'shyness': 'confidence',
-  'jealousy': 'covetousness',
-  'envy': 'covetousness',
-  'hatred': 'contention',
-  'hate': 'contention',
-  'racism': 'prejudice',
-  'discrimination': 'prejudice',
-  'sexism': 'prejudice',
-  'isolation': 'loneliness',
-  'fitting in': 'belonging',
-
-  // Batch 3 — same method again.
-  'teenagers': 'youth',
-  'teens': 'youth',
-  'toddlers': 'children',
-  'babies': 'children',
-  'grandparents': 'family',
-  'in-laws': 'family',
-  'boyfriend': 'dating',
-  'girlfriend': 'dating',
-  'breakup': 'dating',
-  'conflict': 'contention',
-  'arguing': 'contention',
-  'exercise': 'health',
-  'fitness': 'health',
-  'sleep': 'health',
-  'diet': 'word-of-wisdom',
-  'nutrition': 'word-of-wisdom',
-  'cell phone': 'technology',
-  'texting': 'technology',
-  'college': 'education',
-  'school': 'education',
-  'panic attacks': 'anxiety',
-  'sadness': 'depression',
-  'self-doubt': 'self-esteem',
-  'fear of failure': 'courage',
-  'rejection': 'belonging',
-  'crisis of faith': 'faith',
-  'leaving the church': 'apostasy',
-  'inactive': 'church-activity',
-  'less active': 'church-activity',
-  'temple recommend': 'worthiness',
-  'fhe': 'family-home-evening',
-  'unemployment': 'employment',
-  'dying': 'death',
-  'afterlife': 'eternal-life',
-  'natural disasters': 'humanitarian-aid',
 };
 
 // Looks up a "did you mean" suggestion for a failed topic search. Tries an
@@ -3215,24 +2729,16 @@ function sortByConferenceDate(picks){
 /* ---------------- filter state ----------------
    Each dim holds an ARRAY of selected values (checkbox multi-select) —
    values within one dim are OR'd together (e.g. topic is "Faith" OR
-   "Family"), and the dims are AND'd together, same as before. An empty
-   array means "no filter" for that dim.
-   `query` (free-text search over title + kicker) and `citeQuery`
-   (free-text search over Scripture + Hymn citations) live alongside the
-   dims but aren't one — both are plain strings, not arrays, and are
-   handled separately (matchesSearch()) rather than through matchesDim/
-   DIM_CONFIG, since neither has a checkbox panel or an "available values"
-   concept. Both still AND with everything else, same as any other active
-   filter — and with each other.
-   The former "Recent/Favorites" ("mine") filter dimension was removed
-   once Recently Viewed and Favorites got their own search+sort on their
-   own pages (see PROJECT_HANDOFF.md) — narrowing Home to just those talks
-   was judged to not be worth the space it cost, once browsing them
-   directly worked well. If this is ever reconsidered: it was a
-   membership test against recentKeys/favoriteKeys, not a talk property,
-   so it needed its own special-cased branch in matchesDim()/valuesForDim()
-   rather than fitting the generic pattern the other dims use. */
-const filterState = { year: [], speaker: [], topic: [], role: [], session: [], query: '', citeQuery: '' };
+   "Family"), and the five dims are AND'd together, same as before. An
+   empty array means "no filter" for that dim. "mine" is the odd one out:
+   its two values ("recent"/"favorite") aren't talk properties, they're
+   membership tests against recentKeys/favoriteKeys.
+   `query` (free-text search over title + kicker) lives alongside the
+   dims but isn't one — it's a plain string, not an array, and is handled
+   separately (matchesSearch()) rather than through matchesDim/DIM_CONFIG,
+   since it has no checkbox panel and no "available values" concept. It
+   still AND's with everything else, same as any other active filter. */
+const filterState = { year: [], speaker: [], topic: [], role: [], session: [], mine: [], query: '' };
 
 // "Show a List" pagination state — declared up here (not down by the rest
 // of the list-pagination code) because refreshCount() resets it on every
@@ -3242,23 +2748,9 @@ const filterState = { year: [], speaker: [], topic: [], role: [], session: [], q
 // has to live above refreshCount(), not just above its first call site.
 let listPage = 0;
 let listRandomOrder = null;
-// Selection state for "Show a List" (talkKey -> pick), declared up here for
-// the same temporal-dead-zone reason as listPage/listRandomOrder above —
-// resetListPaging() (called from refreshCount() on every filter change,
-// which runs near the top of the script) needs to clear it too. Kept as a
-// Map rather than a plain array so a re-checked row never produces a
-// duplicate entry. See the fuller comment by its old declaration site
-// (search "list of up to LIST_SIZE") for the selection UI itself.
-let listSelection = new Map();
 function resetListPaging(){
   listPage = 0;
   listRandomOrder = null;
-  // A genuinely new pool (new filters, a fresh draw, a sort switch) means
-  // the old selection no longer refers to "what's in front of you" in any
-  // coherent way — clear it. Plain pagination (Prev/Next) does NOT call
-  // this, so selection persists across pages within the same pool/sort —
-  // see showList()'s comment for why that matters for "Select All".
-  listSelection.clear();
 }
 
 function matchesDim(t, dim, values){
@@ -3268,6 +2760,7 @@ function matchesDim(t, dim, values){
   if (dim==='topic') return talkTopics(t).some(tp=>values.includes(tp));
   if (dim==='role') return values.includes(talkRole(t));
   if (dim==='session') return values.includes(talkSession(t));
+  if (dim==='mine') return values.some(v=> v==='recent' ? recentKeys.includes(talkKey(t)) : isFavorite(t));
   return true;
 }
 function matchesSearch(t){
@@ -3277,58 +2770,17 @@ function matchesSearch(t){
   const kicker = talkKicker(t);
   return !!(kicker && kicker.toLowerCase().includes(q));
 }
-/* "Search Scriptures & Hymns" — two DIFFERENT matching strategies, only
-   one of which ever runs for a given query, decided by whether it's
-   recognized as a scripture book reference at all. Deliberately scoped to
-   just these two citation types, not Other Talks/Church Magazines/Other
-   Sources — matches how this was framed when proposed.
-   1. Recognized as "<book>[ <chapter>[:<verse>[-<verse2>]]]" (see
-      parseCiteQuery()) — matched ONLY structurally, against the
-      citation's real volume/book/chapter/anchor, never against display
-      text at all for this case. This is what makes "D&C 1:38" find a
-      citation displayed as "Doctrine and Covenants 1:38" (or vice versa)
-      and "Alma 32:3" find one logged as a range, "Alma 32:1–5" — neither
-      pair shares literal text, so only structural matching can connect
-      them. Bare plain-substring-against-display-text was tried first in
-      an earlier version and produced real false positives once every
-      citation started displaying abbreviated: "Eph." (Ephesians) matched
-      "Zeph." (Zephaniah) citations too, since the shorter string is a
-      literal substring of the longer one — caught by a full-dataset sweep
-      across all 101 books, not a spot check. Going structural-only once a
-      book is recognized avoids that whole class of collision.
-   2. Not recognized as a book reference at all (a hymn title, a typo,
-      anything parseCiteQuery doesn't understand) — plain substring
-      against both scripture and hymn display text, same as before. This
-      is the fallback for everything structural matching can't handle. */
-function matchesCiteSearch(t){
-  const q = filterState.citeQuery.trim().toLowerCase();
-  if (!q) return true;
-
-  const parsed = parseCiteQuery(q);
-  if (parsed){
-    const idxs = CITATION_LOOKUP[talkKey(t)];
-    return !!(idxs && idxs.some(i=>{
-      const [, volume, book, chapter, anchor] = CITATION_REFS[i];
-      if (volume !== parsed.volume || book !== parsed.book) return false;
-      if (parsed.chapter != null && chapter !== parsed.chapter) return false;
-      return citationCoversVerse(anchor, parsed.verseStart, parsed.verseEnd);
-    }));
-  }
-
-  if (talkCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
-  return talkHymnCitations(t).some(c=>c.ref.toLowerCase().includes(q));
-}
 function poolExcept(excludeDim){
   return TALKS.filter(t=>{
     for (const dim of Object.keys(DIM_CONFIG)){
       if (dim===excludeDim) continue;
       if (!matchesDim(t, dim, filterState[dim])) return false;
     }
-    return matchesSearch(t) && matchesCiteSearch(t);
+    return matchesSearch(t);
   });
 }
 function currentPool(){
-  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t) && matchesCiteSearch(t));
+  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t));
 }
 function valuesForDim(pool, dim){
   const set = new Set();
@@ -3337,6 +2789,10 @@ function valuesForDim(pool, dim){
   if (dim==='topic') pool.forEach(t=>talkTopics(t).forEach(tp=>set.add(tp)));
   if (dim==='role') pool.forEach(t=>{ const r=talkRole(t); if(r) set.add(r); });
   if (dim==='session') pool.forEach(t=>set.add(talkSession(t)));
+  if (dim==='mine'){
+    if (pool.some(t=>recentKeys.includes(talkKey(t)))) set.add('recent');
+    if (pool.some(t=>isFavorite(t))) set.add('favorite');
+  }
   return set;
 }
 
@@ -3379,12 +2835,19 @@ const DIM_CONFIG = {
     trigger: document.getElementById('sessionTrigger'), triggerText: document.getElementById('sessionTriggerText'),
     panel: document.getElementById('sessionPanel'), options: document.getElementById('sessionOptions'),
     search: null, clearBtn: document.getElementById('sessionClear')
+  },
+  mine: {
+    allValues: ['recent','favorite'], anyLabel:'All talks', noun:'filters', searchable:false,
+    labelFor: v=> v==='recent' ? 'Recently Viewed' : 'Favorites',
+    trigger: document.getElementById('mineTrigger'), triggerText: document.getElementById('mineTriggerText'),
+    panel: document.getElementById('minePanel'), options: document.getElementById('mineOptions'),
+    search: null, clearBtn: document.getElementById('mineClear')
   }
 };
 // The set of values still reachable for each dim given the OTHER active
 // filters — recomputed on every filter change, same "reachable" concept
 // the old single-select cascading used, just feeding checkboxes now.
-const availableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set(), session:new Set() };
+const availableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set(), session:new Set(), mine:new Set() };
 
 /* Renders one dim's checkbox list from its current available set, current
    selections (never hidden even if no longer "available" — a choice
@@ -3476,7 +2939,7 @@ function refreshCount(){
     listBtn.disabled = false;
     poolCountEl.innerHTML = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''} right now`;
   }
-  resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim() && !filterState.citeQuery.trim();
+  resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim();
 }
 
 /* ---------------- panel open/close (one at a time) ---------------- */
@@ -3525,9 +2988,6 @@ resetBtn.addEventListener('click', ()=>{
   filterState.query = '';
   querySearchEl.value = '';
   queryClearBtn.hidden = true;
-  filterState.citeQuery = '';
-  citeQuerySearchEl.value = '';
-  citeQueryClearBtn.hidden = true;
   refreshCount();
 });
 
@@ -3544,28 +3004,6 @@ queryClearBtn.addEventListener('click', ()=>{
   querySearchEl.value = '';
   queryClearBtn.hidden = true;
   querySearchEl.focus();
-  refreshCount();
-});
-
-/* ---------------- Scripture + Hymn citation search ----------------
-   Same pattern as the keyword search above, kept as its own separate
-   filterState field (citeQuery) and its own box rather than folded into
-   the title/kicker search — a citation match and a title match are
-   different kinds of "why this talk showed up," and keeping them in
-   separate boxes means that's never ambiguous in the results. See
-   matchesCiteSearch() for the matching logic. */
-const citeQuerySearchEl = document.getElementById('citeQuerySearch');
-const citeQueryClearBtn = document.getElementById('citeQueryClear');
-citeQuerySearchEl.addEventListener('input', ()=>{
-  filterState.citeQuery = citeQuerySearchEl.value;
-  citeQueryClearBtn.hidden = !citeQuerySearchEl.value;
-  refreshCount();
-});
-citeQueryClearBtn.addEventListener('click', ()=>{
-  filterState.citeQuery = '';
-  citeQuerySearchEl.value = '';
-  citeQueryClearBtn.hidden = true;
-  citeQuerySearchEl.focus();
   refreshCount();
 });
 
@@ -3590,13 +3028,14 @@ const collectionItemsEl = document.getElementById('collectionItems');
 const collectionEmptyEl = document.getElementById('collectionEmpty');
 let lastPicked = null;
 // Stack of talks shown before the current one, so "← Previous" can step
-// back through what "Find Another" (drawBtn) already surfaced this
-// session. Not persisted — this is in-memory navigation, not the
+// back through what "Find Another" (drawBtn, then drawAgainBtn on the
+// ticket) already surfaced this session. Not persisted — this is
+// in-memory navigation, not the
 // "recently viewed" history (see RECENT_KEY above).
 let pickHistory = [];
 // Talks stepped away from via "← Previous", so "Next →" can redo those
-// steps. A fresh draw (drawBtn) clears this — same as a browser's forward
-// history being dropped once you navigate somewhere new.
+// steps. A fresh draw (drawBtn/drawAgainBtn) clears this — same as a
+// browser's forward history being dropped once you navigate somewhere new.
 let pickFuture = [];
 
 // Recording "opened" only happens here (the ticket's real open link) and
@@ -3740,11 +3179,6 @@ function showTicket(pick){
     topicsWrap.appendChild(chip);
   });
 
-  const citationsWrap = document.getElementById('ticketCitations');
-  citationsWrap.innerHTML = '';
-  const citeBlock = buildCitationsBlock(pick);
-  if (citeBlock) citationsWrap.appendChild(citeBlock);
-
   const openLink = document.getElementById('openLink');
   openLink.href = url;
 
@@ -3758,6 +3192,7 @@ function showTicket(pick){
 }
 
 drawBtn.addEventListener('click', draw);
+document.getElementById('drawAgainBtn').addEventListener('click', draw);
 const backBtn = document.getElementById('backBtn');
 backBtn.addEventListener('click', goBack);
 const forwardBtn = document.getElementById('forwardBtn');
@@ -3775,10 +3210,10 @@ const listAgainBtn = document.getElementById('listAgainBtn');
 /* Multi-select on "Show a List": which talks (talkKey -> pick) are
    currently checked, so they can all be added to a personal list in one
    trip through the "Add to a List" modal instead of one row at a time.
-   `listSelection` itself is declared up near listPage/listRandomOrder (see
-   the comment there) — it now survives page turns and sort switches within
-   the same pool, only cleared by resetListPaging() on a genuinely new draw
-   or filter change, or by the explicit "Clear selection" button below. */
+   Keyed by talkKey rather than being a plain array so a re-checked row
+   doesn't produce a duplicate entry. Cleared whenever the list is
+   re-drawn (showList()) since the rows themselves are being replaced. */
+let listSelection = new Map();
 const listBulkBar = document.getElementById('listBulkBar');
 const listBulkCount = document.getElementById('listBulkCount');
 const listBulkAddBtn = document.getElementById('listBulkAddBtn');
@@ -3798,34 +3233,6 @@ listBulkClearBtn.addEventListener('click', clearListSelection);
 listBulkAddBtn.addEventListener('click', ()=>{
   if (!listSelection.size) return;
   openCollectionModalFor([...listSelection.values()], clearListSelection);
-});
-
-/* "Select First 10" / "Select All" — populated by showList() every render
-   (see its comment) so these handlers never have to recompute sort/shuffle
-   order themselves. Select First 10 only ever touches the current page (at
-   most LIST_SIZE talks) so it never needs a confirmation. Select All can
-   reach far beyond what's on screen, so it confirms whenever the pool is
-   bigger than one page — i.e. selecting anything the person hasn't actually
-   seen yet on page 1 — same LIST_SIZE=10 threshold the pagination itself
-   already uses to decide "does this even fit on one page." */
-let listCurrentPagePicks = [];
-let listCurrentSource = [];
-const listSelectFirstBtn = document.getElementById('listSelectFirstBtn');
-const listSelectAllBtn = document.getElementById('listSelectAllBtn');
-function checkAllRenderedRows(){
-  listItemsEl.querySelectorAll('.list-item-select input').forEach(cb=> cb.checked = listSelection.has(cb.closest('.list-item').dataset.talkKey));
-}
-listSelectFirstBtn.addEventListener('click', ()=>{
-  listCurrentPagePicks.forEach(pick=> listSelection.set(talkKey(pick), pick));
-  checkAllRenderedRows();
-  syncListBulkBar();
-});
-listSelectAllBtn.addEventListener('click', ()=>{
-  const total = listCurrentSource.length;
-  if (total > LIST_SIZE && !confirm(`Select all ${total} matching talks?`)) return;
-  listCurrentSource.forEach(pick=> listSelection.set(talkKey(pick), pick));
-  checkAllRenderedRows();
-  syncListBulkBar();
 });
 
 // Sort toggle — "Random" (the original shuffle) vs "Most Recent" (top
@@ -3905,16 +3312,14 @@ function buildListItemRow(pick, {selectable=false}={}){
 
   const item = document.createElement('div');
   item.className = 'list-item';
-  item.dataset.talkKey = talkKey(pick);
 
   const head = document.createElement('div');
   head.className = 'list-item-head';
 
-  // Groups the (optional) select checkbox with the title and read badge —
-  // `head` just wraps this group (the Favorite/List/Note/Share icons live
-  // in their own `actions` row at the bottom of the tile instead, see
-  // below), so the checkbox stays vertically centered against the title
-  // even when the title wraps onto two lines.
+  // Groups the (optional) select checkbox with the title and read badge,
+  // so this is a single flex item on the left of `head` — keeping `head`
+  // itself a simple 2-item space-between (this group, then `actions`)
+  // regardless of whether a checkbox is present.
   const titleGroup = document.createElement('div');
   titleGroup.className = 'list-item-title-group';
 
@@ -3973,6 +3378,7 @@ function buildListItemRow(pick, {selectable=false}={}){
   shareIconBtn.addEventListener('click', ()=> shareTalk(pick, shareIconBtn));
   actions.appendChild(shareIconBtn);
 
+  head.appendChild(actions);
   item.appendChild(head);
 
   const speakerEl = document.createElement('div');
@@ -3992,9 +3398,6 @@ function buildListItemRow(pick, {selectable=false}={}){
     item.appendChild(summaryEl);
   }
 
-  const citeBlock = buildCitationsBlock(pick, {compact:true});
-  if (citeBlock) item.appendChild(citeBlock);
-
   // Shows the person's own "what I learned" note, if they've written one
   // for this talk — visible everywhere this row appears (Show a List,
   // Recently Viewed, Favorites, My Lists, My Notes), not just on the My
@@ -4003,14 +3406,10 @@ function buildListItemRow(pick, {selectable=false}={}){
   if (hasNote(pick)){
     const noteEl = document.createElement('div');
     noteEl.className = 'list-item-note';
-    fillNoteBlock(noteEl, getNote(pick));
+    noteEl.innerHTML = `<strong>Your note:</strong> `;
+    noteEl.appendChild(document.createTextNode(getNote(pick)));
     item.appendChild(noteEl);
   }
-
-  // Favorite/List/Note/Share, centered at the bottom of the tile —
-  // matching the drawn-talk ticket's own icon row — rather than squeezed
-  // into the header next to the title (see .list-item-actions above).
-  item.appendChild(actions);
 
   return item;
 }
@@ -4124,27 +3523,6 @@ function refreshNoteBadgesFor(talk){
     if (btn.dataset.talkKey === key && btn._syncNoteBadge) btn._syncNoteBadge();
   });
   if (lastPicked && talkKey(lastPicked) === key) syncNoteBtn();
-  // Rebuild the "Your note:" preview block on every currently-rendered row
-  // for this talk (Talk of the Day, Show a List, Recently Viewed,
-  // Favorites, My Lists, My Notes) — the badges above are separate DOM
-  // nodes with their own live sync, but this block is plain text baked in
-  // at buildListItemRow() time, so it needs to be explicitly added,
-  // updated, or removed here to match the note just saved/deleted.
-  const note = getNote(talk);
-  document.querySelectorAll('.list-item').forEach(item=>{
-    if (item.dataset.talkKey !== key) return;
-    let noteEl = item.querySelector('.list-item-note');
-    if (note){
-      if (!noteEl){
-        noteEl = document.createElement('div');
-        noteEl.className = 'list-item-note';
-        item.appendChild(noteEl);
-      }
-      fillNoteBlock(noteEl, note);
-    } else if (noteEl){
-      noteEl.remove();
-    }
-  });
 }
 
 /* ---------------- Talk of the Day ---------------- */
@@ -4429,21 +3807,8 @@ function showList(){
   const start = listPage * LIST_SIZE;
   const picks = source.slice(start, start + LIST_SIZE);
 
-  // Stashed for the Select First 10 / Select All buttons (see below) — the
-  // current page's rows and the full ordered pool behind them, so those
-  // handlers don't need to recompute sort/shuffle order themselves (and
-  // for random sort, re-deriving it would risk not matching the cached
-  // listRandomOrder anyway). Selection itself is NOT cleared here anymore
-  // — see resetListPaging()'s comment for why it now survives page turns.
-  listCurrentPagePicks = picks;
-  listCurrentSource = source;
-
+  listSelection.clear();
   syncListBulkBar();
-  // "Select First 10" is redundant once everything already fits on one
-  // page (identical result to "Select All" at that point) — hide it
-  // rather than leave two buttons that do the same thing.
-  listSelectFirstBtn.hidden = total <= LIST_SIZE;
-  listSelectAllBtn.textContent = total > LIST_SIZE ? `Select All (${total})` : 'Select All';
   listItemsEl.innerHTML = '';
   picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick, {selectable: true})));
 
@@ -4492,88 +3857,6 @@ const SHARE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 const STAR_ICON_SVG = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>';
 const COLLECTION_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
 const CHECK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>';
-const SCRIPTURE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
-// Stepped three-tier silhouette + microphone, matching the app's own
-// pulpit logo (see the idea-18 mockup for the design rationale).
-const TALK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V10H9V7H15V10H20V21"/><path d="M3 21H21"/><path d="M12 7V4"/><circle cx="12" cy="3" r="1.2"/></svg>';
-const HYMN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
-const MAGAZINE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4z"/><path d="M19 8H4M8 12h8M8 15.5h6"/></svg>';
-const OTHER_SOURCE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>';
-
-/* Builds the "Citations:" pill row for one talk, or returns null if it
-   has nothing to cite at all — callers must skip appending anything in
-   that case, not append an empty row (see the idea-18 mockup's "hide
-   when empty" rule). `compact` switches to icon-only pills (count, no
-   text label) for the dense "Show a List"/subset-page row context; the
-   ticket uses full labeled pills. Each pill is click-to-expand/collapse,
-   exclusive within this one block (opening one closes any other already
-   open in the same ticket or row — but never touches a different row's
-   open pill). An item's `href` can be null (Other Sources, and a handful
-   of pre-1985-numbered Hymns citations) — rendered as plain text instead
-   of a link in that case, never a dead/broken href. */
-function buildCitationsBlock(talk, {compact=false}={}){
-  const groups = [
-    {label:'Scriptures', icon:SCRIPTURE_ICON_SVG, items:talkCitations(talk)},
-    {label:'Other Talks', icon:TALK_ICON_SVG, items:talkOtherTalkCitations(talk)},
-    {label:'Hymns', icon:HYMN_ICON_SVG, items:talkHymnCitations(talk)},
-    {label:'Church Magazines', icon:MAGAZINE_ICON_SVG, items:talkMagazineCitations(talk)},
-    {label:'Other Sources', icon:OTHER_SOURCE_ICON_SVG, items:talkOtherSourceCitations(talk)},
-  ];
-  const active = groups.filter(g=>g.items.length);
-  if (!active.length) return null;
-
-  const block = document.createElement('div');
-  block.className = 'cite-block';
-
-  const row = document.createElement('div');
-  row.className = compact ? 'cite-types-row compact' : 'cite-types-row';
-  const label = document.createElement('span');
-  label.className = 'cite-types-label';
-  label.textContent = 'Citations:';
-  row.appendChild(label);
-  block.appendChild(row);
-
-  active.forEach(g=>{
-    const panel = document.createElement('div');
-    panel.className = compact ? 'row-cite-panel' : 'cite-panel';
-    panel.hidden = true;
-    g.items.forEach(cite=>{
-      // No href (Other Sources; a handful of pre-1985-numbered Hymns
-      // citations, see talkHymnCitations()) -> plain text, not a dead link.
-      const el = document.createElement(cite.href ? 'a' : 'span');
-      if (cite.href){
-        el.href = cite.href;
-        el.target = '_blank';
-        el.rel = 'noopener';
-      }
-      el.textContent = cite.ref;
-      el.className = compact ? (cite.href ? '' : 'row-cite-plain') : (cite.href ? 'cite-chip' : 'cite-chip is-plain');
-      panel.appendChild(el);
-    });
-    block.appendChild(panel);
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = compact ? 'type-pill icon-only' : 'type-pill';
-    btn.setAttribute('aria-pressed', 'false');
-    btn.innerHTML = g.icon + (compact
-      ? `${g.items.length}`
-      : `${g.label} <span class="n">${g.items.length}</span>`);
-    btn.setAttribute('aria-label', `${g.label}, ${g.items.length} citation${g.items.length===1?'':'s'}`);
-    btn.addEventListener('click', ()=>{
-      const wasOpen = btn.getAttribute('aria-pressed') === 'true';
-      block.querySelectorAll('.type-pill').forEach(p=> p.setAttribute('aria-pressed','false'));
-      block.querySelectorAll('.cite-panel, .row-cite-panel').forEach(p=> p.hidden = true);
-      if (!wasOpen){
-        btn.setAttribute('aria-pressed','true');
-        panel.hidden = false;
-      }
-    });
-    row.appendChild(btn);
-  });
-
-  return block;
-}
 const NOTE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
 /* Copies text with the modern async Clipboard API first, falling back to
@@ -5405,33 +4688,6 @@ function applyData(data){
   // talkSession()) — falls back to {} so every talk reads as 'other'
   // until data.json actually carries a real sessionLookup.
   SESSION_LOOKUP = data.sessionLookup || {};
-  // Scripture citations (idea 18, bullet 1) — see PROJECT_HANDOFF.md's
-  // "scripture citation data extraction" section for how these were built.
-  // citationRefs is a shared, interned table ([ref, volume, book, chapter,
-  // anchor] tuples); citationLookup maps each talk to a list of indices
-  // into that table, keyed the same "year|month|slug" way as sessionLookup.
-  CITATION_REFS = data.citationRefs || [];
-  CITATION_LOOKUP = data.citationLookup || {};
-  // Other Talks / Church Magazines / Hymns / Other Sources — see
-  // PROJECT_HANDOFF.md's "scripture citation chips" follow-up section for
-  // the extraction method (page-wide a.cross-ref / p[data-aid] scanning,
-  // not footnote-<li>-scoped, to also catch older inline-citation-style
-  // talks) and why each is interned into its own shared table the same
-  // way CITATION_REFS already is.
-  CITATION_TALK_REFS = data.citationTalkRefs || [];
-  CITATION_MAGAZINE_REFS = data.citationMagazineRefs || [];
-  CITATION_HYMN_REFS = data.citationHymnRefs || [];
-  CITATION_OTHER_REFS = data.citationOtherRefs || [];
-  CITATION_HYMN_LABELS = data.citationHymnLabels || {};
-  CITATION_TYPE_LOOKUP = data.citationTypeLookup || {};
-  // Book display names ("dc-testament|dc" -> "Doctrine and Covenants") and
-  // standard abbreviations ("dc-testament|dc" -> ["D&C","D & C"]) — merged
-  // into data.json alongside the original citation extraction but never
-  // actually wired up until "Search Scriptures & Hymns" needed them to
-  // understand a query like "D&C 1:38", not just display a label.
-  CITATION_BOOK_LABELS = data.citationBookLabels || {};
-  CITATION_BOOK_ABBREVS = data.citationBookAbbrevs || {};
-  buildCiteBookAliases();
 }
 function cacheData(data){
   try { localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(data)); }
