@@ -40,6 +40,7 @@ both bugs are resolved.
 - Scripture citations now always show in a short, consistent abbreviated form ("D&C 1:38," "1 Cor. 15:29") instead of however the original talk happened to write it — some were spelled out in full, and a few were genuinely confusing out of context ("verse 79," "chapter 13") since they were just whatever text the original talk's author had linked. Where they link to is unchanged, only how they're labeled.
 
 ### Fixed
+- Export Backup silently did nothing on Android and iOS — tapping it saved no file anywhere, even though it looked like it worked. It now hands the backup file to the phone's native share sheet, so you can actually save it to Drive, Files, email it to yourself, etc.
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
 - Searching Scriptures & Hymns now understands abbreviations both ways — "D&C 1:38" and "Doctrine and Covenants 1:38" (or "1 Ne." and "1 Nephi," "Ps." and "Psalms," and every other standard scripture abbreviation) now find the exact same talks.
 - Searching a single verse now also finds talks that cite a range including it — searching "Alma 32:3" now finds a talk that cites "Alma 32:1–5," not just an exact "32:3" match.

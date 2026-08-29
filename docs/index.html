@@ -4356,14 +4356,44 @@ function exportBackupData(){
     streak: loadStreak()
   };
 }
-/* Writes the backup to a file. Prefers the native share sheet (the only
-   reliable way to save a file from inside the wrapped mobile app, same
-   fallback order as shareTalk() above) and falls back to a plain
-   download link, which is what actually fires when this page is opened
-   as a normal website. */
+/* Writes the backup to a file. Three paths, tried in order:
+   1. Capacitor's Filesystem + Share plugins — the only reliable way to
+      save a file from inside the wrapped mobile app. A bare Android
+      WebView has no built-in handler for `navigator.share({files})` (it
+      routes there via the OS Web Share Target machinery, which plain
+      embedded WebViews don't implement) and no DownloadListener for blob:
+      URLs either — so both of the other two paths below silently do
+      nothing on-device even though they don't throw. Writing the file to
+      the app's cache dir via Filesystem, then handing that real file URI
+      to Share, opens the actual native share sheet (Drive, Files "Save to
+      device", email, etc.).
+   2. The web Share API — only reachable when this page is opened as a
+      website in a browser that supports sharing files (not inside the
+      wrapped app; see above).
+   3. A plain download link — the fallback for browsers without file
+      sharing support, which is what actually fires when this page is
+      opened as a normal website. */
 async function saveBackupToFile(){
   const filename = `find-a-talk-backup-${new Date().toISOString().slice(0,10)}.json`;
-  const blob = new Blob([JSON.stringify(exportBackupData(), null, 2)], {type:'application/json'});
+  const json = JSON.stringify(exportBackupData(), null, 2);
+  const cap = window.Capacitor;
+  if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.Filesystem && cap.Plugins.Share){
+    try {
+      const { uri } = await cap.Plugins.Filesystem.writeFile({
+        path: filename,
+        data: json,
+        directory: 'CACHE',
+        encoding: 'utf8'
+      });
+      await cap.Plugins.Share.share({ title: 'Find A Talk backup', url: uri });
+      return true;
+    } catch(err){
+      if (err && err.message === 'Share canceled') return false; // user dismissed the share sheet
+      // anything else falls through to the web paths below, in case this
+      // device's WebView build doesn't have the plugins wired up right
+    }
+  }
+  const blob = new Blob([json], {type:'application/json'});
   if (navigator.canShare && navigator.share){
     try {
       const file = new File([blob], filename, {type:'application/json'});
