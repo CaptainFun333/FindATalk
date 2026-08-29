@@ -3058,3 +3058,73 @@ confirmed the merged Reset/count row and both search boxes rendering
 cleanly on one screen with no crowding. Zero console errors throughout.
 `node --check` clean. Synced into the Android project via `npx cap sync
 android`.
+
+## ✅ Done: abbreviation-aware + verse-range-aware Scripture search
+Fixed two real gaps found by the user testing the live Android build:
+"D&C 1:38" didn't find talks whose citation displayed as "Doctrine and
+Covenants 1:38" (and vice versa), and searching "Alma 32:3" didn't find a
+talk whose citation was logged as a range, "Alma 32:1–5".
+
+**Root cause of both**: the search only ever compared the typed query
+against a citation's raw DISPLAY text (`matchesCiteSearch()`'s original
+substring check). That text is inconsistently written in the real
+data — some footnotes spell a book out, others abbreviate it, and "D&C"
+specifically almost never appears in the raw text at all, it's usually
+rendered in full. A verse range like "32:1–5" also just doesn't contain
+the substring "32:3" no matter how you slice it — that's a numeric
+containment question, not a text-matching one.
+
+**Fix — match structure, not text.** Every citation already carries real
+`volume`/`book`/`chapter`/`anchor` fields (used to build the actual
+scripture links), not just display text. New pieces:
+- `citationBookAbbrevs` (data.json) — standard abbreviation(s) per book,
+  same 101-key set as `citationBookLabels`, generated from known LDS
+  style-guide conventions (D&C, 1 Ne., Ps., Matt., etc.), not scraped —
+  validated to cover exactly the same 101 keys already in
+  `citationBookLabels`, no more, no less.
+- `CITATION_BOOK_LABELS`/`CITATION_BOOK_ABBREVS` — these were actually
+  already merged into `data.json` back when the original citation chips
+  were built, but never wired into the JS at all (nothing needed them
+  until now) — wired up in `applyData()` alongside the new abbreviations.
+- `buildCiteBookAliases()` — builds one flat, longest-alias-first list of
+  every canonical name + abbreviation → `{volume, book}`, once, right
+  after data loads.
+- `parseCiteQuery(q)` — recognizes `"<book or abbreviation>[ <chapter>[:
+  <verse>[-<verse2>]]]"` (e.g. "Alma 32", "Alma 32:3", "Alma 32:3-5",
+  "D&C 1:38", or a bare book name for the whole book) against that alias
+  list; returns `null` for anything unrecognized (a hymn title, a typo —
+  falls back to plain substring, so this is purely additive).
+- `citationCoversVerse(anchor, verseStart, verseEnd)` — parses a
+  citation's real anchor (comma-separated `pN` singles and `pN-pM`
+  ranges, confirmed by inspecting the actual data: up to 4+ segments per
+  citation, `10785` single-verse, `6256` plain-range, the rest mixed) and
+  does a numeric range-overlap check against the queried verse/range — a
+  single queried verse is just the `verseStart===verseEnd` case of the
+  same check.
+- `matchesCiteSearch()` now checks plain substring first (unchanged
+  behavior, so this can only ever match *more* than before, never less),
+  then falls through to the structured match.
+
+**A real bug caught and fixed mid-build, not shipped**: the first version
+only stripped a *trailing* period off both the query and each alias
+before comparing. That works for a bare book name ("Ps." → "ps") but not
+once a chapter follows it in the actual query shape ("Ps. 23" — the
+period sits mid-string, not at the end, so it never lined up against the
+alias's own trailing-stripped form). Caught immediately by testing "1 Ne.
+3:7" against "1 Nephi 3:7" and getting 0 vs. 90 matches — should have been
+identical. Fixed by stripping *every* period from both the query and each
+alias before comparing, not just a trailing one.
+
+**Verified live** (fresh local server, `localStorage` cleared): "D&C
+1:38" / "Doctrine and Covenants 1:38" → identical 83-talk pools. "1 Ne.
+3:7" / "1 Nephi 3:7" → identical 90. "Ps. 23" / "Psalms 23" → identical
+17 (this pair is what actually caught the period bug above — 6 vs. 17
+before the fix). Verse-range overlap checked against a real citation
+("Alma 32:28–29" in "To Touch a Life with Faith," 1995/10, isolated via a
+combined title+citation search so the pool count is exact) — 32:28 hits,
+32:29 hits, 32:27 misses, 32:30 misses, a querying range 32:20-30
+(overlapping) hits, 32:5-10 (non-overlapping) misses — all six exactly as
+expected. Reset filters confirmed to still clear the box correctly. Zero
+console errors throughout both rounds of testing. `node --check` clean.
+`./gradlew assembleDebug` — **BUILD SUCCESSFUL**. Synced into the Android
+project via `npx cap sync android`.

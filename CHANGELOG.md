@@ -25,6 +25,8 @@ this updated.
 
 ### Fixed
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
+- Searching Scriptures & Hymns now understands abbreviations both ways — "D&C 1:38" and "Doctrine and Covenants 1:38" (or "1 Ne." and "1 Nephi," "Ps." and "Psalms," and every other standard scripture abbreviation) now find the exact same talks.
+- Searching a single verse now also finds talks that cite a range including it — searching "Alma 32:3" now finds a talk that cites "Alma 32:1–5," not just an exact "32:3" match.
 
 ## [1.2] — 2026-08-28
 

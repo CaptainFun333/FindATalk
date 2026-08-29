@@ -2385,6 +2385,7 @@ function talkCitations(talk){
    match the current 341-hymn book — left unlinked rather than guessed). */
 let CITATION_TALK_REFS, CITATION_MAGAZINE_REFS, CITATION_HYMN_REFS, CITATION_OTHER_REFS;
 let CITATION_HYMN_LABELS, CITATION_TYPE_LOOKUP;
+let CITATION_BOOK_LABELS, CITATION_BOOK_ABBREVS;
 
 function talkOtherTalkCitations(talk){
   const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).talk;
@@ -2433,6 +2434,95 @@ function talkOtherSourceCitations(talk){
   const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).other;
   if (!idxs || !idxs.length) return [];
   return idxs.map(i=> ({ref: CITATION_OTHER_REFS[i], href: null}));
+}
+
+/* ---------------------------------------------------------------
+   "Search Scriptures & Hymns" — structured book/chapter/verse matching,
+   on top of the plain substring matching matchesCiteSearch() already did.
+   Two real gaps that plain substring matching can't close on its own,
+   since it only ever compares against a citation's raw DISPLAY text:
+     1. Abbreviations — the real footnote text is inconsistently written
+        ("Doctrine and Covenants 38:27" in one talk, "Ps. 24:1" in
+        another), and "D&C" specifically almost never appears in the raw
+        text at all. Typing either the abbreviation or the full name
+        should find the same citations either way.
+     2. Verse ranges — a citation logged as "Alma 32:1–5" should still
+        match a search for "Alma 32:3", even though "32:3" never appears
+        as literal text in "32:1–5".
+   Solved by matching the QUERY against each citation's real structured
+   volume/book/chapter/anchor fields (already used to build the real
+   scripture links) instead of only its display text. This is additive,
+   never subtractive — matchesCiteSearch() still checks plain substring
+   first, so this can only make search find MORE than it used to, never
+   less, even for a query this parser doesn't recognize at all (a hymn
+   title, a typo, anything not shaped like a scripture reference). */
+let CITE_BOOK_ALIASES = [];
+function buildCiteBookAliases(){
+  const list = [];
+  Object.keys(CITATION_BOOK_LABELS).forEach(key=>{
+    const [volume, book] = key.split('|');
+    list.push({alias: CITATION_BOOK_LABELS[key].toLowerCase(), volume, book});
+    (CITATION_BOOK_ABBREVS[key] || []).forEach(ab=>{
+      list.push({alias: ab.toLowerCase(), volume, book});
+    });
+  });
+  // Longest alias first, so "1 nephi" is tried before a hypothetical
+  // shorter alias that happens to be its prefix would be.
+  list.sort((a,b)=> b.alias.length - a.alias.length);
+  CITE_BOOK_ALIASES = list;
+}
+
+/* Recognizes "<book name or abbreviation>[ <chapter>[:<verse>[-<verse2>]]]"
+   — e.g. "Alma 32", "Alma 32:3", "Alma 32:3-5", "D&C 1:38", or a bare book
+   name ("Alma") for the whole book. Returns null (not a recognizable
+   scripture reference) for anything else, including hymn searches — the
+   caller falls back to plain substring matching in that case. */
+function parseCiteQuery(rawQ){
+  // Strip every period, not just a trailing one — an abbreviation's period
+  // sits mid-string once a chapter follows it ("1 ne. 3:7"), not at the
+  // end of the query, so a trailing-only strip left that exact shape
+  // (found live testing: "1 Ne. 3:7" matched 0 talks while "1 Nephi 3:7"
+  // matched 90) never lining up against the alias's own trailing-stripped
+  // form ("1 ne").
+  const q = rawQ.replace(/\./g, '');
+  for (const {alias, volume, book} of CITE_BOOK_ALIASES){
+    const a = alias.replace(/\./g, '');
+    if (q === a){
+      return {volume, book, chapter:null, verseStart:null, verseEnd:null};
+    }
+    if (q.startsWith(a + ' ')){
+      const rest = q.slice(a.length).trim();
+      const m = rest.match(/^(\d+)(?::(\d+)(?:[-–](\d+))?)?$/);
+      if (m){
+        const verseStart = m[2] ? parseInt(m[2],10) : null;
+        return {
+          volume, book, chapter: m[1],
+          verseStart,
+          verseEnd: m[3] ? parseInt(m[3],10) : verseStart,
+        };
+      }
+      // Book alias matched but what follows isn't chapter/verse-shaped
+      // (e.g. "Alma the Younger") — keep trying other aliases rather than
+      // giving up on the whole query.
+    }
+  }
+  return null;
+}
+
+/* Does a citation's real verse anchor (e.g. "p1-p5", "p30,32", or "" for
+   no verse-level detail at all) cover the queried verse/verse-range?
+   Ranges overlap-match (querying 32:3-5 hits a citation logged as
+   32:1-4, not just an exact bound match) — a single queried verse is
+   just the verseStart===verseEnd case of the same check. No verse
+   specified in the query, or no anchor on the citation to check against,
+   both mean "match" (permissive: can't rule it out, so don't). */
+function citationCoversVerse(anchor, verseStart, verseEnd){
+  if (verseStart == null || !anchor) return true;
+  return anchor.split(',').some(seg=>{
+    const parts = seg.replace(/p/g,'').split('-').map(n=>parseInt(n,10));
+    const start = parts[0], end = parts.length > 1 ? parts[1] : parts[0];
+    return start <= verseEnd && end >= verseStart;
+  });
 }
 
 /* ---------------------------------------------------------------
@@ -3159,16 +3249,36 @@ function matchesSearch(t){
   const kicker = talkKicker(t);
   return !!(kicker && kicker.toLowerCase().includes(q));
 }
-/* "Search Scriptures & Hymns" — plain substring matching against the real
-   citation display text (e.g. "Alma 32:21", "America the Beautiful
-   (Hymns, no. 338)"), same style as matchesSearch() above. Deliberately
-   scoped to just these two citation types, not Other Talks/Church
-   Magazines/Other Sources — matches how this was framed when proposed. */
+/* "Search Scriptures & Hymns" — two layers, either one being a hit is
+   enough. Deliberately scoped to just these two citation types, not Other
+   Talks/Church Magazines/Other Sources — matches how this was framed when
+   proposed.
+   1. Plain substring against the real citation display text (e.g.
+      "Alma 32:21", "America the Beautiful (Hymns, no. 338)"), same style
+      as matchesSearch() above — kept as-is and checked first, so this
+      feature can only ever match MORE talks than before, never fewer.
+   2. Structured book/chapter/verse matching (see parseCiteQuery() and
+      citationCoversVerse() above) — catches abbreviation variants ("D&C
+      1:38" finding a citation displayed as "Doctrine and Covenants 1:38")
+      and verse-range overlap ("Alma 32:3" finding a citation logged as
+      "Alma 32:1–5") that plain substring matching can't, since neither of
+      those pairs literally shares the same text. */
 function matchesCiteSearch(t){
   const q = filterState.citeQuery.trim().toLowerCase();
   if (!q) return true;
   if (talkCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
-  return talkHymnCitations(t).some(c=>c.ref.toLowerCase().includes(q));
+  if (talkHymnCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
+
+  const parsed = parseCiteQuery(q);
+  if (!parsed) return false;
+  const idxs = CITATION_LOOKUP[talkKey(t)];
+  if (!idxs) return false;
+  return idxs.some(i=>{
+    const [, volume, book, chapter, anchor] = CITATION_REFS[i];
+    if (volume !== parsed.volume || book !== parsed.book) return false;
+    if (parsed.chapter != null && chapter !== parsed.chapter) return false;
+    return citationCoversVerse(anchor, parsed.verseStart, parsed.verseEnd);
+  });
 }
 function poolExcept(excludeDim){
   return TALKS.filter(t=>{
@@ -5276,6 +5386,14 @@ function applyData(data){
   CITATION_OTHER_REFS = data.citationOtherRefs || [];
   CITATION_HYMN_LABELS = data.citationHymnLabels || {};
   CITATION_TYPE_LOOKUP = data.citationTypeLookup || {};
+  // Book display names ("dc-testament|dc" -> "Doctrine and Covenants") and
+  // standard abbreviations ("dc-testament|dc" -> ["D&C","D & C"]) — merged
+  // into data.json alongside the original citation extraction but never
+  // actually wired up until "Search Scriptures & Hymns" needed them to
+  // understand a query like "D&C 1:38", not just display a label.
+  CITATION_BOOK_LABELS = data.citationBookLabels || {};
+  CITATION_BOOK_ABBREVS = data.citationBookAbbrevs || {};
+  buildCiteBookAliases();
 }
 function cacheData(data){
   try { localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(data)); }
