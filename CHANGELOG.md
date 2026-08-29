@@ -10,21 +10,6 @@ this updated.
 
 ## [Unreleased]
 
-Version 1.3 was pulled back after release: two bugs surfaced after the web
-build went out via GitHub Pages and the Android build was uploaded to a
-Play Console closed/open testing track — Export Backup silently produces no
-file inside the wrapped app (no share plugin / download handler registered),
-and the new scripture-search data requires users to clear app storage
-before it works. `docs/index.html` and `docs/data.json` have been reverted
-to the 1.2 build so the live web app is unaffected while these are fixed.
-Play's versionCode can't be reused once uploaded, so `versionCode` in
-`android/app/build.gradle` was bumped to 5 (still `versionName "1.3"`) to
-reserve it for the corrected build that will supersede the broken one on
-the testing track — that build isn't cut yet; the repo's web content
-currently matches 1.2 until both bugs are fixed and 1.3's work below is
-reinstated. The work below is back in Unreleased, to ship again as 1.3 once
-both bugs are resolved.
-
 ### Added
 - Long notes no longer stretch a talk's tile out of shape — they're now clipped to 3 lines with a "Show more" link that expands the tile to show the whole note (and "Show less" to collapse it back), wherever a note preview appears (Show a List, Recently Viewed, Favorites, My Lists, My Notes).
 - Show a List now has "Select First 10" and "Select All" buttons above the results, so you can add a whole page — or every matching talk, across every page — to a list in one action instead of checking boxes one at a time. Selecting more than what's shown on the first page asks you to confirm first, since it could mean adding a lot of talks at once. A selection now also stays checked as you page through results, instead of being cleared every time you click Next/Previous.
@@ -40,6 +25,7 @@ both bugs are resolved.
 - Scripture citations now always show in a short, consistent abbreviated form ("D&C 1:38," "1 Cor. 15:29") instead of however the original talk happened to write it — some were spelled out in full, and a few were genuinely confusing out of context ("verse 79," "chapter 13") since they were just whatever text the original talk's author had linked. Where they link to is unchanged, only how they're labeled.
 
 ### Fixed
+- Talks with citations could silently stop showing them (and Search Scriptures & Hymns could silently stop finding anything) for people upgrading from an older version, unless they cleared the app's storage — which also would have wiped their favorites, notes, lists, and streak. The talk data itself now caches separately from your personal data, so this can't happen and nothing needs to be cleared.
 - Export Backup silently did nothing on Android and iOS — tapping it saved no file anywhere, even though it looked like it worked. It now hands the backup file to the phone's native share sheet, so you can actually save it to Drive, Files, email it to yourself, etc.
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
 - Searching Scriptures & Hymns now understands abbreviations both ways — "D&C 1:38" and "Doctrine and Covenants 1:38" (or "1 Ne." and "1 Nephi," "Ps." and "Psalms," and every other standard scripture abbreviation) now find the exact same talks.

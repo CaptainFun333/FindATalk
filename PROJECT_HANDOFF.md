@@ -3231,3 +3231,99 @@ both now return the identical 318 (no more JST bleed-through), and all
 previously-fixed cases (D&C forms, Alma 32:28 range) still pass with no
 regression. Zero console errors. `./gradlew assembleDebug` — BUILD
 SUCCESSFUL. Synced into the Android project via `npx cap sync android`.
+
+## ✅ Done: 1.3 rollback and two release-blocking bug fixes (Export Backup, scripture-data storage quota)
+1.3's web build (scripture/hymn/talk/magazine citations, Search Scriptures
+& Hymns) went out via GitHub Pages, and the matching Android AAB
+(versionCode 4) was uploaded to a Play Console closed/open testing track.
+Two bugs surfaced afterward, both serious enough that the user asked to
+roll the release back rather than let either sit live while fixed:
+
+**Bug 1 — Export Backup silently did nothing inside the wrapped app.**
+`saveBackupToFile()` tried `navigator.share({files:[...]})`, then fell
+back to a plain `<a download>` blob-URL click. Neither path has a real
+handler inside a bare Capacitor WebView: `canShare({files})` isn't
+implemented there (no OS-level Web Share Target machinery in an embedded
+WebView), and there's no `DownloadListener` registered on the WebView for
+blob: URLs either — so both "succeeded" with no error thrown, and no file
+ever landed anywhere. Fixed by adding `@capacitor/filesystem` and
+`@capacitor/share` (`npm install`, `npx cap sync android`/`ios`) and
+rewriting `saveBackupToFile()` to, when `Capacitor.isNativePlatform()`,
+write the backup JSON to the app's cache dir via `Filesystem.writeFile`
+and hand that real `file://` URI to `Share.share()`, which opens the
+actual native share sheet. Traced `SharePlugin.java`'s `shareFiles()` to
+confirm it wraps a `file:` URL via `FileProvider.getUriForFile()` with
+authority `${applicationId}.fileprovider` — already declared in
+`AndroidManifest.xml` (added earlier for the widget) with a `cache-path`
+entry in `file_paths.xml` covering exactly the dir `Directory.CACHE`
+writes to, so no manifest changes were needed. The old web-Share/download
+paths stay as fallbacks for the plain website build, where they still
+work as before. Verified: `gradlew assembleDebug` builds clean with the
+plugins linked. **Not runtime-verified on a real device/emulator** — none
+available in the dev environment this was built in; sideload-test before
+cutting the next release build.
+
+**Bug 2 — citations (and Search Scriptures & Hymns) could permanently
+stop working for anyone upgrading from an older version, fixable only by
+clearing all app storage.** Root cause: adding the citation tables roughly
+tripled `data.json`'s size (~1.4MB → ~4.2MB). The talk dataset was cached
+whole in `localStorage` (`loadData()`/`cacheData()`/`applyData()`, key
+`findATalkData`) — as a UTF-16 string that's ~8.4MB, past the ~5MB-per-
+origin quota most WebViews/browsers enforce. Anyone who already had the
+smaller pre-citation blob cached would have every attempt to overwrite it
+with the bigger one throw `QuotaExceededError`, silently swallowed by
+`cacheData()`'s existing try/catch (which predates this bug — it was
+written for the ordinary "storage full" case, not anticipating a payload
+that could never fit at all). The stale, citation-less copy then stayed
+cached and kept getting reapplied on every launch, forever — self-healing
+was impossible since the overwrite could never succeed. The only way out
+was clearing all site data, which also wipes favorites/notes/lists/streak
+since they share the same localStorage quota under separate keys — not
+acceptable to ship.
+
+Fix: moved the talk-dataset cache out of `localStorage` entirely and into
+IndexedDB (`findATalkDataCache` DB, `data` store, key `'talks'` — see
+`openDataDB()`/`getCachedData()`/`cacheData()` in `docs/index.html`,
+right above `applyData()`). IndexedDB's quota is typically hundreds of MB
+or more and is separate from localStorage's, so the same failure mode
+can't recur even as citation data keeps growing with future conferences.
+`loadData()` also does a one-time `localStorage.removeItem('findATalkData')`
+cleanup on every launch (harmless no-op once already gone) so the old,
+now-unused stale blob doesn't sit around forever. Favorites/notes/lists/
+streak/theme/reminders — every other localStorage key — were untouched by
+this change; they're small, always fit comfortably, and stayed exactly
+where they were.
+
+**Verified** via a local static-file server (`fetch()` needs real HTTP,
+not a `file://`/data: URL) driven through the browser tool:
+1. Fresh load — data applies correctly in-memory (4,054 talks, 19,761
+   citation refs) and citation pills render on Talk of the Day.
+2. **The actual bug scenario**, simulated directly: cleared IndexedDB,
+   planted a stale pre-citation blob under the old `findATalkData`
+   localStorage key (exactly what an upgrading 1.2 user would have), plus
+   a decoy `findATalkFavorites` key to stand in for real personal data.
+   Reloaded. Confirmed: the stale key was removed, the decoy favorites
+   key was completely untouched, and the full citation-rich dataset loaded
+   and applied immediately — no storage-clearing needed, nothing lost.
+3. Full cacheData()/getCachedData() round-trip through IndexedDB with the
+   real (citation-bearing) `data.json` — all 19,761 refs and the full
+   4,054-entry citation lookup persisted and read back intact.
+
+(One test artifact worth noting for later, not a bug: while testing
+against the real, not-yet-redeployed `captainfun333.github.io` — which
+still serves the rolled-back 1.2 `data.json` since this fix hadn't been
+pushed yet — the background remote-refresh check correctly overwrote the
+IndexedDB cache with that older, citation-less copy, exactly as designed.
+Once this fix is pushed and GitHub Pages redeploys the citation-bearing
+`data.json`, remote and local match and that discrepancy goes away on its
+own.)
+
+**Process note for future releases**: `versionCode` in
+`android/app/build.gradle` was bumped straight to `5` (skipping the
+`3`→`1.2` value the rollback briefly reverted to) because Play Console
+had already accepted versionCode `4` on the testing track — Play never
+accepts a reused or lower versionCode for an app again, even reverting to
+an older, already-shipped one. Anyone rolling back a release that's
+already reached any Play Console track needs to reserve a fresh, higher
+versionCode for the corrected build rather than reverting the number
+too.
