@@ -3128,3 +3128,51 @@ expected. Reset filters confirmed to still clear the box correctly. Zero
 console errors throughout both rounds of testing. `node --check` clean.
 `./gradlew assembleDebug` — **BUILD SUCCESSFUL**. Synced into the Android
 project via `npx cap sync android`.
+
+## ✅ Done: "Doctrine & Covenants" alias + always-abbreviated citation display
+Two more fixes from live device testing:
+
+**"Doctrine & Covenants" (ampersand, not "and")** — added as a third alias
+alongside "D&C" and "D & C" in `citationBookAbbrevs["dc-testament|dc"]`,
+so all three plus the canonical "Doctrine and Covenants" resolve to the
+same book. Trivial, one-line data addition.
+
+**Every scripture citation is now displayed in a canonical, always-
+abbreviated form**, built from its real structured `volume`/`book`/
+`chapter`/`anchor` — e.g. `D&C 1:38`, `1 Cor. 15:29` — instead of the raw
+text scraped from the original footnote link. Requested for space
+savings, but a real sample of the raw data turned up a second, more
+important reason to do this: some citations' raw text is genuinely
+meaningless out of context — `"verse 79"`, `"chapter 13"`, `"v. 25"` —
+because it's literally whatever text the original talk's author happened
+to link, not a real citation string at all. Building the display text
+from structured data instead of trusting the scraped text fixes both
+problems in one pass.
+
+**New**: `formatVerseAnchor(anchor)` turns the real anchor format
+(comma-separated `pN` singles / `pN-pM` ranges, e.g. `"p4-p9,p11-p16"`)
+into the same style already used elsewhere (`"4–9, 11–16"`, en dash).
+`formatScriptureRef(volume, book, chapter, anchor)` picks the first
+registered abbreviation for that book if one exists
+(`CITATION_BOOK_ABBREVS`), else the canonical full name
+(`CITATION_BOOK_LABELS`), and combines it with the formatted verse.
+`talkCitations()` now calls this instead of returning the raw scraped
+`ref` — the citation's real `href` (built the same way as before) is
+completely unaffected, so **only what's labeled changed, not where it
+links**.
+
+One structural note worth remembering: each `CITATION_REFS` entry
+corresponds to exactly one `<a class="scripture-ref">` link — confirmed
+by sampling the real data — so this per-citation reformatting is safe;
+there's no risk of a single entry actually representing several compound
+citations glued together in one string.
+
+**Verified live**: sampled a real talk's citations before/after — all 22
+citations for Bednar's Oct 2023 talk render as clean, consistent,
+abbreviated strings (`Alma 48:17`, `Moro. 10:32–33`, `D&C 64:33`, etc.),
+confirmed identically through the real ticket pill UI (not just the
+accessor function directly). "Doctrine & Covenants 1:38" / "D&C 1:38" /
+"Doctrine and Covenants 1:38" confirmed to return identical 83-talk
+pools. Zero console errors. `node --check` clean. `./gradlew
+assembleDebug` — BUILD SUCCESSFUL. Synced into the Android project via
+`npx cap sync android`.

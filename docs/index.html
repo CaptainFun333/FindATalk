@@ -2357,11 +2357,39 @@ function talkSession(talk){ return SESSION_LOOKUP[talkKey(talk)] || 'other'; }
    section for the full extraction/storage method. */
 let CITATION_REFS;
 let CITATION_LOOKUP;
+/* Every scripture citation is now DISPLAYED in a canonical, always-
+   abbreviated form built from its real volume/book/chapter/anchor —
+   e.g. "D&C 1:38", "1 Cor. 2:4–5" — rather than the raw text scraped
+   from the original footnote link. That raw text turned out to be more
+   than just inconsistently abbreviated (some talks spell a book out in
+   full, others abbreviate it, "D&C" itself almost never appears
+   literally) — a real sample of it turned up entries with NO usable book
+   name at all, just whatever the original author clicked: "verse 79",
+   "chapter 13", "v. 25". Those are meaningless out of context in a chip
+   list. Building the display text from structured data instead fixes
+   both problems in one pass, and is shorter (the whole point) than
+   spelling every book out. `href` still points to the exact real verse,
+   unaffected by any of this — only what's shown changed, not where it
+   links. */
+function formatVerseAnchor(anchor){
+  if (!anchor) return '';
+  return anchor.split(',').map(seg=>{
+    const parts = seg.replace(/p/g,'').split('-');
+    return parts.length > 1 ? `${parts[0]}–${parts[1]}` : parts[0];
+  }).join(', ');
+}
+function formatScriptureRef(volume, book, chapter, anchor){
+  const key = `${volume}|${book}`;
+  const abbrevs = CITATION_BOOK_ABBREVS[key];
+  const name = (abbrevs && abbrevs.length) ? abbrevs[0] : CITATION_BOOK_LABELS[key];
+  const verse = formatVerseAnchor(anchor);
+  return verse ? `${name} ${chapter}:${verse}` : `${name} ${chapter}`;
+}
 function talkCitations(talk){
   const idxs = CITATION_LOOKUP[talkKey(talk)];
   if (!idxs || !idxs.length) return [];
   return idxs.map(i=>{
-    const [ref, volume, book, chapter, anchor] = CITATION_REFS[i];
+    const [, volume, book, chapter, anchor] = CITATION_REFS[i];
     // anchor can be a single verse ("p17"), a range ("p5-p6"), or a list
     // ("p30,32") — the real Church pages use the first token of that for
     // the URL fragment (scrolls to the first verse) while passing the
@@ -2369,7 +2397,7 @@ function talkCitations(talk){
     const firstAnchor = anchor ? anchor.split(',')[0].split('-')[0] : '';
     const href = `https://www.churchofjesuschrist.org/study/scriptures/${volume}/${book}/${chapter}?lang=eng`
       + (anchor ? `&id=${anchor}#${firstAnchor}` : '');
-    return {ref, href};
+    return {ref: formatScriptureRef(volume, book, chapter, anchor), href};
   });
 }
 

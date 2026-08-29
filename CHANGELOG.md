@@ -22,11 +22,13 @@ this updated.
 - A talk you draw with "Find Another" now appears above the Find Another/Show a List buttons instead of below them, so those buttons stay a short, fixed distance from the filters underneath — no more scrolling past a drawn talk to reach "Show a List" after adjusting a filter. The now-redundant "Find Another" button inside the drawn talk's card was removed (the one right below it does the same thing), letting "Open This Talk" take the full width of its row.
 - On every talk row (Show a List, Recently Viewed, Favorites, My Lists, My Notes), the Favorite/Add to List/Add Note/Share icons moved from squeezed in next to the title down to a centered row at the bottom of the tile — matching how they already look on a drawn talk. The title now always gets the full width of its row (fixing an awkward early line-break some titles had), and the select checkbox in Show a List stays centered beside the title even when it wraps onto two lines.
 - Tightened up the filters section on the home page to make room for the new Scripture/Hymn search without the page getting any longer: removed the "Recent/Favorites" filter (Recently Viewed and Favorites already have their own search on their own pages), tightened the spacing under each filter's label, and combined "Reset filters" with the "N talks match" count into one line instead of two.
+- Scripture citations now always show in a short, consistent abbreviated form ("D&C 1:38," "1 Cor. 15:29") instead of however the original talk happened to write it — some were spelled out in full, and a few were genuinely confusing out of context ("verse 79," "chapter 13") since they were just whatever text the original talk's author had linked. Where they link to is unchanged, only how they're labeled.
 
 ### Fixed
 - Editing a note on a talk (e.g. on Talk of the Day) didn't refresh that talk's note preview on screen — the old text stuck around until you restarted the app, even though the change had actually saved (My Notes and everywhere else showed it correctly). Note previews now update immediately everywhere the talk is shown.
 - Searching Scriptures & Hymns now understands abbreviations both ways — "D&C 1:38" and "Doctrine and Covenants 1:38" (or "1 Ne." and "1 Nephi," "Ps." and "Psalms," and every other standard scripture abbreviation) now find the exact same talks.
 - Searching a single verse now also finds talks that cite a range including it — searching "Alma 32:3" now finds a talk that cites "Alma 32:1–5," not just an exact "32:3" match.
+- "Doctrine & Covenants" (with the ampersand) is now recognized too, alongside "D&C" and "Doctrine and Covenants" — all three find the same talks.
 
 ## [1.2] — 2026-08-28
 
