@@ -993,6 +993,19 @@
     margin-top:22px; padding-top:18px; border-top:1px solid var(--line);
   }
 
+  /* On a phone-width screen, both buttons' full padding no longer fits
+     side by side (Find Another + Show a List + gap ran wider than the
+     available width, so they wrapped to two stacked rows instead of one).
+     Tightening padding/font here keeps them on one row down to ~360px
+     wide; flex-wrap stays on above as a safety net for anything narrower
+     still. Applies to both the top .draw-buttons and the repeated
+     .draw-buttons-repeat row, since they share these button classes. */
+  @media(max-width:480px){
+    .draw-buttons, .draw-buttons-repeat{ gap:10px; }
+    #drawBtn, .draw-btn-primary{ padding:14px 22px; font-size:14px; }
+    #listBtn, .draw-btn-secondary{ padding:13px 20px; font-size:14px; }
+  }
+
   .no-match{
     text-align:center; color:var(--ink-soft);
     font-family:'Inter',sans-serif; font-size:14px;
