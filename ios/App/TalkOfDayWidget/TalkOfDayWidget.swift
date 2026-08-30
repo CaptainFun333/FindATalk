@@ -275,7 +275,7 @@ struct TalkOfDayWidgetEntryView: View {
                     .foregroundColor(palette.inkSoft)
                     .lineLimit(1)
             } else {
-                Text("Find A Talk")
+                Text("FindATalk")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(palette.ink)
             }

@@ -22,14 +22,19 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Home-screen widget that shows the same deterministic "Talk of the Day"
- * pick as the web app (see talkOfTheDay()/localDayNumber()/splitmix32()
- * in docs/index.html). The algorithm here is a byte-for-byte port of that
- * JS so the widget and the app always agree on today's pick — don't let
- * them drift apart.
+ * pick as the web app (see talkOfTheDay()/cyclePick()/CURATED_HOLIDAYS/
+ * splitmix32() in docs/index.html). The algorithm here is a byte-for-byte
+ * port of that JS so the widget and the app always agree on today's pick
+ * — don't let them drift apart.
  *
  * Data comes from the exact same assets/public/data.json bundled for the
  * web view, read directly off disk (no WebView/JS involved), so the widget
@@ -48,18 +53,75 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         final String year;
         final String month;
         final String urlSlug;
+        final Set<String> topics;
 
-        Talk(String title, String speaker, String year, String month, String urlSlug) {
+        Talk(String title, String speaker, String year, String month, String urlSlug, Set<String> topics) {
             this.title = title;
             this.speaker = speaker;
             this.year = year;
             this.month = month;
             this.urlSlug = urlSlug;
+            this.topics = topics;
         }
 
         String key() {
             return year + "|" + month + "|" + urlSlug;
         }
+    }
+
+    /** One curated-holiday rule — port of a CURATED_HOLIDAYS entry in
+        docs/index.html. `topic` is an official Church topic tag (see
+        TOPIC_LOOKUP there); `matches` decides whether `cal` is that
+        holiday this year. */
+    private interface HolidayDateMatcher {
+        boolean matches(Calendar cal);
+    }
+
+    private static class Holiday {
+        final String topic;
+        final HolidayDateMatcher matches;
+
+        Holiday(String topic, HolidayDateMatcher matches) {
+            this.topic = topic;
+            this.matches = matches;
+        }
+    }
+
+    /** Port of CURATED_HOLIDAYS in docs/index.html — keep in sync. New
+        Year's Day maps to "hope" rather than something more on-the-nose
+        like "repentance" — both fit, but "hope" reads better for a
+        first-of-the-year pick. */
+    private static final List<Holiday> CURATED_HOLIDAYS = java.util.Arrays.asList(
+        new Holiday("hope", cal ->
+            cal.get(Calendar.MONTH) == Calendar.JANUARY && cal.get(Calendar.DAY_OF_MONTH) == 1),
+        new Holiday("love", cal ->
+            cal.get(Calendar.MONTH) == Calendar.FEBRUARY && cal.get(Calendar.DAY_OF_MONTH) == 14),
+        new Holiday("relief-society", cal ->
+            cal.get(Calendar.MONTH) == Calendar.MARCH && cal.get(Calendar.DAY_OF_MONTH) == 17),
+        new Holiday("easter", TalkOfDayWidgetProvider::isEasterSunday),
+        new Holiday("restoration", cal ->
+            cal.get(Calendar.MONTH) == Calendar.APRIL && cal.get(Calendar.DAY_OF_MONTH) == 6),
+        new Holiday("motherhood", cal -> isNthWeekdayOfMonth(cal, Calendar.MAY, Calendar.SUNDAY, 2)),
+        new Holiday("priesthood", cal ->
+            cal.get(Calendar.MONTH) == Calendar.MAY && cal.get(Calendar.DAY_OF_MONTH) == 15),
+        new Holiday("fatherhood", cal -> isNthWeekdayOfMonth(cal, Calendar.JUNE, Calendar.SUNDAY, 3)),
+        new Holiday("freedom", cal ->
+            cal.get(Calendar.MONTH) == Calendar.JULY && cal.get(Calendar.DAY_OF_MONTH) == 4),
+        new Holiday("pioneers", cal ->
+            cal.get(Calendar.MONTH) == Calendar.JULY && cal.get(Calendar.DAY_OF_MONTH) == 24),
+        new Holiday("gratitude", cal -> isNthWeekdayOfMonth(cal, Calendar.NOVEMBER, Calendar.THURSDAY, 4)),
+        new Holiday("christmas", cal ->
+            cal.get(Calendar.MONTH) == Calendar.DECEMBER && cal.get(Calendar.DAY_OF_MONTH) == 25)
+    );
+
+    /** Port of isNthWeekdayOfMonth() in docs/index.html — keep in sync.
+        True when `cal`'s date is the n-th occurrence of `weekday`
+        (Calendar.SUNDAY..SATURDAY) in `month` (Calendar.JANUARY..
+        DECEMBER) — e.g. Thanksgiving is the 4th Thursday of November. */
+    private static boolean isNthWeekdayOfMonth(Calendar cal, int month, int weekday, int n) {
+        return cal.get(Calendar.MONTH) == month
+            && cal.get(Calendar.DAY_OF_WEEK) == weekday
+            && ((cal.get(Calendar.DAY_OF_MONTH) - 1) / 7) + 1 == n;
     }
 
     @Override
@@ -299,6 +361,9 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         views.setTextColor(R.id.widget_streak, accent2);
     }
 
+    /** Reads talks and topicLookup ("year|month|slug" -> topic slugs, same
+        shape as TOPIC_LOOKUP in docs/index.html) out of the one bundled
+        data.json, in a single parse. */
     private ArrayList<Talk> loadTalks(Context context) throws Exception {
         ArrayList<Talk> talks = new ArrayList<>();
         try (InputStream is = context.getAssets().open("public/data.json");
@@ -309,23 +374,46 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             while ((n = reader.read(buf)) != -1) sb.append(buf, 0, n);
 
             JSONObject root = new JSONObject(sb.toString());
+
+            Map<String, Set<String>> topicLookup = new HashMap<>();
+            JSONObject topicLookupJson = root.optJSONObject("topicLookup");
+            if (topicLookupJson != null) {
+                java.util.Iterator<String> keys = topicLookupJson.keys();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    JSONArray topicsJson = topicLookupJson.optJSONArray(key);
+                    Set<String> topics = new HashSet<>();
+                    if (topicsJson != null) {
+                        for (int i = 0; i < topicsJson.length(); i++) topics.add(topicsJson.getString(i));
+                    }
+                    topicLookup.put(key, topics);
+                }
+            }
+
             JSONArray talksJson = root.getJSONArray("talks");
             for (int i = 0; i < talksJson.length(); i++) {
                 JSONArray t = talksJson.getJSONArray(i);
                 // [title, speaker, year, month, urlSlug]
+                String year = String.valueOf(t.get(2));
+                String month = t.getString(3);
+                String urlSlug = t.getString(4);
+                Set<String> topics = topicLookup.get(year + "|" + month + "|" + urlSlug);
                 talks.add(new Talk(
                     t.getString(0),
                     t.getString(1),
-                    String.valueOf(t.get(2)),
-                    t.getString(3),
-                    t.getString(4)
+                    year,
+                    month,
+                    urlSlug,
+                    topics != null ? topics : Collections.emptySet()
                 ));
             }
         }
         return talks;
     }
 
-    /** Port of talkOfTheDay()/localDayNumber()/splitmix32() from docs/index.html — keep in sync. */
+    /** Port of talkOfTheDay()/cyclePick()/CURATED_HOLIDAYS/splitmix32()
+        from docs/index.html — keep in sync. Checks today's curated
+        holidays first, then falls back to the no-repeat cycle shuffle. */
     private Talk talkOfTheDay(ArrayList<Talk> talks) {
         if (talks.isEmpty()) return null;
 
@@ -337,10 +425,80 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             }
         });
 
-        int seed = localDayNumber(Calendar.getInstance());
-        int hash = splitmix32(seed);
-        int index = (int) (Integer.toUnsignedLong(hash) % sorted.size());
-        return sorted.get(index);
+        Calendar now = Calendar.getInstance();
+        for (Holiday holiday : CURATED_HOLIDAYS) {
+            if (holiday.matches.matches(now)) {
+                Talk pick = curatedHolidayPick(holiday, sorted, now.get(Calendar.YEAR));
+                if (pick != null) return pick;
+                break; // no talk carries that topic yet — fall through to the cycle
+            }
+        }
+
+        return cyclePick(sorted, localDayNumber(now));
+    }
+
+    /** Port of cyclePick() from docs/index.html — keep in sync. Groups
+        days into cycles of exactly sorted.size() consecutive days, each
+        with its own seeded shuffle, so every talk airs once before any
+        talk repeats. */
+    private Talk cyclePick(ArrayList<Talk> sorted, int dayNumber) {
+        int cycleLength = sorted.size();
+        int cycleNumber = Math.floorDiv(dayNumber, cycleLength);
+        int positionInCycle = Math.floorMod(dayNumber, cycleLength);
+        int[] order = seededShuffledIndices(cycleLength, splitmix32(cycleNumber));
+        return sorted.get(order[positionInCycle]);
+    }
+
+    /** Port of seededShuffledIndices() from docs/index.html — keep in
+        sync. Deterministic Fisher-Yates shuffle of [0, count) seeded by
+        `seed`, re-mixing through splitmix32 on every draw. */
+    private int[] seededShuffledIndices(int count, int seed) {
+        int[] idx = new int[count];
+        for (int i = 0; i < count; i++) idx[i] = i;
+        int state = seed;
+        for (int i = count - 1; i > 0; i--) {
+            state = splitmix32(state);
+            int j = (int) (Integer.toUnsignedLong(state) % (i + 1));
+            int tmp = idx[i];
+            idx[i] = idx[j];
+            idx[j] = tmp;
+        }
+        return idx;
+    }
+
+    /** Port of curatedHolidayPick() from docs/index.html — keep in sync.
+        Returns null if no talk in the current data carries this
+        holiday's topic yet. */
+    private Talk curatedHolidayPick(Holiday holiday, ArrayList<Talk> sorted, int year) {
+        ArrayList<Talk> eligible = new ArrayList<>();
+        for (Talk t : sorted) {
+            if (t.topics.contains(holiday.topic)) eligible.add(t);
+        }
+        if (eligible.isEmpty()) return null;
+        int hash = splitmix32(year ^ 0x5a5a5a5a);
+        int index = (int) (Integer.toUnsignedLong(hash) % eligible.size());
+        return eligible.get(index);
+    }
+
+    /** Port of isEasterSunday()/easterSunday() from docs/index.html —
+        keep in sync. Anonymous Gregorian algorithm (Computus). */
+    private static boolean isEasterSunday(Calendar cal) {
+        int year = cal.get(Calendar.YEAR);
+        int a = year % 19;
+        int b = year / 100;
+        int c = year % 100;
+        int d = b / 4;
+        int e = b % 4;
+        int f = (b + 8) / 25;
+        int g = (b - f + 1) / 3;
+        int h = (19 * a + b - d - g + 15) % 30;
+        int i = c / 4;
+        int k = c % 4;
+        int l = (32 + 2 * e + 2 * i - h - k) % 7;
+        int m = (a + 11 * h + 22 * l) / 451;
+        int month = (h + l - 7 * m + 114) / 31; // 3=March, 4=April (1-indexed)
+        int day = ((h + l - 7 * m + 114) % 31) + 1;
+        return cal.get(Calendar.MONTH) == (month - 1) && cal.get(Calendar.DAY_OF_MONTH) == day;
     }
 
     /** Days since epoch on the device's local calendar (not UTC) — a

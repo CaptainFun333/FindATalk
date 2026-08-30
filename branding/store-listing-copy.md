@@ -1,4 +1,4 @@
-# Find A Talk — Store Listing Copy
+# FindATalk — Store Listing Copy
 
 Draft copy for both App Store Connect and Google Play Console. Character
 counts noted next to each field's limit — trim to fit if needed once
@@ -11,9 +11,9 @@ shift how things wrap, but counts below are exact).
 
 **App name** (30 char max)
 ```
-Find A Talk
+FindATalk
 ```
-(11 chars — plenty of room if you want a subtitle folded in, but Apple
+(9 chars — plenty of room if you want a subtitle folded in, but Apple
 keeps Name and Subtitle as separate fields, so leave this plain.)
 
 **Subtitle** (30 char max — shown right under the name in search/listing)
@@ -32,7 +32,7 @@ Instantly find a General Conference talk to read, share, or study — filter by 
 
 **Description** (4000 char max)
 ```
-Find A Talk is a fast, focused way to land on a General Conference talk of The Church of Jesus Christ of Latter-day Saints — whether you're picking a topic for a talk, looking for something to read tonight, or just want to be surprised.
+FindATalk is a fast, focused way to land on a General Conference talk of The Church of Jesus Christ of Latter-day Saints — whether you're picking a topic for a talk, looking for something to read tonight, or just want to be surprised.
 
 WHAT IT DOES
 • Draw a random talk from a curated library spanning April 1971 through today — over 4,000 real, verified talks, no gaps.
@@ -51,7 +51,7 @@ Every topic tag comes from the Church's own official general-conference topics i
 
 Everything runs on your device. No accounts, no ads, no analytics, no tracking — see the full privacy policy in-app or at captainfun333.github.io/find-a-talk/privacy.html.
 
-Find A Talk is an independent, fan-made tool. It is not produced by, endorsed by, or affiliated with The Church of Jesus Christ of Latter-day Saints. For the complete official library, visit churchofjesuschrist.org/study/general-conference.
+FindATalk is an independent, fan-made tool. It is not produced by, endorsed by, or affiliated with The Church of Jesus Christ of Latter-day Saints. For the complete official library, visit churchofjesuschrist.org/study/general-conference.
 ```
 (~1,830 chars — well under the 4000 limit, room to expand later)
 
@@ -100,7 +100,7 @@ explanation you can lean on if a reviewer asks).
 
 **App name** (30 char max)
 ```
-Find A Talk
+FindATalk
 ```
 
 **Short description** (80 char max — shown in search results and at the
@@ -112,7 +112,7 @@ Find, filter, and save General Conference talks — speaker, topic, or random.
 
 **Full description** (4000 char max)
 ```
-Find A Talk is a fast, focused way to land on a General Conference talk of The Church of Jesus Christ of Latter-day Saints — whether you're picking a topic for a talk, looking for something to read tonight, or just want to be surprised.
+FindATalk is a fast, focused way to land on a General Conference talk of The Church of Jesus Christ of Latter-day Saints — whether you're picking a topic for a talk, looking for something to read tonight, or just want to be surprised.
 
 WHAT IT DOES
 • Draw a random talk from a curated library spanning April 1971 through today — over 4,000 real, verified talks, no gaps.
@@ -131,7 +131,7 @@ Every topic tag comes from the Church's own official general-conference topics i
 
 Everything runs on your device. No accounts, no ads, no analytics, no tracking.
 
-Find A Talk is an independent, fan-made tool. It is not produced by, endorsed by, or affiliated with The Church of Jesus Christ of Latter-day Saints. For the complete official library, visit churchofjesuschrist.org/study/general-conference.
+FindATalk is an independent, fan-made tool. It is not produced by, endorsed by, or affiliated with The Church of Jesus Christ of Latter-day Saints. For the complete official library, visit churchofjesuschrist.org/study/general-conference.
 ```
 (~1,700 chars)
 

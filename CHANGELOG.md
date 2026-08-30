@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Find a Talk are logged here. Format loosely follows
+All notable changes to FindATalk are logged here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/): grouped by version, with
 `Fixed` / `Added` / `Changed` / `Removed` subsections as needed.
 
@@ -11,10 +11,19 @@ this updated.
 ## [Unreleased]
 
 ### Added
+- Christmas morning and Easter now show a Christmas- or Easter-themed talk instead of whatever the daily rotation happened to land on. Also added themed picks for New Year's Day, Valentine's Day, the Relief Society anniversary (March 17), Restoration Day (April 6), Mother's Day, the Aaronic Priesthood restoration anniversary (May 15), Father's Day, Independence Day, Pioneer Day, and Thanksgiving.
+- You can now swipe left or right to move between Home, Recents, Favorites, Notes, and Lists, instead of only tapping the links at the top of the page.
+- Added a small calendar icon next to "Talk of the Day" — tap it to browse back through previous days and see what was featured, one month at a time. Only days with a real recorded pick are selectable. Days you've already opened show a small checkmark, same as the "Read" checkmark elsewhere in the app.
 - "Find Another" and "Show a List" now also appear at the bottom of the filters/search area, so you don't have to scroll back up to reach them after searching or adjusting a filter.
+
+### Changed
+- Talk of the Day no longer repeats a talk until every talk in the app has had its turn — previously it was picked independently each day, so with thousands of talks in rotation the same one could resurface again after only a few weeks purely by chance.
 
 ### Fixed
 - The app was silently re-saving the entire offline talk database on every single launch, even when nothing about it had changed, which could bloat the app's on-device storage over time for no reason. It now only re-saves when the data actually has an update.
+
+### Changed
+- The app's name is now written as "FindATalk" everywhere it appears, instead of "Find A Talk"/"Find a Talk."
 
 ## [1.3.1] — 2026-08-29
 
@@ -79,7 +88,7 @@ this updated.
 - Tapping the "Talk of the Day" widget now opens the app instead of jumping straight to the talk in your browser — open it from there once you're in the app.
 - Tapping the widget when the app was already open in the background could drop you wherever you'd left it (mid-list, a note open, etc.) instead of the Home screen. It now always opens to Home.
 - On iPhone, the new Settings button sat partly under the status bar / Dynamic Island and couldn't be tapped. It's now positioned clear of them.
-- The "Find a Talk" button's text was unreadable in dark mode (dark text on a dark button). It's light text again.
+- The "FindATalk" button's text was unreadable in dark mode (dark text on a dark button). It's light text again.
 - On Android, a long talk title in the small widget size could spill text out past the bottom of the card. The title now stays on one line (shortened with "…" if needed), the widget's spacing is tighter so there's reliably enough room for the streak line too, and the speaker name is a touch smaller for a cleaner look.
 - On some tablets, the widget defaulted to a much taller size than needed. It should now offer the same compact size as on phones (remove and re-add the widget to get the new default — an existing placed widget won't resize itself).
 - If the app was left open in the background overnight, the "Talk of the Day" and streak badge could keep showing yesterday's pick after midnight until you fully closed and reopened it. They now refresh automatically as soon as you bring the app back to the foreground.

@@ -464,7 +464,7 @@ buttons (ticket and at least one list row) should get a real click-through
 ~1.6s and that a pasted link is the correct real talk URL.**
 
 ## ✅ Done: "Show a List" — up to 10 matching talks at once
-Added a second button next to "Find a Talk": **"Show a List"** (`#listBtn`,
+Added a second button next to "FindATalk": **"Show a List"** (`#listBtn`,
 in a new `.draw-buttons` flex row alongside `#drawBtn`). Instead of one
 random talk, it shows up to `LIST_SIZE` (currently 10) — or every matching
 talk if fewer than that remain after filters — as a scannable list, each
@@ -724,7 +724,7 @@ against the real live Pages URL — no local server needed at all).
 Scaffolded the actual native app shells with Capacitor, on top of the
 Phase 1 `docs/` architecture above. New root-level files: `package.json`
 (name `find-a-talk`), `package-lock.json`, `capacitor.config.json`
-(`appId: com.captainfun333.findatalk`, `appName: "Find A Talk"`, `webDir:
+(`appId: com.captainfun333.findatalk`, `appName: "FindATalk"`, `webDir:
 "docs"` — **this app ID can't change after the first store submission**,
 chosen since the user doesn't own a registered domain yet), plus the
 generated **`ios/`** and **`android/`** native project folders (committed
@@ -756,7 +756,7 @@ Simulator** (not just a static check this time):
   talks match right now" — same real dataset as the live Pages site,
   bundled into the app instead of fetched, per the offline-capable design
   from Phase 1), the Speaker filter's real 364-name list rendered, and a
-  live "Find a Talk" tap produced a fully correct ticket (title, speaker +
+  live "FindATalk" tap produced a fully correct ticket (title, speaker +
   role, kicker summary, conference date, topic chips, and working "Open
   This Talk"/Share/Find Another buttons).
 - **Simulator tap-coordinate gotcha, worth remembering for any future
@@ -1072,7 +1072,7 @@ size session:
   (`lastListPicks`, `renderListItems()`) rather than re-shuffling — a
   pure style toggle shouldn't change which talks are showing. Persisted
   via `localStorage` (`findATalkListMode`).
-- **Header simplified**: `<h1>` is now plain "Find a Talk" (was "Find
+- **Header simplified**: `<h1>` is now plain "FindATalk" (was "Find
   random *inspiration*"); the intro paragraph's first sentence
   ("Randomize a talk from General Conference.") was removed entirely,
   and its second sentence ("You may narrow the search by using the
@@ -3366,3 +3366,106 @@ an older, already-shipped one. Anyone rolling back a release that's
 already reached any Play Console track needs to reserve a fresh, higher
 versionCode for the corrected build rather than reverting the number
 too.
+
+## ✅ Done: Talk of the Day no-repeat cycle + curated holiday picks
+
+The old `talkOfTheDay()` (see the original entry above) picked
+independently each day via `hashString(dateSeed) % sorted.length` — no
+memory of what had aired recently, so with ~2,000+ talks in rotation the
+birthday paradox meant a repeat could show up again after just a few
+dozen days. There was also no way to guarantee a specific talk on a
+specific date (e.g. an Easter or Christmas talk on that morning).
+Replaced with two pieces, both still fully client-side/deterministic (no
+server, no stored history — has to come out the same on every device):
+
+- **No-repeat cycle**: days are grouped into cycles of exactly
+  `sorted.length` consecutive days (`cyclePick()`). Each cycle gets its
+  own seeded Fisher-Yates shuffle of every talk's index
+  (`seededShuffledIndices()`, seeded via `splitmix32(cycleNumber)`), so
+  every talk in the library airs exactly once before any talk repeats —
+  the whole set has to be exhausted first, rather than "each day is an
+  independent roll." When the twice-yearly data refresh adds talks,
+  `cycleLength` grows on its own and future days re-partition into new,
+  longer cycles automatically — no manual bookkeeping needed. Only
+  *future* days' mapping shifts when this happens; days that already
+  aired aren't affected.
+- **Curated holidays**: `CURATED_HOLIDAYS` is a small list of
+  `{name, topic, matches}` entries checked before falling through to the
+  cycle. Christmas matches Dec 25 directly; Easter is computed each year
+  via the Anonymous Gregorian algorithm (`easterSunday()`/
+  `isEasterSunday()`) since it moves. Each entry's eligible pool is every
+  talk carrying that entry's official topic tag (reusing the existing
+  `TOPIC_LOOKUP`/`talkTopics()` — `"christmas"` and `"easter"` are both
+  real Church-assigned topics already present in `data.json`, 2 and 14
+  talks respectively as of this writing). Which eligible talk airs is
+  itself seeded by the year (`splitmix32(year ^ 0x5a5a5a5a)`), so a
+  holiday with several tagged talks doesn't show the identical one every
+  year, while staying stable if the page is reloaded later the same day.
+  A holiday whose topic currently has zero tagged talks (or drops to
+  zero later) falls straight through to the regular cycle pick instead of
+  showing nothing.
+- Adding another curated date later (Mother's Day, Pioneer Day, etc.) is
+  just another `CURATED_HOLIDAYS` entry with a `matches(date)` predicate
+  and a topic slug — no changes needed elsewhere.
+
+**Verified**: the shuffle/cycle and Computus math were unit-tested
+standalone in Node (a 2,052-talk cycle produces exactly 2,052 unique
+picks with no repeats; `easterSunday()` matches the known 2024/2025/2026
+dates). The live page was loaded through a local static server and
+confirmed to render a valid Talk of the Day with no console errors,
+confirming the closure-scoped code (this all lives inside `initApp()`,
+like most of the app, so it isn't reachable from an outside devtools
+console — that's expected, not a bug).
+
+## ✅ Done: Nine more curated Talk of the Day holidays
+
+Follow-up to the entry above — expanded `CURATED_HOLIDAYS` from just
+Christmas/Easter to eleven entries: New Year's Day (`hope`), Valentine's
+Day (`love`), the Relief Society anniversary March 17 (`relief-society`),
+Easter (unchanged), Restoration Day April 6 (`restoration`), Mother's Day
+(`motherhood`), the Aaronic Priesthood restoration anniversary May 15
+(`priesthood`), Father's Day (`fatherhood`), Pioneer Day July 24
+(`pioneers`), Thanksgiving (`gratitude`), and Christmas (unchanged). All
+eleven topics already exist in `data.json` with a real pool of tagged
+talks (`love` 435, `priesthood` 384, `restoration` 151, `gratitude` 90,
+`hope` 80, `relief-society` 78, `motherhood` 62, `pioneers` 53,
+`fatherhood` 48, plus the existing `christmas` 2 / `easter` 14), so none
+of the new holidays fall through to the regular cycle for lack of
+eligible talks.
+
+New Year's Day deliberately maps to `hope` rather than something more
+literal like `repentance` (also a real topic, larger pool at 305) —
+both fit the "new year, new start" idea, but `hope` reads better for a
+first-of-the-year pick without sounding like a lecture.
+
+Three of the eleven fall on a **floating weekday** rather than a fixed
+calendar date — Mother's Day (2nd Sunday of May), Father's Day (3rd
+Sunday of June), Thanksgiving (4th Thursday of November) — so a new
+`isNthWeekdayOfMonth(date, month, weekday, n)` helper was added
+alongside the existing fixed-date and Easter-Computus matchers; a
+`CURATED_HOLIDAYS` entry just picks whichever matcher shape it needs.
+This was ported identically into all three copies (`docs/index.html`,
+the Android widget's `TalkOfDayWidgetProvider.java`, the iOS widget's
+`TalkModel.swift`) alongside the existing no-repeat-cycle/Easter port —
+see the entry above for why all three have to stay in lockstep.
+
+**Verified**: `isNthWeekdayOfMonth()`'s date math was checked in Node and
+Swift against the actual known 2025/2026 dates for all three floating
+holidays (Thanksgiving: Nov 27 2025 / Nov 26 2026; Mother's Day: May 11
+2025 / May 10 2026; Father's Day: Jun 15 2025 / Jun 21 2026) — all
+matched. The Android port compiled clean via
+`./gradlew compileDebugJavaWithJavac`; the iOS port parsed clean via
+`swiftc -parse`. Note: while working on this, `docs/index.html`'s Talk of
+the Day code had already been refactored on disk (by a separate,
+unrelated change) from a single `talkOfTheDay()` into
+`talkForDate(d)`/`talkOfTheDay()` to support a new "browse previous
+days" calendar feature — this session built on top of that refactor
+(the new `CURATED_HOLIDAYS` entries just slot into the existing
+`talkForDate()` loop) rather than reverting it.
+
+**Follow-up**: added a 12th entry, Independence Day (July 4) →
+`freedom` (19 tagged talks) — chosen over the smaller `patriotism` topic
+(6 talks, would start repeating almost immediately) since "freedom" is
+both the bigger pool and the more natural gospel-talk framing. Same
+fixed-date matcher shape as Christmas/Restoration Day/etc., ported to
+all three copies, Android/iOS re-verified compiling/parsing clean.

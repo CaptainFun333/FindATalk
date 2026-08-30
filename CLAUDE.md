@@ -1,4 +1,4 @@
-# Find a Talk — project instructions for Claude
+# FindATalk — project instructions for Claude
 
 ## Changelog process (applies in every conversation/session)
 

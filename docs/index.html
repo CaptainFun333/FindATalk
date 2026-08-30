@@ -1438,6 +1438,90 @@
   }
   .note-textarea:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
 
+  /* ---------- Talk of the Day: calendar trigger + history modal ---------- */
+  .totd-header-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px;
+  }
+  .totd-header-row .totd-eyebrow{ margin-bottom:0; }
+  .totd-calendar-btn{
+    flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px;
+    background:transparent;
+    border:1px solid var(--line);
+    border-radius:50%;
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .totd-calendar-btn svg{ width:14px; height:14px; }
+  .totd-calendar-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .totd-calendar-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+
+  .totd-calendar-nav{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .totd-calendar-nav-btn{
+    background:none; border:none; cursor:pointer;
+    font-size:22px; line-height:1; color:var(--ink-soft);
+    padding:2px 12px; border-radius:4px;
+  }
+  .totd-calendar-nav-btn:hover:not(:disabled){ color:var(--burgundy); }
+  .totd-calendar-nav-btn:disabled{ color:var(--line); cursor:default; }
+  .totd-calendar-month-label{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14.5px; color:var(--ink);
+  }
+  .totd-calendar-grid{
+    display:grid; grid-template-columns:repeat(7, 1fr);
+    gap:3px;
+  }
+  .totd-calendar-dow{
+    text-align:center;
+    font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
+    color:var(--ink-soft);
+    padding-bottom:6px;
+  }
+  .totd-calendar-day{
+    position:relative;
+    aspect-ratio:1;
+    display:flex; align-items:center; justify-content:center;
+    background:transparent;
+    border:1px solid transparent;
+    border-radius:6px;
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--ink);
+    cursor:pointer;
+  }
+  /* Small read-checkmark badge in the corner of a day that already has
+     history AND whose talk has been opened (isRead()) — color comes free
+     from `currentColor` (the SVG uses stroke="currentColor"), so it
+     automatically matches whatever color the day number itself is in
+     every state (today/selected/plain) without its own color rules. */
+  .totd-calendar-day-check{
+    position:absolute;
+    bottom:1px; right:2px;
+    display:flex;
+    pointer-events:none;
+  }
+  .totd-calendar-day-check svg{ width:8px; height:8px; stroke-width:3.2; }
+  /* Days with no recorded history (outside the backfilled/recorded
+     range, or simply in the future) are disabled rather than hidden —
+     keeps every week's grid the same shape regardless of month length,
+     and makes plain that a day has no pick rather than looking broken. */
+  .totd-calendar-day:disabled{ color:var(--line); cursor:default; }
+  .totd-calendar-day:hover:not(:disabled){ border-color:var(--brass); }
+  .totd-calendar-day.is-empty{ visibility:hidden; cursor:default; }
+  .totd-calendar-day.is-today{ font-weight:700; color:var(--brass); }
+  .totd-calendar-day.is-selected{ background:var(--accent-fill); color:var(--on-accent); border-color:var(--accent-fill); }
+  .totd-calendar-hint{ margin:14px 0 0; }
+  #totdCalResult:empty{ margin:0; }
+  #totdCalResult:not(:empty){ margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+  .totd-calendar-result-date{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; color:var(--ink-soft);
+    margin:0 0 10px;
+  }
+
   /* ---------- My Lists index page ---------- */
   .collections-new-row{
     display:flex; gap:8px;
@@ -1637,7 +1721,12 @@
   <div class="page-nav" id="homeZoneNav"></div>
 
   <div class="totd-zone" id="totdZone">
-    <div class="eyebrow totd-eyebrow">Talk of the Day</div>
+    <div class="totd-header-row">
+      <div class="eyebrow totd-eyebrow">Talk of the Day</div>
+      <button type="button" class="totd-calendar-btn" id="totdCalendarBtn" aria-label="See previous days">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+      </button>
+    </div>
     <div class="list-items" id="totdItems"></div>
     <!-- Same max-width + centering as .list-items above, so the badge's
          left edge always lines up with the card's left edge, at every
@@ -2005,12 +2094,29 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="totdCalendarModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="totdCalendarModalTitle">
+      <div class="modal-header">
+        <h3 id="totdCalendarModalTitle">Talk of the Day History</h3>
+        <button type="button" class="modal-close" id="totdCalendarModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="totd-calendar-nav">
+        <button type="button" class="totd-calendar-nav-btn" id="totdCalPrevBtn" aria-label="Previous month">&lsaquo;</button>
+        <span class="totd-calendar-month-label" id="totdCalMonthLabel"></span>
+        <button type="button" class="totd-calendar-nav-btn" id="totdCalNextBtn" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="totd-calendar-grid" id="totdCalGrid"></div>
+      <p class="modal-copy totd-calendar-hint" id="totdCalHint">Pick any highlighted day to see that day's Talk of the Day.</p>
+      <div id="totdCalResult"></div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="notifPermModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifPermModalTitle">
       <div class="modal-header">
         <h3 id="notifPermModalTitle">Get a daily nudge?</h3>
       </div>
-      <p class="modal-copy">Find a Talk can send one reminder a day, at 8:00 AM by default, with your talk of the day ready to read — you can change the time anytime in Settings. Your phone will ask you to allow notifications next — this is just a heads-up on why.</p>
+      <p class="modal-copy">FindATalk can send one reminder a day, at 8:00 AM by default, with your talk of the day ready to read — you can change the time anytime in Settings. Your phone will ask you to allow notifications next — this is just a heads-up on why.</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="notifPermSkipBtn">Not Now</button>
         <button type="button" class="btn btn-primary" id="notifPermAllowBtn">Enable Reminders</button>
@@ -2985,6 +3091,46 @@ function setNote(talk, text){
   delete noteMap[key];
   if (trimmed) noteMap[key] = trimmed;
   saveNotes();
+}
+
+/* ---------------------------------------------------------------------
+   Talk of the Day HISTORY — a durable, append-only record of what was
+   actually shown as Talk of the Day on each real calendar day, keyed by
+   the same "yyyy-mm-dd" string localDateSeed() produces elsewhere. This
+   is deliberately NOT the same thing as just recomputing talkOfTheDay()
+   for an old date: that function hashes into a *sorted copy of the
+   current TALKS array*, and TALKS grows twice a year as new conferences
+   are added — an insertion can shift the sorted position (and therefore
+   the modulo index) of everything downstream of it, which would make a
+   recomputed-later value for an old date potentially different from what
+   truly appeared that day. Recording the real value once, the day it's
+   shown, and never overwriting it afterward is what keeps history
+   accurate regardless of future data growth. See backfillTotdHistoryIfNeeded()
+   further down (inside initApp, since it needs TALKS) for how a fresh
+   install seeds some initial history before any of this has run yet.
+   Storage is a plain object, dateSeed -> talkKey() — tiny even after
+   years of daily use (well under a KB per year), so this is kept
+   unbounded rather than pruned to a rolling window. NOT included in
+   backup export/import (unlike notes/favorites/collections/streak) —
+   it's a recomputable-ish convenience view of history, not something a
+   person authored, so losing it on a fresh install/reinstall just means
+   the calendar re-backfills its usual short window rather than any real
+   data loss. --------------------------------------------------------- */
+const TOTD_HISTORY_KEY = 'findATalkTotdHistory';
+let totdHistory = {};
+function loadTotdHistory(){
+  try {
+    const raw = localStorage.getItem(TOTD_HISTORY_KEY);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      totdHistory = (parsed && typeof parsed === 'object') ? parsed : {};
+    }
+  } catch(err){ totdHistory = {}; }
+}
+loadTotdHistory();
+function saveTotdHistory(){
+  try { localStorage.setItem(TOTD_HISTORY_KEY, JSON.stringify(totdHistory)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
 }
 
 /* Splits a speaker's full name into { last, first, suffix } so the
@@ -4188,7 +4334,9 @@ function refreshNoteBadgesFor(talk){
    couple weeks. Mixing the integer day number through splitmix32 gives
    well-distributed, uncorrelated output even for adjacent inputs, while
    staying fully deterministic — not security-sensitive, just needs to
-   look random day to day. */
+   look random day to day. Also used as the "next random uint32" step of
+   mulberry32State() below, so the same primitive drives both the
+   single-value hash and the shuffle PRNG. */
 function splitmix32(seed){
   let h = (seed + 0x9e3779b9) >>> 0;
   let z = h;
@@ -4203,32 +4351,187 @@ function localDayNumber(d){
   d = d || new Date();
   return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
 }
-/* Deterministic, seeded by the device's local calendar date (not the
-   person's current filters — this is meant to be a stable "come back
-   tomorrow for a new one" hook, same for everyone on a given day, not a
-   filtered result that changes as someone adjusts the Speaker filter).
-   Sorts a copy of TALKS by talkKey() first so today's pick stays as
-   stable as possible even if data.json's own array order changes later
-   (e.g. new conferences get appended) — only insertions/removals near a
-   specific talk's sorted position could ever shift what "today" points
-   to, not a full reshuffle. */
-function talkOfTheDay(){
-  if (!TALKS.length) return null;
-  const sorted = [...TALKS].sort((a, b)=>{
+/* Deterministic Fisher-Yates shuffle of [0, count) seeded by `seed`. Each
+   draw re-mixes the running state through splitmix32 (a tiny stream
+   cipher, effectively) so the whole permutation is reproducible from the
+   seed alone — no stored state needed, which matters because this has to
+   come out the same on every device without a server round-trip. */
+function seededShuffledIndices(count, seed){
+  const idx = Array.from({length: count}, (_, i)=> i);
+  let state = seed >>> 0;
+  for (let i = count - 1; i > 0; i--){
+    state = splitmix32(state);
+    const j = state % (i + 1);
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx;
+}
+/* Talks sorted by talkKey() so the shuffle below stays as stable as
+   possible even if data.json's own array order changes later (e.g. new
+   conferences get appended) — only insertions/removals near a specific
+   talk's sorted position could ever shift its place, not a full
+   reshuffle. Recomputed once per call rather than cached since talkOfTheDay()
+   only runs once or twice per day (initial render + a possible midnight
+   rollover). */
+function sortedTalks(){
+  return [...TALKS].sort((a, b)=>{
     const ka = talkKey(a), kb = talkKey(b);
     return ka < kb ? -1 : ka > kb ? 1 : 0;
   });
-  return sorted[splitmix32(localDayNumber()) % sorted.length];
+}
+/* No-repeat guarantee: rather than an independent random pick each day
+   (which, birthday-paradox style, revisits the same talk every few
+   dozen days out of ~2000+), days are grouped into "cycles" of exactly
+   `sorted.length` consecutive days. Each cycle gets its own seeded
+   shuffle of every talk's index, so within a cycle every talk airs
+   exactly once before any talk repeats — the whole library has to be
+   exhausted first. When six-monthly data updates add talks, cycleLength
+   grows and the cycle/position math naturally re-partitions future days
+   into new, longer cycles; only which *future* day maps to which slot
+   shifts, never a day that's already aired. */
+function cyclePick(sorted, dayNumber){
+  const cycleLength = sorted.length;
+  const cycleNumber = Math.floor(dayNumber / cycleLength);
+  const positionInCycle = dayNumber % cycleLength;
+  const order = seededShuffledIndices(cycleLength, splitmix32(cycleNumber));
+  return sorted[order[positionInCycle]];
+}
+/* ---- Curated holiday picks ----
+   A handful of dates are meaningful enough (Easter, Christmas morning,
+   Mother's/Father's Day, etc.) that "whatever the shuffle lands on" isn't
+   good enough — these override the regular cycle on that specific
+   calendar day only. Each entry names an official topic tag (see
+   TOPIC_LOOKUP / talkTopics()) and a date-matcher; the eligible pool is
+   every talk carrying that topic, and which one of those airs is itself
+   seeded by the year (splitmix32) so a holiday with several eligible
+   talks doesn't show the identical one every year, while still being
+   stable if you reload the page later that same day. A holiday with only
+   one tagged talk will necessarily repeat every year until more get
+   added — that's expected, not a bug. New Year's Day maps to "hope"
+   rather than something more on-the-nose like "repentance" — both fit,
+   but "hope" reads better for a first-of-the-year pick. Adding a new
+   curated date later just means adding another entry here (see
+   isNthWeekdayOfMonth() below for floating-weekday holidays like
+   Thanksgiving). */
+const CURATED_HOLIDAYS = [
+  { name: 'new-years-day', topic: 'hope', matches: (d)=> d.getMonth() === 0 && d.getDate() === 1 },
+  { name: 'valentines-day', topic: 'love', matches: (d)=> d.getMonth() === 1 && d.getDate() === 14 },
+  { name: 'relief-society-anniversary', topic: 'relief-society', matches: (d)=> d.getMonth() === 2 && d.getDate() === 17 },
+  { name: 'easter', topic: 'easter', matches: (d)=> isEasterSunday(d) },
+  { name: 'restoration-day', topic: 'restoration', matches: (d)=> d.getMonth() === 3 && d.getDate() === 6 },
+  { name: 'mothers-day', topic: 'motherhood', matches: (d)=> isNthWeekdayOfMonth(d, 4, 0, 2) },
+  { name: 'aaronic-priesthood-restoration', topic: 'priesthood', matches: (d)=> d.getMonth() === 4 && d.getDate() === 15 },
+  { name: 'fathers-day', topic: 'fatherhood', matches: (d)=> isNthWeekdayOfMonth(d, 5, 0, 3) },
+  { name: 'independence-day', topic: 'freedom', matches: (d)=> d.getMonth() === 6 && d.getDate() === 4 },
+  { name: 'pioneer-day', topic: 'pioneers', matches: (d)=> d.getMonth() === 6 && d.getDate() === 24 },
+  { name: 'thanksgiving', topic: 'gratitude', matches: (d)=> isNthWeekdayOfMonth(d, 10, 4, 4) },
+  { name: 'christmas', topic: 'christmas', matches: (d)=> d.getMonth() === 11 && d.getDate() === 25 },
+];
+/* True when `d` is the n-th occurrence of `weekday` (0=Sunday..6=Saturday)
+   in `month` (0=January..11=December) — e.g. Thanksgiving is the 4th
+   Thursday of November: isNthWeekdayOfMonth(d, 10, 4, 4). Used for the
+   handful of CURATED_HOLIDAYS above that fall on a floating weekday
+   rather than a fixed date. */
+function isNthWeekdayOfMonth(d, month, weekday, n){
+  return d.getMonth() === month && d.getDay() === weekday && Math.floor((d.getDate() - 1) / 7) + 1 === n;
+}
+/* Anonymous Gregorian algorithm (Computus) for the date of Easter Sunday
+   in a given year — needed because Easter moves relative to the
+   Gregorian calendar and can't be hard-coded like Christmas. */
+function easterSunday(year){
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31); // 3=March, 4=April
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+function isEasterSunday(d){
+  const e = easterSunday(d.getFullYear());
+  return d.getFullYear() === e.getFullYear() && d.getMonth() === e.getMonth() && d.getDate() === e.getDate();
+}
+/* Picks this curated holiday's talk for the given year: deterministic
+   per year, but varies year to year across whichever talks carry the
+   topic tag. Returns null if no talk in the current data happens to
+   carry that topic (so callers can fall back to the regular cycle pick
+   instead of showing nothing). */
+function curatedHolidayPick(holiday, sorted, year){
+  const eligible = sorted.filter(t=> talkTopics(t).includes(holiday.topic));
+  if (!eligible.length) return null;
+  return eligible[splitmix32(year ^ 0x5a5a5a5a) % eligible.length];
+}
+/* Deterministic, seeded by a given calendar date (not the person's
+   current filters — this is meant to be a stable "come back tomorrow for
+   a new one" hook, same for everyone on a given day, not a filtered
+   result that changes as someone adjusts the Speaker filter). Checks the
+   curated-holiday list first (see CURATED_HOLIDAYS above); any other day
+   falls through to the no-repeat cycle shuffle. Takes an explicit date
+   (rather than always using "now") so the exact same real algorithm can
+   also compute a PAST day's pick for the history backfill below —
+   talkOfTheDay() itself is just this called with today's date. */
+function talkForDate(d){
+  if (!TALKS.length) return null;
+  const sorted = sortedTalks();
+  for (const holiday of CURATED_HOLIDAYS){
+    if (holiday.matches(d)){
+      const pick = curatedHolidayPick(holiday, sorted, d.getFullYear());
+      if (pick) return pick;
+      break; // no talk carries that topic yet — fall through to the cycle
+    }
+  }
+  return cyclePick(sorted, localDayNumber(d));
+}
+function talkOfTheDay(){
+  return talkForDate(new Date());
+}
+/* Seeds some initial Talk-of-the-Day HISTORY (see the long comment on
+   TOTD_HISTORY_KEY, up near loadTotdHistory()) on a fresh install, using
+   the exact real talkForDate() algorithm "today" uses — safe to do only
+   because nothing about TALKS' sort order has changed yet at the moment
+   this one-time backfill runs. Guarded to run at most once (totdHistory
+   starts completely empty only on a fresh install); every day after
+   that, renderTalkOfTheDay() below appends the real value for that day
+   as it's actually shown, which stays accurate even after later data
+   updates in a way recomputing an old date later would not. */
+const TOTD_BACKFILL_DAYS = 30;
+function backfillTotdHistoryIfNeeded(){
+  if (Object.keys(totdHistory).length || !TALKS.length) return;
+  const now = new Date();
+  for (let i = 0; i < TOTD_BACKFILL_DAYS; i++){
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const pick = talkForDate(d);
+    if (pick) totdHistory[localDateSeed(d)] = talkKey(pick);
+  }
+  saveTotdHistory();
 }
 // Local calendar day (see localDayNumber()) that renderTalkOfTheDay() last
 // ran for. Used by watchForDayRollover() below to notice when it's stale.
 let lastRenderedDayNumber = null;
 function renderTalkOfTheDay(){
   lastRenderedDayNumber = localDayNumber();
+  backfillTotdHistoryIfNeeded();
   const pick = talkOfTheDay();
   const totdItemsEl = document.getElementById('totdItems');
   totdItemsEl.innerHTML = '';
-  if (pick) totdItemsEl.appendChild(buildListItemRow(pick));
+  if (pick){
+    totdItemsEl.appendChild(buildListItemRow(pick));
+    // Append-only: only ever write today's entry once, the first time
+    // it's actually shown — never overwrite an already-recorded day.
+    const todayKey = localDateSeed();
+    if (!(todayKey in totdHistory)){
+      totdHistory[todayKey] = talkKey(pick);
+      saveTotdHistory();
+    }
+  }
 }
 /* Backgrounding the native app doesn't reload the WebView — Android (and
    iOS) just suspend it, so whatever was on screen at last launch stays
@@ -4332,7 +4635,7 @@ async function scheduleDailyReminder(LocalNotifications){
   await LocalNotifications.schedule({
     notifications: [{
       id: DAILY_REMINDER_ID,
-      title: 'Find a Talk',
+      title: 'FindATalk',
       body: 'Your talk of the day is ready to read.',
       schedule: { on: { hour, minute }, allowWhileIdle: true }
     }]
@@ -4724,19 +5027,31 @@ function renderNavBars(currentZone){
 // Delegated click handler — the nav bars are re-rendered (innerHTML
 // replaced) every time the active zone changes, so listeners are bound
 // once here rather than re-attached after each render.
-document.body.addEventListener('click', (e)=>{
-  const btn = e.target.closest('[data-nav-zone]');
-  if (!btn) return;
-  const zone = btn.getAttribute('data-nav-zone');
+// Runs whichever render function a given nav zone needs before showing it
+// (Home needs none — it's always current) — shared by the nav-bar click
+// handler and the swipe-gesture handler below so the two never drift apart.
+function goToNavZone(zone){
   if (zone==='recent') renderRecentPage();
   else if (zone==='favorites') renderFavoritesPage();
   else if (zone==='notes') renderNotesPage();
   else if (zone==='collectionsIndex') renderCollectionsIndexPage();
   showZone(zone);
+}
+document.body.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-nav-zone]');
+  if (!btn) return;
+  goToNavZone(btn.getAttribute('data-nav-zone'));
 });
 renderNavBars('home'); // initial paint — the app opens on the Home page
 
+// Tracks which zone is on screen right now (updated by showZone() below) —
+// used by the swipe-gesture handler further down to know what to advance
+// from. 'collection' (an individual list's own detail page) deliberately
+// isn't one of NAV_ITEMS, so it's simply not swipeable — only the five main
+// tabs are.
+let activeZone = 'home';
 function showZone(name){
+  activeZone = name;
   homeZone.style.display = name==='home' ? '' : 'none';
   recentZone.style.display = name==='recent' ? 'block' : 'none';
   favoritesZone.style.display = name==='favorites' ? 'block' : 'none';
@@ -4746,6 +5061,53 @@ function showZone(name){
   renderNavBars(name);
   window.scrollTo({top:0, behavior:'smooth'});
 }
+
+/* ---------------- swipe left/right between the main nav tabs ----------------
+   Additive to the existing nav-bar clicks, not a replacement — a swipe
+   gesture is never self-discoverable on its own. Cycles through NAV_ITEMS
+   in their displayed order (Home <-> Recents <-> Favorites <-> Notes <->
+   Lists), clamping at both ends rather than wrapping around. Does nothing
+   while on the individual list-detail page ('collection' zone) since it
+   isn't one of the five main tabs — see the .findIndex() check below.
+
+   Two real conflicts guarded against, not just theoretical ones:
+   - OS edge-swipe-back: iOS/Android reserve a swipe starting right at the
+     screen edge for the native back gesture. A touch starting within
+     EDGE_GUARD_PX of either edge is ignored entirely here so the two never
+     fight over the same gesture.
+   - Vertical scrolling: only a touch whose net horizontal movement clearly
+     dominates its vertical movement, and clears a minimum distance, counts
+     as a swipe — an ordinary scroll (or a tap, which barely moves at all)
+     never qualifies. Also ignores multi-touch and touches starting on a
+     text input/textarea, so pinching and text selection/cursor placement
+     are untouched. */
+const SWIPE_THRESHOLD_PX = 60;
+const EDGE_GUARD_PX = 24;
+let swipeStart = null;
+document.addEventListener('touchstart', (e)=>{
+  if (e.touches.length !== 1){ swipeStart = null; return; }
+  const t = e.touches[0];
+  if (t.clientX < EDGE_GUARD_PX || t.clientX > window.innerWidth - EDGE_GUARD_PX){
+    swipeStart = null; // leave this to the OS back gesture
+    return;
+  }
+  if (e.target.closest('input, textarea')){ swipeStart = null; return; }
+  swipeStart = {x: t.clientX, y: t.clientY};
+}, {passive:true});
+document.addEventListener('touchend', (e)=>{
+  if (!swipeStart) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipeStart.x;
+  const dy = t.clientY - swipeStart.y;
+  swipeStart = null;
+  if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
+  if (Math.abs(dx) < Math.abs(dy) * 1.5) return; // not horizontal-dominant enough
+  const idx = NAV_ITEMS.findIndex(item=> item.zone === activeZone);
+  if (idx === -1) return; // not currently on one of the five main tabs
+  const nextIdx = idx + (dx < 0 ? 1 : -1); // swipe left = next tab, right = previous
+  if (nextIdx < 0 || nextIdx >= NAV_ITEMS.length) return; // clamp at the ends
+  goToNavZone(NAV_ITEMS[nextIdx].zone);
+}, {passive:true});
 
 /* Resets the screen back to the pristine Home tab — no drawn ticket, no
    "Show a List" open, no modal open. Called by native code (see
@@ -5159,7 +5521,7 @@ async function saveBackupToFile(){
         directory: 'CACHE',
         encoding: 'utf8'
       });
-      await cap.Plugins.Share.share({ title: 'Find A Talk backup', url: uri });
+      await cap.Plugins.Share.share({ title: 'FindATalk backup', url: uri });
       return savedToDevice ? 'device' : 'shared';
     } catch(err){
       if (savedToDevice) return 'device'; // still a real success even if sharing itself was cancelled/failed
@@ -5173,7 +5535,7 @@ async function saveBackupToFile(){
     try {
       const file = new File([blob], filename, {type:'application/json'});
       if (navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], title:'Find A Talk backup'});
+        await navigator.share({files:[file], title:'FindATalk backup'});
         return 'shared';
       }
     } catch(err){
@@ -5278,7 +5640,7 @@ function importBackupFile(file, onDone){
     catch(err){ onDone(null, err); return; }
     if (!data || typeof data !== 'object' || !Array.isArray(data.favorites) ||
         !Array.isArray(data.collections) || typeof data.collectionMembers !== 'object'){
-      onDone(null, new Error('not a valid Find A Talk backup file'));
+      onDone(null, new Error('not a valid FindATalk backup file'));
       return;
     }
     onDone(mergeBackupData(data), null);
@@ -5458,6 +5820,135 @@ noteModalOverlay.addEventListener('click', (e)=>{
 });
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !noteModalOverlay.hidden) closeNoteModal();
+});
+
+/* ---------------- Talk of the Day: history calendar popout ----------------
+   Lets someone browse back through days that have a recorded entry in
+   totdHistory (see the long comment near loadTotdHistory()) — a real
+   month-grid calendar rather than a flat list, so browsing further back
+   never adds visual weight: one month is always the same amount of UI
+   regardless of how much history exists behind it. Days with no recorded
+   pick (before the app's history began, or simply in the future) are
+   disabled, not hidden, so every week keeps the same shape. */
+const totdCalendarModalOverlay = document.getElementById('totdCalendarModalOverlay');
+const totdCalMonthLabel = document.getElementById('totdCalMonthLabel');
+const totdCalGrid = document.getElementById('totdCalGrid');
+const totdCalResult = document.getElementById('totdCalResult');
+const totdCalPrevBtn = document.getElementById('totdCalPrevBtn');
+const totdCalNextBtn = document.getElementById('totdCalNextBtn');
+const TOTD_CAL_DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+// Always normalized to the 1st of the shown month so prev/next month math
+// never drifts across different-length months (e.g. Jan 31 -> Feb 28).
+let totdCalViewDate = null;
+let totdCalSelectedKey = null;
+
+function renderTotdCalendarResult(dateKey){
+  totdCalResult.innerHTML = '';
+  const pickKey = totdHistory[dateKey];
+  const talk = pickKey ? TALKS_BY_KEY[pickKey] : null;
+  if (!talk) return;
+  const label = document.createElement('p');
+  label.className = 'totd-calendar-result-date';
+  // Parsed without a 'Z' suffix so this reads as local midnight, not UTC
+  // midnight (which can otherwise display as the previous day).
+  const d = new Date(dateKey + 'T00:00:00');
+  label.textContent = d.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  totdCalResult.appendChild(label);
+  totdCalResult.appendChild(buildListItemRow(talk));
+}
+
+function renderTotdCalendar(){
+  const y = totdCalViewDate.getFullYear();
+  const m = totdCalViewDate.getMonth();
+  totdCalMonthLabel.textContent = totdCalViewDate.toLocaleDateString(undefined, {month:'long', year:'numeric'});
+
+  const todayKey = localDateSeed();
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  totdCalGrid.innerHTML = '';
+  TOTD_CAL_DOW_LABELS.forEach(label=>{
+    const el = document.createElement('div');
+    el.className = 'totd-calendar-dow';
+    el.textContent = label;
+    totdCalGrid.appendChild(el);
+  });
+  for (let i = 0; i < firstDow; i++){
+    const blank = document.createElement('div');
+    blank.className = 'totd-calendar-day is-empty';
+    totdCalGrid.appendChild(blank);
+  }
+  for (let day = 1; day <= daysInMonth; day++){
+    const dateKey = localDateSeed(new Date(y, m, day));
+    const pickKey = totdHistory[dateKey];
+    const hasHistory = !!pickKey;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'totd-calendar-day';
+    if (dateKey === todayKey) btn.classList.add('is-today');
+    if (dateKey === totdCalSelectedKey) btn.classList.add('is-selected');
+    btn.textContent = String(day);
+    btn.disabled = !hasHistory;
+    if (hasHistory){
+      // Reuses the same isRead()/CHECK_ICON_SVG the "Read" badge already
+      // uses everywhere else (Show a List, tickets, etc.) — a day's Talk
+      // of the Day counts as read the same way any other talk does, via
+      // recordOpened()/markRead() when its title link is actually opened.
+      const talk = TALKS_BY_KEY[pickKey];
+      if (talk && isRead(talk)){
+        const check = document.createElement('span');
+        check.className = 'totd-calendar-day-check';
+        check.innerHTML = CHECK_ICON_SVG;
+        btn.appendChild(check);
+      }
+      btn.setAttribute('aria-label', `See the Talk of the Day for ${dateKey}`);
+      btn.addEventListener('click', ()=>{
+        totdCalSelectedKey = dateKey;
+        renderTotdCalendar();
+        renderTotdCalendarResult(dateKey);
+      });
+    }
+    totdCalGrid.appendChild(btn);
+  }
+
+  // No history exists for the future, so Next can't go past the real
+  // current month; Prev has no such bound — a month with no recorded
+  // days just renders with every cell disabled.
+  const now = new Date();
+  totdCalNextBtn.disabled = (y === now.getFullYear() && m === now.getMonth());
+}
+
+function openTotdCalendarModal(){
+  const now = new Date();
+  totdCalViewDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  totdCalSelectedKey = null;
+  totdCalResult.innerHTML = '';
+  renderTotdCalendar();
+  totdCalendarModalOverlay.hidden = false;
+}
+function closeTotdCalendarModal(){
+  totdCalendarModalOverlay.hidden = true;
+}
+document.getElementById('totdCalendarBtn').addEventListener('click', openTotdCalendarModal);
+document.getElementById('totdCalendarModalClose').addEventListener('click', closeTotdCalendarModal);
+totdCalendarModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === totdCalendarModalOverlay) closeTotdCalendarModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !totdCalendarModalOverlay.hidden) closeTotdCalendarModal();
+});
+totdCalPrevBtn.addEventListener('click', ()=>{
+  totdCalViewDate = new Date(totdCalViewDate.getFullYear(), totdCalViewDate.getMonth() - 1, 1);
+  totdCalSelectedKey = null;
+  totdCalResult.innerHTML = '';
+  renderTotdCalendar();
+});
+totdCalNextBtn.addEventListener('click', ()=>{
+  if (totdCalNextBtn.disabled) return;
+  totdCalViewDate = new Date(totdCalViewDate.getFullYear(), totdCalViewDate.getMonth() + 1, 1);
+  totdCalSelectedKey = null;
+  totdCalResult.innerHTML = '';
+  renderTotdCalendar();
 });
 
 renderTalkOfTheDay();
