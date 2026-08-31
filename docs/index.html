@@ -1834,8 +1834,14 @@
   .btn-ghost:disabled:hover{ border-color:var(--line); color:var(--ink); }
 
   /* ---------- footer ---------- */
+  /* max-width + margin:auto centering, same pattern already used for other
+     centered prose blocks in this file (the streak badge row, the Talk of
+     the Day eyebrow) — without it, this paragraph spans the full 760px
+     .wrap width while centered, which gives long lines a ragged,
+     uneven wrap instead of a tidy narrow column. */
   footer{
-    margin-top:64px;
+    max-width:560px;
+    margin:64px auto 0;
     padding-top:26px;
     border-top:1px solid var(--line);
     font-family:'Inter',sans-serif;
@@ -2483,8 +2489,8 @@
   </div>
 
   <footer>
-    This tool draws from a curated sample of <strong id="totalCount"></strong> real, verified talks pulled from every single General Conference from April 1971 through April 2026, one hundred and eleven conferences in a row with no gaps. Topics are the Church's own official tags, pulled directly from its general-conference topics index rather than guessed from titles.<br>
-    For the complete, official library, visit <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>. This page is an independent fan-made tool, not produced by the Church.
+    <strong id="totalCount"></strong> real, verified talks from every General Conference, April 1971–April 2026 (111 conferences, no gaps). Topics, sessions, and citations are all pulled from the Church's own official records — never guessed.<br>
+    For the complete library, visit <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>. This is an independent fan-made tool, not produced by the Church.
   </footer>
 
 </div>
