@@ -3971,22 +3971,44 @@ const WORD_FORM_GROUPS = [
   ['covenant', 'covenants'],
   ['sacred', 'sanctify', 'sanctification'],
 ];
-/* Derived at load, once: word -> every OTHER word in its group. Built from
-   WORD_FORM_GROUPS above rather than hand-writing both directions of every
-   pair — "gratitude" -> ['grateful','thankful',...] and "grateful" ->
-   ['gratitude','thankful',...] come from the same one group. */
+/* Derived at load, once: word -> every OTHER word in its group, and word ->
+   which group index it belongs to (the latter used only by the substring
+   fallback below, to tell a genuine same-group match from an ambiguous
+   cross-group one). Built from WORD_FORM_GROUPS above rather than
+   hand-writing both directions of every pair — "gratitude" ->
+   ['grateful','thankful',...] and "grateful" -> ['gratitude','thankful',
+   ...] come from the same one group. */
 const WORD_FORM_LOOKUP = {};
-WORD_FORM_GROUPS.forEach(group=>{
+const WORD_FORM_GROUP_ID = {};
+WORD_FORM_GROUPS.forEach((group, gid)=>{
   group.forEach(word=>{
     WORD_FORM_LOOKUP[word] = group.filter(w=>w!==word);
+    WORD_FORM_GROUP_ID[word] = gid;
   });
 });
-/* Same exact-match-only rule as searchAliasTopic() below, and for the same
-   reason — a short in-progress query could otherwise substring-match into
-   an unrelated group mid-typing. Returns an array of other word forms, or
-   null. */
+/* Exact match first (unchanged). Below that, a 4+ character SUBSTRING
+   fallback so the boost can kick in a few keystrokes before someone
+   finishes typing a full word, matching the same design idea 25's search
+   box and the Topic panel's "did you mean" already use elsewhere. Real
+   risk tested and found before shipping this: a naive "any word
+   containing this substring" check would let a genuinely ambiguous
+   partial query silently pick one meaning over another — "sacr" is a
+   real substring of both "sacrifice" (group 9) and "sacred" (group 18),
+   two different ideas, not the same word typed differently. So this only
+   expands when every matching word belongs to the SAME group — if a
+   partial query spans more than one group, it returns null (no boost)
+   rather than guessing which group was meant, same "don't guess between
+   real, different answers" rule idea 28 uses for equidistant speaker
+   ties. Below 4 characters, no substring check runs at all — too short
+   to mean anything reliably. */
 function searchWordForms(q){
-  return WORD_FORM_LOOKUP[q] || null;
+  if (WORD_FORM_LOOKUP[q]) return WORD_FORM_LOOKUP[q];
+  if (!q || q.length < 4) return null;
+  const groupIds = new Set();
+  for (const word of Object.keys(WORD_FORM_GROUP_ID)){
+    if (word.includes(q)) groupIds.add(WORD_FORM_GROUP_ID[word]);
+  }
+  return groupIds.size === 1 ? WORD_FORM_GROUPS[[...groupIds][0]] : null;
 }
 const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 // Unlike allRoles (untagged talks just have no role), talkSession() always
@@ -4085,16 +4107,27 @@ function matchesDim(t, dim, values){
 /* Idea 25: synonym expansion for "Search titles & summaries" — reuses the
    same TOPIC_ALIASES table idea 12/17 built for the Topic filter's "did
    you mean" suggestion, but here it doesn't just suggest, it actively
-   widens the match. Deliberately an EXACT match against the full trimmed
-   query, not TOPIC_ALIASES's substring-of-key fallback (findTopicAlias) —
-   that fallback is fine for a passive suggestion surfaced only on a
-   failed search, but wrong here: a short in-progress query like "an"
-   would substring-match unrelated alias keys ("grandparents," "affair,"
-   ...) and silently pull in unrelated talks while someone is still
-   mid-typing a longer word. Returns the topic key (e.g. 'sexual-purity')
-   or null. */
+   widens the match, so it's more cautious than findTopicAlias's plain
+   substring-of-key fallback. Exact match first (unchanged). Below that, a
+   4+ character substring fallback — same idea as searchWordForms() above,
+   and the same real risk applies: typing "self" is a genuine substring of
+   four DIFFERENT alias keys pointing at four different topics ("self
+   worth" -> individual-worth, "self harm" -> mental-illness,
+   "selfishness" -> charity, "self-doubt" -> self-esteem) — silently
+   picking one would be actively misleading, not just unhelpful. So this
+   only expands when every matching key points at the SAME topic; a
+   genuinely ambiguous partial query returns null instead of guessing.
+   Below 4 characters, no substring check runs at all (a query like "an"
+   would substring-match "grandparents," "affair," and others). Returns
+   the topic key (e.g. 'sexual-purity') or null. */
 function searchAliasTopic(q){
-  return TOPIC_ALIASES[q] || null;
+  if (TOPIC_ALIASES[q]) return TOPIC_ALIASES[q];
+  if (!q || q.length < 4) return null;
+  const targets = new Set();
+  for (const key of Object.keys(TOPIC_ALIASES)){
+    if (key.includes(q)) targets.add(TOPIC_ALIASES[key]);
+  }
+  return targets.size === 1 ? [...targets][0] : null;
 }
 function matchesSearch(t){
   const q = filterState.query.trim().toLowerCase();
