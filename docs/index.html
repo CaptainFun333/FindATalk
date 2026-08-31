@@ -971,22 +971,37 @@
     font-weight:600;
     font-size:17px;
     color:var(--ink);
+    text-decoration:none;
+    display:inline-block;
   }
+  a.cfm-range:hover{ color:var(--burgundy); text-decoration:underline; text-underline-offset:3px; }
+  a.cfm-range:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; border-radius:2px; }
+  /* Bigger + its own bottom margin (was 2px) so it reads as clearly
+     separate from the .cfm-hint paragraphs below rather than looking
+     like part of the same text block — legibility + visual grouping,
+     not just a font-size bump. */
   .cfm-dates{
     font-family:'Inter',sans-serif;
-    font-size:12px;
+    font-size:15px;
+    font-weight:500;
     color:var(--ink-soft);
-    margin-top:2px;
+    margin:4px 0 16px;
   }
   .cfm-hint{
     max-width:480px;
-    margin:10px auto 22px;
+    margin:0 auto 22px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
     text-align:center;
     font-family:'Inter',sans-serif;
     font-size:12.5px;
     line-height:1.55;
     color:var(--ink-soft);
   }
+  .cfm-hint p{ margin:0 0 5px; }
+  .cfm-hint p:last-child{ margin-bottom:0; }
+  .cfm-hint-lead{ font-weight:600; color:var(--ink); }
+  .cfm-hint-disclaimer{ font-style:italic; }
   .cite-count-badge{
     display:inline-flex; align-items:center; gap:4px;
     font-family:'Inter',sans-serif;
@@ -2150,15 +2165,127 @@
     <div class="cfm-week-nav">
       <button type="button" id="cfmPrevBtn" aria-label="Previous week">‹</button>
       <div class="cfm-week-label">
-        <div class="cfm-range" id="cfmRange"></div>
+        <a class="cfm-range" id="cfmRange" href="#" target="_blank" rel="noopener"></a>
         <div class="cfm-dates" id="cfmDates"></div>
       </div>
       <button type="button" id="cfmNextBtn" aria-label="Next week">›</button>
     </div>
-    <p class="cfm-hint" id="cfmHint">Talks that match this week's Come, Follow Me reading — usually by footnoted scripture, or by topic/mention for weeks like Easter and Christmas that aren't a chapter range. Not an official Church-curated list, just what the app's own data actually turns up.</p>
-    <div class="pool-count" id="cfmMatchCount"></div>
+    <div class="cfm-hint" id="cfmHint">
+      <p class="cfm-hint-lead">Talks that match this week's Come, Follow Me reading</p>
+      <p>Matches are curated by footnoted scripture.</p>
+      <p>Special weeks like Easter &amp; Christmas are curated by topic.</p>
+      <p class="cfm-hint-disclaimer">Not an official Church-curated list.</p>
+    </div>
+
+    <!-- Idea 24 item #3: reuses Home's exact filter-panel component
+         (same .narrow-box/.field/.ms-trigger markup), scoped to this
+         week's matches instead of the full talk list — see
+         CFM_DIM_CONFIG/cfmPoolExcept() near matchesDim() for how the
+         matching PREDICATE is shared with Home rather than reimplemented,
+         even though this wiring/markup is necessarily its own copy.
+         cfmControlsBox wraps the whole filter/sort/select block so it can
+         be hidden as one unit for the (currently unreachable) week with
+         no matching mechanism at all. -->
+    <div id="cfmControlsBox">
+    <div class="narrow-box">
+      <div class="narrow-box-header">
+        <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
+        <span>Looking for something more specific?</span>
+      </div>
+      <div class="narrow-box-body">
+        <div class="filters">
+          <div class="field">
+            <label id="cfmTopicLabel">Topic</label>
+            <button type="button" class="ms-trigger" id="cfmTopicTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmTopicLabel cfmTopicTriggerText">
+              <span class="ms-trigger-text" id="cfmTopicTriggerText">Any topic</span>
+              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="ms-panel" id="cfmTopicPanel" hidden>
+              <input type="text" class="ms-search" id="cfmTopicSearch" placeholder="Search topics…" autocomplete="off">
+              <div class="ms-options" id="cfmTopicOptions"></div>
+              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmTopicClear">Clear</button></div>
+            </div>
+          </div>
+          <div class="field">
+            <label id="cfmRoleLabel">Calling at the Time of the Talk</label>
+            <button type="button" class="ms-trigger" id="cfmRoleTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmRoleLabel cfmRoleTriggerText">
+              <span class="ms-trigger-text" id="cfmRoleTriggerText">Any Calling</span>
+              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="ms-panel" id="cfmRolePanel" hidden>
+              <div class="ms-options" id="cfmRoleOptions"></div>
+              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmRoleClear">Clear</button></div>
+            </div>
+          </div>
+          <div class="field">
+            <label id="cfmSpeakerLabel">Speaker</label>
+            <button type="button" class="ms-trigger" id="cfmSpeakerTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmSpeakerLabel cfmSpeakerTriggerText">
+              <span class="ms-trigger-text" id="cfmSpeakerTriggerText">Any speaker</span>
+              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="ms-panel" id="cfmSpeakerPanel" hidden>
+              <input type="text" class="ms-search" id="cfmSpeakerSearch" placeholder="Search speakers…" autocomplete="off">
+              <div class="ms-options" id="cfmSpeakerOptions"></div>
+              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmSpeakerClear">Clear</button></div>
+            </div>
+          </div>
+          <div class="field">
+            <label id="cfmYearLabel">General Conference</label>
+            <button type="button" class="ms-trigger" id="cfmYearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmYearLabel cfmYearTriggerText">
+              <span class="ms-trigger-text" id="cfmYearTriggerText">Any Conference</span>
+              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="ms-panel" id="cfmYearPanel" hidden>
+              <div class="ms-options" id="cfmYearOptions"></div>
+              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmYearClear">Clear</button></div>
+            </div>
+          </div>
+          <div class="field">
+            <label id="cfmSessionLabel">Session</label>
+            <button type="button" class="ms-trigger" id="cfmSessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmSessionLabel cfmSessionTriggerText">
+              <span class="ms-trigger-text" id="cfmSessionTriggerText">Any Session</span>
+              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="ms-panel" id="cfmSessionPanel" hidden>
+              <div class="ms-options" id="cfmSessionOptions"></div>
+              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmSessionClear">Clear</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="filters-actions">
+          <div class="pool-count pool-count-inline" id="cfmMatchCount"></div>
+          <button type="button" id="cfmResetBtn" class="reset-link">Reset filters</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="list-size-row">
+      <span class="list-size-label">Sort</span>
+      <div class="list-size-options" id="cfmSortOptions">
+        <button type="button" class="list-size-btn" data-sort="matching">Most Matching</button>
+        <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
+      </div>
+    </div>
+    <div class="list-select-row" id="cfmSelectRow">
+      <button type="button" class="btn btn-ghost" id="cfmSelectFirstBtn">Select First 10</button>
+      <button type="button" class="btn btn-ghost" id="cfmSelectAllBtn">Select All</button>
+    </div>
+    <div class="list-bulk-bar" id="cfmBulkBar" hidden>
+      <span id="cfmBulkCount"></span>
+      <button type="button" class="btn btn-ghost" id="cfmBulkAddBtn">+ Add to List</button>
+      <button type="button" class="reset-link" id="cfmBulkClearBtn">Clear selection</button>
+    </div>
+    </div>
+
     <div class="list-items" id="cfmItems"></div>
     <div class="list-empty" id="cfmEmpty"></div>
+    <div class="list-footer">
+      <div class="list-pagination" id="cfmPagination">
+        <button type="button" class="btn btn-ghost" id="cfmListPrevBtn">← Previous 10</button>
+        <span class="list-page-indicator" id="cfmListPageIndicator"></span>
+        <button type="button" class="btn btn-ghost" id="cfmListNextBtn">Next 10 →</button>
+      </div>
+    </div>
   </div>
 
   <div class="modal-overlay" id="collectionModalOverlay" hidden>
@@ -2785,8 +2912,13 @@ function citationCoversVerse(anchor, verseStart, verseEnd){
    schedule every year (a 4-year Book of Mormon/D&C/New Testament/Old
    Testament rotation), so next year's version is a data.json edit, not a
    code change. Each entry: {start: "YYYY-MM-DD", label, refs, topics,
-   keywords} — `topics`/`keywords` are optional, `refs` is optional too
-   now (the intro week carries both refs AND keywords — see below).
+   keywords, url} — `topics`/`keywords`/`url` are optional, `refs` is
+   optional too now (the intro week carries both refs AND keywords — see
+   below). `url` is that week's real page in the Church's own manual
+   (`.../come-follow-me-for-home-and-church-<volume-slug>/<NN>?lang=eng`,
+   `NN` the week's 2-digit lesson number) — the week label links out to
+   it. Built from data, not derived from array position in JS, so a
+   future year's numbering quirk can't silently produce a wrong link.
    `refs` is a list of [volume, book, ranges, verseRange] tuples: `ranges`
    is a list of [chapterStart, chapterEnd] pairs, or null to mean "the
    whole book" (Ruth, Esther, and several of the minor prophets are
@@ -4419,7 +4551,7 @@ function shuffled(arr){
    Pass {selectable:true} (only "Show a List" does) to also prepend a
    checkbox that adds/removes the talk from listSelection, for the
    "select several, add them to a list at once" bulk-add bar. */
-function buildListItemRow(pick, {selectable=false}={}){
+function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, onSelectionChange=syncListBulkBar}={}){
   const [title, speaker, year, month] = pick;
   const role = talkRole(pick);
   const kicker = talkKicker(pick);
@@ -4444,12 +4576,12 @@ function buildListItemRow(pick, {selectable=false}={}){
     selectLabel.className = 'list-item-select';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.checked = listSelection.has(talkKey(pick));
+    cb.checked = selectionMap.has(talkKey(pick));
     cb.setAttribute('aria-label', `Select "${title}"`);
     cb.addEventListener('change', ()=>{
-      if (cb.checked) listSelection.set(talkKey(pick), pick);
-      else listSelection.delete(talkKey(pick));
-      syncListBulkBar();
+      if (cb.checked) selectionMap.set(talkKey(pick), pick);
+      else selectionMap.delete(talkKey(pick));
+      onSelectionChange();
     });
     selectLabel.appendChild(cb);
     titleGroup.appendChild(selectLabel);
@@ -5676,12 +5808,415 @@ const cfmMatchCountEl = document.getElementById('cfmMatchCount');
 const cfmHintEl = document.getElementById('cfmHint');
 const cfmPrevBtn = document.getElementById('cfmPrevBtn');
 const cfmNextBtn = document.getElementById('cfmNextBtn');
+const cfmControlsBox = document.getElementById('cfmControlsBox');
+
+/* ---- filters (idea 24 item #3) ----
+   Reuses Home's exact matching PREDICATE (matchesDim/valuesForDim —
+   already pure functions taking a talk/pool/values, not hardwired to
+   Home's own filterState) against a different base pool: this week's
+   matches instead of the full TALKS array. The state/DOM-wiring/render
+   loop below is a parallel copy of Home's (openPanel/closePanel/
+   renderOptions/rebuildFilterOptions), since that part genuinely is a
+   different page with different elements — but nothing about WHAT
+   counts as a match is duplicated, only how it's displayed. */
+const CFM_FILTER_STATE = { year: [], speaker: [], topic: [], role: [], session: [] };
+const CFM_DIM_CONFIG = {
+  topic: {
+    allValues: allTopics, anyLabel:'Any topic', noun:'topics', searchable:true,
+    labelFor: v=>TOPIC_LABELS[v],
+    trigger: document.getElementById('cfmTopicTrigger'), triggerText: document.getElementById('cfmTopicTriggerText'),
+    panel: document.getElementById('cfmTopicPanel'), options: document.getElementById('cfmTopicOptions'),
+    search: document.getElementById('cfmTopicSearch'), clearBtn: document.getElementById('cfmTopicClear')
+  },
+  role: {
+    allValues: allRoles, anyLabel:'Any Calling', noun:'callings', searchable:false,
+    labelFor: v=>ROLE_LABELS[v],
+    trigger: document.getElementById('cfmRoleTrigger'), triggerText: document.getElementById('cfmRoleTriggerText'),
+    panel: document.getElementById('cfmRolePanel'), options: document.getElementById('cfmRoleOptions'),
+    search: null, clearBtn: document.getElementById('cfmRoleClear')
+  },
+  speaker: {
+    allValues: allSpeakers, anyLabel:'Any speaker', noun:'speakers', searchable:true,
+    labelFor: v=>speakerDisplayName(v),
+    trigger: document.getElementById('cfmSpeakerTrigger'), triggerText: document.getElementById('cfmSpeakerTriggerText'),
+    panel: document.getElementById('cfmSpeakerPanel'), options: document.getElementById('cfmSpeakerOptions'),
+    search: document.getElementById('cfmSpeakerSearch'), clearBtn: document.getElementById('cfmSpeakerClear')
+  },
+  year: {
+    allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
+    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
+    trigger: document.getElementById('cfmYearTrigger'), triggerText: document.getElementById('cfmYearTriggerText'),
+    panel: document.getElementById('cfmYearPanel'), options: document.getElementById('cfmYearOptions'),
+    search: null, clearBtn: document.getElementById('cfmYearClear')
+  },
+  session: {
+    allValues: allSessions, anyLabel:'Any Session', noun:'sessions', searchable:false,
+    labelFor: v=>SESSION_LABELS[v],
+    trigger: document.getElementById('cfmSessionTrigger'), triggerText: document.getElementById('cfmSessionTriggerText'),
+    panel: document.getElementById('cfmSessionPanel'), options: document.getElementById('cfmSessionOptions'),
+    search: null, clearBtn: document.getElementById('cfmSessionClear')
+  }
+};
+const cfmAvailableSets = { year:new Set(), speaker:new Set(), topic:new Set(), role:new Set(), session:new Set() };
+
+// This week's matches, unfiltered by CFM_FILTER_STATE — cfmMatchesForWeek()
+// is cheap enough to call fresh each time (already proven fine against the
+// full 4,054-talk dataset when this feature was first built).
+function cfmBaseMatches(){
+  return cfmCurrentIndex === null ? [] : cfmMatchesForWeek(cfmCurrentIndex);
+}
+function cfmPoolExcept(excludeDim){
+  return cfmBaseMatches().filter(m=>{
+    const t = TALKS_BY_KEY[m.talkKey];
+    if (!t) return false;
+    for (const dim of Object.keys(CFM_DIM_CONFIG)){
+      if (dim===excludeDim) continue;
+      if (!matchesDim(t, dim, CFM_FILTER_STATE[dim])) return false;
+    }
+    return true;
+  });
+}
+// Filtering never reorders — cfmBaseMatches() already comes out in the
+// right "Most Matching" order (citation matches by count, then topic/
+// keyword matches by date), and Array.filter() preserves order, so this
+// stays correctly sorted with no extra work.
+function cfmFilteredMatches(){
+  return cfmBaseMatches().filter(m=>{
+    const t = TALKS_BY_KEY[m.talkKey];
+    return t && Object.keys(CFM_DIM_CONFIG).every(dim=>matchesDim(t, dim, CFM_FILTER_STATE[dim]));
+  });
+}
+function cfmRenderOptions(dim){
+  const cfg = CFM_DIM_CONFIG[dim];
+  const available = cfmAvailableSets[dim];
+  const selected = CFM_FILTER_STATE[dim];
+  const query = cfg.search ? cfg.search.value.trim().toLowerCase() : '';
+  cfg.options.innerHTML = '';
+  let shown = 0;
+  cfg.allValues.forEach(val=>{
+    if (!(available.has(val) || selected.includes(val))) return;
+    const label = cfg.labelFor(val);
+    if (query && !label.toLowerCase().includes(query)) return;
+    shown++;
+    const row = document.createElement('label');
+    row.className = 'ms-option';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = val;
+    cb.checked = selected.includes(val);
+    cb.addEventListener('change', ()=>{
+      const arr = CFM_FILTER_STATE[dim];
+      const idx = arr.indexOf(val);
+      if (cb.checked && idx===-1) arr.push(val);
+      if (!cb.checked && idx!==-1) arr.splice(idx,1);
+      cfmOnFiltersChanged();
+    });
+    const span = document.createElement('span');
+    span.textContent = label;
+    row.appendChild(cb); row.appendChild(span);
+    cfg.options.appendChild(row);
+  });
+  if (shown === 0){
+    const empty = document.createElement('div');
+    empty.className = 'ms-empty';
+    const aliasKey = dim === 'topic' ? findTopicAlias(query) : null;
+    if (aliasKey){
+      empty.textContent = 'No exact match.';
+      const sugg = document.createElement('button');
+      sugg.type = 'button';
+      sugg.className = 'ms-alias-suggestion';
+      sugg.textContent = `Did you mean "${TOPIC_LABELS[aliasKey]}"?`;
+      sugg.addEventListener('click', ()=>{
+        if (!CFM_FILTER_STATE.topic.includes(aliasKey)) CFM_FILTER_STATE.topic.push(aliasKey);
+        cfg.search.value = '';
+        cfmOnFiltersChanged();
+        cfg.search.focus();
+      });
+      empty.appendChild(sugg);
+    } else {
+      empty.textContent = query ? 'No matches' : 'No options available';
+    }
+    cfg.options.appendChild(empty);
+  }
+}
+function cfmUpdateTrigger(dim){
+  const cfg = CFM_DIM_CONFIG[dim];
+  const n = CFM_FILTER_STATE[dim].length;
+  cfg.triggerText.textContent =
+    n === 0 ? cfg.anyLabel :
+    n === 1 ? cfg.labelFor(CFM_FILTER_STATE[dim][0]) :
+    `${n} ${cfg.noun} selected`;
+  cfg.clearBtn.disabled = n === 0;
+}
+function cfmRebuildFilterOptions(){
+  Object.keys(CFM_DIM_CONFIG).forEach(dim=>{
+    cfmAvailableSets[dim] = valuesForDim(cfmPoolExcept(dim).map(m=>TALKS_BY_KEY[m.talkKey]).filter(Boolean), dim);
+    cfmRenderOptions(dim);
+    cfmUpdateTrigger(dim);
+  });
+}
+
+let cfmOpenDim = null;
+function cfmClosePanel(dim){
+  const cfg = CFM_DIM_CONFIG[dim];
+  cfg.panel.hidden = true;
+  cfg.trigger.setAttribute('aria-expanded','false');
+  if (cfmOpenDim === dim) cfmOpenDim = null;
+}
+function cfmCloseAllPanels(){ Object.keys(CFM_DIM_CONFIG).forEach(cfmClosePanel); }
+function cfmOpenPanel(dim){
+  if (cfmOpenDim && cfmOpenDim !== dim) cfmClosePanel(cfmOpenDim);
+  const cfg = CFM_DIM_CONFIG[dim];
+  cfg.panel.hidden = false;
+  cfg.trigger.setAttribute('aria-expanded','true');
+  cfmOpenDim = dim;
+  if (cfg.search){ cfg.search.value = ''; cfmRenderOptions(dim); cfg.search.focus(); }
+}
+Object.keys(CFM_DIM_CONFIG).forEach(dim=>{
+  const cfg = CFM_DIM_CONFIG[dim];
+  cfg.trigger.addEventListener('click', ()=>{
+    if (cfg.panel.hidden) cfmOpenPanel(dim); else cfmClosePanel(dim);
+  });
+  if (cfg.search) cfg.search.addEventListener('input', ()=>cfmRenderOptions(dim));
+  cfg.clearBtn.addEventListener('click', ()=>{
+    CFM_FILTER_STATE[dim] = [];
+    cfmOnFiltersChanged();
+  });
+});
+document.addEventListener('click', (e)=>{
+  if (!cfmOpenDim) return;
+  const field = CFM_DIM_CONFIG[cfmOpenDim].trigger.closest('.field');
+  if (field && !field.contains(e.target)) cfmCloseAllPanels();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && cfmOpenDim){
+    const dim = cfmOpenDim;
+    cfmClosePanel(dim);
+    CFM_DIM_CONFIG[dim].trigger.focus();
+  }
+});
+document.getElementById('cfmResetBtn').addEventListener('click', ()=>{
+  Object.keys(CFM_DIM_CONFIG).forEach(dim=>{ CFM_FILTER_STATE[dim] = []; });
+  cfmOnFiltersChanged();
+});
+function cfmOnFiltersChanged(){
+  // A changed filter means a genuinely different pool — same reasoning
+  // as resetListPaging() on Home: old pagination/selection don't refer
+  // to "what's in front of you" anymore.
+  cfmListPage = 0;
+  cfmSelection.clear();
+  cfmRefreshResults();
+}
+
+/* ---- sort: "Most Matching" (default) vs "Most Recent" ----
+   Same two-button toggle component Show a List's Random/Most Recent
+   uses, re-labeled. "Most Matching" is just the filtered pool as-is
+   (already correctly ordered — see cfmFilteredMatches()); "Most Recent"
+   re-sorts every match, regardless of citation/topic/keyword kind,
+   purely by conference date. */
+const CFM_SORT_KEY = 'findATalkCfmSort';
+let cfmSortMode = 'matching';
+try {
+  const savedCfmSort = localStorage.getItem(CFM_SORT_KEY);
+  if (savedCfmSort === 'matching' || savedCfmSort === 'recent') cfmSortMode = savedCfmSort;
+} catch(err){ /* storage unavailable — just use the default */ }
+const cfmSortButtons = [...document.querySelectorAll('#cfmSortOptions .list-size-btn')];
+function cfmSyncSortButtons(){
+  cfmSortButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.sort === cfmSortMode));
+}
+cfmSyncSortButtons();
+cfmSortButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if (btn.dataset.sort === cfmSortMode) return;
+    cfmSortMode = btn.dataset.sort;
+    cfmSyncSortButtons();
+    try { localStorage.setItem(CFM_SORT_KEY, cfmSortMode); }
+    catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+    cfmListPage = 0; // sort changes the order, start back at page 1
+    cfmRefreshResults();
+  });
+});
+function cfmSortedFiltered(){
+  const filtered = cfmFilteredMatches();
+  if (cfmSortMode !== 'recent') return filtered;
+  return filtered.slice().sort((a, b)=>{
+    const ta = TALKS_BY_KEY[a.talkKey], tb = TALKS_BY_KEY[b.talkKey];
+    const ay = ta[2], am = parseInt(ta[3], 10), by_ = tb[2], bm = parseInt(tb[3], 10);
+    return ay !== by_ ? by_ - ay : bm - am;
+  });
+}
+
+/* ---- pagination + Select First 10/All + bulk add ----
+   Exact same components/pattern as Show a List (idea 4/16), namespaced
+   `cfm*` so the two pages' state never collide — see buildListItemRow()'s
+   selectionMap/onSelectionChange parameters, added specifically so this
+   page's checkboxes write into cfmSelection, not listSelection. */
+const CFM_LIST_SIZE = 10;
+let cfmListPage = 0;
+let cfmSelection = new Map();
+let cfmCurrentPagePicks = [];
+let cfmCurrentSource = [];
+
+const cfmBulkBar = document.getElementById('cfmBulkBar');
+const cfmBulkCount = document.getElementById('cfmBulkCount');
+const cfmBulkAddBtn = document.getElementById('cfmBulkAddBtn');
+const cfmBulkClearBtn = document.getElementById('cfmBulkClearBtn');
+function syncCfmBulkBar(){
+  const n = cfmSelection.size;
+  cfmBulkBar.hidden = n === 0;
+  cfmBulkCount.textContent = `${n} talk${n===1?'':'s'} selected`;
+}
+function clearCfmSelection(){
+  cfmSelection.clear();
+  cfmItemsEl.querySelectorAll('.list-item-select input').forEach(cb=> cb.checked = false);
+  syncCfmBulkBar();
+}
+cfmBulkClearBtn.addEventListener('click', clearCfmSelection);
+cfmBulkAddBtn.addEventListener('click', ()=>{
+  if (!cfmSelection.size) return;
+  openCollectionModalFor([...cfmSelection.values()], clearCfmSelection);
+});
+
+const cfmSelectFirstBtn = document.getElementById('cfmSelectFirstBtn');
+const cfmSelectAllBtn = document.getElementById('cfmSelectAllBtn');
+function checkAllCfmRenderedRows(){
+  cfmItemsEl.querySelectorAll('.list-item-select input').forEach(cb=> cb.checked = cfmSelection.has(cb.closest('.list-item').dataset.talkKey));
+}
+cfmSelectFirstBtn.addEventListener('click', ()=>{
+  cfmCurrentPagePicks.forEach(pick=> cfmSelection.set(talkKey(pick), pick));
+  checkAllCfmRenderedRows();
+  syncCfmBulkBar();
+});
+cfmSelectAllBtn.addEventListener('click', ()=>{
+  const total = cfmCurrentSource.length;
+  if (total > CFM_LIST_SIZE && !confirm(`Select all ${total} matching talks?`)) return;
+  cfmCurrentSource.forEach(pick=> cfmSelection.set(talkKey(pick), pick));
+  checkAllCfmRenderedRows();
+  syncCfmBulkBar();
+});
+
+const cfmPagination = document.getElementById('cfmPagination');
+const cfmListPrevBtn = document.getElementById('cfmListPrevBtn');
+const cfmListNextBtn = document.getElementById('cfmListNextBtn');
+const cfmListPageIndicatorEl = document.getElementById('cfmListPageIndicator');
+cfmListPrevBtn.addEventListener('click', ()=>{
+  if (cfmListPage === 0) return;
+  cfmListPage--;
+  cfmRefreshResults();
+});
+cfmListNextBtn.addEventListener('click', ()=>{
+  cfmListPage++;
+  cfmRefreshResults();
+});
+
+/* ---- putting it together: filter panel + sort + pagination + rows ----
+   Called on every filter change, sort change, and page turn — NOT on a
+   week change by itself (renderCfmPage() calls this once after setting
+   up the new week's header/link, see below). */
+function cfmRefreshResults(){
+  const entry = CFM_SCHEDULE[cfmCurrentIndex];
+
+  if (!entry.refs && !entry.topics && !entry.keywords){
+    // Safety net for a future non-scripture week with no matching
+    // mechanism at all — not currently reachable (the intro week has
+    // refs+keywords, Easter/Christmas have topics), but a friendly
+    // message beats an empty-looking pool if one is ever added without
+    // wiring up a way to match it. Hides the whole filter/sort/select
+    // block too — nothing there would do anything useful on an empty pool.
+    cfmControlsBox.style.display = 'none';
+    cfmItemsEl.innerHTML = '';
+    cfmItemsEl.style.display = 'none';
+    cfmEmptyEl.style.display = 'block';
+    cfmEmptyEl.textContent = "This week's reading doesn't point to anything talks can be matched against yet.";
+    cfmMatchCountEl.textContent = '';
+    return;
+  }
+
+  const base = cfmBaseMatches();
+  if (!base.length){
+    cfmControlsBox.style.display = 'none';
+    cfmItemsEl.innerHTML = '';
+    cfmItemsEl.style.display = 'none';
+    cfmEmptyEl.style.display = 'block';
+    cfmEmptyEl.textContent = "No talks in this app's dataset match this week's reading yet.";
+    cfmMatchCountEl.textContent = '';
+    return;
+  }
+
+  cfmControlsBox.style.display = '';
+  cfmRebuildFilterOptions();
+  const sorted = cfmSortedFiltered();
+  cfmMatchCountEl.innerHTML = sorted.length
+    ? `<strong>${sorted.length}</strong> talk${sorted.length===1?'':'s'} match${sorted.length===1?'es':''}`
+    : '';
+
+  if (!sorted.length){
+    cfmItemsEl.innerHTML = '';
+    cfmItemsEl.style.display = 'none';
+    cfmEmptyEl.style.display = 'block';
+    cfmEmptyEl.textContent = "No talks match this week's reading and your filters — try clearing one.";
+    cfmSelectFirstBtn.hidden = true;
+    cfmSelectAllBtn.hidden = true;
+    cfmPagination.style.display = 'none';
+    syncCfmBulkBar();
+    return;
+  }
+
+  cfmItemsEl.style.display = '';
+  cfmEmptyEl.style.display = 'none';
+
+  const maxPage = Math.max(0, Math.ceil(sorted.length / CFM_LIST_SIZE) - 1);
+  if (cfmListPage > maxPage) cfmListPage = maxPage; // pool shrank under us — clamp back onto a real page
+  const start = cfmListPage * CFM_LIST_SIZE;
+  const pageMatches = sorted.slice(start, start + CFM_LIST_SIZE);
+
+  cfmCurrentPagePicks = pageMatches.map(m=> TALKS_BY_KEY[m.talkKey]).filter(Boolean);
+  cfmCurrentSource = sorted.map(m=> TALKS_BY_KEY[m.talkKey]).filter(Boolean);
+
+  cfmSelectFirstBtn.hidden = sorted.length <= CFM_LIST_SIZE;
+  cfmSelectAllBtn.hidden = false;
+  cfmSelectAllBtn.textContent = sorted.length > CFM_LIST_SIZE ? `Select All (${sorted.length})` : 'Select All';
+
+  cfmItemsEl.innerHTML = '';
+  pageMatches.forEach(({talkKey: tk, count, kind})=>{
+    const talk = TALKS_BY_KEY[tk];
+    if (!talk) return;
+    const row = buildListItemRow(talk, {selectable:true, selectionMap: cfmSelection, onSelectionChange: syncCfmBulkBar});
+    const badge = document.createElement('span');
+    badge.className = 'cite-count-badge';
+    // Only a citation match has an actual count to show — topic/keyword
+    // matches say WHY they matched instead, since "N citations" would be
+    // meaningless for those (there's nothing counted).
+    if (kind === 'citation'){
+      badge.textContent = `${count} citation${count===1?'':'s'} in range`;
+    } else if (kind === 'topic'){
+      const topicLabel = (entry.topics || []).map(tp=> TOPIC_LABELS[tp]).find(Boolean) || 'this week';
+      badge.textContent = `Tagged: ${topicLabel}`;
+    } else {
+      badge.textContent = `Mentions "Come, Follow Me"`;
+    }
+    row.appendChild(badge);
+    cfmItemsEl.appendChild(row);
+  });
+
+  const hasMultiplePages = sorted.length > CFM_LIST_SIZE;
+  cfmPagination.style.display = hasMultiplePages ? '' : 'none';
+  if (hasMultiplePages){
+    cfmListPrevBtn.disabled = cfmListPage === 0;
+    cfmListNextBtn.disabled = cfmListPage >= maxPage;
+    cfmListPageIndicatorEl.textContent = `Page ${cfmListPage + 1} of ${maxPage + 1}`;
+  }
+  syncCfmBulkBar();
+}
+
 function renderCfmPage(){
   if (!CFM_SCHEDULE.length){
+    cfmControlsBox.style.display = 'none';
     cfmItemsEl.style.display = 'none';
     cfmEmptyEl.style.display = 'block';
     cfmEmptyEl.textContent = "Come, Follow Me data isn't available yet — try again after the app's next data refresh.";
     cfmRangeEl.textContent = '';
+    cfmRangeEl.removeAttribute('href');
     cfmDatesEl.textContent = '';
     cfmMatchCountEl.textContent = '';
     cfmHintEl.style.display = 'none';
@@ -5692,67 +6227,41 @@ function renderCfmPage(){
   if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
   const entry = CFM_SCHEDULE[cfmCurrentIndex];
   cfmRangeEl.textContent = entry.label;
+  // Links out to this week's real page in the Church's own manual (Gospel
+  // Library opens it directly if installed, via normal universal linking —
+  // same mechanism every other citation link in this app already relies
+  // on). `entry.url` comes from data.json, not a URL built in JS, so a
+  // stale/missing field on a not-yet-refreshed schedule degrades to a
+  // plain unlinked heading instead of a broken or wrong link.
+  if (entry.url){
+    cfmRangeEl.href = entry.url;
+  } else {
+    cfmRangeEl.removeAttribute('href');
+  }
   cfmDatesEl.textContent = cfmFormatDateRange(cfmCurrentIndex);
   cfmPrevBtn.disabled = cfmCurrentIndex <= 0;
   cfmNextBtn.disabled = cfmCurrentIndex >= CFM_SCHEDULE.length - 1;
-
-  cfmItemsEl.innerHTML = '';
-  if (!entry.refs && !entry.topics && !entry.keywords){
-    // Safety net for a future non-scripture week with no matching
-    // mechanism at all — not currently reachable (the intro week has
-    // refs+keywords, Easter/Christmas have topics), but a friendly
-    // message beats an empty-looking pool if one is ever added without
-    // wiring up a way to match it.
-    cfmItemsEl.style.display = 'none';
-    cfmEmptyEl.style.display = 'block';
-    cfmEmptyEl.textContent = "This week's reading doesn't point to anything talks can be matched against yet.";
-    cfmMatchCountEl.textContent = '';
-    cfmHintEl.style.display = '';
-    return;
-  }
-  const matches = cfmMatchesForWeek(cfmCurrentIndex);
-  if (!matches.length){
-    cfmItemsEl.style.display = 'none';
-    cfmEmptyEl.style.display = 'block';
-    cfmEmptyEl.textContent = "No talks in this app's dataset match this week's reading yet.";
-    cfmMatchCountEl.textContent = '';
-    cfmHintEl.style.display = '';
-    return;
-  }
-  cfmItemsEl.style.display = '';
-  cfmEmptyEl.style.display = 'none';
   cfmHintEl.style.display = '';
-  cfmMatchCountEl.textContent = `${matches.length} talk${matches.length===1?'':'s'} match this week's reading`;
-  matches.forEach(({talkKey: tk, count, kind})=>{
-    const talk = TALKS_BY_KEY[tk];
-    if (!talk) return;
-    const row = buildListItemRow(talk);
-    const badge = document.createElement('span');
-    badge.className = 'cite-count-badge';
-    // Only a citation match has an actual count to show — topic/keyword
-    // matches say WHY they matched instead, since "N citations" would be
-    // meaningless for those (there's nothing counted).
-    if (kind === 'citation'){
-      badge.textContent = `${count} citation${count===1?'':'s'} in range`;
-    } else if (kind === 'topic'){
-      const topicLabel = entry.topics.map(tp=> TOPIC_LABELS[tp]).find(Boolean) || 'this week';
-      badge.textContent = `Tagged: ${topicLabel}`;
-    } else {
-      badge.textContent = `Mentions "Come, Follow Me"`;
-    }
-    row.appendChild(badge);
-    cfmItemsEl.appendChild(row);
-  });
+
+  cfmRefreshResults();
+}
+// A new week is a genuinely different pool — old filters/pagination/
+// selection don't refer to "what's in front of you" anymore, same
+// reasoning as cfmOnFiltersChanged() above.
+function cfmGoToWeek(newIndex){
+  cfmCurrentIndex = newIndex;
+  Object.keys(CFM_FILTER_STATE).forEach(dim=>{ CFM_FILTER_STATE[dim] = []; });
+  cfmListPage = 0;
+  cfmSelection.clear();
+  renderCfmPage();
 }
 cfmPrevBtn.addEventListener('click', ()=>{
   if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
-  cfmCurrentIndex = Math.max(0, cfmCurrentIndex - 1);
-  renderCfmPage();
+  cfmGoToWeek(Math.max(0, cfmCurrentIndex - 1));
 });
 cfmNextBtn.addEventListener('click', ()=>{
   if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
-  cfmCurrentIndex = Math.min(CFM_SCHEDULE.length - 1, cfmCurrentIndex + 1);
-  renderCfmPage();
+  cfmGoToWeek(Math.min(CFM_SCHEDULE.length - 1, cfmCurrentIndex + 1));
 });
 
 /* ---------------- My Lists (self-defined collections) ---------------- */
