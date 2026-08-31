@@ -27,7 +27,7 @@ this updated.
 - On the "Come, Follow Me" tab, a week's scripture title now stays on one line and trims with "…" if it's especially long, instead of occasionally wrapping onto two lines.
 - Both calendar popouts (the "Talk of the Day" history calendar and the "Come, Follow Me" week picker) now support swiping left or right to move between months, in addition to the previous/next arrows.
 - On the "Come, Follow Me" tab, tapping the "N citations in range" badge on a talk now shows exactly which scripture citations matched, each a real link to that verse.
-- Scripture citation chips now offer a second link — a small pin icon next to the verse — that jumps straight to the paragraph of the talk itself where that scripture was cited, instead of only linking out to the verse.
+- Tapping a scripture citation that appears both here and in the talk itself now asks where you'd like to go — the verse, or the exact spot in the talk that cites it — instead of only linking out to the verse.
 
 ### Changed
 - The "Talk of the Day" heading and calendar icon above it now line up with the left and right edges of the card below, instead of sitting further apart from it — with a bit of breathing room kept between that row and the card, so the calendar icon doesn't sit flush against it.
@@ -40,6 +40,7 @@ this updated.
 ### Fixed
 - The app was silently re-saving the entire offline talk database on every single launch, even when nothing about it had changed, which could bloat the app's on-device storage over time for no reason. It now only re-saves when the data actually has an update.
 - Fixed the daily streak not resetting after a missed day until you opened another talk — if you skipped a day, the streak badge (and home-screen widget) now correctly shows the break as soon as you look at it, instead of still showing the old count until your next talk open.
+- Fixed a data update silently never reaching anyone who'd used the app before it shipped — a missed timestamp update meant the app thought nothing had changed, so it kept serving the old cached data indefinitely instead of picking up the update on the next relaunch like it's supposed to.
 
 ### Changed
 - The app's name is now written as "FindATalk" everywhere it appears, instead of "Find A Talk"/"Find a Talk."
