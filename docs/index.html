@@ -950,8 +950,18 @@
   .pool-count.pool-count-inline{ text-align:left; margin-bottom:0; }
 
   /* ---------- Come, Follow Me page (idea 24) ---------- */
+  /* Grid, not flex+justify-content:center — with flex, centering the
+     PREV+label+NEXT group as one unit means the arrows hug close to
+     whatever width the label happens to render at, rather than sitting
+     at fixed positions with the label truly centered in the space
+     between them. The 1fr middle column fixes that: the two arrow
+     columns size to content, the label column takes all remaining
+     width, and .cfm-week-label's own text-align:center centers the
+     title/date text within that space regardless of how wide a given
+     week's title is. */
   .cfm-week-nav{
-    display:flex; align-items:center; justify-content:center; gap:18px;
+    display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+    gap:14px;
     margin-bottom:6px;
   }
   .cfm-week-nav button{
@@ -5837,7 +5847,7 @@ function cfmHintLines(entry){
     };
   }
   return {
-    lead: "Talks that match this week's Come, Follow Me reading",
+    lead: "Talks that match this week's Come, Follow Me.",
     sub: 'Talks are selected by matching footnoted scripture.'
   };
 }
