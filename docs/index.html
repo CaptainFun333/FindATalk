@@ -881,31 +881,37 @@
   .reset-link:hover{ color:var(--burgundy); text-decoration-color:var(--burgundy); }
   .reset-link:disabled{ opacity:.45; cursor:default; text-decoration-color:transparent; }
 
-  /* ---------- top nav (Home / Recents / Favorites / Notes / Lists) ----------
-     Five items now (was four before Notes) — on a narrow phone there
-     isn't room left for a stray word inside any one item to wrap onto its
-     own line, which reads as two ragged rows instead of one clean one.
-     `white-space:nowrap` on every piece stops that; the slightly tighter
-     `gap` (was 12px) buys back a little of the width that cost, and the
-     short "Notes"/"Lists" labels (see NAV_ITEMS above) do the rest. If a
-     6th tab is ever added, revisit this row's width budget again rather
-     than assuming it'll still fit. */
+  /* ---------- top nav (Home / Recent / Favorites / Notes / Lists / CFM) ----------
+     Six items now (was five before "Come, Follow Me" / idea 24) — plain
+     text labels ran out of row width once a 6th destination joined, per
+     the warning this comment used to carry. Redesigned as icon+label tabs
+     (the pattern native iOS/Android tab bars use once they carry more than
+     four or five destinations): a short label under a small glyph takes
+     LESS horizontal room per tab than a bare word on its own, so six
+     icon tabs fit inside roughly the same footprint five text tabs used
+     to need — verified at the 375px narrow-phone baseline already used
+     for crowding checks elsewhere in this app. */
   .page-nav{
-    display:flex; justify-content:center; align-items:center; gap:9px;
-    margin:0 0 32px;
-    flex-wrap:wrap;
+    display:flex; align-items:stretch;
+    margin:0 0 28px;
+    border-bottom:1px solid var(--line);
   }
-  .page-nav .reset-link, .page-nav .nav-current{ white-space:nowrap; }
-  .nav-sep{ color:var(--line); font-family:'Inter',sans-serif; font-size:12.5px; }
-  .nav-current{
+  .page-nav .nav-tab{
+    flex:1 1 0;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
     font-family:'Inter',sans-serif;
-    font-size:12.5px;
-    font-weight:700;
-    letter-spacing:.02em;
-    color:var(--ink);
-    padding:4px 2px;
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.01em;
+    color:var(--ink-soft);
+    background:none; border:none; cursor:pointer;
+    padding:7px 2px 9px;
+    white-space:nowrap;
   }
-  .nav-current-link{ font-weight:700; color:var(--ink); }
+  .page-nav .nav-tab svg{ width:19px; height:19px; flex-shrink:0; }
+  .page-nav .nav-tab:hover{ color:var(--burgundy); }
+  .page-nav .nav-tab.nav-current{ color:var(--burgundy); cursor:default; }
+  .page-nav .nav-tab.nav-current-link{ color:var(--ink); font-weight:700; }
 
   /* ---------- Recently Viewed / Favorites pages ---------- */
   .page-header{
@@ -942,6 +948,56 @@
      own bottom margin) stays untouched for Recently Viewed/Favorites/My
      Notes/List-detail, which still use it standalone. */
   .pool-count.pool-count-inline{ text-align:left; margin-bottom:0; }
+
+  /* ---------- Come, Follow Me page (idea 24) ---------- */
+  .cfm-week-nav{
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    margin-bottom:6px;
+  }
+  .cfm-week-nav button{
+    font-family:'Inter',sans-serif;
+    font-size:20px;
+    line-height:1;
+    color:var(--brass);
+    background:none; border:none; cursor:pointer;
+    padding:6px 10px;
+    border-radius:6px;
+  }
+  .cfm-week-nav button:hover{ color:var(--burgundy); background:var(--paper-raised); }
+  .cfm-week-nav button:disabled{ opacity:.35; cursor:default; background:none; color:var(--brass); }
+  .cfm-week-label{ text-align:center; min-width:200px; }
+  .cfm-range{
+    font-family:'Lora',serif;
+    font-weight:600;
+    font-size:17px;
+    color:var(--ink);
+  }
+  .cfm-dates{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .cfm-hint{
+    max-width:480px;
+    margin:10px auto 22px;
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    line-height:1.55;
+    color:var(--ink-soft);
+  }
+  .cite-count-badge{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family:'Inter',sans-serif;
+    font-size:10.5px; font-weight:600;
+    color:var(--burgundy);
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:2px 9px;
+    margin-top:5px;
+  }
 
   /* ---------- draw button ---------- */
   .draw-zone{ text-align:center; margin-bottom:34px; }
@@ -2077,6 +2133,25 @@
     <div class="list-empty" id="collectionEmpty"></div>
   </div>
 
+  <div id="cfmZone" style="display:none">
+    <div class="page-nav" id="cfmZoneNav"></div>
+    <div class="page-header">
+      <h2 class="page-title">Come, Follow Me</h2>
+    </div>
+    <div class="cfm-week-nav">
+      <button type="button" id="cfmPrevBtn" aria-label="Previous week">‹</button>
+      <div class="cfm-week-label">
+        <div class="cfm-range" id="cfmRange"></div>
+        <div class="cfm-dates" id="cfmDates"></div>
+      </div>
+      <button type="button" id="cfmNextBtn" aria-label="Next week">›</button>
+    </div>
+    <p class="cfm-hint" id="cfmHint">Talks whose footnoted scriptures overlap this week's Come, Follow Me reading — not an official Church-curated list, just what the citation data actually turns up.</p>
+    <div class="pool-count" id="cfmMatchCount"></div>
+    <div class="list-items" id="cfmItems"></div>
+    <div class="list-empty" id="cfmEmpty"></div>
+  </div>
+
   <div class="modal-overlay" id="collectionModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="collectionModalTitle">
       <div class="modal-header">
@@ -2690,6 +2765,110 @@ function citationCoversVerse(anchor, verseStart, verseEnd){
     const start = parts[0], end = parts.length > 1 ? parts[1] : parts[0];
     return start <= verseEnd && end >= verseStart;
   });
+}
+
+/* ---------------------------------------------------------------
+   "Come, Follow Me" tie-in (idea 24) — talks whose footnoted scriptures
+   overlap this week's assigned reading. The schedule itself is data, not
+   code (`CFM_SCHEDULE`, loaded from data.json's `comeFollowMeSchedule`),
+   the same "publish a data update, no new app-store build" pattern every
+   other lookup in this app already uses — the Church republishes this
+   schedule every year (a 4-year Book of Mormon/D&C/New Testament/Old
+   Testament rotation), so next year's version is a data.json edit, not a
+   code change. Each entry: {start: "YYYY-MM-DD", label, refs}. `refs` is
+   null for the three non-scripture weeks (the intro week, Easter,
+   Christmas) — those get a friendly message instead of a talk list rather
+   than an empty pool that looks broken. Otherwise refs is a list of
+   [volume, book, ranges] triples, `ranges` a list of [chapterStart,
+   chapterEnd] pairs, or null to mean "the whole book" (Ruth, Esther, and
+   several of the minor prophets are assigned whole). volume/book use the
+   exact same slugs as CITATION_REFS/CITATION_BOOK_LABELS (e.g.
+   "ot"/"gen"), sourced directly from the Church's own published schedule,
+   not guessed. */
+let CFM_SCHEDULE = [];
+let CFM_YEAR_LABEL = '';
+
+function cfmChapterInRanges(chapterStr, ranges){
+  if (!ranges) return true; // whole-book assignment
+  const chapter = parseInt(chapterStr, 10);
+  if (Number.isNaN(chapter)) return false;
+  return ranges.some(([lo, hi])=> chapter >= lo && chapter <= hi);
+}
+/* Device-local calendar date as "YYYY-MM-DD" — deliberately not
+   toISOString() (that's UTC, which can land on the wrong side of
+   midnight near a timezone boundary), same local-calendar-day principle
+   Talk of the Day's localDayNumber() already follows. */
+function localIsoDate(d){
+  d = d || new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+/* Index of the schedule entry covering date `d` (defaults to today) —
+   plain string comparison works since every `start` is a zero-padded
+   ISO date, which sorts identically to a real date comparison. Clamps to
+   the nearest real week rather than returning -1 for anything before the
+   first entry or after the last, so a stale cached schedule (last year's
+   data.json, not yet refreshed) still shows *something* coherent instead
+   of nothing. */
+function cfmWeekIndexForDate(d){
+  if (!CFM_SCHEDULE.length) return -1;
+  const iso = localIsoDate(d);
+  if (iso < CFM_SCHEDULE[0].start) return 0; // before the very first week
+  let idx = CFM_SCHEDULE.length - 1; // default: on/after the last week's start
+  for (let i = 0; i < CFM_SCHEDULE.length; i++){
+    if (CFM_SCHEDULE[i].start > iso){ idx = i - 1; break; }
+  }
+  return idx;
+}
+/* End-of-week display date: the day before the next entry's start, or
+   +6 days for the schedule's last entry (no "next" to subtract from). */
+function cfmWeekEndDate(index){
+  const entry = CFM_SCHEDULE[index];
+  if (!entry) return null;
+  const start = new Date(entry.start + 'T00:00:00');
+  const next = CFM_SCHEDULE[index + 1];
+  if (next){
+    const nextStart = new Date(next.start + 'T00:00:00');
+    return new Date(nextStart.getTime() - 86400000);
+  }
+  return new Date(start.getTime() + 6 * 86400000);
+}
+function cfmFormatDateRange(index){
+  const entry = CFM_SCHEDULE[index];
+  if (!entry) return '';
+  const start = new Date(entry.start + 'T00:00:00');
+  const end = cfmWeekEndDate(index);
+  const opts = {month:'short', day:'numeric'};
+  const startStr = start.toLocaleDateString('en-US', opts);
+  const endStr = end.toLocaleDateString('en-US', opts);
+  return `${startStr} – ${endStr}`;
+}
+/* Every talk whose citations overlap this week's assigned reading,
+   ranked by HOW MANY in-range citations it has — a talk with one
+   incidental citation in range among twenty others is a weaker match
+   than one substantially about the assigned chapters, so count (not just
+   "matches at all") decides the order. Returns [{talkKey, count}, ...],
+   caller resolves talkKey via TALKS_BY_KEY (only available inside
+   initApp()'s closure, same reason talkOtherTalkCitations() above
+   resolves its own talk references by hand rather than from here). */
+function cfmMatchesForWeek(index){
+  const entry = CFM_SCHEDULE[index];
+  if (!entry || !entry.refs) return [];
+  const counts = {};
+  Object.keys(CITATION_LOOKUP).forEach(tk=>{
+    let n = 0;
+    CITATION_LOOKUP[tk].forEach(i=>{
+      const [, volume, book, chapter] = CITATION_REFS[i];
+      const hit = entry.refs.some(([v, b, ranges])=>
+        v === volume && b === book && cfmChapterInRanges(chapter, ranges));
+      if (hit) n++;
+    });
+    if (n > 0) counts[tk] = n;
+  });
+  return Object.keys(counts)
+    .map(tk=> ({talkKey: tk, count: counts[tk]}))
+    .sort((a, b)=> b.count - a.count);
 }
 
 /* ---------------------------------------------------------------
@@ -3806,6 +3985,9 @@ const notesItemsEl = document.getElementById('notesItems');
 const notesEmptyEl = document.getElementById('notesEmpty');
 const collectionsIndexZone = document.getElementById('collectionsIndexZone');
 const collectionZone = document.getElementById('collectionZone');
+const cfmZone = document.getElementById('cfmZone');
+const cfmItemsEl = document.getElementById('cfmItems');
+const cfmEmptyEl = document.getElementById('cfmEmpty');
 const collectionItemsEl = document.getElementById('collectionItems');
 const collectionEmptyEl = document.getElementById('collectionEmpty');
 let lastPicked = null;
@@ -5040,28 +5222,44 @@ shareBtn.addEventListener('click', ()=>{
 // has to fit all five on one line even on a narrow phone, and "My" added
 // nothing beyond padding out the width; see the CSS comment on .page-nav
 // for the rest of the narrow-width fix.
+// Simple line-icon glyphs, same stroke-width/style family as the app's
+// other icon buttons (Share, Favorite star, Collection-add). Kept as
+// plain inline SVG strings, same pattern as SHARE_ICON_SVG etc. below.
+const NAV_ICON_HOME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/></svg>';
+const NAV_ICON_RECENT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
+const NAV_ICON_FAVS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.4l2.75 5.62 6.15.9-4.45 4.36 1.05 6.16L12 17.4l-5.5 2.94 1.05-6.16-4.45-4.36 6.15-.9z"/></svg>';
+const NAV_ICON_NOTES = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 20l1.1-4L16 5.1 19 8l-10.9 10.9L4 20Z"/><path d="M13.5 7.5 16.5 10.5"/></svg>';
+const NAV_ICON_LISTS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 6h14M5 12h14M5 18h9"/></svg>';
+// Open book — deliberately different from the Talk of the Day calendar
+// icon (idea 23) so the two don't read as the same feature at a glance.
+const NAV_ICON_CFM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 6.5c-1.6-1.2-3.7-1.7-6-1.5v12c2.3-.2 4.4.3 6 1.5 1.6-1.2 3.7-1.7 6-1.5v-12c-2.3-.2-4.4.3-6 1.5Z"/><path d="M12 6.5v12"/></svg>';
+
+// "CFM" (not "This Week") — the abbreviation LDS members already use
+// day to day, chosen after "Week" tested as too vague a connection to
+// the actual program. See PROJECT_HANDOFF.md's idea-24 section for the
+// three-option mockup this was picked from.
 const NAV_ITEMS = [
-  {zone:'home', label:'Home'},
-  {zone:'recent', label:'Recents'},
-  {zone:'favorites', label:'Favorites'},
-  {zone:'notes', label:'Notes'},
-  {zone:'collectionsIndex', label:'Lists'}
+  {zone:'home', label:'Home', icon: NAV_ICON_HOME},
+  {zone:'recent', label:'Recent', icon: NAV_ICON_RECENT},
+  {zone:'favorites', label:'Favs', icon: NAV_ICON_FAVS},
+  {zone:'notes', label:'Notes', icon: NAV_ICON_NOTES},
+  {zone:'collectionsIndex', label:'Lists', icon: NAV_ICON_LISTS},
+  {zone:'cfm', label:'CFM', icon: NAV_ICON_CFM}
 ];
-const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','notesZoneNav','collectionsIndexZoneNav','collectionZoneNav'];
+const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','notesZoneNav','collectionsIndexZoneNav','collectionZoneNav','cfmZoneNav'];
 function renderNavBars(currentZone){
-  // The individual list-detail page isn't one of the four tabs — treat
-  // it as part of "My Lists" for bolding purposes. Unlike an exact match
-  // on one of the four tab pages, "My Lists" here still has to stay
-  // clickable, since it's the only way back to the list index.
+  // The individual list-detail page isn't one of the six tabs — treat
+  // it as part of "Lists" for bolding purposes. Unlike an exact match on
+  // one of the six tab pages, "Lists" here still has to stay clickable,
+  // since it's the only way back to the list index.
   const boldZone = currentZone==='collection' ? 'collectionsIndex' : currentZone;
-  const html = NAV_ITEMS.map((item, i)=>{
-    const sep = i>0 ? '<span class="nav-sep">·</span>' : '';
+  const html = NAV_ITEMS.map(item=>{
     const isBold = item.zone===boldZone;
     const isExactMatch = item.zone===currentZone;
-    const piece = isExactMatch
-      ? `<span class="nav-current">${item.label}</span>`
-      : `<button type="button" class="reset-link${isBold ? ' nav-current-link' : ''}" data-nav-zone="${item.zone}">${item.label}</button>`;
-    return sep + piece;
+    const inner = `${item.icon}<span>${item.label}</span>`;
+    return isExactMatch
+      ? `<span class="nav-tab nav-current">${inner}</span>`
+      : `<button type="button" class="nav-tab${isBold ? ' nav-current-link' : ''}" data-nav-zone="${item.zone}">${inner}</button>`;
   }).join('');
   NAV_BAR_IDS.forEach(id=>{
     const el = document.getElementById(id);
@@ -5079,6 +5277,7 @@ function goToNavZone(zone){
   else if (zone==='favorites') renderFavoritesPage();
   else if (zone==='notes') renderNotesPage();
   else if (zone==='collectionsIndex') renderCollectionsIndexPage();
+  else if (zone==='cfm') renderCfmPage();
   showZone(zone);
 }
 document.body.addEventListener('click', (e)=>{
@@ -5091,7 +5290,7 @@ renderNavBars('home'); // initial paint — the app opens on the Home page
 // Tracks which zone is on screen right now (updated by showZone() below) —
 // used by the swipe-gesture handler further down to know what to advance
 // from. 'collection' (an individual list's own detail page) deliberately
-// isn't one of NAV_ITEMS, so it's simply not swipeable — only the five main
+// isn't one of NAV_ITEMS, so it's simply not swipeable — only the six main
 // tabs are.
 let activeZone = 'home';
 function showZone(name){
@@ -5102,6 +5301,7 @@ function showZone(name){
   notesZone.style.display = name==='notes' ? 'block' : 'none';
   collectionsIndexZone.style.display = name==='collectionsIndex' ? 'block' : 'none';
   collectionZone.style.display = name==='collection' ? 'block' : 'none';
+  cfmZone.style.display = name==='cfm' ? 'block' : 'none';
   renderNavBars(name);
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -5344,6 +5544,85 @@ function renderNotesPage(){
     `No notes match "${q.trim()}".`
   );
 }
+
+/* ---------------- "Come, Follow Me" (idea 24) ---------------- */
+// Which week is on screen — defaults to "today's" week the first time the
+// tab is opened each session, then moves independently as Prev/Next are
+// clicked, same "stays where you left it until you act again" convention
+// every other page in this app already follows (e.g. Show a List doesn't
+// auto-reshuffle when you merely revisit it).
+let cfmCurrentIndex = null;
+const cfmRangeEl = document.getElementById('cfmRange');
+const cfmDatesEl = document.getElementById('cfmDates');
+const cfmMatchCountEl = document.getElementById('cfmMatchCount');
+const cfmHintEl = document.getElementById('cfmHint');
+const cfmPrevBtn = document.getElementById('cfmPrevBtn');
+const cfmNextBtn = document.getElementById('cfmNextBtn');
+function renderCfmPage(){
+  if (!CFM_SCHEDULE.length){
+    cfmItemsEl.style.display = 'none';
+    cfmEmptyEl.style.display = 'block';
+    cfmEmptyEl.textContent = "Come, Follow Me data isn't available yet — try again after the app's next data refresh.";
+    cfmRangeEl.textContent = '';
+    cfmDatesEl.textContent = '';
+    cfmMatchCountEl.textContent = '';
+    cfmHintEl.style.display = 'none';
+    cfmPrevBtn.disabled = true;
+    cfmNextBtn.disabled = true;
+    return;
+  }
+  if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
+  const entry = CFM_SCHEDULE[cfmCurrentIndex];
+  cfmRangeEl.textContent = entry.label;
+  cfmDatesEl.textContent = cfmFormatDateRange(cfmCurrentIndex);
+  cfmPrevBtn.disabled = cfmCurrentIndex <= 0;
+  cfmNextBtn.disabled = cfmCurrentIndex >= CFM_SCHEDULE.length - 1;
+
+  cfmItemsEl.innerHTML = '';
+  if (!entry.refs){
+    // The three non-scripture weeks (intro, Easter, Christmas) — a
+    // friendly message instead of an empty-looking pool.
+    cfmItemsEl.style.display = 'none';
+    cfmEmptyEl.style.display = 'block';
+    cfmEmptyEl.textContent = "This week's reading doesn't point to a specific scripture range, so there's nothing to match talks against.";
+    cfmMatchCountEl.textContent = '';
+    cfmHintEl.style.display = '';
+    return;
+  }
+  const matches = cfmMatchesForWeek(cfmCurrentIndex);
+  if (!matches.length){
+    cfmItemsEl.style.display = 'none';
+    cfmEmptyEl.style.display = 'block';
+    cfmEmptyEl.textContent = "No talks in this app's dataset cite this week's reading yet.";
+    cfmMatchCountEl.textContent = '';
+    cfmHintEl.style.display = '';
+    return;
+  }
+  cfmItemsEl.style.display = '';
+  cfmEmptyEl.style.display = 'none';
+  cfmHintEl.style.display = '';
+  cfmMatchCountEl.textContent = `${matches.length} talk${matches.length===1?'':'s'} match this week's reading`;
+  matches.forEach(({talkKey: tk, count})=>{
+    const talk = TALKS_BY_KEY[tk];
+    if (!talk) return;
+    const row = buildListItemRow(talk);
+    const badge = document.createElement('span');
+    badge.className = 'cite-count-badge';
+    badge.textContent = `${count} citation${count===1?'':'s'} in range`;
+    row.appendChild(badge);
+    cfmItemsEl.appendChild(row);
+  });
+}
+cfmPrevBtn.addEventListener('click', ()=>{
+  if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
+  cfmCurrentIndex = Math.max(0, cfmCurrentIndex - 1);
+  renderCfmPage();
+});
+cfmNextBtn.addEventListener('click', ()=>{
+  if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
+  cfmCurrentIndex = Math.min(CFM_SCHEDULE.length - 1, cfmCurrentIndex + 1);
+  renderCfmPage();
+});
 
 /* ---------------- My Lists (self-defined collections) ---------------- */
 // Which collection collectionZone is currently showing, if any — lets a
@@ -6093,6 +6372,10 @@ function applyData(data){
   CITATION_BOOK_LABELS = data.citationBookLabels || {};
   CITATION_BOOK_ABBREVS = data.citationBookAbbrevs || {};
   buildCiteBookAliases();
+  // "Come, Follow Me" tie-in (idea 24) — see the comment above
+  // cfmMatchesForWeek() for the full shape of comeFollowMeSchedule.
+  CFM_SCHEDULE = data.comeFollowMeSchedule || [];
+  CFM_YEAR_LABEL = data.comeFollowMeYear || '';
 }
 async function cacheData(data){
   try {
