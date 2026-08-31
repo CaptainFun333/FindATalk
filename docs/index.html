@@ -5837,13 +5837,16 @@ function cfmHintLines(entry){
   if (entry.topics && entry.topics.includes('christmas')){
     return {
       lead: "Talks that match this week's Come, Follow Me.",
-      sub: 'Talks are selected by matching Christmas topics & scriptures.'
+      // Short enough to stay on one line at phone widths — "Talks are
+      // selected by matching..." wrapped, and restating "Talks" right
+      // after the lead line already says it was redundant anyway.
+      sub: 'Matched by Christmas topics & scriptures.'
     };
   }
   if (entry.topics && entry.topics.includes('easter')){
     return {
       lead: "Talks that match this week's Come, Follow Me.",
-      sub: 'Talks are selected by matching Easter topics & scriptures.'
+      sub: 'Matched by Easter topics & scriptures.'
     };
   }
   return {
