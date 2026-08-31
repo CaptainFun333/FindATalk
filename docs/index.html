@@ -1271,6 +1271,20 @@
     border-bottom:1px dotted var(--line);
   }
   .row-cite-panel a:hover{ color:var(--burgundy); border-bottom-color:var(--burgundy); }
+  /* Idea 33 — "View in talk": pairs a Scripture chip with a small
+     secondary pin-icon link (jumps to the paragraph of THIS talk where
+     the citation appears, vs. the chip's own href which goes to the
+     cited scripture). Wrapped together so they wrap as one unit instead
+     of separating across lines in the flex-wrap panel. */
+  .cite-item{ display:inline-flex; align-items:center; gap:3px; }
+  .cite-inplace-link{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; flex-shrink:0;
+    border:1px solid var(--chip-border); background:var(--chip-bg);
+    border-radius:50%; color:var(--ink-soft);
+  }
+  .cite-inplace-link svg{ width:11px; height:11px; }
+  .cite-inplace-link:hover{ border-color:var(--brass); color:var(--burgundy); }
   /* Unlinked citations (Other Sources; a few pre-1985-numbered Hymns) —
      same look as their linked siblings minus anything implying a click:
      no underline, no hover color change, default cursor. */
@@ -2798,6 +2812,16 @@ function talkSession(talk){ return SESSION_LOOKUP[talkKey(talk)] || 'other'; }
    section for the full extraction/storage method. */
 let CITATION_REFS;
 let CITATION_LOOKUP;
+// Idea 33 — "View in talk": paragraph id (within the CITING talk's own
+// page) where each of that talk's CITATION_LOOKUP entries actually
+// appears, parallel array to CITATION_LOOKUP[talkKey] (same index
+// position; null when a paragraph anchor couldn't be resolved). Built by
+// re-parsing every talk page's inline a.scripture-ref links (direct
+// in-body citations) and a.note-ref[data-scroll-id] markers (footnote-
+// style citations — the marker's own enclosing paragraph is used, not
+// the footnote entry's, since the footnote text itself lives outside the
+// body). See PROJECT_HANDOFF.md for the extraction method.
+let CITATION_PARAGRAPH_LOOKUP;
 /* Every scripture citation is now DISPLAYED in a canonical, always-
    abbreviated form built from its real volume/book/chapter/anchor —
    e.g. "D&C 1:38", "1 Cor. 2:4–5" — rather than the raw text scraped
@@ -2830,7 +2854,11 @@ function formatScriptureRef(volume, book, chapter, anchor){
    of talkCitations() so anything else that only has indices in hand (e.g.
    cfmMatchesForWeek()'s matchedIndices) can build the same real chip
    label/link without duplicating the anchor/URL logic. */
-function citationEntryFromIndex(i){
+// `talk` is optional — pass it when you have the CITING talk in hand (not
+// the cited scripture) to also get `talkHref` (idea 33), a link to the
+// exact paragraph of THIS talk where the citation appears, alongside the
+// existing `href` (which always points at the cited scripture itself).
+function citationEntryFromIndex(i, talk){
   const [, volume, book, chapter, anchor] = CITATION_REFS[i];
   // anchor can be a single verse ("p17"), a range ("p5-p6"), or a list
   // ("p30,32") — the real Church pages use the first token of that for
@@ -2839,12 +2867,24 @@ function citationEntryFromIndex(i){
   const firstAnchor = anchor ? anchor.split(',')[0].split('-')[0] : '';
   const href = `https://www.churchofjesuschrist.org/study/scriptures/${volume}/${book}/${chapter}?lang=eng`
     + (anchor ? `&id=${anchor}#${firstAnchor}` : '');
-  return {ref: formatScriptureRef(volume, book, chapter, anchor), href};
+  const entry = {ref: formatScriptureRef(volume, book, chapter, anchor), href};
+  if (talk){
+    const tk = talkKey(talk);
+    const idxs = CITATION_LOOKUP[tk];
+    const paras = CITATION_PARAGRAPH_LOOKUP[tk];
+    // Same index position in both parallel arrays — indexOf is safe here
+    // since CITATION_LOOKUP[tk] holds this talk's own citation indices in
+    // extraction order, not a globally-unique set.
+    const pos = (idxs && paras) ? idxs.indexOf(i) : -1;
+    const p = pos >= 0 ? paras[pos] : null;
+    if (p) entry.talkHref = talkUrl(talk) + `&id=${p}#${p}`;
+  }
+  return entry;
 }
 function talkCitations(talk){
   const idxs = CITATION_LOOKUP[talkKey(talk)];
   if (!idxs || !idxs.length) return [];
-  return idxs.map(citationEntryFromIndex);
+  return idxs.map(i=> citationEntryFromIndex(i, talk));
 }
 
 /* ---------------------------------------------------------------
@@ -5611,6 +5651,10 @@ const SCRIPTURE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="current
 // Stepped three-tier silhouette + microphone, matching the app's own
 // pulpit logo (see the idea-18 mockup for the design rationale).
 const TALK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V10H9V7H15V10H20V21"/><path d="M3 21H21"/><path d="M12 7V4"/><circle cx="12" cy="3" r="1.2"/></svg>';
+// Idea 33 — small "View in talk" pin, a secondary link next to a
+// Scripture citation chip that jumps to the exact paragraph of the
+// CITING talk (not the cited scripture) where that citation appears.
+const IN_TALK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.58 7-12A7 7 0 0 0 5 9c0 4.42 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/></svg>';
 const HYMN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
 const MAGAZINE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4z"/><path d="M19 8H4M8 12h8M8 15.5h6"/></svg>';
 const OTHER_SOURCE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>';
@@ -5663,7 +5707,25 @@ function buildCitationsBlock(talk, {compact=false}={}){
       }
       el.textContent = cite.ref;
       el.className = compact ? (cite.href ? '' : 'row-cite-plain') : (cite.href ? 'cite-chip' : 'cite-chip is-plain');
-      panel.appendChild(el);
+      // Idea 33: only the non-compact Scriptures panel gets the "View in
+      // talk" secondary link for now — compact rows (list/ticket previews)
+      // stay untouched to avoid crowding a small space; a talk without a
+      // resolved paragraph anchor just doesn't get the extra icon.
+      if (!compact && g.label === 'Scriptures' && cite.talkHref){
+        const item = document.createElement('span');
+        item.className = 'cite-item';
+        panel.appendChild(item);
+        item.appendChild(el);
+        const inTalk = document.createElement('a');
+        inTalk.href = cite.talkHref; inTalk.target = '_blank'; inTalk.rel = 'noopener';
+        inTalk.className = 'cite-inplace-link';
+        inTalk.title = 'View in talk';
+        inTalk.setAttribute('aria-label', `View "${cite.ref}" in this talk`);
+        inTalk.innerHTML = IN_TALK_ICON_SVG;
+        item.appendChild(inTalk);
+      } else {
+        panel.appendChild(el);
+      }
     });
     block.appendChild(panel);
 
@@ -6545,12 +6607,21 @@ function cfmRefreshResults(){
       panel.className = 'row-cite-panel';
       panel.hidden = true;
       (matchedIndices || []).forEach(i=>{
-        const {ref, href} = citationEntryFromIndex(i);
+        const {ref, href, talkHref} = citationEntryFromIndex(i, talk);
         const el = document.createElement(href ? 'a' : 'span');
         if (href){ el.href = href; el.target = '_blank'; el.rel = 'noopener'; }
         else { el.className = 'row-cite-plain'; }
         el.textContent = ref;
         panel.appendChild(el);
+        if (talkHref){
+          const inTalk = document.createElement('a');
+          inTalk.href = talkHref; inTalk.target = '_blank'; inTalk.rel = 'noopener';
+          inTalk.className = 'cite-inplace-link';
+          inTalk.title = 'View in talk';
+          inTalk.setAttribute('aria-label', `View "${ref}" in the talk`);
+          inTalk.innerHTML = IN_TALK_ICON_SVG;
+          panel.appendChild(inTalk);
+        }
       });
 
       badge.addEventListener('click', ()=>{
@@ -7520,6 +7591,11 @@ function applyData(data){
   // into that table, keyed the same "year|month|slug" way as sessionLookup.
   CITATION_REFS = data.citationRefs || [];
   CITATION_LOOKUP = data.citationLookup || {};
+  // Idea 33 — see the CITATION_PARAGRAPH_LOOKUP declaration above for
+  // what this holds; missing entirely (older data.json) or missing a
+  // given talk/index just means no "View in talk" link for that citation,
+  // never a crash — citationEntryFromIndex() already guards for that.
+  CITATION_PARAGRAPH_LOOKUP = data.citationParagraphLookup || {};
   // Other Talks / Church Magazines / Hymns / Other Sources — see
   // PROJECT_HANDOFF.md's "scripture citation chips" follow-up section for
   // the extraction method (page-wide a.cross-ref / p[data-aid] scanning,
