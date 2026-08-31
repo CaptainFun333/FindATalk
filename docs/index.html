@@ -2526,9 +2526,11 @@
   <footer>
     <strong id="totalCount"></strong> real, verified talks from every General Conference,<br>
     April 1971–April 2026 (111 conferences, no gaps).<br>
-    Topics, sessions, & citations are from the Church's official records — never guessed.<br>
-    For the complete library, visit <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>.<br>
-    This is an independent fan-made tool, not produced by the Church.
+    Topics, sessions &amp; citations are all pulled from<br>
+    the Church's own official records — never guessed.<br>
+    For the complete library, visit:<br>
+    <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>.<br>
+    FindATalk is a fan-made tool, not produced by the Church.
   </footer>
 
 </div>
@@ -4109,7 +4111,7 @@ const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 // once real per-talk data starts populating SESSION_LOOKUP.
 const allSessions = SESSION_ORDER.filter(s=>TALKS.some(t=>talkSession(t)===s));
 
-document.getElementById('totalCount').textContent = TALKS.length;
+document.getElementById('totalCount').textContent = TALKS.length.toLocaleString();
 
 // Looks a talk back up by its talkKey() — used to render the Recently
 // Viewed / Favorites pages from the key lists in localStorage.
@@ -5724,8 +5726,12 @@ function buildCitationsBlock(talk, {compact=false}={}){
       // popup instead of a plain link — see openCiteDestModal(). Every
       // other case (no href at all, or no talkHref to choose between)
       // stays a plain link/span exactly as before; there's nothing to
-      // choose between if there's only one place to go.
-      const offerChoice = !compact && g.label === 'Scriptures' && cite.href && cite.talkHref;
+      // choose between if there's only one place to go. Applies in every
+      // context (ticket AND compact rows — Show a List, Recently Viewed,
+      // Favorites, My Lists, My Notes) — an earlier first-pass version
+      // limited this to the non-compact ticket only, but there was no
+      // real reason a list row couldn't offer the same choice.
+      const offerChoice = g.label === 'Scriptures' && cite.href && cite.talkHref;
       const el = document.createElement(offerChoice ? 'button' : (cite.href ? 'a' : 'span'));
       if (offerChoice){
         el.type = 'button';
