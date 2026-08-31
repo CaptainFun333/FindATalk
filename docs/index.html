@@ -2171,9 +2171,8 @@
       <button type="button" id="cfmNextBtn" aria-label="Next week">›</button>
     </div>
     <div class="cfm-hint" id="cfmHint">
-      <p class="cfm-hint-lead">Talks that match this week's Come, Follow Me reading</p>
-      <p>Matches are curated by footnoted scripture.</p>
-      <p>Special weeks like Easter &amp; Christmas are curated by topic.</p>
+      <p class="cfm-hint-lead" id="cfmHintLead"></p>
+      <p id="cfmHintSub"></p>
       <p class="cfm-hint-disclaimer">Not an official Church-curated list.</p>
     </div>
 
@@ -5806,6 +5805,30 @@ const cfmRangeEl = document.getElementById('cfmRange');
 const cfmDatesEl = document.getElementById('cfmDates');
 const cfmMatchCountEl = document.getElementById('cfmMatchCount');
 const cfmHintEl = document.getElementById('cfmHint');
+const cfmHintLeadEl = document.getElementById('cfmHintLead');
+const cfmHintSubEl = document.getElementById('cfmHintSub');
+// Christmas/Easter checked via entry.topics (the actual matching signal),
+// not the display label — robust to the label text ever changing, same
+// way the citation badges above already key off entry.topics rather than
+// string-matching "Christmas"/"Easter".
+function cfmHintLines(entry){
+  if (entry.topics && entry.topics.includes('christmas')){
+    return {
+      lead: "Talks that match this week's Come, Follow Me.",
+      sub: 'Talks are selected by matching Christmas topics & scriptures.'
+    };
+  }
+  if (entry.topics && entry.topics.includes('easter')){
+    return {
+      lead: "Talks that match this week's Come, Follow Me.",
+      sub: 'Talks are selected by matching Easter topics & scriptures.'
+    };
+  }
+  return {
+    lead: "Talks that match this week's Come, Follow Me reading",
+    sub: 'Talks are selected by matching footnoted scripture.'
+  };
+}
 const cfmPrevBtn = document.getElementById('cfmPrevBtn');
 const cfmNextBtn = document.getElementById('cfmNextBtn');
 const cfmControlsBox = document.getElementById('cfmControlsBox');
@@ -6242,6 +6265,9 @@ function renderCfmPage(){
   cfmPrevBtn.disabled = cfmCurrentIndex <= 0;
   cfmNextBtn.disabled = cfmCurrentIndex >= CFM_SCHEDULE.length - 1;
   cfmHintEl.style.display = '';
+  const hintLines = cfmHintLines(entry);
+  cfmHintLeadEl.textContent = hintLines.lead;
+  cfmHintSubEl.textContent = hintLines.sub;
 
   cfmRefreshResults();
 }
