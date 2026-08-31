@@ -1526,8 +1526,13 @@
   .totd-header-row{
     display:flex; align-items:center; justify-content:space-between;
     gap:8px;
+    /* Same max-width + centering as .list-items below, so the eyebrow's
+       left edge and the calendar button's right edge line up with the
+       Talk of the Day tile's edges instead of the wider page column. */
+    max-width:620px;
+    margin:0 auto;
   }
-  .totd-header-row .totd-eyebrow{ margin-bottom:0; }
+  .totd-header-row .totd-eyebrow{ margin-bottom:0; text-align:left; }
   .totd-calendar-btn{
     flex-shrink:0;
     display:inline-flex; align-items:center; justify-content:center;
