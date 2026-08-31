@@ -1540,14 +1540,12 @@
     font-family:'Fraunces',serif; font-weight:600; font-size:19px;
     margin:0 0 14px; color:var(--ink);
   }
-  .cite-dest-opt{
-    display:block; width:100%; text-align:left;
-    background:var(--paper); border:1px solid var(--line); border-radius:8px;
-    padding:13px 14px; margin-bottom:8px;
-    font-family:'Inter',sans-serif; font-size:14px; font-weight:600;
-    color:var(--burgundy); cursor:pointer;
-  }
-  .cite-dest-opt:hover{ border-color:var(--brass); background:var(--paper-raised); }
+  /* .cite-dest-opt only adds layout on top of the app's real .btn/.btn-ghost
+     chrome (reused for consistency with Find Another/Show a List, etc.,
+     per user feedback) — both destinations use .btn-ghost, not one
+     .btn-primary + one .btn-ghost, since neither is more "default" than
+     the other the way Find Another is over Show a List. */
+  .cite-dest-opt{ display:flex; justify-content:flex-start; width:100%; margin-bottom:8px; }
   .cite-dest-cancel{ display:block; width:100%; text-align:center; margin-top:2px; }
   .modal-new-collection button, .collections-new-row button{
     font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
@@ -2408,8 +2406,8 @@
   <div class="modal-overlay" id="citeDestModalOverlay" hidden>
     <div class="modal cite-dest-modal" role="dialog" aria-modal="true" aria-labelledby="citeDestModalTitle">
       <h3 id="citeDestModalTitle" class="cite-dest-title"></h3>
-      <button type="button" class="cite-dest-opt" id="citeDestOpenBtn">Open the verse</button>
-      <button type="button" class="cite-dest-opt" id="citeDestTalkBtn">Show it in the talk</button>
+      <button type="button" class="btn btn-ghost cite-dest-opt" id="citeDestOpenBtn">Open the verse</button>
+      <button type="button" class="btn btn-ghost cite-dest-opt" id="citeDestTalkBtn">Show it in the talk</button>
       <button type="button" class="reset-link cite-dest-cancel" id="citeDestCancelBtn">Cancel</button>
     </div>
   </div>
@@ -5870,11 +5868,11 @@ const NAV_ICON_CFM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 // three-option mockup this was picked from.
 const NAV_ITEMS = [
   {zone:'home', label:'Home', icon: NAV_ICON_HOME},
+  {zone:'cfm', label:'CFM', icon: NAV_ICON_CFM},
   {zone:'recent', label:'Recent', icon: NAV_ICON_RECENT},
   {zone:'favorites', label:'Favs', icon: NAV_ICON_FAVS},
   {zone:'notes', label:'Notes', icon: NAV_ICON_NOTES},
-  {zone:'collectionsIndex', label:'Lists', icon: NAV_ICON_LISTS},
-  {zone:'cfm', label:'CFM', icon: NAV_ICON_CFM}
+  {zone:'collectionsIndex', label:'Lists', icon: NAV_ICON_LISTS}
 ];
 const NAV_BAR_IDS = ['homeZoneNav','recentZoneNav','favoritesZoneNav','notesZoneNav','collectionsIndexZoneNav','collectionZoneNav','cfmZoneNav'];
 function renderNavBars(currentZone){
