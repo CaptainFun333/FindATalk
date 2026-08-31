@@ -976,13 +976,23 @@
   .cfm-week-nav button:hover{ color:var(--burgundy); background:var(--paper-raised); }
   .cfm-week-nav button:disabled{ opacity:.35; cursor:default; background:none; color:var(--brass); }
   .cfm-week-label{ text-align:center; min-width:200px; }
+  /* Single line + ellipsis instead of wrapping to two lines — a long
+     scripture-range title (several books/chapters strung together)
+     could otherwise push the whole cfm-week-nav row noticeably taller
+     than a typical week. display:block (not inline-block) so the link
+     actually fills .cfm-week-label's width — text-overflow:ellipsis
+     has no width to truncate against on an inline-block sized to its
+     own content. */
   .cfm-range{
     font-family:'Lora',serif;
     font-weight:600;
     font-size:17px;
     color:var(--ink);
     text-decoration:none;
-    display:inline-block;
+    display:block;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
   }
   a.cfm-range:hover{ color:var(--burgundy); text-decoration:underline; text-underline-offset:3px; }
   a.cfm-range:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; border-radius:2px; }
@@ -1632,6 +1642,15 @@
      days actually fall in the currently-viewed month's grid. */
   .totd-calendar-day.is-cfm-week{ border-color:var(--brass); }
   .cfm-page-header{ justify-content:space-between; align-items:center; }
+  /* Groups "This Week" with the calendar icon so both sit together on
+     the header's right side (space-between on .cfm-page-header only has
+     two children to work with — title and this group — otherwise a
+     3rd top-level child would end up centered between them, not
+     adjacent to the calendar icon). #cfmThisWeekBtn is hidden by
+     default in HTML and only shown when browsed away from the real
+     current week — see cfmSyncThisWeekBtn(). */
+  .cfm-header-actions{ display:flex; align-items:center; gap:12px; }
+  .cfm-header-actions .reset-link{ white-space:nowrap; }
   .totd-calendar-hint{ margin:14px 0 0; }
   #totdCalResult:empty{ margin:0; }
   #totdCalResult:not(:empty){ margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
@@ -2195,9 +2214,12 @@
     <div class="page-nav" id="cfmZoneNav"></div>
     <div class="page-header cfm-page-header">
       <h2 class="page-title">Come, Follow Me</h2>
-      <button type="button" class="totd-calendar-btn" id="cfmCalendarBtn" aria-label="Jump to a different week">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
-      </button>
+      <div class="cfm-header-actions">
+        <button type="button" class="reset-link" id="cfmThisWeekBtn" hidden>This Week</button>
+        <button type="button" class="totd-calendar-btn" id="cfmCalendarBtn" aria-label="Jump to a different week">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+        </button>
+      </div>
     </div>
     <div class="cfm-week-nav">
       <button type="button" id="cfmPrevBtn" aria-label="Previous week">‹</button>
@@ -5882,12 +5904,23 @@ function cfmHintLines(entry){
   }
   return {
     lead: "Talks that match this week's Come, Follow Me.",
-    sub: 'Talks are selected by matching footnoted scripture.'
+    sub: 'Matched by footnoted scripture.'
   };
 }
 const cfmPrevBtn = document.getElementById('cfmPrevBtn');
 const cfmNextBtn = document.getElementById('cfmNextBtn');
 const cfmControlsBox = document.getElementById('cfmControlsBox');
+// "This Week" — a quick way back after browsing elsewhere on the
+// calendar or via Prev/Next, since the page deliberately stays wherever
+// you left it (same "stays put until you act again" convention as the
+// rest of the app) rather than resetting to today's week on its own.
+// Only shown when actually needed — hidden whenever the real current
+// week is already what's on screen.
+const cfmThisWeekBtn = document.getElementById('cfmThisWeekBtn');
+function cfmSyncThisWeekBtn(){
+  cfmThisWeekBtn.hidden = cfmCurrentIndex === cfmWeekIndexForDate();
+}
+cfmThisWeekBtn.addEventListener('click', ()=> cfmGoToWeek(cfmWeekIndexForDate()));
 
 /* ---- filters (idea 24 item #3) ----
    Reuses Home's exact matching PREDICATE (matchesDim/valuesForDim —
@@ -6305,11 +6338,17 @@ function renderCfmPage(){
     cfmHintEl.style.display = 'none';
     cfmPrevBtn.disabled = true;
     cfmNextBtn.disabled = true;
+    cfmThisWeekBtn.hidden = true;
     return;
   }
   if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
   const entry = CFM_SCHEDULE[cfmCurrentIndex];
   cfmRangeEl.textContent = entry.label;
+  // Now that a long title truncates with an ellipsis, this is the only
+  // way a sighted mouse/trackpad user recovers the full text without
+  // tapping through to the real page — a screen reader still gets it
+  // fine from the element's own text content regardless.
+  cfmRangeEl.title = entry.label;
   // Links out to this week's real page in the Church's own manual (Gospel
   // Library opens it directly if installed, via normal universal linking —
   // same mechanism every other citation link in this app already relies
@@ -6324,6 +6363,7 @@ function renderCfmPage(){
   cfmDatesEl.textContent = cfmFormatDateRange(cfmCurrentIndex);
   cfmPrevBtn.disabled = cfmCurrentIndex <= 0;
   cfmNextBtn.disabled = cfmCurrentIndex >= CFM_SCHEDULE.length - 1;
+  cfmSyncThisWeekBtn();
   cfmHintEl.style.display = '';
   const hintLines = cfmHintLines(entry);
   cfmHintLeadEl.textContent = hintLines.lead;
