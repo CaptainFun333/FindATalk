@@ -1036,9 +1036,14 @@
   /* The citation-match variant of the badge is a real <button> (idea 31 —
      click to see which citations matched), so it needs the usual
      button-reset on top of the shared look above; the topic/keyword
-     variants stay plain, non-interactive <span>s. */
+     variants stay plain, non-interactive <span>s. Font size matches
+     .cite-types-label ("Citations:") since idea 34 moved this badge to
+     sit right next to it in the same row — explicit family/size/weight
+     here instead of the old `font:inherit` shorthand, which was quietly
+     resetting all three to whatever the badge's container happened to use. */
   button.cite-count-badge{
-    font:inherit; cursor:pointer; -webkit-appearance:none; appearance:none;
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:600;
+    cursor:pointer; -webkit-appearance:none; appearance:none;
   }
   button.cite-count-badge:hover{ border-color:var(--brass); }
   button.cite-count-badge[aria-expanded="true"]{
@@ -1222,6 +1227,11 @@
     display:flex; flex-wrap:wrap; align-items:center; gap:8px;
   }
   .ticket .cite-types-row{ justify-content:center; }
+  /* The CFM "N citations match CFM" badge (idea 34) lives inside this row
+     now, next to the type-pill icons — cite-count-badge's own margin-top
+     is meant for when it sits alone on its own line below a tile, and
+     would knock it out of vertical alignment with the icons/label here. */
+  .cite-types-row .cite-count-badge{ margin-top:0; }
   .cite-types-label{
     font-family:'Inter',sans-serif;
     font-size:12px;
@@ -6619,7 +6629,7 @@ function cfmRefreshResults(){
       badge.type = 'button';
       badge.className = 'cite-count-badge';
       badge.setAttribute('aria-expanded', 'false');
-      badge.textContent = `${count} citation${count===1?'':'s'} in range`;
+      badge.textContent = `${count} citation${count===1?'':'s'} match${count===1?'es':''} CFM`;
 
       const panel = document.createElement('div');
       panel.className = 'row-cite-panel';
@@ -6652,8 +6662,21 @@ function cfmRefreshResults(){
         panel.hidden = wasOpen;
       });
 
-      row.appendChild(badge);
-      row.appendChild(panel);
+      // Sits right next to the citation-type icons instead of on its own
+      // line at the bottom of the tile — same row, so the "N citations
+      // match CFM" count reads as a companion to the icons it's counting,
+      // not a separate fact further down. Falls back to appending on the
+      // row itself if a talk somehow has no cite-types-row (shouldn't
+      // happen for a citation-kind match, but never silently drop the badge).
+      const citeTypesRow = row.querySelector('.cite-types-row');
+      const citeBlock = row.querySelector('.cite-block');
+      if (citeTypesRow && citeBlock){
+        citeTypesRow.appendChild(badge);
+        citeBlock.appendChild(panel);
+      } else {
+        row.appendChild(badge);
+        row.appendChild(panel);
+      }
     } else {
       const badge = document.createElement('span');
       badge.className = 'cite-count-badge';
