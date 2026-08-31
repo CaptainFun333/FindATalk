@@ -31,6 +31,13 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- This app only ever talks to churchofjesuschrist.org over standard
+	     HTTPS (via WKWebView/URLSession) — no custom/proprietary
+	     encryption. Declaring that here skips the "does your app use
+	     encryption" export-compliance question on every single upload
+	     to App Store Connect. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

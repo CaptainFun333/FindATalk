@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Apple's "required reason" privacy manifest. StreakBridgePlugin.swift
+  reads/writes UserDefaults(suiteName:) to share the streak/theme/palette
+  with TalkOfDayWidget via the App Group — that's a "required reason" API
+  (category NSPrivacyAccessedAPICategoryUserDefaults) that Apple's App
+  Store Connect build processing checks for on every upload. Reason
+  CA92.1 = "Access info from same app, accessed via App Group only."
+  See PROJECT_HANDOFF.md's App Groups section for the wider context.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

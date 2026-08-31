@@ -102,7 +102,7 @@ struct TalkOfDayProvider: TimelineProvider {
     func placeholder(in context: Context) -> TalkEntry {
         TalkEntry(
             date: Date(),
-            talk: Talk(title: "Why Not Now?", speaker: "Neal A. Maxwell", year: 1974, month: "10", urlSlug: "why-not-now"),
+            talk: Talk(title: "Why Not Now?", speaker: "Neal A. Maxwell", year: 1974, month: "10", urlSlug: "why-not-now", topics: []),
             streakText: "🔥 122 of the last 365 — 10-day streak",
             themeOverride: ThemeStore.currentOverride(),
             paletteOverride: PaletteStore.currentOverride()
