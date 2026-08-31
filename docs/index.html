@@ -1033,6 +1033,17 @@
     padding:2px 9px;
     margin-top:5px;
   }
+  /* The citation-match variant of the badge is a real <button> (idea 31 —
+     click to see which citations matched), so it needs the usual
+     button-reset on top of the shared look above; the topic/keyword
+     variants stay plain, non-interactive <span>s. */
+  button.cite-count-badge{
+    font:inherit; cursor:pointer; -webkit-appearance:none; appearance:none;
+  }
+  button.cite-count-badge:hover{ border-color:var(--brass); }
+  button.cite-count-badge[aria-expanded="true"]{
+    background:var(--chip-bg); border-color:var(--brass);
+  }
 
   /* ---------- draw button ---------- */
   .draw-zone{ text-align:center; margin-bottom:34px; }
@@ -2809,20 +2820,25 @@ function formatScriptureRef(volume, book, chapter, anchor){
   const verse = formatVerseAnchor(anchor);
   return verse ? `${name} ${chapter}:${verse}` : `${name} ${chapter}`;
 }
+/* Builds the {ref, href} shape for one CITATION_REFS index — factored out
+   of talkCitations() so anything else that only has indices in hand (e.g.
+   cfmMatchesForWeek()'s matchedIndices) can build the same real chip
+   label/link without duplicating the anchor/URL logic. */
+function citationEntryFromIndex(i){
+  const [, volume, book, chapter, anchor] = CITATION_REFS[i];
+  // anchor can be a single verse ("p17"), a range ("p5-p6"), or a list
+  // ("p30,32") — the real Church pages use the first token of that for
+  // the URL fragment (scrolls to the first verse) while passing the
+  // whole thing as the id= param (highlights every verse it covers).
+  const firstAnchor = anchor ? anchor.split(',')[0].split('-')[0] : '';
+  const href = `https://www.churchofjesuschrist.org/study/scriptures/${volume}/${book}/${chapter}?lang=eng`
+    + (anchor ? `&id=${anchor}#${firstAnchor}` : '');
+  return {ref: formatScriptureRef(volume, book, chapter, anchor), href};
+}
 function talkCitations(talk){
   const idxs = CITATION_LOOKUP[talkKey(talk)];
   if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
-    const [, volume, book, chapter, anchor] = CITATION_REFS[i];
-    // anchor can be a single verse ("p17"), a range ("p5-p6"), or a list
-    // ("p30,32") — the real Church pages use the first token of that for
-    // the URL fragment (scrolls to the first verse) while passing the
-    // whole thing as the id= param (highlights every verse it covers).
-    const firstAnchor = anchor ? anchor.split(',')[0].split('-')[0] : '';
-    const href = `https://www.churchofjesuschrist.org/study/scriptures/${volume}/${book}/${chapter}?lang=eng`
-      + (anchor ? `&id=${anchor}#${firstAnchor}` : '');
-    return {ref: formatScriptureRef(volume, book, chapter, anchor), href};
-  });
+  return idxs.map(citationEntryFromIndex);
 }
 
 /* ---------------------------------------------------------------
@@ -3093,9 +3109,12 @@ function cfmFormatDateRange(index){
    and its "Come, Follow Me" keyword check both apply to some talks) —
    kept as a single entry; citation count wins when present, since it's
    the most specific signal and the only one with a real count to show.
-   Returns [{talkKey, count, kind}] — count is null for topic/keyword
-   matches (there's nothing to count), citation matches sorted by count
-   first, followed by topic/keyword matches sorted by conference date
+   Returns [{talkKey, count, kind, matchedIndices}] — count is null for
+   topic/keyword matches (there's nothing to count); matchedIndices is only
+   present for citation matches (indices into CITATION_REFS for the
+   specific citations that landed in range, so a caller can show which
+   ones without recomputing the range check). Citation matches sorted by
+   count first, followed by topic/keyword matches sorted by conference date
    (newest first). Caller resolves talkKey via TALKS_BY_KEY inside
    renderCfmPage(); this function stays top-level (like
    talkOtherTalkCitations() above) but can read TALKS/talkKey/talkTopics/
@@ -3108,7 +3127,7 @@ function cfmMatchesForWeek(index){
 
   if (entry.refs && entry.refs.length){
     Object.keys(CITATION_LOOKUP).forEach(tk=>{
-      let n = 0;
+      const matchedIndices = [];
       CITATION_LOOKUP[tk].forEach(i=>{
         const [, volume, book, chapter, anchor] = CITATION_REFS[i];
         const hit = entry.refs.some(([v, b, ranges, verseRange])=>{
@@ -3117,9 +3136,9 @@ function cfmMatchesForWeek(index){
           if (verseRange) return citationCoversVerse(anchor, verseRange[0], verseRange[1]);
           return true;
         });
-        if (hit) n++;
+        if (hit) matchedIndices.push(i);
       });
-      if (n > 0) byKey[tk] = {talkKey: tk, count: n, kind: 'citation'};
+      if (matchedIndices.length) byKey[tk] = {talkKey: tk, count: matchedIndices.length, kind: 'citation', matchedIndices};
     });
   }
 
@@ -6499,24 +6518,54 @@ function cfmRefreshResults(){
   cfmSelectAllBtn.textContent = sorted.length > CFM_LIST_SIZE ? `Select All (${sorted.length})` : 'Select All';
 
   cfmItemsEl.innerHTML = '';
-  pageMatches.forEach(({talkKey: tk, count, kind})=>{
+  pageMatches.forEach(({talkKey: tk, count, kind, matchedIndices})=>{
     const talk = TALKS_BY_KEY[tk];
     if (!talk) return;
     const row = buildListItemRow(talk, {selectable:true, selectionMap: cfmSelection, onSelectionChange: syncCfmBulkBar});
-    const badge = document.createElement('span');
-    badge.className = 'cite-count-badge';
     // Only a citation match has an actual count to show — topic/keyword
     // matches say WHY they matched instead, since "N citations" would be
-    // meaningless for those (there's nothing counted).
+    // meaningless for those (there's nothing counted). Only the citation
+    // case is click-to-expand (see idea 31): it's the only one with real
+    // per-match detail (which citations) worth revealing — a plain <span>
+    // for topic/keyword would have nothing to expand into.
     if (kind === 'citation'){
+      const badge = document.createElement('button');
+      badge.type = 'button';
+      badge.className = 'cite-count-badge';
+      badge.setAttribute('aria-expanded', 'false');
       badge.textContent = `${count} citation${count===1?'':'s'} in range`;
-    } else if (kind === 'topic'){
-      const topicLabel = (entry.topics || []).map(tp=> TOPIC_LABELS[tp]).find(Boolean) || 'this week';
-      badge.textContent = `Tagged: ${topicLabel}`;
+
+      const panel = document.createElement('div');
+      panel.className = 'row-cite-panel';
+      panel.hidden = true;
+      (matchedIndices || []).forEach(i=>{
+        const {ref, href} = citationEntryFromIndex(i);
+        const el = document.createElement(href ? 'a' : 'span');
+        if (href){ el.href = href; el.target = '_blank'; el.rel = 'noopener'; }
+        else { el.className = 'row-cite-plain'; }
+        el.textContent = ref;
+        panel.appendChild(el);
+      });
+
+      badge.addEventListener('click', ()=>{
+        const wasOpen = badge.getAttribute('aria-expanded') === 'true';
+        badge.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
+        panel.hidden = wasOpen;
+      });
+
+      row.appendChild(badge);
+      row.appendChild(panel);
     } else {
-      badge.textContent = `Mentions "Come, Follow Me"`;
+      const badge = document.createElement('span');
+      badge.className = 'cite-count-badge';
+      if (kind === 'topic'){
+        const topicLabel = (entry.topics || []).map(tp=> TOPIC_LABELS[tp]).find(Boolean) || 'this week';
+        badge.textContent = `Tagged: ${topicLabel}`;
+      } else {
+        badge.textContent = `Mentions "Come, Follow Me"`;
+      }
+      row.appendChild(badge);
     }
-    row.appendChild(badge);
     cfmItemsEl.appendChild(row);
   });
 
@@ -7354,6 +7403,38 @@ totdCalNextBtn.addEventListener('click', ()=>{
   totdCalResult.innerHTML = '';
   renderTotdCalendar();
 });
+
+/* ---------------- swipe left/right to change month on calendar popouts ----------------
+   Shared by both calendar popouts (Talk of the Day history + Come Follow
+   Me week-picker) — same threshold/horizontal-dominant detection as the
+   main nav-tab swipe above (reuses SWIPE_THRESHOLD_PX), but scoped to each
+   grid element itself rather than document-wide, so there's no OS
+   edge-swipe-back gesture to guard against and no vertical-scroll conflict
+   to worry about, since neither grid scrolls. A swipe just clicks the
+   matching Prev/Next button — reusing its exact existing bounds-checking
+   (a disabled button's click() is a no-op) instead of duplicating that
+   logic here, so "can't go past today" / "can't go past the schedule's
+   start" etc. stay correct for free. */
+function attachCalendarSwipe(gridEl, prevBtn, nextBtn){
+  let start = null;
+  gridEl.addEventListener('touchstart', (e)=>{
+    if (e.touches.length !== 1){ start = null; return; }
+    const t = e.touches[0];
+    start = {x: t.clientX, y: t.clientY};
+  }, {passive:true});
+  gridEl.addEventListener('touchend', (e)=>{
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    start = null;
+    if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.5) return; // not horizontal-dominant enough
+    (dx < 0 ? nextBtn : prevBtn).click(); // swipe left = next month, right = previous
+  }, {passive:true});
+}
+attachCalendarSwipe(totdCalGrid, totdCalPrevBtn, totdCalNextBtn);
+attachCalendarSwipe(cfmCalGrid, cfmCalPrevBtn, cfmCalNextBtn);
 
 renderTalkOfTheDay();
 renderStreak();
