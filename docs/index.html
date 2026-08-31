@@ -3859,6 +3859,83 @@ function findTopicAlias(query){
   return hit ? TOPIC_ALIASES[hit] : null;
 }
 
+/* Idea 28: spelling-correction fallback ("did you mean") for the Topic and
+   Speaker filter searches — a THIRD kind of gap, distinct from both
+   TOPIC_ALIASES (meaning gap: a real word, wrong topic) and
+   WORD_FORM_GROUPS (meaning gap: same idea, different word form). This one
+   is a literal TYPING gap: the person meant a real label/name that
+   exists, they just mistyped it (e.g. "Uctdorf" for "Uchtdorf," "honessty"
+   for "Honesty"). Deliberately scoped to Topic + Speaker only, not the
+   free-text title/kicker search — those are small, closed vocabularies
+   (334 topics, 364 speakers) where fuzzy matching is cheap and safe;
+   fuzzy-matching against thousands of different kicker/title words would
+   be both slower and far more prone to nonsense false positives.
+   Standard iterative Levenshtein edit distance — no library, just plain
+   JS, consistent with the rest of this app. */
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++){
+    curr[0] = i;
+    for (let j = 1; j <= n; j++){
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(
+        prev[j] + 1,      // deletion
+        curr[j - 1] + 1,  // insertion
+        prev[j - 1] + cost // substitution
+      );
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+/* Compares the query against every whitespace/comma/period-separated word
+   in each candidate's label (not the whole label at once) — this matters
+   most for Speaker, where labels are "Last, First M." and someone who
+   mistypes a surname shouldn't have that swamped by the unrelated first
+   name in the distance calculation; for Topic it's a no-op for the many
+   single-word labels and still helps the few multi-word ones ("Word of
+   Wisdom"). Threshold scales with word length (short words tolerate fewer
+   edits, since almost anything is "close" to a 2-3 letter string) and
+   `maxDistanceCap` lets Speaker use a tighter ceiling than Topic — a wrong
+   *topic* suggestion is a minor annoyance, a wrong *specific person's
+   name* is worse, since two real speakers can have genuinely similar
+   surnames. Requires a 5+ character query — tested down to 4 first, but
+   e.g. "grat" (a completely plausible in-progress typing state, not a
+   finished typo) fuzzy-matched "Grace" at 4 characters; 5 was the
+   threshold where that stopped happening in a spot-check against the
+   real topic/speaker lists — and returns the single closest candidate
+   value, or null if nothing is close enough OR if more than one real
+   candidate ties for closest (e.g. "nelsen" is equidistant from two real
+   speakers, "Nelson, Michael T." and "Nelson, Russell M." — silently
+   picking one, found live while testing this, would sometimes point at
+   the wrong specific person; suggesting nobody is the safer failure). */
+function closestFuzzyMatch(query, allValues, labelFor, maxDistanceCap){
+  if (!query || query.length < 5) return null;
+  let bestDist = Infinity;
+  const bestVals = new Set();
+  for (const val of allValues){
+    const words = labelFor(val).toLowerCase().split(/[\s,.]+/).filter(Boolean);
+    for (const word of words){
+      const maxDist = Math.min(maxDistanceCap, word.length <= 5 ? 1 : word.length <= 9 ? 2 : 3);
+      const dist = levenshtein(query, word);
+      if (dist > maxDist) continue;
+      if (dist < bestDist){
+        bestDist = dist;
+        bestVals.clear();
+        bestVals.add(val);
+      } else if (dist === bestDist){
+        bestVals.add(val);
+      }
+    }
+  }
+  return bestVals.size === 1 ? [...bestVals][0] : null;
+}
+
 /* Word-form groups for "Search titles & summaries" — a DIFFERENT gap than
    TOPIC_ALIASES (idea 25): that table maps a colloquial term to a
    DIFFERENT concept's official topic (chastity -> Sexual purity).
@@ -4187,6 +4264,12 @@ function renderOptions(dim){
     const empty = document.createElement('div');
     empty.className = 'ms-empty';
     const aliasKey = dim === 'topic' ? findTopicAlias(query) : null;
+    // Idea 28: only reached if there's no synonym alias either — spelling
+    // correction is the last-resort fallback, tried after the exact/
+    // substring match and the curated alias table both come up empty.
+    const fuzzyVal = !aliasKey && (dim === 'topic' || dim === 'speaker')
+      ? closestFuzzyMatch(query, cfg.allValues, cfg.labelFor, dim === 'speaker' ? 2 : 3)
+      : null;
     if (aliasKey){
       empty.textContent = 'No exact match.';
       const sugg = document.createElement('button');
@@ -4195,6 +4278,19 @@ function renderOptions(dim){
       sugg.textContent = `Did you mean "${TOPIC_LABELS[aliasKey]}"?`;
       sugg.addEventListener('click', ()=>{
         if (!filterState.topic.includes(aliasKey)) filterState.topic.push(aliasKey);
+        cfg.search.value = '';
+        refreshCount();
+        cfg.search.focus();
+      });
+      empty.appendChild(sugg);
+    } else if (fuzzyVal){
+      empty.textContent = 'No exact match.';
+      const sugg = document.createElement('button');
+      sugg.type = 'button';
+      sugg.className = 'ms-alias-suggestion';
+      sugg.textContent = `Did you mean "${cfg.labelFor(fuzzyVal)}"?`;
+      sugg.addEventListener('click', ()=>{
+        if (!filterState[dim].includes(fuzzyVal)) filterState[dim].push(fuzzyVal);
         cfg.search.value = '';
         refreshCount();
         cfg.search.focus();
