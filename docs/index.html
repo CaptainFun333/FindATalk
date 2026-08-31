@@ -2261,7 +2261,7 @@
     <div class="list-size-row">
       <span class="list-size-label">Sort</span>
       <div class="list-size-options" id="cfmSortOptions">
-        <button type="button" class="list-size-btn" data-sort="matching">Most Matching</button>
+        <button type="button" class="list-size-btn" data-sort="matching">Best Match</button>
         <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
       </div>
     </div>
@@ -5900,7 +5900,7 @@ function cfmPoolExcept(excludeDim){
   });
 }
 // Filtering never reorders — cfmBaseMatches() already comes out in the
-// right "Most Matching" order (citation matches by count, then topic/
+// right "Best Match" order (citation matches by count, then topic/
 // keyword matches by date), and Array.filter() preserves order, so this
 // stays correctly sorted with no extra work.
 function cfmFilteredMatches(){
@@ -6031,12 +6031,16 @@ function cfmOnFiltersChanged(){
   cfmRefreshResults();
 }
 
-/* ---- sort: "Most Matching" (default) vs "Most Recent" ----
+/* ---- sort: "Best Match" (default) vs "Most Recent" ----
    Same two-button toggle component Show a List's Random/Most Recent
-   uses, re-labeled. "Most Matching" is just the filtered pool as-is
-   (already correctly ordered — see cfmFilteredMatches()); "Most Recent"
-   re-sorts every match, regardless of citation/topic/keyword kind,
-   purely by conference date. */
+   uses, re-labeled. "Best Match" is just the filtered pool as-is
+   (already correctly ordered — see cfmFilteredMatches()); named that
+   instead of "Matching Citations" since the order isn't purely
+   citation-count-driven on every week — Christmas/Easter mix in
+   topic-tagged matches with no citation count at all, so a label
+   naming "citations" specifically would overclaim what's actually
+   sorting those two weeks. "Most Recent" re-sorts every match,
+   regardless of citation/topic/keyword kind, purely by conference date. */
 const CFM_SORT_KEY = 'findATalkCfmSort';
 let cfmSortMode = 'matching';
 try {
