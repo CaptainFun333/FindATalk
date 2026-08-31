@@ -1,14 +1,13 @@
-Version 1.3.1 — What's new (Google Play Console "release notes" field)
+Version 1.4 — What's new (Google Play Console "release notes" field)
 Character count: fits within Play's 500-character limit per language.
 
 ---
 
-Fixed: Export Backup now actually saves a file (previously did nothing),
-and scripture search no longer requires clearing app storage to work.
+New: a "Come, Follow Me" tab matches talks to this week's reading, with
+its own filters, a week picker, and holiday-themed Talk of the Day picks.
+Swipe between Home, Recents, Favorites, Notes & Lists. Browse past
+"Talk of the Day" picks on a calendar. Search now catches related words
+and misspelled topics/speakers.
 
-New: talks show which scriptures, hymns, other talks, and Church
-magazine articles they cite, each one tappable. Search Scriptures &
-Hymns right from the home page (try "Alma 32" or "I Am a Child of God").
-
-Also: Show a List can select the first 10 or all matches at once, long
-notes trim with "Show more," and better Topic search suggestions.
+Fixed: streak resetting late, a stuck data update, and the iOS widget
+failing to build. Renamed to "FindATalk" throughout.
