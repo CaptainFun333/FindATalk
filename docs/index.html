@@ -1526,8 +1526,13 @@
   .totd-header-row{
     display:flex; align-items:center; justify-content:space-between;
     gap:8px;
+    /* Same max-width + centering as .list-items below, so the eyebrow's
+       left edge and the calendar button's right edge line up with the
+       Talk of the Day tile's edges instead of the wider page column. */
+    max-width:620px;
+    margin:0 auto;
   }
-  .totd-header-row .totd-eyebrow{ margin-bottom:0; }
+  .totd-header-row .totd-eyebrow{ margin-bottom:0; text-align:left; }
   .totd-calendar-btn{
     flex-shrink:0;
     display:inline-flex; align-items:center; justify-content:center;
@@ -2171,9 +2176,8 @@
       <button type="button" id="cfmNextBtn" aria-label="Next week">›</button>
     </div>
     <div class="cfm-hint" id="cfmHint">
-      <p class="cfm-hint-lead">Talks that match this week's Come, Follow Me reading</p>
-      <p>Matches are curated by footnoted scripture.</p>
-      <p>Special weeks like Easter &amp; Christmas are curated by topic.</p>
+      <p class="cfm-hint-lead" id="cfmHintLead"></p>
+      <p id="cfmHintSub"></p>
       <p class="cfm-hint-disclaimer">Not an official Church-curated list.</p>
     </div>
 
@@ -2190,7 +2194,7 @@
     <div class="narrow-box">
       <div class="narrow-box-header">
         <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
-        <span>Looking for something more specific?</span>
+        <span>Want to narrow down these matches?</span>
       </div>
       <div class="narrow-box-body">
         <div class="filters">
@@ -2262,7 +2266,7 @@
     <div class="list-size-row">
       <span class="list-size-label">Sort</span>
       <div class="list-size-options" id="cfmSortOptions">
-        <button type="button" class="list-size-btn" data-sort="matching">Most Matching</button>
+        <button type="button" class="list-size-btn" data-sort="matching">Best Match</button>
         <button type="button" class="list-size-btn" data-sort="recent">Most Recent</button>
       </div>
     </div>
@@ -5806,6 +5810,30 @@ const cfmRangeEl = document.getElementById('cfmRange');
 const cfmDatesEl = document.getElementById('cfmDates');
 const cfmMatchCountEl = document.getElementById('cfmMatchCount');
 const cfmHintEl = document.getElementById('cfmHint');
+const cfmHintLeadEl = document.getElementById('cfmHintLead');
+const cfmHintSubEl = document.getElementById('cfmHintSub');
+// Christmas/Easter checked via entry.topics (the actual matching signal),
+// not the display label — robust to the label text ever changing, same
+// way the citation badges above already key off entry.topics rather than
+// string-matching "Christmas"/"Easter".
+function cfmHintLines(entry){
+  if (entry.topics && entry.topics.includes('christmas')){
+    return {
+      lead: "Talks that match this week's Come, Follow Me.",
+      sub: 'Talks are selected by matching Christmas topics & scriptures.'
+    };
+  }
+  if (entry.topics && entry.topics.includes('easter')){
+    return {
+      lead: "Talks that match this week's Come, Follow Me.",
+      sub: 'Talks are selected by matching Easter topics & scriptures.'
+    };
+  }
+  return {
+    lead: "Talks that match this week's Come, Follow Me reading",
+    sub: 'Talks are selected by matching footnoted scripture.'
+  };
+}
 const cfmPrevBtn = document.getElementById('cfmPrevBtn');
 const cfmNextBtn = document.getElementById('cfmNextBtn');
 const cfmControlsBox = document.getElementById('cfmControlsBox');
@@ -5877,7 +5905,7 @@ function cfmPoolExcept(excludeDim){
   });
 }
 // Filtering never reorders — cfmBaseMatches() already comes out in the
-// right "Most Matching" order (citation matches by count, then topic/
+// right "Best Match" order (citation matches by count, then topic/
 // keyword matches by date), and Array.filter() preserves order, so this
 // stays correctly sorted with no extra work.
 function cfmFilteredMatches(){
@@ -6008,12 +6036,16 @@ function cfmOnFiltersChanged(){
   cfmRefreshResults();
 }
 
-/* ---- sort: "Most Matching" (default) vs "Most Recent" ----
+/* ---- sort: "Best Match" (default) vs "Most Recent" ----
    Same two-button toggle component Show a List's Random/Most Recent
-   uses, re-labeled. "Most Matching" is just the filtered pool as-is
-   (already correctly ordered — see cfmFilteredMatches()); "Most Recent"
-   re-sorts every match, regardless of citation/topic/keyword kind,
-   purely by conference date. */
+   uses, re-labeled. "Best Match" is just the filtered pool as-is
+   (already correctly ordered — see cfmFilteredMatches()); named that
+   instead of "Matching Citations" since the order isn't purely
+   citation-count-driven on every week — Christmas/Easter mix in
+   topic-tagged matches with no citation count at all, so a label
+   naming "citations" specifically would overclaim what's actually
+   sorting those two weeks. "Most Recent" re-sorts every match,
+   regardless of citation/topic/keyword kind, purely by conference date. */
 const CFM_SORT_KEY = 'findATalkCfmSort';
 let cfmSortMode = 'matching';
 try {
@@ -6242,6 +6274,9 @@ function renderCfmPage(){
   cfmPrevBtn.disabled = cfmCurrentIndex <= 0;
   cfmNextBtn.disabled = cfmCurrentIndex >= CFM_SCHEDULE.length - 1;
   cfmHintEl.style.display = '';
+  const hintLines = cfmHintLines(entry);
+  cfmHintLeadEl.textContent = hintLines.lead;
+  cfmHintSubEl.textContent = hintLines.sub;
 
   cfmRefreshResults();
 }
