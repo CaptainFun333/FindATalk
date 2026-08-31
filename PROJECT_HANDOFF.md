@@ -3551,3 +3551,60 @@ spot-check step for at least a few pages each year; citation accuracy
 matters more here than almost anywhere else in this app, since it's
 presented as "does this talk relate to what you're studying," not just a
 fun randomizer.
+
+## ✅ Done: extended the CFM schedule into 2027 (New Testament)
+
+Followed the plan above to add 2027 ahead of time (the manual was
+already published), continuing seamlessly right after 2026's last week
+(Dec 21–27) — `CFM_SCHEDULE` now runs Dec 29, 2025 through Dec 26, 2027,
+104 weeks, one continuous flat array. Verified: chronological order, no
+gaps/dupes, every consecutive pair exactly 7 days apart.
+
+**A real, non-obvious quirk found and worth remembering for every future
+year's refresh, not just this one**: the Church's own manual page
+numbers are **not always sequential with the calendar weeks**. For 2027
+specifically, lesson `/13` and `/14` are swapped — `/14` is March 22–28
+("Easter Week"), `/13` is March 29–April 4, the *reverse* of what a
+naive "position in the list = lesson number" assumption would produce.
+**Don't build week URLs by assuming `index + 1` (or any other formula)
+ever again** — instead, `curl` the manual's own index page and extract
+the real `<a href>` values paired with their date-range link text
+directly (regex over the raw HTML, not the summarizing WebFetch tool —
+same "need exact hrefs, not an LLM paraphrase" reasoning as the Session
+backfill), then match each fetched week to its real href by date range.
+This session caught the swap by directly spot-checking `/13` and `/14`
+in a real browser after a plain "position → URL" build produced content
+that didn't match what the date range implied — **always spot-check a
+couple of URLs against real page titles before trusting a numbering
+assumption**, this is the second time in this project a numbering
+assumption for Church-published content turned out to have a real
+exception (see the citation `chapter` vs. verse-range gotchas earlier
+in this doc for the first).
+
+**Easter/Christmas refs carried forward exactly as the plan said to**:
+copied the literal `refs`/`topics` arrays from the 2026 entries onto
+2027's "Easter Week" and "Christmas" entries, no re-research — verified
+live (Christmas 2027 produces the identical 89-match count Christmas
+2026 does). Note 2027's Easter entry is literally titled "Easter Week"
+by the Church (not just "Easter" like 2026's), and its own manual entry
+is thematic/devotional rather than a specific chapter reading — same
+`refs: null` + `topics: ['easter']` treatment as before still applies
+correctly regardless of the exact label text, since matching keys off
+`entry.topics`, not the label string (see `cfmHintLines()`'s own
+comment on why that distinction matters).
+
+**No intro-week treatment was needed** for 2027, unlike 2026 — 2026's
+week 1 was a true orientation week ("Introduction to the Old
+Testament") with no scripture assignment of its own, needing the
+special Matt 4:19 + "Come, Follow Me" keyword treatment. 2027 opens
+directly with real scripture (Matthew 1; Luke 1) since it's a normal
+year-to-year rotation, not the start of a new 4-year cycle. **Don't
+assume every year's week 1 needs that special treatment — only check
+for it if a year's actual week 1 turns out to be a non-scripture
+orientation week**, which won't be true most years.
+
+2025 (the prior year, Doctrine & Covenants) was deliberately **not**
+backfilled — discussed with the user and decided it's lower-value
+(backward-looking, no one is currently studying it) versus the same
+effort cost as any other year. Revisit only if the user specifically
+wants "look back at what I studied last year" — not done by default.
