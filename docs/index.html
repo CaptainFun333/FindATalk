@@ -1620,6 +1620,18 @@
   .totd-calendar-day.is-empty{ visibility:hidden; cursor:default; }
   .totd-calendar-day.is-today{ font-weight:700; color:var(--brass); }
   .totd-calendar-day.is-selected{ background:var(--accent-fill); color:var(--on-accent); border-color:var(--accent-fill); }
+  /* CFM calendar (idea 24 follow-up) — the 7 days belonging to whichever
+     week is currently showing on the CFM page get a shared brass border
+     so the row visually reads as "one lesson," distinct from is-today's
+     bold/brass TEXT treatment (the two combine fine when today falls
+     inside the viewed week — border and text color are independent).
+     A border rather than a background fill/color-mix() specifically so
+     it reuses an existing theme-aware token instead of needing a new
+     light+dark background variable, and still reads as grouped even
+     though a week spanning a month boundary can only show whichever
+     days actually fall in the currently-viewed month's grid. */
+  .totd-calendar-day.is-cfm-week{ border-color:var(--brass); }
+  .cfm-page-header{ justify-content:space-between; align-items:center; }
   .totd-calendar-hint{ margin:14px 0 0; }
   #totdCalResult:empty{ margin:0; }
   #totdCalResult:not(:empty){ margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
@@ -2181,8 +2193,11 @@
 
   <div id="cfmZone" style="display:none">
     <div class="page-nav" id="cfmZoneNav"></div>
-    <div class="page-header">
+    <div class="page-header cfm-page-header">
       <h2 class="page-title">Come, Follow Me</h2>
+      <button type="button" class="totd-calendar-btn" id="cfmCalendarBtn" aria-label="Jump to a different week">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+      </button>
     </div>
     <div class="cfm-week-nav">
       <button type="button" id="cfmPrevBtn" aria-label="Previous week">‹</button>
@@ -2353,6 +2368,22 @@
       <div class="totd-calendar-grid" id="totdCalGrid"></div>
       <p class="modal-copy totd-calendar-hint" id="totdCalHint">Pick any highlighted day to see that day's Talk of the Day.</p>
       <div id="totdCalResult"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cfmCalendarModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cfmCalendarModalTitle">
+      <div class="modal-header">
+        <h3 id="cfmCalendarModalTitle">Jump to a Week</h3>
+        <button type="button" class="modal-close" id="cfmCalendarModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="totd-calendar-nav">
+        <button type="button" class="totd-calendar-nav-btn" id="cfmCalPrevBtn" aria-label="Previous month">&lsaquo;</button>
+        <span class="totd-calendar-month-label" id="cfmCalMonthLabel"></span>
+        <button type="button" class="totd-calendar-nav-btn" id="cfmCalNextBtn" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="totd-calendar-grid" id="cfmCalGrid"></div>
+      <p class="modal-copy totd-calendar-hint">Pick any day to jump straight to that week's reading.</p>
     </div>
   </div>
 
@@ -6317,6 +6348,116 @@ cfmPrevBtn.addEventListener('click', ()=>{
 cfmNextBtn.addEventListener('click', ()=>{
   if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
   cfmGoToWeek(Math.min(CFM_SCHEDULE.length - 1, cfmCurrentIndex + 1));
+});
+
+/* ---------------- CFM "Jump to a Week" calendar ----------------
+   Same month-grid component Talk of the Day's history calendar uses
+   (.totd-calendar-* classes reused directly, not forked), repurposed:
+   every day is already valid (the whole year's schedule exists upfront,
+   unlike Talk of Day's calendar which has to grey out days with no
+   recorded history yet) except days genuinely outside the schedule's
+   date range; picking any day jumps straight to that day's CFM week and
+   closes the modal, rather than previewing inline — this is a
+   navigation tool, not a history browser. */
+const cfmCalendarModalOverlay = document.getElementById('cfmCalendarModalOverlay');
+const cfmCalMonthLabel = document.getElementById('cfmCalMonthLabel');
+const cfmCalGrid = document.getElementById('cfmCalGrid');
+const cfmCalPrevBtn = document.getElementById('cfmCalPrevBtn');
+const cfmCalNextBtn = document.getElementById('cfmCalNextBtn');
+let cfmCalViewDate = null;
+
+function cfmScheduleStartIso(){ return CFM_SCHEDULE.length ? CFM_SCHEDULE[0].start : null; }
+function cfmScheduleEndIso(){ return CFM_SCHEDULE.length ? localIsoDate(cfmWeekEndDate(CFM_SCHEDULE.length - 1)) : null; }
+
+function renderCfmCalendar(){
+  const y = cfmCalViewDate.getFullYear();
+  const m = cfmCalViewDate.getMonth();
+  cfmCalMonthLabel.textContent = cfmCalViewDate.toLocaleDateString(undefined, {month:'long', year:'numeric'});
+
+  const todayKey = localIsoDate();
+  const startIso = cfmScheduleStartIso();
+  const endIso = cfmScheduleEndIso();
+  const curEntry = cfmCurrentIndex !== null ? CFM_SCHEDULE[cfmCurrentIndex] : null;
+  const curStartIso = curEntry ? curEntry.start : null;
+  const curEndIso = curEntry ? localIsoDate(cfmWeekEndDate(cfmCurrentIndex)) : null;
+
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  cfmCalGrid.innerHTML = '';
+  TOTD_CAL_DOW_LABELS.forEach(label=>{
+    const el = document.createElement('div');
+    el.className = 'totd-calendar-dow';
+    el.textContent = label;
+    cfmCalGrid.appendChild(el);
+  });
+  for (let i = 0; i < firstDow; i++){
+    const blank = document.createElement('div');
+    blank.className = 'totd-calendar-day is-empty';
+    cfmCalGrid.appendChild(blank);
+  }
+  for (let day = 1; day <= daysInMonth; day++){
+    const dateKey = localIsoDate(new Date(y, m, day));
+    const inSchedule = !!startIso && dateKey >= startIso && dateKey <= endIso;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'totd-calendar-day';
+    if (dateKey === todayKey) btn.classList.add('is-today');
+    if (curStartIso && dateKey >= curStartIso && dateKey <= curEndIso) btn.classList.add('is-cfm-week');
+    btn.textContent = String(day);
+    btn.disabled = !inSchedule;
+    if (inSchedule){
+      btn.setAttribute('aria-label', `Jump to the Come, Follow Me week covering ${dateKey}`);
+      btn.addEventListener('click', ()=>{
+        cfmGoToWeek(cfmWeekIndexForDate(new Date(y, m, day)));
+        closeCfmCalendarModal();
+      });
+    }
+    cfmCalGrid.appendChild(btn);
+  }
+
+  // Bounded by the schedule's own date range on both ends, unlike Talk of
+  // Day's calendar (which only bounds the future — the past always has
+  // more history to scroll back through). Comparing year+month directly
+  // rather than ISO strings since cfmCalViewDate is always the 1st of
+  // its month.
+  const startDate = startIso ? new Date(startIso + 'T00:00:00') : null;
+  const endDate = endIso ? new Date(endIso + 'T00:00:00') : null;
+  cfmCalPrevBtn.disabled = !startDate || (y === startDate.getFullYear() && m === startDate.getMonth());
+  cfmCalNextBtn.disabled = !endDate || (y === endDate.getFullYear() && m === endDate.getMonth());
+}
+
+function openCfmCalendarModal(){
+  // Opens on whichever week is currently showing, not always "today" —
+  // browsing to, say, Christmas week then opening the calendar should
+  // land on December, not jump back to the real current month.
+  if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
+  const entry = CFM_SCHEDULE[cfmCurrentIndex];
+  const base = entry ? new Date(entry.start + 'T00:00:00') : new Date();
+  cfmCalViewDate = new Date(base.getFullYear(), base.getMonth(), 1);
+  renderCfmCalendar();
+  cfmCalendarModalOverlay.hidden = false;
+}
+function closeCfmCalendarModal(){
+  cfmCalendarModalOverlay.hidden = true;
+}
+document.getElementById('cfmCalendarBtn').addEventListener('click', openCfmCalendarModal);
+document.getElementById('cfmCalendarModalClose').addEventListener('click', closeCfmCalendarModal);
+cfmCalendarModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === cfmCalendarModalOverlay) closeCfmCalendarModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !cfmCalendarModalOverlay.hidden) closeCfmCalendarModal();
+});
+cfmCalPrevBtn.addEventListener('click', ()=>{
+  if (cfmCalPrevBtn.disabled) return;
+  cfmCalViewDate = new Date(cfmCalViewDate.getFullYear(), cfmCalViewDate.getMonth() - 1, 1);
+  renderCfmCalendar();
+});
+cfmCalNextBtn.addEventListener('click', ()=>{
+  if (cfmCalNextBtn.disabled) return;
+  cfmCalViewDate = new Date(cfmCalViewDate.getFullYear(), cfmCalViewDate.getMonth() + 1, 1);
+  renderCfmCalendar();
 });
 
 /* ---------------- My Lists (self-defined collections) ---------------- */
