@@ -4111,7 +4111,7 @@ const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 // once real per-talk data starts populating SESSION_LOOKUP.
 const allSessions = SESSION_ORDER.filter(s=>TALKS.some(t=>talkSession(t)===s));
 
-document.getElementById('totalCount').textContent = TALKS.length.toLocaleString();
+document.getElementById('totalCount').textContent = TALKS.length;
 
 // Looks a talk back up by its talkKey() — used to render the Recently
 // Viewed / Favorites pages from the key lists in localStorage.
