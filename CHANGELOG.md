@@ -16,6 +16,7 @@ this updated.
 - You can now swipe left or right to move between Home, Recents, Favorites, Notes, and Lists, instead of only tapping the links at the top of the page.
 - Added a small calendar icon next to "Talk of the Day" — tap it to browse back through previous days and see what was featured, one month at a time. Only days with a real recorded pick are selectable. Days you've already opened show a small checkmark, same as the "Read" checkmark elsewhere in the app.
 - "Find Another" and "Show a List" now also appear at the bottom of the filters/search area, so you don't have to scroll back up to reach them after searching or adjusting a filter. On narrower phone screens, both button rows now stay side by side instead of stacking.
+- "Search titles & summaries" now also catches everyday words that aren't literally in a talk's title or summary but point to a real topic — searching "chastity" now also shows talks tagged with "Sexual purity," for example — with a small note explaining why those extra talks showed up.
 
 ### Changed
 - Talk of the Day no longer repeats a talk until every talk in the app has had its turn — previously it was picked independently each day, so with thousands of talks in rotation the same one could resurface again after only a few weeks purely by chance.

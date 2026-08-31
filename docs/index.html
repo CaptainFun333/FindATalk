@@ -1621,6 +1621,14 @@
     line-height:1.5;
     margin:0 0 28px;
   }
+  /* Idea 25: shown under "Search titles & summaries" only while the typed
+     query is a known TOPIC_ALIASES synonym (e.g. "chastity") — makes the
+     otherwise-invisible expansion (also matching talks tagged with the
+     real topic) visible rather than a silent behavior change. */
+  .query-alias-hint{
+    font-family:'Inter',sans-serif; font-size:12px; font-style:italic;
+    color:var(--ink-soft); margin:6px 2px 0;
+  }
   .collection-row{
     display:flex; align-items:stretch; gap:0;
     background:var(--paper-raised);
@@ -1947,6 +1955,7 @@
           <input type="text" id="querySearch" placeholder="e.g. gratitude, prayer, family…" autocomplete="off" aria-labelledby="queryLabel">
           <button type="button" id="queryClear" aria-label="Clear search" hidden>&times;</button>
         </div>
+        <p class="query-alias-hint" id="queryAliasHint" hidden></p>
       </div>
 
       <div class="search-field">
@@ -3737,12 +3746,33 @@ function matchesDim(t, dim, values){
   if (dim==='session') return values.includes(talkSession(t));
   return true;
 }
+/* Idea 25: synonym expansion for "Search titles & summaries" — reuses the
+   same TOPIC_ALIASES table idea 12/17 built for the Topic filter's "did
+   you mean" suggestion, but here it doesn't just suggest, it actively
+   widens the match. Deliberately an EXACT match against the full trimmed
+   query, not TOPIC_ALIASES's substring-of-key fallback (findTopicAlias) —
+   that fallback is fine for a passive suggestion surfaced only on a
+   failed search, but wrong here: a short in-progress query like "an"
+   would substring-match unrelated alias keys ("grandparents," "affair,"
+   ...) and silently pull in unrelated talks while someone is still
+   mid-typing a longer word. Returns the topic key (e.g. 'sexual-purity')
+   or null. */
+function searchAliasTopic(q){
+  return TOPIC_ALIASES[q] || null;
+}
 function matchesSearch(t){
   const q = filterState.query.trim().toLowerCase();
   if (!q) return true;
   if (t[0].toLowerCase().includes(q)) return true;
   const kicker = talkKicker(t);
-  return !!(kicker && kicker.toLowerCase().includes(q));
+  if (kicker && kicker.toLowerCase().includes(q)) return true;
+  // Also match talks actually tagged with the aliased topic, even when
+  // neither the title nor kicker literally contains the synonym typed —
+  // this uses the app's real structured topic data instead of guessing at
+  // kicker wording, which is strictly more reliable than a text-only
+  // synonym match would be.
+  const aliasTopic = searchAliasTopic(q);
+  return !!(aliasTopic && talkTopics(t).includes(aliasTopic));
 }
 /* "Search Scriptures & Hymns" — two DIFFERENT matching strategies, only
    one of which ever runs for a given query, decided by whether it's
@@ -3948,6 +3978,21 @@ function refreshCount(){
     poolCountEl.innerHTML = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''} right now`;
   }
   resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim() && !filterState.citeQuery.trim();
+  refreshQueryAliasHint();
+}
+// Idea 25: shows/hides the "Also showing talks about X" note under the
+// title/kicker search box, kept in sync with filterState.query on every
+// refreshCount() call (typing, clearing, and Reset filters all flow
+// through here, so this can't drift out of sync with matchesSearch()).
+function refreshQueryAliasHint(){
+  const q = filterState.query.trim().toLowerCase();
+  const aliasTopic = q ? searchAliasTopic(q) : null;
+  if (aliasTopic && TOPIC_LABELS[aliasTopic]){
+    queryAliasHintEl.textContent = `Also showing talks tagged "${TOPIC_LABELS[aliasTopic]}"`;
+    queryAliasHintEl.hidden = false;
+  } else {
+    queryAliasHintEl.hidden = true;
+  }
 }
 
 /* ---------------- panel open/close (one at a time) ---------------- */
@@ -4005,6 +4050,7 @@ resetBtn.addEventListener('click', ()=>{
 /* ---------------- keyword search (title + kicker) ---------------- */
 const querySearchEl = document.getElementById('querySearch');
 const queryClearBtn = document.getElementById('queryClear');
+const queryAliasHintEl = document.getElementById('queryAliasHint');
 querySearchEl.addEventListener('input', ()=>{
   filterState.query = querySearchEl.value;
   queryClearBtn.hidden = !querySearchEl.value;
