@@ -35,6 +35,7 @@ this updated.
 - Talk of the Day no longer repeats a talk until every talk in the app has had its turn — previously it was picked independently each day, so with thousands of talks in rotation the same one could resurface again after only a few weeks purely by chance.
 - Shortened the footer's explanatory text and mentioned that session and citation data are pulled from the Church's own official records too, not just topics. Also narrowed the footer so its centered lines wrap into a tidy column instead of spanning the full width of the page.
 - Added a few line breaks to the footer text so each sentence/clause sits on its own line, instead of relying on the browser to wrap it.
+- Trimmed the footer's "Topics, sessions, & citations" line slightly so it fits on one line on more phone screens.
 
 ### Fixed
 - The app was silently re-saving the entire offline talk database on every single launch, even when nothing about it had changed, which could bloat the app's on-device storage over time for no reason. It now only re-saves when the data actually has an update.
