@@ -1632,6 +1632,15 @@
      days actually fall in the currently-viewed month's grid. */
   .totd-calendar-day.is-cfm-week{ border-color:var(--brass); }
   .cfm-page-header{ justify-content:space-between; align-items:center; }
+  /* Groups "This Week" with the calendar icon so both sit together on
+     the header's right side (space-between on .cfm-page-header only has
+     two children to work with — title and this group — otherwise a
+     3rd top-level child would end up centered between them, not
+     adjacent to the calendar icon). #cfmThisWeekBtn is hidden by
+     default in HTML and only shown when browsed away from the real
+     current week — see cfmSyncThisWeekBtn(). */
+  .cfm-header-actions{ display:flex; align-items:center; gap:12px; }
+  .cfm-header-actions .reset-link{ white-space:nowrap; }
   .totd-calendar-hint{ margin:14px 0 0; }
   #totdCalResult:empty{ margin:0; }
   #totdCalResult:not(:empty){ margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
@@ -2195,9 +2204,12 @@
     <div class="page-nav" id="cfmZoneNav"></div>
     <div class="page-header cfm-page-header">
       <h2 class="page-title">Come, Follow Me</h2>
-      <button type="button" class="totd-calendar-btn" id="cfmCalendarBtn" aria-label="Jump to a different week">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
-      </button>
+      <div class="cfm-header-actions">
+        <button type="button" class="reset-link" id="cfmThisWeekBtn" hidden>This Week</button>
+        <button type="button" class="totd-calendar-btn" id="cfmCalendarBtn" aria-label="Jump to a different week">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+        </button>
+      </div>
     </div>
     <div class="cfm-week-nav">
       <button type="button" id="cfmPrevBtn" aria-label="Previous week">‹</button>
@@ -5888,6 +5900,17 @@ function cfmHintLines(entry){
 const cfmPrevBtn = document.getElementById('cfmPrevBtn');
 const cfmNextBtn = document.getElementById('cfmNextBtn');
 const cfmControlsBox = document.getElementById('cfmControlsBox');
+// "This Week" — a quick way back after browsing elsewhere on the
+// calendar or via Prev/Next, since the page deliberately stays wherever
+// you left it (same "stays put until you act again" convention as the
+// rest of the app) rather than resetting to today's week on its own.
+// Only shown when actually needed — hidden whenever the real current
+// week is already what's on screen.
+const cfmThisWeekBtn = document.getElementById('cfmThisWeekBtn');
+function cfmSyncThisWeekBtn(){
+  cfmThisWeekBtn.hidden = cfmCurrentIndex === cfmWeekIndexForDate();
+}
+cfmThisWeekBtn.addEventListener('click', ()=> cfmGoToWeek(cfmWeekIndexForDate()));
 
 /* ---- filters (idea 24 item #3) ----
    Reuses Home's exact matching PREDICATE (matchesDim/valuesForDim —
@@ -6305,6 +6328,7 @@ function renderCfmPage(){
     cfmHintEl.style.display = 'none';
     cfmPrevBtn.disabled = true;
     cfmNextBtn.disabled = true;
+    cfmThisWeekBtn.hidden = true;
     return;
   }
   if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
@@ -6324,6 +6348,7 @@ function renderCfmPage(){
   cfmDatesEl.textContent = cfmFormatDateRange(cfmCurrentIndex);
   cfmPrevBtn.disabled = cfmCurrentIndex <= 0;
   cfmNextBtn.disabled = cfmCurrentIndex >= CFM_SCHEDULE.length - 1;
+  cfmSyncThisWeekBtn();
   cfmHintEl.style.display = '';
   const hintLines = cfmHintLines(entry);
   cfmHintLeadEl.textContent = hintLines.lead;

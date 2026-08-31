@@ -20,6 +20,7 @@ this updated.
 - The "Come, Follow Me" tab now has the same Topic/Calling/Speaker/Conference/Session filters as the home page (labeled "Want to narrow down these matches?" there, since it's answering a different question than the home page's own filters), a Best Match/Most Recent sort, and pages through results 10 at a time — with "Select First 10"/"Select All" to add a whole page (or every match) to a list at once, same as "Show a List" already offers. Handy on a week with a lot of matches: filter down to just talks by a Calling you care about, then sort by whichever is more useful.
 - Added a calendar icon to the "Come, Follow Me" tab, next to the page title — tap it to jump straight to any week in the year instead of clicking through one week at a time. The week you're currently viewing is outlined on the calendar so it's easy to see where you are.
 - The "Come, Follow Me" tab now continues seamlessly into 2027's New Testament schedule right after 2026's Old Testament weeks end, so it won't go stale come January.
+- Added a "This Week" link next to the calendar icon on the "Come, Follow Me" tab — appears whenever you've browsed to a different week, so there's always a quick way back to the current one.
 
 ### Changed
 - The "Talk of the Day" heading and calendar icon above it now line up with the left and right edges of the card below, instead of sitting further apart from it — with a bit of breathing room kept between that row and the card, so the calendar icon doesn't sit flush against it.
