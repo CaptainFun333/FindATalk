@@ -976,13 +976,23 @@
   .cfm-week-nav button:hover{ color:var(--burgundy); background:var(--paper-raised); }
   .cfm-week-nav button:disabled{ opacity:.35; cursor:default; background:none; color:var(--brass); }
   .cfm-week-label{ text-align:center; min-width:200px; }
+  /* Single line + ellipsis instead of wrapping to two lines — a long
+     scripture-range title (several books/chapters strung together)
+     could otherwise push the whole cfm-week-nav row noticeably taller
+     than a typical week. display:block (not inline-block) so the link
+     actually fills .cfm-week-label's width — text-overflow:ellipsis
+     has no width to truncate against on an inline-block sized to its
+     own content. */
   .cfm-range{
     font-family:'Lora',serif;
     font-weight:600;
     font-size:17px;
     color:var(--ink);
     text-decoration:none;
-    display:inline-block;
+    display:block;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
   }
   a.cfm-range:hover{ color:var(--burgundy); text-decoration:underline; text-underline-offset:3px; }
   a.cfm-range:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; border-radius:2px; }
@@ -6334,6 +6344,11 @@ function renderCfmPage(){
   if (cfmCurrentIndex === null) cfmCurrentIndex = cfmWeekIndexForDate();
   const entry = CFM_SCHEDULE[cfmCurrentIndex];
   cfmRangeEl.textContent = entry.label;
+  // Now that a long title truncates with an ellipsis, this is the only
+  // way a sighted mouse/trackpad user recovers the full text without
+  // tapping through to the real page — a screen reader still gets it
+  // fine from the element's own text content regardless.
+  cfmRangeEl.title = entry.label;
   // Links out to this week's real page in the Church's own manual (Gospel
   // Library opens it directly if installed, via normal universal linking —
   // same mechanism every other citation link in this app already relies

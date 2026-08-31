@@ -21,6 +21,7 @@ this updated.
 - Added a calendar icon to the "Come, Follow Me" tab, next to the page title — tap it to jump straight to any week in the year instead of clicking through one week at a time. The week you're currently viewing is outlined on the calendar so it's easy to see where you are.
 - The "Come, Follow Me" tab now continues seamlessly into 2027's New Testament schedule right after 2026's Old Testament weeks end, so it won't go stale come January.
 - Added a "This Week" link next to the calendar icon on the "Come, Follow Me" tab — appears whenever you've browsed to a different week, so there's always a quick way back to the current one.
+- On the "Come, Follow Me" tab, a week's scripture title now stays on one line and trims with "…" if it's especially long, instead of occasionally wrapping onto two lines.
 
 ### Changed
 - The "Talk of the Day" heading and calendar icon above it now line up with the left and right edges of the card below, instead of sitting further apart from it — with a bit of breathing room kept between that row and the card, so the calendar icon doesn't sit flush against it.
