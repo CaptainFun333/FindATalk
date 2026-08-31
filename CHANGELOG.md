@@ -20,7 +20,7 @@ this updated.
 - The "Come, Follow Me" tab now has the same Topic/Calling/Speaker/Conference/Session filters as the home page (labeled "Want to narrow down these matches?" there, since it's answering a different question than the home page's own filters), a Best Match/Most Recent sort, and pages through results 10 at a time — with "Select First 10"/"Select All" to add a whole page (or every match) to a list at once, same as "Show a List" already offers. Handy on a week with a lot of matches: filter down to just talks by a Calling you care about, then sort by whichever is more useful.
 
 ### Changed
-- The "Talk of the Day" heading and calendar icon above it now line up with the left and right edges of the card below, instead of sitting further apart from it.
+- The "Talk of the Day" heading and calendar icon above it now line up with the left and right edges of the card below, instead of sitting further apart from it — with a bit of breathing room kept between that row and the card, so the calendar icon doesn't sit flush against it.
 - On the "Come, Follow Me" tab, the date range is now bigger and set apart from the explanation text below it, and that explanation is now a few short lines instead of one long sentence — and now says specifically how that week's talks were chosen (Christmas and Easter say topics & scriptures; every other week says scripture).
 - Talk of the Day no longer repeats a talk until every talk in the app has had its turn — previously it was picked independently each day, so with thousands of talks in rotation the same one could resurface again after only a few weeks purely by chance.
 

@@ -1528,9 +1528,16 @@
     gap:8px;
     /* Same max-width + centering as .list-items below, so the eyebrow's
        left edge and the calendar button's right edge line up with the
-       Talk of the Day tile's edges instead of the wider page column. */
+       Talk of the Day tile's edges instead of the wider page column.
+       The 12px bottom margin restores the gap the eyebrow's own
+       margin-bottom used to provide before it was zeroed out for this
+       row (see .totd-header-row .totd-eyebrow below) — without it the
+       calendar button sits flush against the tile. align-items:center
+       still handles the icon-vs-text vertical alignment WITHIN the row;
+       this margin only affects spacing below the row, so it can't
+       throw that off. */
     max-width:620px;
-    margin:0 auto;
+    margin:0 auto 12px;
   }
   .totd-header-row .totd-eyebrow{ margin-bottom:0; text-align:left; }
   .totd-calendar-btn{
