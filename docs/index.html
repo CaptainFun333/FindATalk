@@ -2146,7 +2146,7 @@
       </div>
       <button type="button" id="cfmNextBtn" aria-label="Next week">›</button>
     </div>
-    <p class="cfm-hint" id="cfmHint">Talks whose footnoted scriptures overlap this week's Come, Follow Me reading — not an official Church-curated list, just what the citation data actually turns up.</p>
+    <p class="cfm-hint" id="cfmHint">Talks that match this week's Come, Follow Me reading — usually by footnoted scripture, or by topic/mention for weeks like Easter and Christmas that aren't a chapter range. Not an official Church-curated list, just what the app's own data actually turns up.</p>
     <div class="pool-count" id="cfmMatchCount"></div>
     <div class="list-items" id="cfmItems"></div>
     <div class="list-empty" id="cfmEmpty"></div>
@@ -2775,16 +2775,27 @@ function citationCoversVerse(anchor, verseStart, verseEnd){
    other lookup in this app already uses — the Church republishes this
    schedule every year (a 4-year Book of Mormon/D&C/New Testament/Old
    Testament rotation), so next year's version is a data.json edit, not a
-   code change. Each entry: {start: "YYYY-MM-DD", label, refs}. `refs` is
-   null for the three non-scripture weeks (the intro week, Easter,
-   Christmas) — those get a friendly message instead of a talk list rather
-   than an empty pool that looks broken. Otherwise refs is a list of
-   [volume, book, ranges] triples, `ranges` a list of [chapterStart,
-   chapterEnd] pairs, or null to mean "the whole book" (Ruth, Esther, and
-   several of the minor prophets are assigned whole). volume/book use the
-   exact same slugs as CITATION_REFS/CITATION_BOOK_LABELS (e.g.
-   "ot"/"gen"), sourced directly from the Church's own published schedule,
-   not guessed. */
+   code change. Each entry: {start: "YYYY-MM-DD", label, refs, topics,
+   keywords} — `topics`/`keywords` are optional, `refs` is optional too
+   now (the intro week carries both refs AND keywords — see below).
+   `refs` is a list of [volume, book, ranges, verseRange] tuples: `ranges`
+   is a list of [chapterStart, chapterEnd] pairs, or null to mean "the
+   whole book" (Ruth, Esther, and several of the minor prophets are
+   assigned whole); `verseRange` is an optional [verseStart, verseEnd]
+   pair restricting a match to specific verses within those chapters (only
+   the intro week uses this, for Matthew 4:19 specifically — the verse
+   the program's own name comes from). volume/book use the exact same
+   slugs as CITATION_REFS/CITATION_BOOK_LABELS (e.g. "ot"/"gen"), sourced
+   directly from the Church's own published schedule, not guessed.
+   `topics` is a list of official Church topic keys (TOPIC_LOOKUP's own
+   vocabulary) — Easter and Christmas use this, reusing the exact same
+   'easter'/'christmas' tags Talk of the Day's own curated-holiday system
+   already relies on (see CURATED_HOLIDAYS) rather than inventing a
+   separate keyword list for something the real taxonomy already covers.
+   `keywords` is a list of lowercase phrases checked against a talk's
+   title/kicker — for the one case neither citations nor topics can
+   reach: the intro week's "Come, Follow Me" isn't a scripture and isn't
+   an official topic tag. */
 let CFM_SCHEDULE = [];
 let CFM_YEAR_LABEL = '';
 
@@ -2793,6 +2804,14 @@ function cfmChapterInRanges(chapterStr, ranges){
   const chapter = parseInt(chapterStr, 10);
   if (Number.isNaN(chapter)) return false;
   return ranges.some(([lo, hi])=> chapter >= lo && chapter <= hi);
+}
+/* Plain case-insensitive substring check against a talk's title + kicker
+   only — deliberately narrower than subsetSearchHaystack (which also
+   pulls in speaker/role/topic labels, right for a general search box but
+   not for "does this talk's own title or teaser reference this phrase"). */
+function cfmTalkMentions(talk, phrase){
+  const kicker = talkKicker(talk) || '';
+  return (talk[0] + ' ' + kicker).toLowerCase().includes(phrase);
 }
 /* Device-local calendar date as "YYYY-MM-DD" — deliberately not
    toISOString() (that's UTC, which can land on the wrong side of
@@ -2844,31 +2863,84 @@ function cfmFormatDateRange(index){
   const endStr = end.toLocaleDateString('en-US', opts);
   return `${startStr} – ${endStr}`;
 }
-/* Every talk whose citations overlap this week's assigned reading,
-   ranked by HOW MANY in-range citations it has — a talk with one
-   incidental citation in range among twenty others is a weaker match
-   than one substantially about the assigned chapters, so count (not just
-   "matches at all") decides the order. Returns [{talkKey, count}, ...],
-   caller resolves talkKey via TALKS_BY_KEY (only available inside
-   initApp()'s closure, same reason talkOtherTalkCitations() above
-   resolves its own talk references by hand rather than from here). */
+/* Every talk relevant to this week's reading, merged from up to three
+   signals one schedule entry can carry:
+     - refs: real scripture citations (see cfmChapterInRanges above) —
+       ranked by citation COUNT, the strongest/most specific signal. A
+       talk with one incidental citation in range among twenty others is
+       a weaker match than one substantially about the assigned chapters.
+     - topics: official Church topic tags — see the CFM_SCHEDULE comment
+       above for why Easter/Christmas use the real taxonomy instead of a
+       hand-built keyword list.
+     - keywords: a plain title/kicker phrase check (cfmTalkMentions) —
+       the intro week's only path to matching "Come, Follow Me" itself.
+   A talk can match more than one way (the intro week's Matt 4:19 citation
+   and its "Come, Follow Me" keyword check both apply to some talks) —
+   kept as a single entry; citation count wins when present, since it's
+   the most specific signal and the only one with a real count to show.
+   Returns [{talkKey, count, kind}] — count is null for topic/keyword
+   matches (there's nothing to count), citation matches sorted by count
+   first, followed by topic/keyword matches sorted by conference date
+   (newest first). Caller resolves talkKey via TALKS_BY_KEY inside
+   renderCfmPage(); this function stays top-level (like
+   talkOtherTalkCitations() above) but can read TALKS/talkKey/talkTopics/
+   talkKicker directly since those are also plain top-level bindings, not
+   initApp()-scoped. */
 function cfmMatchesForWeek(index){
   const entry = CFM_SCHEDULE[index];
-  if (!entry || !entry.refs) return [];
-  const counts = {};
-  Object.keys(CITATION_LOOKUP).forEach(tk=>{
-    let n = 0;
-    CITATION_LOOKUP[tk].forEach(i=>{
-      const [, volume, book, chapter] = CITATION_REFS[i];
-      const hit = entry.refs.some(([v, b, ranges])=>
-        v === volume && b === book && cfmChapterInRanges(chapter, ranges));
-      if (hit) n++;
+  if (!entry) return [];
+  const byKey = {};
+
+  if (entry.refs && entry.refs.length){
+    Object.keys(CITATION_LOOKUP).forEach(tk=>{
+      let n = 0;
+      CITATION_LOOKUP[tk].forEach(i=>{
+        const [, volume, book, chapter, anchor] = CITATION_REFS[i];
+        const hit = entry.refs.some(([v, b, ranges, verseRange])=>{
+          if (v !== volume || b !== book) return false;
+          if (!cfmChapterInRanges(chapter, ranges)) return false;
+          if (verseRange) return citationCoversVerse(anchor, verseRange[0], verseRange[1]);
+          return true;
+        });
+        if (hit) n++;
+      });
+      if (n > 0) byKey[tk] = {talkKey: tk, count: n, kind: 'citation'};
     });
-    if (n > 0) counts[tk] = n;
-  });
-  return Object.keys(counts)
-    .map(tk=> ({talkKey: tk, count: counts[tk]}))
+  }
+
+  if (entry.topics && entry.topics.length){
+    TALKS.forEach(t=>{
+      const tk = talkKey(t);
+      if (byKey[tk]) return; // a citation match already wins
+      if (talkTopics(t).some(tp=> entry.topics.includes(tp))){
+        byKey[tk] = {talkKey: tk, count: null, kind: 'topic'};
+      }
+    });
+  }
+
+  if (entry.keywords && entry.keywords.length){
+    TALKS.forEach(t=>{
+      const tk = talkKey(t);
+      if (byKey[tk]) return;
+      if (entry.keywords.some(kw=> cfmTalkMentions(t, kw))){
+        byKey[tk] = {talkKey: tk, count: null, kind: 'keyword'};
+      }
+    });
+  }
+
+  const citationMatches = Object.values(byKey)
+    .filter(m=> m.kind === 'citation')
     .sort((a, b)=> b.count - a.count);
+  const otherMatches = Object.values(byKey)
+    .filter(m=> m.kind !== 'citation')
+    .map(m=> ({match: m, talk: TALKS.find(t=> talkKey(t) === m.talkKey)}))
+    .sort((a, b)=>{
+      const ay = a.talk[2], am = parseInt(a.talk[3], 10);
+      const by_ = b.talk[2], bm = parseInt(b.talk[3], 10);
+      return ay !== by_ ? by_ - ay : bm - am;
+    })
+    .map(({match})=> match);
+  return citationMatches.concat(otherMatches);
 }
 
 /* ---------------------------------------------------------------
@@ -5579,12 +5651,15 @@ function renderCfmPage(){
   cfmNextBtn.disabled = cfmCurrentIndex >= CFM_SCHEDULE.length - 1;
 
   cfmItemsEl.innerHTML = '';
-  if (!entry.refs){
-    // The three non-scripture weeks (intro, Easter, Christmas) — a
-    // friendly message instead of an empty-looking pool.
+  if (!entry.refs && !entry.topics && !entry.keywords){
+    // Safety net for a future non-scripture week with no matching
+    // mechanism at all — not currently reachable (the intro week has
+    // refs+keywords, Easter/Christmas have topics), but a friendly
+    // message beats an empty-looking pool if one is ever added without
+    // wiring up a way to match it.
     cfmItemsEl.style.display = 'none';
     cfmEmptyEl.style.display = 'block';
-    cfmEmptyEl.textContent = "This week's reading doesn't point to a specific scripture range, so there's nothing to match talks against.";
+    cfmEmptyEl.textContent = "This week's reading doesn't point to anything talks can be matched against yet.";
     cfmMatchCountEl.textContent = '';
     cfmHintEl.style.display = '';
     return;
@@ -5593,7 +5668,7 @@ function renderCfmPage(){
   if (!matches.length){
     cfmItemsEl.style.display = 'none';
     cfmEmptyEl.style.display = 'block';
-    cfmEmptyEl.textContent = "No talks in this app's dataset cite this week's reading yet.";
+    cfmEmptyEl.textContent = "No talks in this app's dataset match this week's reading yet.";
     cfmMatchCountEl.textContent = '';
     cfmHintEl.style.display = '';
     return;
@@ -5602,13 +5677,23 @@ function renderCfmPage(){
   cfmEmptyEl.style.display = 'none';
   cfmHintEl.style.display = '';
   cfmMatchCountEl.textContent = `${matches.length} talk${matches.length===1?'':'s'} match this week's reading`;
-  matches.forEach(({talkKey: tk, count})=>{
+  matches.forEach(({talkKey: tk, count, kind})=>{
     const talk = TALKS_BY_KEY[tk];
     if (!talk) return;
     const row = buildListItemRow(talk);
     const badge = document.createElement('span');
     badge.className = 'cite-count-badge';
-    badge.textContent = `${count} citation${count===1?'':'s'} in range`;
+    // Only a citation match has an actual count to show — topic/keyword
+    // matches say WHY they matched instead, since "N citations" would be
+    // meaningless for those (there's nothing counted).
+    if (kind === 'citation'){
+      badge.textContent = `${count} citation${count===1?'':'s'} in range`;
+    } else if (kind === 'topic'){
+      const topicLabel = entry.topics.map(tp=> TOPIC_LABELS[tp]).find(Boolean) || 'this week';
+      badge.textContent = `Tagged: ${topicLabel}`;
+    } else {
+      badge.textContent = `Mentions "Come, Follow Me"`;
+    }
     row.appendChild(badge);
     cfmItemsEl.appendChild(row);
   });
