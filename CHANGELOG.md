@@ -21,6 +21,7 @@ this updated.
 
 ### Fixed
 - The app was silently re-saving the entire offline talk database on every single launch, even when nothing about it had changed, which could bloat the app's on-device storage over time for no reason. It now only re-saves when the data actually has an update.
+- Fixed the daily streak not resetting after a missed day until you opened another talk — if you skipped a day, the streak badge (and home-screen widget) now correctly shows the break as soon as you look at it, instead of still showing the old count until your next talk open.
 
 ### Changed
 - The app's name is now written as "FindATalk" everywhere it appears, instead of "Find A Talk"/"Find a Talk."

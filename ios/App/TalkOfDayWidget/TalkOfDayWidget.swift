@@ -64,10 +64,37 @@ private enum StreakStore {
 
         let count = obj["count"] as? Int ?? 0
         guard count > 0 else { return nil }
+        // Same staleness check as settleStreak() in docs/index.html:
+        // `lastDate` neither today nor yesterday means a full calendar day
+        // was missed entirely, so the streak is broken even though `count`
+        // on disk hasn't been zeroed yet — that only happens the next time
+        // a talk is actually opened. Duplicated here (rather than relying
+        // on the app to write the zeroed value) because getTimeline() above
+        // already schedules a reload right after local midnight, so the
+        // widget can show a break the moment it happens, without the app
+        // ever being opened that day.
+        if let lastDate = obj["lastDate"] as? String, isStale(lastDate) { return nil }
         if count == 1 { return "🔥 Day 1 — come back tomorrow to start a streak" }
 
         let activeDays = (obj["activeDays"] as? [Any])?.count ?? 0
         return "🔥 \(activeDays) of the last 365 — \(count)-day streak"
+    }
+
+    /// True when `lastDate` (a "yyyy-MM-dd" string, same format as
+    /// localDateSeed() in docs/index.html) is neither today nor yesterday
+    /// — i.e. a full calendar day was missed.
+    private static func isStale(_ lastDate: String) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let today = formatter.string(from: Date())
+        if lastDate == today { return false }
+        let yesterday = formatter.string(from: calendar.date(byAdding: .day, value: -1, to: Date()) ?? Date())
+        return lastDate != yesterday
     }
 }
 

@@ -2911,11 +2911,42 @@ function touchStreak(){
   saveStreak(streak);
   return streak;
 }
-/* Pure display — reads whatever touchStreak() last recorded without
+/* Zeroes out `count` the moment a streak has gone stale — i.e. `lastDate`
+   is neither today nor yesterday, meaning a full calendar day was missed
+   entirely. Without this, a broken streak kept showing its old count
+   until the NEXT talk was opened (touchStreak() only resets on that next
+   open), so someone who skipped a day and then checked the app before
+   opening anything still saw yesterday's number as if nothing had
+   happened. Called from renderStreak() so this self-heals the moment
+   anything looks at the streak — page load, returning to the foreground
+   (watchForDayRollover() below), or after a backup import — no need to
+   wait for a talk open. Persists via saveStreak() (which also mirrors to
+   the native widget), so the home-screen widget picks up the break too
+   without the app having to be opened at all: both TalkOfDayWidgetProvider
+   (Android) and TalkOfDayWidget (iOS) already force a refresh right after
+   local midnight, so this exact same "stale = broken" check is
+   independently duplicated in their streak-text helpers to give the
+   widget its own path to zeroing out — see the comments there. Doesn't
+   touch `lastDate`/`longest`/`activeDays`; only `count` (the CONSECUTIVE
+   number) is actually invalidated by a gap. */
+function settleStreak(){
+  const streak = loadStreak();
+  if (streak.count <= 0 || !streak.lastDate) return streak;
+  const now = new Date();
+  const today = localDateSeed(now);
+  if (streak.lastDate === today) return streak;
+  const yesterday = localDateSeed(new Date(now.getTime() - 24*60*60*1000));
+  if (streak.lastDate === yesterday) return streak;
+  streak.count = 0;
+  saveStreak(streak);
+  return streak;
+}
+/* Pure display — reads whatever touchStreak() last recorded (after
+   settleStreak() above has a chance to zero out a stale streak) without
    advancing anything itself. Safe (and cheap) to call on every page
    load, after every talk opened, and after a backup import. */
 function renderStreak(){
-  const streak = loadStreak();
+  const streak = settleStreak();
   const el = document.getElementById('streakBadge');
   if (!el) return;
   if (streak.count <= 0){ el.hidden = true; return; }

@@ -222,6 +222,17 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             JSONObject obj = new JSONObject(raw);
             int count = obj.optInt("count", 0);
             if (count <= 0) return null;
+            // Same staleness check as settleStreak() in docs/index.html:
+            // `lastDate` neither today nor yesterday means a full calendar
+            // day was missed entirely, so the streak is broken even though
+            // `count` on disk hasn't been zeroed yet — that only happens
+            // the next time a talk is actually opened. Duplicated here
+            // (rather than relying on the app to write the zeroed value)
+            // because onReceive() above already forces a redraw right at
+            // local midnight — so the widget can show a break the moment
+            // it happens, without the app ever being opened that day.
+            String lastDate = obj.isNull("lastDate") ? null : obj.optString("lastDate", null);
+            if (lastDate != null && isStale(lastDate)) return null;
             if (count == 1) return "🔥 Day 1 — come back tomorrow to start a streak";
 
             JSONArray activeDaysJson = obj.optJSONArray("activeDays");
@@ -231,6 +242,25 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             Log.e(TAG, "Failed to read streak", e);
             return null;
         }
+    }
+
+    /** True when `lastDate` (a "yyyy-MM-dd" string, same format as
+        localDateSeed() in docs/index.html) is neither today nor
+        yesterday — i.e. a full calendar day was missed. Calendar-based
+        (not java.time) since minSdkVersion 24 predates java.time without
+        desugaring. */
+    private static boolean isStale(String lastDate) {
+        Calendar cal = Calendar.getInstance();
+        String today = dateSeed(cal);
+        if (lastDate.equals(today)) return false;
+        cal.add(Calendar.DAY_OF_MONTH, -1);
+        String yesterday = dateSeed(cal);
+        return !lastDate.equals(yesterday);
+    }
+
+    private static String dateSeed(Calendar cal) {
+        return String.format(Locale.US, "%04d-%02d-%02d",
+            cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH));
     }
 
     // Written by mirrorThemeToNative() in docs/index.html, same
