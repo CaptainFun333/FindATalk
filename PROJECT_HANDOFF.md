@@ -3469,3 +3469,85 @@ days" calendar feature — this session built on top of that refactor
 both the bigger pool and the more natural gospel-talk framing. Same
 fixed-date matcher shape as Christmas/Restoration Day/etc., ported to
 all three copies, Android/iOS re-verified compiling/parsing clean.
+
+## 🔁 Recurring task: annual "Come, Follow Me" data refresh
+
+The CFM tab (idea 24 in the feature-ideas memory file) is built on data
+that goes stale once a year, not code. **This needs to be redone every
+year**, ideally in November/December before the new year's schedule
+takes effect (the Church typically publishes the new year's manual
+before January 1). Three pieces, two different refresh rules:
+
+### 1. The full 52-week schedule — rebuild from scratch every year
+`docs/data.json`'s `comeFollowMeSchedule` and `comeFollowMeYear` are
+entirely specific to one year's curriculum (2026 = Old Testament). The
+4-year rotation is Book of Mormon → Doctrine & Covenants → New Testament
+→ Old Testament → repeat, so 2027 should be **New Testament**, but
+**confirm the actual announced volume, don't assume the rotation held**
+(it's shifted before — 2020's Book of Mormon year effectively extended
+into 2021 during the pandemic).
+
+**Method** (same one used to build the 2026 schedule): WebFetch the new
+year's manual index page — pattern is
+`churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-<volume>-<year>?lang=eng`
+— prompted to list every week's date range and scripture assignment in
+order. Parse each week into `{start, label, refs}` the same shape as the
+existing schedule (see the long comment above `let CFM_SCHEDULE` in
+`docs/index.html` for the exact field shapes — `refs` is a list of
+`[volume, book, chapterRanges, verseRange?]` tuples, `chapterRanges` a
+list of `[start,end]` pairs or `null` for a whole book, `verseRange` an
+optional `[start,end]` pair). Book/volume slugs must match
+`CITATION_BOOK_LABELS`' own vocabulary in `data.json` — check there
+before guessing a slug, don't assume it matches the Church's URL path
+exactly (e.g. Doctrine & Covenants is `dc-testament|dc`, not `dc|dc`).
+
+### 2. Christmas and Easter refs — carry forward unchanged
+The 15 Christmas verses and 17 Easter verses were pulled from **evergreen
+Church resources that aren't part of the yearly CFM rotation at all**:
+- Christmas: `churchofjesuschrist.org/comeuntochrist/believe/bible/christmas-bible-verses`
+- Easter: the 9 `churchofjesuschrist.org/welcome/easter/day-1-palm-sunday`
+  through `day-9-monday` pages
+
+These don't need re-fetching every year — **just copy the existing
+`refs` and `topics` arrays forward onto whichever week is labeled
+"Christmas"/"Easter" in the new schedule**. The real risk here isn't
+staleness, it's **accidentally losing this enrichment** when the full
+schedule gets rebuilt per step 1 — a fresh re-scrape of the new year's
+manual will produce `refs: null` for these two weeks again (they're
+still not scripture-chapter weeks in the Church's own schedule), so
+whoever does the annual refresh must explicitly re-apply the saved
+Christmas/Easter `refs`/`topics` after replacing the schedule, not
+assume they survive automatically. Worth keeping a copy of the current
+`christmas_refs`/`easter_refs` arrays (the exact python literals used to
+build this) somewhere durable — the commit that added them (`fdcdc75`,
+see `git log`/`git show`) is the actual source of truth if this doc ever
+goes stale.
+
+### 3. Intro week refs — rebuild from that year's actual manual page
+Unlike Christmas/Easter, the intro week's scripture list **does change
+every year** — it's whatever that year's specific manual's "01" page
+(the first week, introducing the new volume) happens to reference, which
+depends on which volume is being studied. **One thing that doesn't
+change**: keep the Matthew 4:19 ref (`["nt","matt",[[4,4]],[19,19]]`) —
+that's the verse "Come, Follow Me" the *program* takes its name from,
+permanently relevant regardless of which scripture volume is being
+studied that year. Also keep the `keywords: ["come, follow me","come
+follow me"]` check — also permanent. Only the *extra* per-year refs (the
+32 added this session, e.g. Genesis 1–6, JST Genesis 14, Isaiah 53) need
+rebuilding: WebFetch that year's `.../01?lang=eng` manual page the same
+way, extract every scripture reference in order, split any
+comma-separated verse group into separate ref tuples (don't collapse
+"Luke 22:19–20, 39–44" into one range spanning verses 19–44, which would
+wrongly match verses 21–38 that were never actually cited).
+
+### General verification note for all three
+When this was first built, several pages were WebFetched (which
+summarizes through a small fast model) and then **independently
+re-verified by loading the real page in an actual browser and reading
+its body text directly** — this caught one real case where WebFetch's
+summary included two extra loose in-body mentions that weren't actually
+part of the page's formal "Scriptures:" section. Don't skip this
+spot-check step for at least a few pages each year; citation accuracy
+matters more here than almost anywhere else in this app, since it's
+presented as "does this talk relate to what you're studying," not just a
+fun randomizer.
