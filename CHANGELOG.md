@@ -25,6 +25,8 @@ this updated.
 - The "Come, Follow Me" tab now continues seamlessly into 2027's New Testament schedule right after 2026's Old Testament weeks end, so it won't go stale come January.
 - Added a "This Week" link next to the calendar icon on the "Come, Follow Me" tab — appears whenever you've browsed to a different week, so there's always a quick way back to the current one.
 - On the "Come, Follow Me" tab, a week's scripture title now stays on one line and trims with "…" if it's especially long, instead of occasionally wrapping onto two lines.
+- Both calendar popouts (the "Talk of the Day" history calendar and the "Come, Follow Me" week picker) now support swiping left or right to move between months, in addition to the previous/next arrows.
+- On the "Come, Follow Me" tab, tapping the "N citations in range" badge on a talk now shows exactly which scripture citations matched, each a real link to that verse.
 
 ### Changed
 - The "Talk of the Day" heading and calendar icon above it now line up with the left and right edges of the card below, instead of sitting further apart from it — with a bit of breathing room kept between that row and the card, so the calendar icon doesn't sit flush against it.
