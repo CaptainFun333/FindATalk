@@ -11,6 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Added
+- Added a "CFM" tab — talks matching this week's "Come, Follow Me" reading, ranked by how closely they match. Use the arrows to browse other weeks. Most weeks match by cited scripture; Easter and Christmas now also match against real verse lists pulled from the Church's own Easter and Christmas scripture study pages (on top of matching the "Easter"/"Christmas" topic tag), and the very first week matches both Matthew 4:19 (the verse the program takes its name from) and every scripture referenced in that week's own manual page, plus talks that mention "Come, Follow Me" itself. Since a 6th tab didn't fit as plain text, the whole tab bar switched to small icons with short labels underneath, matching how most phone apps handle more than four or five tabs.
 - Christmas morning and Easter now show a Christmas- or Easter-themed talk instead of whatever the daily rotation happened to land on. Also added themed picks for New Year's Day, Valentine's Day, the Relief Society anniversary (March 17), Restoration Day (April 6), Mother's Day, the Aaronic Priesthood restoration anniversary (May 15), Father's Day, Independence Day, Pioneer Day, and Thanksgiving.
 - You can now swipe left or right to move between Home, Recents, Favorites, Notes, and Lists, instead of only tapping the links at the top of the page.
 - Added a small calendar icon next to "Talk of the Day" — tap it to browse back through previous days and see what was featured, one month at a time. Only days with a real recorded pick are selectable. Days you've already opened show a small checkmark, same as the "Read" checkmark elsewhere in the app.
@@ -21,6 +22,7 @@ this updated.
 
 ### Fixed
 - The app was silently re-saving the entire offline talk database on every single launch, even when nothing about it had changed, which could bloat the app's on-device storage over time for no reason. It now only re-saves when the data actually has an update.
+- Fixed the daily streak not resetting after a missed day until you opened another talk — if you skipped a day, the streak badge (and home-screen widget) now correctly shows the break as soon as you look at it, instead of still showing the old count until your next talk open.
 
 ### Changed
 - The app's name is now written as "FindATalk" everywhere it appears, instead of "Find A Talk"/"Find a Talk."
