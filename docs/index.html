@@ -3858,6 +3858,59 @@ function findTopicAlias(query){
   const hit = Object.keys(TOPIC_ALIASES).find(k => k.includes(query));
   return hit ? TOPIC_ALIASES[hit] : null;
 }
+
+/* Word-form groups for "Search titles & summaries" — a DIFFERENT gap than
+   TOPIC_ALIASES (idea 25): that table maps a colloquial term to a
+   DIFFERENT concept's official topic (chastity -> Sexual purity).
+   This table instead groups literal SAME-ROOT word forms of ordinary
+   English words that just don't share a substring (gratitude/grateful/
+   thankful) — searching "gratitude" today only found talks whose title or
+   kicker contained that exact string, missing every talk that only said
+   "grateful" or "thankful" instead, even though a person would obviously
+   consider those a hit.
+   Deliberately curated groups, not an automatic stemmer (Porter-style
+   algorithms are notorious for over-stemming unrelated words together —
+   "university"/"universe" is the classic failure case) — same editorial
+   philosophy as TOPIC_ALIASES: every group hand-verified, meant to grow
+   incrementally as real gaps turn up, never a "finished" list. */
+const WORD_FORM_GROUPS = [
+  ['gratitude', 'grateful', 'thankful', 'thanks', 'thanksgiving'],
+  ['pray', 'prayer', 'prayers', 'praying', 'prayed'],
+  ['faith', 'faithful', 'faithfulness'],
+  ['obey', 'obedience', 'obedient'],
+  ['forgive', 'forgiveness', 'forgiving'],
+  ['believe', 'belief', 'believing', 'believer'],
+  ['humble', 'humility'],
+  ['repent', 'repentance', 'repenting'],
+  ['testify', 'testimony', 'testifying'],
+  ['sacrifice', 'sacrificial'],
+  ['love', 'loving', 'beloved'],
+  ['hope', 'hopeful'],
+  ['patience', 'patient'],
+  ['charity', 'charitable'],
+  ['kindness', 'kind'],
+  ['courage', 'courageous'],
+  ['worthy', 'worthiness'],
+  ['covenant', 'covenants'],
+  ['sacred', 'sanctify', 'sanctification'],
+];
+/* Derived at load, once: word -> every OTHER word in its group. Built from
+   WORD_FORM_GROUPS above rather than hand-writing both directions of every
+   pair — "gratitude" -> ['grateful','thankful',...] and "grateful" ->
+   ['gratitude','thankful',...] come from the same one group. */
+const WORD_FORM_LOOKUP = {};
+WORD_FORM_GROUPS.forEach(group=>{
+  group.forEach(word=>{
+    WORD_FORM_LOOKUP[word] = group.filter(w=>w!==word);
+  });
+});
+/* Same exact-match-only rule as searchAliasTopic() below, and for the same
+   reason — a short in-progress query could otherwise substring-match into
+   an unrelated group mid-typing. Returns an array of other word forms, or
+   null. */
+function searchWordForms(q){
+  return WORD_FORM_LOOKUP[q] || null;
+}
 const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 // Unlike allRoles (untagged talks just have no role), talkSession() always
 // resolves to a real value — 'other' by default — so this has to check
@@ -3969,16 +4022,24 @@ function searchAliasTopic(q){
 function matchesSearch(t){
   const q = filterState.query.trim().toLowerCase();
   if (!q) return true;
-  if (t[0].toLowerCase().includes(q)) return true;
+  const title = t[0].toLowerCase();
+  if (title.includes(q)) return true;
   const kicker = talkKicker(t);
-  if (kicker && kicker.toLowerCase().includes(q)) return true;
+  const kickerLower = kicker ? kicker.toLowerCase() : '';
+  if (kickerLower && kickerLower.includes(q)) return true;
   // Also match talks actually tagged with the aliased topic, even when
   // neither the title nor kicker literally contains the synonym typed —
   // this uses the app's real structured topic data instead of guessing at
   // kicker wording, which is strictly more reliable than a text-only
   // synonym match would be.
   const aliasTopic = searchAliasTopic(q);
-  return !!(aliasTopic && talkTopics(t).includes(aliasTopic));
+  if (aliasTopic && talkTopics(t).includes(aliasTopic)) return true;
+  // Word-form match (gratitude/grateful/thankful) — this one genuinely
+  // has to be a text check, not a tag check, since there's no structured
+  // "word form" data the way there's structured topic data; just look for
+  // any other form of the same root word in the title/kicker text.
+  const forms = searchWordForms(q);
+  return !!(forms && forms.some(f => title.includes(f) || kickerLower.includes(f)));
 }
 /* "Search Scriptures & Hymns" — two DIFFERENT matching strategies, only
    one of which ever runs for a given query, decided by whether it's
@@ -4193,8 +4254,23 @@ function refreshCount(){
 function refreshQueryAliasHint(){
   const q = filterState.query.trim().toLowerCase();
   const aliasTopic = q ? searchAliasTopic(q) : null;
+  const wordForms = q ? searchWordForms(q) : null;
+  // Both can theoretically be active for the same query at once (not true
+  // of any current entry, but nothing stops a future addition from
+  // colliding) — build up to two clauses and join them rather than
+  // assuming only one mechanism ever fires.
+  const clauses = [];
   if (aliasTopic && TOPIC_LABELS[aliasTopic]){
-    queryAliasHintEl.textContent = `Also showing talks tagged "${TOPIC_LABELS[aliasTopic]}"`;
+    clauses.push(`tagged "${TOPIC_LABELS[aliasTopic]}"`);
+  }
+  if (wordForms && wordForms.length){
+    const quoted = wordForms.map(w => `"${w}"`);
+    const list = quoted.length === 1 ? quoted[0]
+      : quoted.slice(0, -1).join(', ') + ' or ' + quoted[quoted.length - 1];
+    clauses.push(`saying ${list}`);
+  }
+  if (clauses.length){
+    queryAliasHintEl.textContent = `Also showing talks ${clauses.join(', and ')}`;
     queryAliasHintEl.hidden = false;
   } else {
     queryAliasHintEl.hidden = true;
