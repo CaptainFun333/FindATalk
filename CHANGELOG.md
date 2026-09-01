@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Changed
+- Rose, Slate, and Sage color themes now use a distinct accent color for the eyebrow text and "Talk of the Day" label (a teal for Rose, sand for Slate, lavender for Sage), in both light and dark mode, instead of a shade that was too close to the theme's own background or body text. The Brass theme is unchanged.
+
 ### Fixed
 - Fixed the "Come, Follow Me" tab showing no matches the first time you opened it after updating the app — it would sit empty until you closed and reopened the app a second time. It now shows this week's matches right away.
 

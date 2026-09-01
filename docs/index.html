@@ -174,8 +174,13 @@
        "I don't see a shift in palette from Light/Brass to Light/Rose"). */
     --paper:#f7e2df;
     --paper-raised:#fbece8;
-    --brass:#a45a72;
-    --brass-bright:#c07992;
+    /* --brass moved from pink to a deep teal: --ink and --ink-soft are
+       both already pink/plum-family here, so a pink --brass left primary
+       text, secondary text, AND the eyebrow / "Talk of the Day" label /
+       focus rings/etc. all sharing one hue — this teal is the odd color
+       out that light mode was missing. */
+    --brass:#2c6b5f;
+    --brass-bright:#3f8a7a;
     --burgundy:#a3792f;
     --burgundy-hover:#8a6527;
     --line:#e0b7ba;
@@ -194,11 +199,17 @@
   }
   :root[data-theme="dark"][data-palette="rose"]{
     --ink:#ffffff;
+    /* --ink-soft stays the original dusty mauve — see the "five distinct
+       colors" note above --brass below for why this one didn't change. */
     --ink-soft:#c9b3ba;
     --paper:#1e1519;
     --paper-raised:#271a20;
-    --brass:#d491a8;
-    --brass-bright:#e3aabd;
+    /* --brass moved from the palette's own pink to a teal: with --ink-soft
+       staying pink-family and --ink pure white, a pink --brass left the
+       eyebrow / "Talk of the Day" label / focus rings/etc. all sharing a
+       hue with secondary text — this teal is the fifth distinct color. */
+    --brass:#8fb2aa;
+    --brass-bright:#a7c8c0;
     --burgundy:#c9a35e;
     --burgundy-hover:#dab97c;
     --line:#3d2c33;
@@ -207,7 +218,7 @@
     --overlay: rgba(0,0,0,.65);
     --tint:#2e2126;
     --bg-glow-1:rgba(255,255,255,.05);
-    --bg-glow-2:rgba(212,145,168,.07);
+    --bg-glow-2:rgba(143,178,170,.07);
     --chip-border:#4a2f38;
     --chip-bg:#26181d;
     --time-icon-filter: invert(1);
@@ -218,8 +229,8 @@
       --ink-soft:#c9b3ba;
       --paper:#1e1519;
       --paper-raised:#271a20;
-      --brass:#d491a8;
-      --brass-bright:#e3aabd;
+      --brass:#8fb2aa;
+      --brass-bright:#a7c8c0;
       --burgundy:#c9a35e;
       --burgundy-hover:#dab97c;
       --line:#3d2c33;
@@ -228,7 +239,7 @@
       --overlay: rgba(0,0,0,.65);
       --tint:#2e2126;
       --bg-glow-1:rgba(255,255,255,.05);
-      --bg-glow-2:rgba(212,145,168,.07);
+      --bg-glow-2:rgba(143,178,170,.07);
       --chip-border:#4a2f38;
       --chip-bg:#26181d;
       --time-icon-filter: invert(1);
@@ -237,11 +248,17 @@
 
   :root[data-palette="slate"]{
     --ink:#202b3a;
-    --ink-soft:#4c5a6c;
+    /* --ink-soft takes over the medium blue that used to be --brass here —
+       see the "five distinct colors" note at --brass below, and its
+       matching dark-mode swap above. */
+    --ink-soft:#4a6f92;
     --paper:#eceff3;
     --paper-raised:#f5f7fa;
-    --brass:#4a6f92;
-    --brass-bright:#6a8bab;
+    /* --brass and --ink-soft traded values: with --ink-soft now holding
+       the confident blue, --brass becomes a warm sand so the eyebrow /
+       "Talk of the Day" label / focus rings/etc. don't repeat blue. */
+    --brass:#7a5c30;
+    --brass-bright:#9c7c48;
     --burgundy:#6a3b5c;
     --burgundy-hover:#55304a;
     --line:#c3cbd4;
@@ -260,11 +277,16 @@
   }
   :root[data-theme="dark"][data-palette="slate"]{
     --ink:#ffffff;
-    --ink-soft:#b3bdc9;
+    /* --ink-soft takes over the medium blue that used to be --brass here —
+       see the "five distinct colors" note at --brass below. */
+    --ink-soft:#7fa9c9;
     --paper:#131a22;
     --paper-raised:#1b232e;
-    --brass:#7fa9c9;
-    --brass-bright:#9dc0dc;
+    /* --brass and --ink-soft traded values: with --ink-soft now holding
+       the confident blue, --brass becomes a warm sand so the eyebrow /
+       "Talk of the Day" label / focus rings/etc. don't repeat blue. */
+    --brass:#c9b689;
+    --brass-bright:#dbcaa3;
     --burgundy:#c98bb0;
     --burgundy-hover:#d9a3c1;
     --line:#2c3846;
@@ -273,7 +295,7 @@
     --overlay: rgba(0,0,0,.65);
     --tint:#212b37;
     --bg-glow-1:rgba(255,255,255,.05);
-    --bg-glow-2:rgba(127,169,201,.07);
+    --bg-glow-2:rgba(201,182,137,.07);
     --chip-border:#324152;
     --chip-bg:#1a222b;
     --time-icon-filter: invert(1);
@@ -281,11 +303,11 @@
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"])[data-palette="slate"]{
       --ink:#ffffff;
-      --ink-soft:#b3bdc9;
+      --ink-soft:#7fa9c9;
       --paper:#131a22;
       --paper-raised:#1b232e;
-      --brass:#7fa9c9;
-      --brass-bright:#9dc0dc;
+      --brass:#c9b689;
+      --brass-bright:#dbcaa3;
       --burgundy:#c98bb0;
       --burgundy-hover:#d9a3c1;
       --line:#2c3846;
@@ -294,7 +316,7 @@
       --overlay: rgba(0,0,0,.65);
       --tint:#212b37;
       --bg-glow-1:rgba(255,255,255,.05);
-      --bg-glow-2:rgba(127,169,201,.07);
+      --bg-glow-2:rgba(201,182,137,.07);
       --chip-border:#324152;
       --chip-bg:#1a222b;
       --time-icon-filter: invert(1);
@@ -315,8 +337,14 @@
     --ink-soft:#5c645d;
     --paper:#f2f0e4;
     --paper-raised:#f8f7ec;
-    --brass:#6f7c3f;
-    --brass-bright:#8a9853;
+    /* --brass moved from olive green to a dusty lavender: --ink and
+       --ink-soft are both already green-family here, so a green --brass
+       left primary text, secondary text, AND the eyebrow / "Talk of the
+       Day" label / focus rings/etc. all sharing one hue — this lavender is
+       the odd color out that light mode was missing. Matches the same move
+       in dark-mode Sage above. */
+    --brass:#5b5a95;
+    --brass-bright:#7876ae;
     --burgundy:#8c4a2f;
     --burgundy-hover:#733c26;
     --line:#cac7ba;
@@ -335,11 +363,17 @@
   }
   :root[data-theme="dark"][data-palette="sage"]{
     --ink:#ffffff;
+    /* --ink-soft stays the original grey-green — see the "five distinct
+       colors" note at --brass below for why this one didn't change. */
     --ink-soft:#b9c2b5;
     --paper:#171e18;
     --paper-raised:#202920;
-    --brass:#9db06a;
-    --brass-bright:#b4c586;
+    /* --brass moved from olive green to a dusty lavender: with --ink-soft
+       staying green-family and --ink pure white, a green --brass left the
+       eyebrow / "Talk of the Day" label / focus rings/etc. all sharing a
+       hue with secondary text — this lavender is the fifth distinct color. */
+    --brass:#a6acd6;
+    --brass-bright:#c0c5e2;
     --burgundy:#d98a63;
     --burgundy-hover:#e4a17e;
     --line:#334033;
@@ -348,7 +382,7 @@
     --overlay: rgba(0,0,0,.65);
     --tint:#26301f;
     --bg-glow-1:rgba(255,255,255,.05);
-    --bg-glow-2:rgba(157,176,106,.07);
+    --bg-glow-2:rgba(166,172,214,.07);
     --chip-border:#3d4a30;
     --chip-bg:#1e2618;
     --time-icon-filter: invert(1);
@@ -359,8 +393,8 @@
       --ink-soft:#b9c2b5;
       --paper:#171e18;
       --paper-raised:#202920;
-      --brass:#9db06a;
-      --brass-bright:#b4c586;
+      --brass:#a6acd6;
+      --brass-bright:#c0c5e2;
       --burgundy:#d98a63;
       --burgundy-hover:#e4a17e;
       --line:#334033;
@@ -369,7 +403,7 @@
       --overlay: rgba(0,0,0,.65);
       --tint:#26301f;
       --bg-glow-1:rgba(255,255,255,.05);
-      --bg-glow-2:rgba(157,176,106,.07);
+      --bg-glow-2:rgba(166,172,214,.07);
       --chip-border:#3d4a30;
       --chip-bg:#1e2618;
       --time-icon-filter: invert(1);
@@ -4931,7 +4965,7 @@ function shuffled(arr){
    Pass {selectable:true} (only "Show a List" does) to also prepend a
    checkbox that adds/removes the talk from listSelection, for the
    "select several, add them to a list at once" bulk-add bar. */
-function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, onSelectionChange=syncListBulkBar}={}){
+function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, onSelectionChange=syncListBulkBar, shareContext='other'}={}){
   const [title, speaker, year, month] = pick;
   const role = talkRole(pick);
   const kicker = talkKicker(pick);
@@ -5003,7 +5037,7 @@ function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, o
   shareIconBtn.className = 'share-btn-icon';
   shareIconBtn.innerHTML = SHARE_ICON_SVG;
   shareIconBtn.setAttribute('aria-label', `Share "${title}"`);
-  shareIconBtn.addEventListener('click', ()=> shareTalk(pick, shareIconBtn));
+  shareIconBtn.addEventListener('click', ()=> shareTalk(pick, shareIconBtn, shareContext));
   actions.appendChild(shareIconBtn);
 
   item.appendChild(head);
@@ -5379,7 +5413,7 @@ function renderTalkOfTheDay(){
   const totdItemsEl = document.getElementById('totdItems');
   totdItemsEl.innerHTML = '';
   if (pick){
-    totdItemsEl.appendChild(buildListItemRow(pick));
+    totdItemsEl.appendChild(buildListItemRow(pick, {shareContext: 'totd'}));
     // Append-only: only ever write today's entry once, the first time
     // it's actually shown — never overwrite an already-recorded day.
     const todayKey = localDateSeed();
@@ -5811,12 +5845,22 @@ async function copyText(text){
   }
 }
 
-async function shareTalk(pick, btnEl){
+async function shareTalk(pick, btnEl, context='other'){
   const [title, speaker] = pick;
   const url = talkUrl(pick);
+
+  // Build prefilled message based on context (native share only)
+  let shareText;
+  if (context === 'totd'){
+    shareText = `I thought of you while studying today's Talk of the Day. Check it out: ${url} (via FindATalk)`;
+  } else {
+    shareText = `I found this talk and thought of you. Check it out: ${url} (via FindATalk)`;
+  }
+
   if (navigator.share){
     try {
-      await navigator.share({ title, text: `${title} — ${speaker}`, url });
+      // Use prefilled message for native share
+      await navigator.share({ title, text: shareText });
       return;
     } catch(err){
       // Person cancelling the native share sheet throws AbortError — that's a
