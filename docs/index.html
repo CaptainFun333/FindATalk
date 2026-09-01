@@ -7723,12 +7723,29 @@ async function loadData(){
   // check), so relaunches/reloads render instantly with no network wait.
   const cached = await getCachedData();
 
-  if (cached){
+  // A cache from before a given feature's data shipped is missing that
+  // field entirely (not just holding an empty value for it) — e.g. anyone
+  // who'd used the app before "Come, Follow Me" (comeFollowMeSchedule)
+  // existed still has their pre-CFM blob cached, since app updates don't
+  // clear IndexedDB. applyData() would happily fall back to [] for it and
+  // the CFM tab would render as if there's simply nothing to show — no
+  // error, so nothing prompts a retry — until the *next* relaunch, once
+  // the background remote-refresh below has had a chance to cache a
+  // newer copy. That's the "CFM is empty until I restart the app" bug:
+  // treat a schema-incomplete cache the same as no cache at all, below,
+  // rather than waiting on a background fetch that may not even be
+  // reachable yet (no network) to fill the gap on a later launch.
+  const cacheIsCurrent = cached && Array.isArray(cached.comeFollowMeSchedule);
+
+  if (cacheIsCurrent){
     applyData(cached);
   } else {
-    // First-ever launch: load the copy bundled alongside this file. Works
-    // fully offline in a packaged app, since it's read from the app's own
-    // bundle rather than fetched over the network.
+    // First-ever launch, or a cache that predates a field the current app
+    // version expects (see above): load the copy bundled alongside this
+    // file instead. Works fully offline in a packaged app, since it's read
+    // from the app's own bundle rather than fetched over the network, and
+    // — being bundled with this exact build — it's guaranteed to match
+    // this version's data schema.
     try {
       const res = await fetch(LOCAL_DATA_URL, {cache:'no-store'});
       if (!res.ok) throw new Error('bad response');
@@ -7736,8 +7753,14 @@ async function loadData(){
       applyData(data);
       cacheData(data);
     } catch(err){
-      showFatalLoadError();
-      return;
+      if (cached){
+        // Bundled copy failed to load but a stale cache still exists —
+        // an outdated app beats a blank one.
+        applyData(cached);
+      } else {
+        showFatalLoadError();
+        return;
+      }
     }
   }
 
