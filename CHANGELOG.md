@@ -32,7 +32,7 @@ this updated.
 - On the "Come, Follow Me" tab, a week's scripture title now stays on one line and trims with "…" if it's especially long, instead of occasionally wrapping onto two lines.
 - Both calendar popouts (the "Talk of the Day" history calendar and the "Come, Follow Me" week picker) now support swiping left or right to move between months, in addition to the previous/next arrows.
 - On the "Come, Follow Me" tab, tapping the "N citations match CFM" badge on a talk now shows exactly which scripture citations matched, each a real link to that verse.
-- Tapping a scripture citation that appears both here and in the talk itself now asks where you'd like to go — the verse, or the exact spot in the talk that cites it — instead of only linking out to the verse.
+- Tapping a scripture citation that appears both here and in the talk itself now asks where you'd like to go — the verse, or the exact spot in the talk that cites it — instead of only linking out to the verse. This works the same way everywhere a citation like that shows up, not just here — Show a List, Recently Viewed, Favorites, My Lists, and My Notes included.
 
 ### Changed
 - On the "Come, Follow Me" tab, the "N citations match CFM" badge (formerly "N citations in range") now sits right next to the citation-type icons instead of on its own line below them, and its text now matches the size of the "Citations:" label beside it.
