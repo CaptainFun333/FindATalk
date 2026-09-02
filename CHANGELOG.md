@@ -19,6 +19,7 @@ this updated.
 - The number of talks matching your filters is now much easier to spot: it leads the "Looking for something more specific?" header right by the top "Find Another"/"Show a List" buttons, and shows again as a small badge next to "Reset filters" by the bottom pair. Both update together and briefly highlight whenever a filter or search changes the count.
 
 ### Fixed
+- Fixed the background glow appearing in a different spot on different pages (e.g. top on Favorites, right side on CFM) — it now stays anchored in the same place everywhere.
 - Fixed the "Come, Follow Me" tab showing no matches the first time you opened it after updating the app — it would sit empty until you closed and reopened the app a second time. It now shows this week's matches right away.
 - Fixed the home-screen widget on iOS never showing your streak, even with a streak active in the app.
 - New users now see the streak badge on page load with an invitation to "Choose a talk to begin your streak" instead of it being hidden until after they open their first talk.

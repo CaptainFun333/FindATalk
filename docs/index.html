@@ -413,10 +413,7 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:
-      radial-gradient(1200px 600px at 15% -10%, var(--bg-glow-1) 0%, transparent 60%),
-      radial-gradient(1000px 500px at 110% 10%, var(--bg-glow-2) 0%, transparent 55%),
-      var(--paper);
+    background:var(--paper);
     color:var(--ink);
     font-family:'Source Serif 4', Georgia, serif;
     min-height:100vh;
@@ -430,7 +427,24 @@
     display:flex;
     justify-content:center;
   }
-  .wrap{ width:100%; max-width:760px; position:relative; }
+  /* Ambient background glow, pinned to the viewport rather than the document.
+     Without `position:fixed` here, this lived directly on body's background
+     and its %-based radial-gradient positions were relative to the full
+     scrollable page height — so the same two glows landed in visibly
+     different spots on a short page (e.g. empty Favorites) vs. a tall one
+     (e.g. CFM with filters expanded). Anchoring it to a fixed, 100vh layer
+     keeps it in the same place on every page. */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, var(--bg-glow-1) 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, var(--bg-glow-2) 0%, transparent 55%);
+    pointer-events:none;
+    z-index:0;
+  }
+  .wrap{ width:100%; max-width:760px; position:relative; z-index:1; }
 
   /* ---------- header ---------- */
   .eyebrow{
