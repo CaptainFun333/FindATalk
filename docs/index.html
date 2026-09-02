@@ -2997,9 +2997,11 @@ function maybeShowOnboarding(){
 }
 document.getElementById('onboardingNextBtn').addEventListener('click', onboardingNext);
 document.getElementById('onboardingSkipBtn').addEventListener('click', closeOnboardingModal);
-onboardingModalOverlay.addEventListener('click', (e)=>{
-  if (e.target === onboardingModalOverlay) closeOnboardingModal();
-});
+// Deliberately NOT wired to close on a backdrop tap, unlike every other
+// modal in the app (see closeSettingsModal() above) — this is a first
+// impression, and a stray tap near the modal's edge ending the tour early
+// is a worse outcome here than the minor inconsistency of Skip/Escape
+// being the only ways out. Escape still works, for anyone on a keyboard.
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !onboardingModalOverlay.hidden) closeOnboardingModal();
 });
