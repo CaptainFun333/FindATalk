@@ -3621,11 +3621,14 @@ function renderStreak(){
   const streak = settleStreak();
   const el = document.getElementById('streakBadge');
   if (!el) return;
-  if (streak.count <= 0){ el.hidden = true; return; }
-  el.hidden = false;
-  el.textContent = streak.count === 1
-    ? '🔥 Day 1 — come back tomorrow to start a streak'
-    : `🔥 ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
+  el.hidden = false; // Always show the badge now (new users see "Choose a talk to begin your streak")
+  if (streak.count <= 0){
+    el.textContent = '🔥 Choose a talk to begin your streak';
+  } else if (streak.count === 1){
+    el.textContent = '🔥 Day 1 — come back tomorrow to start a streak';
+  } else {
+    el.textContent = `🔥 ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
+  }
 }
 
 function isFavorite(talk){ return favoriteKeys.has(talkKey(talk)); }
