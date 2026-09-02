@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ccd_session_mgmt__search_session_transcripts",
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__tabs_context",
+      "mcp__Claude_Browser__read_network_requests",
+      "Bash(xcrun simctl list *)",
+      "Bash(xcrun simctl get_app_container *)",
+      "Bash(xcrun simctl listapps *)"
+    ]
+  }
+}
