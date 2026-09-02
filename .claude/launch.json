@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "findatalk-docs",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd '/Users/smoothop/Downloads/FindATalk files/docs' && exec python3 -m http.server 8934"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/smoothop/Downloads/FindATalk files/.claude/static-server.js"],
       "port": 8934
     }
   ]

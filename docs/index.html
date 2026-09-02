@@ -1658,6 +1658,29 @@
   }
   .modal-actions .reset-link{ margin-right:auto; align-self:center; }
 
+  /* ---------- onboarding tour ("Show me around", idea 35) ----------
+     A single static modal, not one per screen — content for every screen
+     lives in ONBOARDING_SCREENS (JS) and renderOnboardingScreen() just
+     swaps the icon/title/copy/progress text and re-renders the dots, so
+     adding/reordering/removing a screen is a one-line change to that
+     array rather than a markup edit. */
+  .onboarding-modal{ text-align:center; }
+  .onboarding-icon{ font-size:44px; line-height:1; margin-bottom:12px; }
+  .onboarding-title{
+    font-family:'Lora',serif; font-weight:600; font-size:20px; margin:0 0 10px; color:var(--ink);
+  }
+  .onboarding-progress{
+    font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); margin-bottom:10px;
+  }
+  .onboarding-dots{
+    display:flex; justify-content:center; gap:7px; margin-bottom:18px;
+  }
+  .onboarding-dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--line); border:none; padding:0; cursor:pointer;
+  }
+  .onboarding-dot.is-active{ background:var(--brass); }
+
   /* ---------- note modal ---------- */
   .note-textarea{
     width:100%;
@@ -2594,6 +2617,11 @@
         </div>
       </div>
 
+      <div class="settings-section">
+        <p class="settings-label">Help</p>
+        <button type="button" class="btn btn-ghost" id="showMeAroundBtn">Show me around</button>
+      </div>
+
       <div class="settings-section" id="reminderSettingsSection" hidden>
         <p class="settings-label">Notifications</p>
         <div class="settings-row">
@@ -2613,6 +2641,25 @@
           </div>
           <input type="time" id="reminderTimeInput" aria-label="Reminder time">
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Idea 35 — "Show me around" onboarding tour. Shown automatically once,
+       the first time someone opens the app (see maybeShowOnboarding()), and
+       re-openable anytime via the "Show me around" button in Settings
+       above. Screen content is rendered in by renderOnboardingScreen() —
+       see ONBOARDING_SCREENS in the script below. -->
+  <div class="modal-overlay" id="onboardingModalOverlay" hidden>
+    <div class="modal onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="onboarding-icon" id="onboardingIcon"></div>
+      <h3 class="onboarding-title" id="onboardingTitle"></h3>
+      <p class="modal-copy" id="onboardingCopy"></p>
+      <div class="onboarding-progress" id="onboardingProgress"></div>
+      <div class="onboarding-dots" id="onboardingDots"></div>
+      <div class="modal-actions">
+        <button type="button" class="reset-link" id="onboardingSkipBtn">Skip</button>
+        <button type="button" class="btn btn-primary" id="onboardingNextBtn">Next</button>
       </div>
     </div>
   </div>
@@ -2821,6 +2868,123 @@ settingsModalOverlay.addEventListener('click', (e)=>{
 });
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !settingsModalOverlay.hidden) closeSettingsModal();
+});
+
+/* ---------------------------------------------------------------
+   Idea 35 — "Show me around" onboarding tour. A single static modal (see
+   the markup above) walks through ONBOARDING_SCREENS one at a time;
+   renderOnboardingScreen() just swaps its icon/title/copy/progress text
+   and re-renders the dots rather than there being one modal per screen,
+   so reordering or editing a screen is a one-line change to this array.
+   Shown automatically once — see maybeShowOnboarding(), called at the end
+   of initApp() — and re-openable anytime via the "Show me around" button
+   in Settings.
+------------------------------------------------------------------*/
+const ONBOARDING_SEEN_KEY = 'findATalkOnboardingSeen';
+const ONBOARDING_SCREENS = [
+  {
+    icon: '👋',
+    title: 'Welcome to FindATalk',
+    copy: "Let's show you how to discover talks from General Conference."
+  },
+  {
+    icon: '⭐',
+    title: 'Talk of the Day',
+    copy: 'A curated talk picked just for you every day. Tap the Title to read the talk, Tap the 📅 to see past TOTDs. Open a talk daily to start your streak.'
+  },
+  {
+    icon: '🔍',
+    title: 'Use Filters',
+    copy: 'Narrow down by Speaker, Topic, and more. You can even filter by your favorite scripture.'
+  },
+  {
+    icon: '🎲',
+    title: 'Find Talks',
+    copy: 'After you filter as much as you’d like, hit "Find a Talk" to draw a random talk from the matches, or tap "Show a List" to show 10.'
+  },
+  {
+    icon: '📋',
+    title: 'Save & Take Notes',
+    copy: 'Add talks to your favorites, or create your own collections and save for later. Jot down what you learned on any talk. Build study groups however you want.'
+  },
+  {
+    icon: '📖',
+    title: 'Connect to Come Follow Me',
+    copy: 'Which talks relate to this week’s Come Follow Me? Find talks that cite the same scriptures you’re studying. Perfect for family study.'
+  },
+  {
+    icon: '🔗',
+    title: 'Follow Citations',
+    copy: 'Explore scriptures, hymns, and other talks mentioned here. Tap any citation to jump to the source, or to where it’s referenced.'
+  }
+];
+const onboardingModalOverlay = document.getElementById('onboardingModalOverlay');
+const onboardingIconEl = document.getElementById('onboardingIcon');
+const onboardingTitleEl = document.getElementById('onboardingTitle');
+const onboardingCopyEl = document.getElementById('onboardingCopy');
+const onboardingProgressEl = document.getElementById('onboardingProgress');
+const onboardingDotsEl = document.getElementById('onboardingDots');
+const onboardingNextBtn = document.getElementById('onboardingNextBtn');
+let onboardingScreenIndex = 0;
+
+function renderOnboardingScreen(){
+  const screen = ONBOARDING_SCREENS[onboardingScreenIndex];
+  onboardingIconEl.textContent = screen.icon;
+  onboardingTitleEl.textContent = screen.title;
+  onboardingCopyEl.textContent = screen.copy;
+  onboardingProgressEl.textContent = `Screen ${onboardingScreenIndex + 1} of ${ONBOARDING_SCREENS.length}`;
+  onboardingNextBtn.textContent = (onboardingScreenIndex === ONBOARDING_SCREENS.length - 1) ? 'Get Started' : 'Next';
+
+  onboardingDotsEl.innerHTML = '';
+  ONBOARDING_SCREENS.forEach((_, i)=>{
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'onboarding-dot' + (i === onboardingScreenIndex ? ' is-active' : '');
+    dot.setAttribute('aria-label', `Go to screen ${i + 1}`);
+    dot.addEventListener('click', ()=>{
+      onboardingScreenIndex = i;
+      renderOnboardingScreen();
+    });
+    onboardingDotsEl.appendChild(dot);
+  });
+}
+function openOnboardingModal(){
+  onboardingScreenIndex = 0;
+  renderOnboardingScreen();
+  onboardingModalOverlay.hidden = false;
+}
+function closeOnboardingModal(){
+  onboardingModalOverlay.hidden = true;
+  try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch(err){ /* ignore — worst case the tour reappears next launch */ }
+}
+function onboardingNext(){
+  if (onboardingScreenIndex < ONBOARDING_SCREENS.length - 1){
+    onboardingScreenIndex++;
+    renderOnboardingScreen();
+  } else {
+    closeOnboardingModal();
+  }
+}
+// First-launch trigger: only when nobody has ever seen (or skipped/finished)
+// the tour before. Deliberately its own flag rather than reusing the streak
+// (which legitimately resets to 0 after a lapse) — that would otherwise
+// replay the tour for a returning user who just broke their streak.
+function maybeShowOnboarding(){
+  let seen = false;
+  try { seen = localStorage.getItem(ONBOARDING_SEEN_KEY) === '1'; } catch(err){ /* ignore — treat as unseen */ }
+  if (!seen) openOnboardingModal();
+}
+document.getElementById('onboardingNextBtn').addEventListener('click', onboardingNext);
+document.getElementById('onboardingSkipBtn').addEventListener('click', closeOnboardingModal);
+onboardingModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === onboardingModalOverlay) closeOnboardingModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !onboardingModalOverlay.hidden) closeOnboardingModal();
+});
+document.getElementById('showMeAroundBtn').addEventListener('click', ()=>{
+  closeSettingsModal();
+  openOnboardingModal();
 });
 
 /* ---------------------------------------------------------------
@@ -7756,6 +7920,7 @@ renderStreak();
 watchForDayRollover();
 setupDailyReminder();
 initReminderSettingsToggle();
+maybeShowOnboarding();
 }
 
 /* ---------------------------------------------------------------
