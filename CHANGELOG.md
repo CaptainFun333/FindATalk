@@ -13,6 +13,7 @@ this updated.
 ### Added
 - Added a "Show me around" tour that walks new users through Talk of the Day, filters, finding talks, favorites/lists/notes, the "Come, Follow Me" tab, and following citations. It shows automatically the first time you open the app, and you can replay it anytime from Settings → Show me around.
 - Tapping a citation now offers the same "go to the source, or see where the talk cites it" choice for Other Talks, Church Magazines, and Hymns, not just scripture citations — wherever citations show up (a talk's own Citations row, Show a List, Recently Viewed, Favorites, My Lists, My Notes, and the "Come, Follow Me" tab).
+- Switching between Home, CFM, Recent, Favs, Notes, and Lists (by tapping a tab or swiping) now animates with a quick fade/slide instead of an instant cut.
 
 ### Changed
 - Rose, Slate, and Sage color themes now use a distinct accent color for the eyebrow text and "Talk of the Day" label (a teal for Rose, sand for Slate, lavender for Sage), in both light and dark mode, instead of a shade that was too close to the theme's own background or body text. The Brass theme is unchanged.

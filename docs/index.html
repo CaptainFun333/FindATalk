@@ -2016,8 +2016,30 @@
   }
   footer a{ color:var(--burgundy); }
 
+  /* ---------- nav-tab swipe transition (idea 37) ----------
+     A simple sequential fade/slide, not a true overlapping slide-over: the
+     outgoing zone fades+slides out first, then the incoming zone fades+
+     slides in from the opposite side. Deliberately kept simple (both zones
+     are normal-flow siblings toggled via display:none, not absolutely
+     positioned on top of each other) rather than a fully overlapping
+     carousel transition, which would need extra layout work for a
+     marginal visual gain. Direction is carried via a per-element CSS
+     custom property (--zone-exit-x/--zone-enter-x) set from JS so one
+     pair of keyframes serves both left and right swipes. */
+  @keyframes zoneFadeSlideOut{
+    from{ opacity:1; transform:translateX(0); }
+    to{ opacity:0; transform:translateX(var(--zone-exit-x, -24px)); }
+  }
+  @keyframes zoneFadeSlideIn{
+    from{ opacity:0; transform:translateX(var(--zone-enter-x, 24px)); }
+    to{ opacity:1; transform:translateX(0); }
+  }
+  .zone-anim-exit{ animation:zoneFadeSlideOut 160ms ease-in forwards; }
+  .zone-anim-enter{ animation:zoneFadeSlideIn 200ms ease-out forwards; }
+
   @media (prefers-reduced-motion: reduce){
     .ticket, #drawBtn{ transition:none; }
+    .zone-anim-exit, .zone-anim-enter{ animation:none; }
   }
 </style>
 </head>
@@ -6261,7 +6283,16 @@ function goToNavZone(zone){
   else if (zone==='notes') renderNotesPage();
   else if (zone==='collectionsIndex') renderCollectionsIndexPage();
   else if (zone==='cfm') renderCfmPage();
-  showZone(zone);
+  // Animate only between two of the six main tabs (both a real position in
+  // NAV_ITEMS) — e.g. leaving the individual list-detail page, which isn't
+  // one of them, just does a plain instant switch, same as before idea 37.
+  const fromIdx = NAV_ITEMS.findIndex(item=> item.zone === activeZone);
+  const toIdx = NAV_ITEMS.findIndex(item=> item.zone === zone);
+  if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx){
+    animateZoneTransition(zone, toIdx > fromIdx ? 1 : -1);
+  } else {
+    showZone(zone);
+  }
 }
 document.body.addEventListener('click', (e)=>{
   const btn = e.target.closest('[data-nav-zone]');
@@ -6287,6 +6318,56 @@ function showZone(name){
   cfmZone.style.display = name==='cfm' ? 'block' : 'none';
   renderNavBars(name);
   window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// Maps a NAV_ITEMS zone name (plus 'collection', for completeness) to its
+// actual DOM element — used only by animateZoneTransition() below, so the
+// animation code doesn't need its own copy of showZone()'s element list.
+function zoneElementFor(name){
+  return {
+    home: homeZone, recent: recentZone, favorites: favoritesZone,
+    notes: notesZone, collectionsIndex: collectionsIndexZone,
+    collection: collectionZone, cfm: cfmZone
+  }[name] || null;
+}
+
+/* ---------------- animated nav-tab transition (idea 37) ----------------
+   A simple sequential fade/slide (see the .zone-anim-exit/-enter CSS
+   comment for why sequential rather than a true overlapping slide-over):
+   the current zone fades+slides out, then showZone() does its normal
+   instant swap, then the new zone fades+slides in from the opposite side.
+   direction: 1 = moving to a later tab (swipe left, or clicking a tab to
+   the right) — outgoing exits left, incoming enters from the right.
+   -1 = the reverse. Respects prefers-reduced-motion by skipping straight
+   to the plain instant showZone(), same as the CSS's own reduced-motion
+   override for .ticket/#drawBtn. */
+function animateZoneTransition(targetZone, direction){
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const outEl = zoneElementFor(activeZone);
+  if (reduceMotion || !outEl){
+    showZone(targetZone);
+    return;
+  }
+  const exitX = direction === 1 ? '-24px' : '24px';
+  const enterX = direction === 1 ? '24px' : '-24px';
+  outEl.style.setProperty('--zone-exit-x', exitX);
+  outEl.classList.add('zone-anim-exit');
+  const onExitEnd = ()=>{
+    outEl.removeEventListener('animationend', onExitEnd);
+    outEl.classList.remove('zone-anim-exit');
+    outEl.style.removeProperty('--zone-exit-x');
+    showZone(targetZone);
+    const inEl = zoneElementFor(targetZone);
+    if (!inEl) return;
+    inEl.style.setProperty('--zone-enter-x', enterX);
+    inEl.classList.add('zone-anim-enter');
+    inEl.addEventListener('animationend', function onEnterEnd(){
+      inEl.removeEventListener('animationend', onEnterEnd);
+      inEl.classList.remove('zone-anim-enter');
+      inEl.style.removeProperty('--zone-enter-x');
+    });
+  };
+  outEl.addEventListener('animationend', onExitEnd);
 }
 
 /* ---------------- swipe left/right between the main nav tabs ----------------
