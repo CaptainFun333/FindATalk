@@ -983,6 +983,56 @@
      Notes/List-detail, which still use it standalone. */
   .pool-count.pool-count-inline{ text-align:left; margin-bottom:0; }
 
+  /* Home only: #poolCount (the bottom copy of the match count, next to
+     Reset filters) gets its own pill treatment so it reads as a live
+     status badge rather than plain text — kept in sync with
+     #narrowBoxHeader above via refreshCount()'s pulse in the JS. Scoped
+     to the id rather than a shared class so Recently Viewed/Favorites/My
+     Notes/Collections/CFM, which reuse plain .pool-count, are untouched. */
+  #poolCount{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-size:13.5px;
+    padding:6px 14px 6px 10px;
+    border:1.5px solid var(--burgundy);
+    border-radius:999px;
+    background-color:var(--paper);
+  }
+  #poolCount::before{
+    content:'';
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--brass);
+    flex:none;
+  }
+  /* No filters ever leave the pool empty on load, but a filter combo can —
+     collapse the pill chrome rather than show an empty bordered oval. */
+  #poolCount:empty{ border-color:transparent; background-color:transparent; padding:0; }
+  #poolCount:empty::before{ display:none; }
+
+  /* Shared pulse for #narrowBoxHeader and #poolCount — see refreshCount()
+     in the JS, which flashes both together whenever the count actually
+     changes, so the same figure shown in two places reads as one live
+     number rather than two that happen to agree. Each selector animates
+     back to its own resting background rather than a shared "transparent"
+     end state, since the header sits on the narrow-box's raised panel
+     while the pill has its own paper-colored fill. */
+  #narrowBoxHeader.count-flash{ animation:countFlashHeader .6s ease-out; }
+  @keyframes countFlashHeader{
+    0%{ background-color:var(--tint); }
+    100%{ background-color:var(--paper-raised); }
+  }
+  #poolCount.count-flash{ animation:countFlashPill .6s ease-out; }
+  @keyframes countFlashPill{
+    0%{ background-color:var(--tint); }
+    100%{ background-color:var(--paper); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #narrowBoxHeader.count-flash, #poolCount.count-flash{ animation:none; }
+  }
+
   /* ---------- Come, Follow Me page (idea 24) ---------- */
   /* Grid, not flex+justify-content:center — with flex, centering the
      PREV+label+NEXT group as one unit means the arrows hug close to
@@ -2039,9 +2089,9 @@
   </div>
 
   <div class="narrow-box">
-    <div class="narrow-box-header">
+    <div class="narrow-box-header" id="narrowBoxHeader">
       <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
-      <span>Looking for something more specific?</span>
+      <span id="narrowBoxHeaderText">Looking for something more specific?</span>
     </div>
     <div class="narrow-box-body">
       <div class="filters">
@@ -3814,6 +3864,11 @@ function speakerDisplayName(name){
 /* ---------------- build filter options ---------------- */
 function initApp(){
 const poolCountEl = document.getElementById('poolCount');
+// Home's narrow-box header doubles as a live match count (see
+// refreshCount() below) — narrowBoxHeaderTextEl holds just the text span
+// so the icon markup beside it is never touched by the innerHTML swap.
+const narrowBoxHeaderEl = document.getElementById('narrowBoxHeader');
+const narrowBoxHeaderTextEl = document.getElementById('narrowBoxHeaderText');
 const noMatchEl = document.getElementById('noMatch');
 const drawBtn = document.getElementById('drawBtn');
 const listBtn = document.getElementById('listBtn');
@@ -4486,6 +4541,11 @@ function rebuildFilterOptions(){
     updateTrigger(dim);
   });
 }
+// Tracks the pool size refreshCount() last rendered, so the pulse below
+// only fires when the count actually changed (not on every refreshCount()
+// call — plenty of those, e.g. rebuilding filter option lists, leave the
+// count itself untouched) and never on the very first render at page load.
+let lastPoolCount = null;
 function refreshCount(){
   rebuildFilterOptions();
   // Filters changing invalidates any in-progress "Show a List" paging —
@@ -4495,6 +4555,7 @@ function refreshCount(){
   const pool = currentPool();
   if (pool.length === 0){
     poolCountEl.textContent = '';
+    narrowBoxHeaderTextEl.textContent = 'No talks match — try widening a filter';
     noMatchEl.style.display = 'block';
     drawBtn.disabled = true;
     listBtn.disabled = true;
@@ -4506,8 +4567,22 @@ function refreshCount(){
     listBtn.disabled = false;
     drawBtn2.disabled = false;
     listBtn2.disabled = false;
-    poolCountEl.innerHTML = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''} right now`;
+    const matchPhrase = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''}`;
+    poolCountEl.innerHTML = `${matchPhrase} right now`;
+    narrowBoxHeaderTextEl.innerHTML = `${matchPhrase} — narrow it down`;
   }
+  // Same count, shown twice (top header, bottom pill) — flash both
+  // together on change so they read as one live figure, not two counts
+  // that happen to agree. Skipped on the initial render (nothing "changed"
+  // yet) and respects prefers-reduced-motion via the .count-flash rule.
+  if (lastPoolCount !== null && lastPoolCount !== pool.length){
+    [narrowBoxHeaderEl, poolCountEl].forEach(el=>{
+      el.classList.remove('count-flash');
+      void el.offsetWidth;
+      el.classList.add('count-flash');
+    });
+  }
+  lastPoolCount = pool.length;
   resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim() && !filterState.citeQuery.trim();
   refreshQueryAliasHint();
 }
