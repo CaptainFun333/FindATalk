@@ -3018,13 +3018,25 @@ function talkCitations(talk){
    Hymns citations use the pre-1985 hymnal's numbering, which doesn't
    match the current 341-hymn book — left unlinked rather than guessed). */
 let CITATION_TALK_REFS, CITATION_MAGAZINE_REFS, CITATION_HYMN_REFS, CITATION_OTHER_REFS;
-let CITATION_HYMN_LABELS, CITATION_TYPE_LOOKUP;
+let CITATION_HYMN_LABELS, CITATION_TYPE_LOOKUP, CITATION_TYPE_PARAGRAPH_LOOKUP;
 let CITATION_BOOK_LABELS, CITATION_BOOK_ABBREVS;
+
+// Looks up the paragraph (idea 33, extended) this talk's Nth citation of
+// `type` (talk/magazine/hymn) actually appears in, if the extraction pass
+// resolved one — see CITATION_TYPE_PARAGRAPH_LOOKUP's own comment above for
+// the shape. Returns null (not a crash) for an older data.json without this
+// field, a talk the extraction pass couldn't verify, or an index past the
+// end of that array.
+function citationTypeTalkHref(talk, type, pos){
+  const paras = (CITATION_TYPE_PARAGRAPH_LOOKUP[talkKey(talk)] || {})[type];
+  const p = paras && paras[pos];
+  return p ? talkUrl(talk) + `&id=${p}#${p}` : null;
+}
 
 function talkOtherTalkCitations(talk){
   const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).talk;
   if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
+  return idxs.map((i, pos)=>{
     const [text, resolvedKey, href] = CITATION_TALK_REFS[i];
     // Prefer the target talk's own real title/URL when it's in this app's
     // own dataset (true for 2275 of 2276 cases) — the raw footnote text is
@@ -3036,31 +3048,40 @@ function talkOtherTalkCitations(talk){
     // reachable from there. Cheap enough: called a handful of times per
     // render, against a ~4,054-entry array.
     const resolved = resolvedKey ? TALKS.find(t=> talkKey(t) === resolvedKey) : null;
-    return {
+    const entry = {
       ref: resolved ? resolved[0] : text,
       href: resolved ? talkUrl(resolved) : `https://www.churchofjesuschrist.org${href}`,
     };
+    const talkHref = citationTypeTalkHref(talk, 'talk', pos);
+    if (talkHref) entry.talkHref = talkHref;
+    return entry;
   });
 }
 
 function talkMagazineCitations(talk){
   const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).magazine;
   if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
+  return idxs.map((i, pos)=>{
     const [text, href] = CITATION_MAGAZINE_REFS[i];
-    return {ref: text, href: `https://www.churchofjesuschrist.org${href}`};
+    const entry = {ref: text, href: `https://www.churchofjesuschrist.org${href}`};
+    const talkHref = citationTypeTalkHref(talk, 'magazine', pos);
+    if (talkHref) entry.talkHref = talkHref;
+    return entry;
   });
 }
 
 function talkHymnCitations(talk){
   const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).hymn;
   if (!idxs || !idxs.length) return [];
-  return idxs.map(i=>{
+  return idxs.map((i, pos)=>{
     const num = CITATION_HYMN_REFS[i];
     const label = CITATION_HYMN_LABELS[String(num)];
     if (!label) return {ref: `Hymns, no. ${num}`, href: null};
     const [title, slug] = label;
-    return {ref: `${title} (Hymns, no. ${num})`, href: `https://www.churchofjesuschrist.org/study/manual/hymns/${slug}?lang=eng`};
+    const entry = {ref: `${title} (Hymns, no. ${num})`, href: `https://www.churchofjesuschrist.org/study/manual/hymns/${slug}?lang=eng`};
+    const talkHref = citationTypeTalkHref(talk, 'hymn', pos);
+    if (talkHref) entry.talkHref = talkHref;
+    return entry;
   });
 }
 
@@ -5840,21 +5861,28 @@ function buildCitationsBlock(talk, {compact=false}={}){
     g.items.forEach(cite=>{
       // No href (Other Sources; a handful of pre-1985-numbered Hymns
       // citations, see talkHymnCitations()) -> plain text, not a dead link.
-      // Idea 33 (revised): a Scripture citation with a resolved in-talk
-      // paragraph anchor becomes a button that opens the destination
-      // popup instead of a plain link — see openCiteDestModal(). Every
-      // other case (no href at all, or no talkHref to choose between)
-      // stays a plain link/span exactly as before; there's nothing to
-      // choose between if there's only one place to go. Applies in every
-      // context (ticket AND compact rows — Show a List, Recently Viewed,
-      // Favorites, My Lists, My Notes) — an earlier first-pass version
-      // limited this to the non-compact ticket only, but there was no
-      // real reason a list row couldn't offer the same choice.
-      const offerChoice = g.label === 'Scriptures' && cite.href && cite.talkHref;
+      // Idea 33, extended to all four linkable types (Scriptures, Other
+      // Talks, Church Magazines, Hymns): a citation with a resolved
+      // in-talk paragraph anchor becomes a button that opens the
+      // destination popup instead of a plain link — see
+      // openCiteDestModal(). Every other case (no href at all, or no
+      // talkHref to choose between -- e.g. a hymn whose citing paragraph
+      // couldn't be verified, or a pre-1985 hymn number with no href in
+      // the first place) stays a plain link/span exactly as before;
+      // there's nothing to choose between if there's only one place to
+      // go. Other Sources never reaches offerChoice at all -- href is
+      // always null for that type (see talkOtherSourceCitations()), so
+      // there's no first destination to offer a choice between, let alone
+      // a second. Applies in every context (ticket AND compact rows —
+      // Show a List, Recently Viewed, Favorites, My Lists, My Notes) — an
+      // earlier first-pass version limited this to the non-compact ticket
+      // only, but there was no real reason a list row couldn't offer the
+      // same choice.
+      const offerChoice = cite.href && cite.talkHref;
       const el = document.createElement(offerChoice ? 'button' : (cite.href ? 'a' : 'span'));
       if (offerChoice){
         el.type = 'button';
-        el.addEventListener('click', ()=> openCiteDestModal(cite));
+        el.addEventListener('click', ()=> openCiteDestModal(cite, g.label));
       } else if (cite.href){
         el.href = cite.href;
         el.target = '_blank';
@@ -5970,7 +5998,9 @@ function flashShareButton(btnEl, message){
 const shareBtn = document.getElementById('shareBtn');
 shareBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
-  shareTalk(lastPicked, shareBtn);
+  // Check if the ticket is showing today's Talk of the Day
+  const isTotd = lastPicked && lastPicked === talkOfTheDay();
+  shareTalk(lastPicked, shareBtn, isTotd ? 'totd' : 'other');
 });
 
 /* ---------------- Recently Viewed / Favorites / My Lists pages ---------------- */
@@ -7470,20 +7500,32 @@ newCollectionInput.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') document.getElementById('newCollectionBtn').click();
 });
 
-/* ---------------- citation "destination" popup (idea 33, revised) ----
-   Opens whenever a Scripture citation has both a real href (the cited
-   verse) and a resolved talkHref (the paragraph of the CITING talk that
-   references it) — see buildCitationsBlock() and the CFM citation badge
-   above, both of which call openCiteDestModal(cite) instead of rendering
-   two competing links. A citation missing either one never gets a
-   button at all (see the `offerChoice` checks at each call site) — this
-   modal is only ever opened when there's a genuine choice to make. */
+/* ---------------- citation "destination" popup (idea 33, extended) ----
+   Opens whenever a citation has both a real href (the cited scripture/
+   talk/article/hymn) and a resolved talkHref (the paragraph of the CITING
+   talk that references it) — see buildCitationsBlock() and the CFM
+   citation badge above, both of which call openCiteDestModal(cite, kind)
+   instead of rendering two competing links. A citation missing either one
+   never gets a button at all (see the `offerChoice` checks at each call
+   site) — this modal is only ever opened when there's a genuine choice to
+   make. `kind` is the group label from buildCitationsBlock() ('Scriptures',
+   'Other Talks', 'Church Magazines', 'Hymns') and just picks the wording
+   for the "open the cited thing" button — defaults to 'Scriptures' since
+   the CFM citation badge's call site (always Scripture matches) doesn't
+   pass one. */
 const citeDestModalOverlay = document.getElementById('citeDestModalOverlay');
 const citeDestModalTitle = document.getElementById('citeDestModalTitle');
 const citeDestOpenBtn = document.getElementById('citeDestOpenBtn');
 const citeDestTalkBtn = document.getElementById('citeDestTalkBtn');
-function openCiteDestModal(cite){
+const CITE_DEST_OPEN_LABELS = {
+  'Scriptures': 'Open the verse',
+  'Other Talks': 'Open the talk',
+  'Church Magazines': 'Open the article',
+  'Hymns': 'Open the hymn',
+};
+function openCiteDestModal(cite, kind='Scriptures'){
   citeDestModalTitle.textContent = cite.ref;
+  citeDestOpenBtn.textContent = CITE_DEST_OPEN_LABELS[kind] || 'Open it';
   citeDestOpenBtn.onclick = ()=>{ window.open(cite.href, '_blank', 'noopener'); closeCiteDestModal(); };
   citeDestTalkBtn.onclick = ()=>{ window.open(cite.talkHref, '_blank', 'noopener'); closeCiteDestModal(); };
   citeDestModalOverlay.hidden = false;
@@ -7801,6 +7843,18 @@ function applyData(data){
   CITATION_OTHER_REFS = data.citationOtherRefs || [];
   CITATION_HYMN_LABELS = data.citationHymnLabels || {};
   CITATION_TYPE_LOOKUP = data.citationTypeLookup || {};
+  // Idea 33, extended to the other three linkable citation types (Other
+  // Talks/Church Magazines/Hymns) — same shape idea as
+  // CITATION_PARAGRAPH_LOOKUP above, but keyed by type since each talk can
+  // have separate Other-Talks/Magazine/Hymn citation lists: talk ->
+  // {talk:['p4',...], magazine:[...], hymn:[...]}, each array parallel to
+  // CITATION_TYPE_LOOKUP[talk].{talk,magazine,hymn}. Other Sources isn't
+  // here — talkOtherSourceCitations() never has an href to begin with (see
+  // its own comment), so there's no second destination to offer a choice
+  // between. Missing entirely (older data.json) or missing a given
+  // talk/index just means no "View in talk" choice for that citation,
+  // never a crash — same guarded-lookup pattern as CITATION_PARAGRAPH_LOOKUP.
+  CITATION_TYPE_PARAGRAPH_LOOKUP = data.citationTypeParagraphLookup || {};
   // Book display names ("dc-testament|dc" -> "Doctrine and Covenants") and
   // standard abbreviations ("dc-testament|dc" -> ["D&C","D & C"]) — merged
   // into data.json alongside the original citation extraction but never

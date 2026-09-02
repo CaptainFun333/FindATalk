@@ -3608,3 +3608,88 @@ backfilled — discussed with the user and decided it's lower-value
 (backward-looking, no one is currently studying it) versus the same
 effort cost as any other year. Revisit only if the user specifically
 wants "look back at what I studied last year" — not done by default.
+
+## ✅ Done: destination-choice popup (idea 33) extended to Other Talks/Church Magazines/Hymns
+The "go to the cited thing, or see exactly where the talk cites it"
+popup (`openCiteDestModal()`) originally only fired for Scripture
+citations — it needs a `talkHref` (the citing talk's own paragraph
+anchor) alongside the citation's normal `href`, and only Scriptures had
+that (`citationParagraphLookup`, built during the original citation
+extraction). The user asked to extend this to all citation types.
+
+**Other Sources was explicitly excluded, not just deprioritized**:
+`talkOtherSourceCitations()` always returns `href: null` — the original
+extraction (see "the other four citation types" above) never kept a
+separate href field for that type even for the subset of Other Sources
+entries that did originate from a real link (the "no-class residual"
+cross-ref bucket got folded into plain text on purpose). With no first
+destination, there's no second one to offer a choice between —
+`offerChoice` (`cite.href && cite.talkHref`) already naturally excludes
+Other Sources without any special-casing, so nothing further was done
+there. Doing so would mean re-extracting real hrefs for that subset AND
+changing how Other Sources renders everywhere (currently always a plain
+`<span>`) — a bigger, separate project if ever wanted.
+
+**Extraction approach**: re-fetched all 1,351 talks that have at least
+one Other Talks/Magazine/Hymn citation (real HTML via `curl`, not
+WebFetch — same reasoning as every other scrape in this project) and,
+for each, walked every BODY paragraph (`p[data-aid]` NOT inside the
+`<footer>` that wraps the footnotes — an earlier draft excluded
+`.closest('ol')` instead and wrongly also excluded body paragraphs that
+happen to sit inside an ordinary bulleted/numbered list in the talk's
+own text, a real bug caught by a mismatch on a talk with a numbered
+list of teaching principles). Within each body paragraph's HTML, in
+document order: a literal inline `a.scripture-ref`/`a.cross-ref` (rare)
+is recorded directly against that paragraph; a footnote-reference
+marker (`a.note-ref[data-scroll-id="noteN"]`) gets "expanded" into
+whatever citation-like occurrences live inside `<li id="noteN">`'s own
+content, in that footnote's own order, all still attributed to the
+BODY paragraph (never the footnote's own id) — this is the same
+attribution the original Scripture `citationParagraphLookup` values
+already show (`"p4"` style ids, not `"note3_p1"`). `a.cross-ref` is
+classified same as `talkOtherTalkCitations()`/`talkMagazineCitations()`
+already assume (`/study/general-conference/...` → talk,
+`/study/(ensign|liahona|new-era|friend)/...` → magazine, anything else
+→ dropped, no home for it). Hymn detection needed a second real bug fix
+mid-pass: the "Hymns," footnote text isn't consistently wrapped in
+`<cite>` — some page-template eras use `<em>` instead — so the pattern
+had to tolerate any wrapping tag (or none), not just `<cite>` (a plain
+grep for "Hymns" during debugging also produced a false negative on
+this exact case, unrelated to the real bug — a BSD `grep -o` with `.`
+silently failing to match across a multi-byte UTF-8 smart-quote
+sequence; switching to a Python-based check surfaced the real markup).
+
+**Every talk's result is cross-checked against the already-trusted
+`citationTypeLookup` before being accepted** — same order/count, and
+each occurrence's target verified (resolved talk key for Other Talks,
+href path for Magazines, hymn number for Hymns) against the existing
+interned tables. A talk that doesn't verify is dropped entirely rather
+than shipping unverified paragraph data — **1,322 of 1,351 verified
+(97.9%)**; the ~29 that didn't (spot-checked one: "The Nourishing Power
+of Hymns," off by one hymn count — plausible for a talk that's
+literally about hymns and likely has an edge case in how many times one
+gets mentioned) simply keep the old plain-link behavior for their
+citations, exactly like before this change — never wrong data, only a
+missed enhancement on those specific talks.
+
+**Storage**: new top-level `data.json` key `citationTypeParagraphLookup`
+(talk → `{talk:[...], magazine:[...], hymn:[...]}`, each array parallel
+to the matching `citationTypeLookup[talk]` array, values being the
+citing paragraph id — same shape idea as `citationParagraphLookup`, just
+split by type since a talk can have separate lists per type). Grew
+`data.json` by about 230KB (4.22MB → 4.45MB) — small, since this only
+stores paragraph ids, not any new citation text.
+
+**UI wiring**: `talkOtherTalkCitations()`/`talkMagazineCitations()`/
+`talkHymnCitations()` each now attach `talkHref` via a small shared
+`citationTypeTalkHref(talk, type, pos)` helper when the extraction
+verified one for that occurrence. `buildCitationsBlock()`'s
+`offerChoice` check dropped its `g.label === 'Scriptures'` restriction
+— any citation with both `href` and `talkHref` gets the button now,
+regardless of type. `openCiteDestModal()` gained a second `kind`
+parameter (the group label — 'Scriptures'/'Other Talks'/'Church
+Magazines'/'Hymns') so its "Open the ___" button reads correctly per
+type instead of always saying "Open the verse" — defaults to
+'Scriptures' for the CFM citation badge's call site, which only ever
+matches Scripture citations.
+wants "look back at what I studied last year" — not done by default.

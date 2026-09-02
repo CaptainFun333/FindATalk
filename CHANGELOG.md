@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- Tapping a citation now offers the same "go to the source, or see where the talk cites it" choice for Other Talks, Church Magazines, and Hymns, not just scripture citations — wherever citations show up (a talk's own Citations row, Show a List, Recently Viewed, Favorites, My Lists, My Notes, and the "Come, Follow Me" tab).
+
 ### Changed
 - Rose, Slate, and Sage color themes now use a distinct accent color for the eyebrow text and "Talk of the Day" label (a teal for Rose, sand for Slate, lavender for Sage), in both light and dark mode, instead of a shade that was too close to the theme's own background or body text. The Brass theme is unchanged.
 - The number of talks matching your filters is now much easier to spot: it leads the "Looking for something more specific?" header right by the top "Find Another"/"Show a List" buttons, and shows again as a small badge next to "Reset filters" by the bottom pair. Both update together and briefly highlight whenever a filter or search changes the count.
