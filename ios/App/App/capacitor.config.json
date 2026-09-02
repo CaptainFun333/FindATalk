@@ -1,0 +1,12 @@
+{
+	"appId": "com.captainfun333.findatalk",
+	"appName": "FindATalk",
+	"webDir": "docs",
+	"packageClassList": [
+		"FilesystemPlugin",
+		"LocalNotificationsPlugin",
+		"PreferencesPlugin",
+		"SharePlugin",
+		"StreakBridgePlugin"
+	]
+}

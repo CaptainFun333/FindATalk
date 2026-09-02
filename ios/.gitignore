@@ -9,5 +9,13 @@ xcuserdata
 capacitor-cordova-ios-plugins
 
 # Generated Config files
-App/App/capacitor.config.json
 App/App/config.xml
+
+# App/App/capacitor.config.json is tracked (not ignored) on purpose: its
+# packageClassList array is the only place StreakBridgePlugin actually gets
+# registered with the JS bridge, and `npx cap sync`/`cap copy` overwrites
+# that array from scratch from an npm-plugin scan with no merge step, so it
+# can't see a hand-written plugin like this one — see PROJECT_HANDOFF.md's
+# "npx cap sync ios ... will silently un-register StreakBridgePlugin" note.
+# Tracking this file means a `cap sync` regression shows up as a git diff
+# to review/revert, instead of silently shipping with a broken widget.
