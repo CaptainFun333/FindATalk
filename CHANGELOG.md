@@ -24,6 +24,7 @@ this updated.
 - Fixed the "Come, Follow Me" tab showing no matches the first time you opened it after updating the app — it would sit empty until you closed and reopened the app a second time. It now shows this week's matches right away.
 - Fixed the home-screen widget on iOS never showing your streak, even with a streak active in the app.
 - New users now see the streak badge on page load with an invitation to "Choose a talk to begin your streak" instead of it being hidden until after they open their first talk.
+- Fixed the new Other Talks/Church Magazines/Hymns "go to the source, or see where it's cited" citation popup never actually reaching anyone's copy of the app — the data update behind it was stamped with an unchanged timestamp, so the app's background refresh treated it as nothing new and silently skipped it for everyone, indefinitely, not just until the next relaunch.
 
 ## [1.4] — 2026-08-31
 
