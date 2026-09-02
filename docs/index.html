@@ -1669,6 +1669,13 @@
   .onboarding-title{
     font-family:'Lora',serif; font-weight:600; font-size:20px; margin:0 0 10px; color:var(--ink);
   }
+  /* Fixed to fit the longest screen's copy (~4 lines at this line-height)
+     so every screen reserves the same vertical space here, regardless of
+     how short its own copy is. Without this, a shorter screen's modal
+     shrinks and the vertically-centered Skip/Next row shifts up — a fast
+     tap aimed where Next sat on the previous (longer) screen can land on
+     empty overlay instead, needing a second, re-aimed tap. */
+  .onboarding-copy{ min-height:6.2em; }
   .onboarding-progress{
     font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); margin-bottom:10px;
   }
@@ -2654,7 +2661,7 @@
     <div class="modal onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
       <div class="onboarding-icon" id="onboardingIcon"></div>
       <h3 class="onboarding-title" id="onboardingTitle"></h3>
-      <p class="modal-copy" id="onboardingCopy"></p>
+      <p class="modal-copy onboarding-copy" id="onboardingCopy"></p>
       <div class="onboarding-progress" id="onboardingProgress"></div>
       <div class="onboarding-dots" id="onboardingDots"></div>
       <div class="modal-actions">
