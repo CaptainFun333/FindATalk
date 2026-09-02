@@ -19,6 +19,7 @@ this updated.
 
 ### Fixed
 - Fixed the "Come, Follow Me" tab showing no matches the first time you opened it after updating the app — it would sit empty until you closed and reopened the app a second time. It now shows this week's matches right away.
+- Fixed the home-screen widget on iOS never showing your streak, even with a streak active in the app.
 
 ## [1.4] — 2026-08-31
 
