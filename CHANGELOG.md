@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.4.1] — 2026-09-02
+
 ### Added
 - Added a "Show me around" tour that walks new users through Talk of the Day, filters, finding talks, favorites/lists/notes, the "Come, Follow Me" tab, and following citations. It shows automatically the first time you open the app, and you can replay it anytime from Settings → Show me around.
 - Tapping a citation now offers the same "go to the source, or see where the talk cites it" choice for Other Talks, Church Magazines, and Hymns, not just scripture citations — wherever citations show up (a talk's own Citations row, Show a List, Recently Viewed, Favorites, My Lists, My Notes, and the "Come, Follow Me" tab).
