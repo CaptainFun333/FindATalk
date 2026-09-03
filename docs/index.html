@@ -6174,8 +6174,8 @@ async function shareTalk(pick, btnEl, context='other'){
 
   if (navigator.share){
     try {
-      // Use prefilled message for native share
-      await navigator.share({ title, text: shareText });
+      // Use prefilled message for native share (URL must be separate parameter)
+      await navigator.share({ title, text: shareText, url });
       return;
     } catch(err){
       // Person cancelling the native share sheet throws AbortError — that's a
