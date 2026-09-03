@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+- The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
 
 ## [1.4.1] — 2026-09-02
 
