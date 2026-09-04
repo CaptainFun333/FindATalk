@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.captainfun333.findatalk",
+      "sha256_cert_fingerprints": [
+        "F4:8F:F1:EB:DF:14:0B:E0:FD:D9:00:88:52:F8:E9:5D:43:1C:E5:4F:B2:C9:E8:D0:48:65:92:39:E5:A3:E3:60"
+      ]
+    }
+  }
+]

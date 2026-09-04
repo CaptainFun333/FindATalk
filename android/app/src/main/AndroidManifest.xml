@@ -24,6 +24,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Android App Links (idea 40, part 2): autoVerify="true" makes
+                 the OS check docs/.well-known/assetlinks.json at install
+                 time and, if it matches this app's signing certificate,
+                 route findatalk.com links straight to the app instead of a
+                 browser disambiguation prompt — silently falls back to the
+                 browser if verification ever fails (unsigned build, wrong
+                 fingerprint, site unreachable), no crash either way. Two
+                 separate <data> blocks (not combined android:host values)
+                 since a single <data> element only contributes one host to
+                 the filter. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="findatalk.com" />
+                <data android:scheme="https" android:host="www.findatalk.com" />
+            </intent-filter>
+
         </activity>
 
         <receiver

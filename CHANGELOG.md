@@ -12,6 +12,7 @@ this updated.
 
 ### Added
 - Added a notice on the old website address (not shown on findatalk.com itself, and not shown inside the app) letting anyone who still lands there know FindATalk has moved to findatalk.com, with a one-tap "Back Up Now" button, since favorites/notes/lists/streak saved in a browser won't automatically carry over to the new address.
+- Tapping a findatalk.com link will now open the app directly instead of your browser, if the app is installed (requires a new app build to take effect — not live for existing installs until then).
 
 ### Changed
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
