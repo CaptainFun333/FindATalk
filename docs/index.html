@@ -548,6 +548,7 @@
     color:var(--ink-soft); flex:1 1 260px;
   }
   .migration-banner-text strong{ color:var(--ink); }
+  .migration-banner-text a{ color:var(--burgundy); }
   .migration-banner-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   #migrationBannerBackupBtn{
     font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
@@ -2096,28 +2097,28 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L14.9 3h-3.8l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h3.8l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z"/></svg>
   </button>
 
-  <!-- Pre-migration safety banner (FindATalk.com domain migration). Shown
-       ONLY on the plain web build — the native app's local data lives in
-       the app bundle itself and is completely unaffected by any domain
-       change, so this never applies there (see initMigrationBanner()).
-       Warns anyone using the site directly in a browser that favorites/
-       notes/lists/streak are stored per-origin (localStorage) and won't
-       carry over automatically once the site moves from
-       captainfun333.github.io to FindATalk.com — same-origin policy means
-       the new domain literally cannot see data left at the old one.
-       Dismissible; dismissal persists in localStorage so it doesn't nag on
-       every repeat visit once acknowledged. A direct child of .wrap (same
-       reasoning as #settingsBtn above) so it survives zone-innerHTML
-       swaps on navigation. REMOVE THIS WHOLE BLOCK once the domain
-       migration is complete and REMOTE_DATA_URL has been cut over to the
-       new domain — it has no purpose after that point. -->
+  <!-- Post-migration safety banner (FindATalk.com domain migration is now
+       LIVE — REMOTE_DATA_URL already points at findatalk.com as of the
+       migration commit). Shown ONLY on the plain web build (never native —
+       the app's local data lives in the bundle and is unaffected by any
+       domain change) AND only when initMigrationBanner() detects the page
+       is still being served from the OLD origin
+       (captainfun333.github.io) — showing this on findatalk.com itself
+       would be nonsensical now that it's the live/canonical address.
+       Anyone still landing on the old URL (an old bookmark/link/search
+       result) is exactly who still needs this: their favorites/notes/
+       lists/streak are stored per-origin (localStorage) and same-origin
+       policy means findatalk.com can never see data left here. Dismissible;
+       dismissal persists in localStorage so it doesn't nag on every repeat
+       visit once acknowledged. A direct child of .wrap (same reasoning as
+       #settingsBtn above) so it survives zone-innerHTML swaps on
+       navigation. Text is filled in by JS (see initMigrationBanner()) so
+       the "switch here" link can point at the real findatalk.com address.
+       Revisit removing this entirely once traffic to the old origin has
+       genuinely dropped off — not yet, since the old URL is still findable
+       and still needs a way to warn people before they lose local data. -->
   <div class="migration-banner" id="migrationBanner" hidden>
-    <div class="migration-banner-text">
-      <strong>We're moving to FindATalk.com soon.</strong> If you're using
-      this site in a browser (not the app), your favorites, notes, lists,
-      and streak live only here and won't carry over automatically. Back up
-      now to be safe.
-    </div>
+    <div class="migration-banner-text" id="migrationBannerText"></div>
     <div class="migration-banner-actions">
       <button type="button" id="migrationBannerBackupBtn">Back Up Now</button>
       <button type="button" id="migrationBannerDismissBtn" aria-label="Dismiss">&times;</button>
@@ -7735,24 +7736,38 @@ backupImportInput.addEventListener('change', ()=>{
   });
 });
 
-/* Pre-migration safety banner — see the HTML comment above #migrationBanner
-   for full context. Native-app-only exemption: the app's local data lives
-   in the bundle itself and is unaffected by any web-domain change, so this
-   never applies there. Runs independent of loadData()/initApp() — it has
-   nothing to do with TALKS data, so it shows as fast as possible rather
-   than waiting on the data fetch. REMOVE alongside the HTML/CSS blocks
-   once the domain migration is complete. */
+/* Post-migration safety banner — see the HTML comment above #migrationBanner
+   for full context. Domain migration is LIVE as of this commit
+   (REMOTE_DATA_URL already points at findatalk.com), so this now only
+   targets people still landing on the OLD origin via a stale bookmark/
+   link/search result — showing it on findatalk.com itself would be
+   nonsensical since that's already the live address. Native-app-only
+   exemption unchanged: the app's local data lives in the bundle itself and
+   is unaffected by any web-domain change. Runs independent of
+   loadData()/initApp() — it has nothing to do with TALKS data, so it shows
+   as fast as possible rather than waiting on the data fetch. Revisit fully
+   removing this once traffic to the old origin has genuinely dropped off. */
 function initMigrationBanner(){
   const banner = document.getElementById('migrationBanner');
   if (!banner) return;
   const cap = window.Capacitor;
   const isNative = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
   if (isNative) return;
+  // Only the old GitHub Pages origin still needs this warning — on
+  // findatalk.com itself (or a plain local file:// / dev-server preview)
+  // there's nothing to warn about, so stay hidden.
+  const isOldOrigin = location.hostname === 'captainfun333.github.io';
+  if (!isOldOrigin) return;
   const DISMISS_KEY = 'findATalkMigrationBannerDismissed';
   let dismissed = false;
   try { dismissed = localStorage.getItem(DISMISS_KEY) === '1'; }
   catch(err){ /* storage unavailable — just show it, harmless either way */ }
   if (dismissed) return;
+  document.getElementById('migrationBannerText').innerHTML =
+    '<strong>FindATalk has moved to FindATalk.com.</strong> If you’re using ' +
+    'this site in a browser (not the app), your favorites, notes, lists, and ' +
+    'streak are saved only here and won’t carry over automatically. Back up ' +
+    'now, then switch to <a href="https://findatalk.com/">FindATalk.com</a>.';
   banner.hidden = false;
   document.getElementById('migrationBannerDismissBtn').addEventListener('click', ()=>{
     banner.hidden = true;
