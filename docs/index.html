@@ -2832,6 +2832,28 @@
     </div>
   </div>
 
+  <!-- Phase 3 (idea 45) deep-link upgrade — opened when the app is
+       launched/foregrounded via a findatalk.com/?list=... link (see
+       checkForSharedListLink() in the script). A READ-ONLY preview,
+       deliberately distinct from the recipient's own My Lists — nothing
+       is saved automatically. "Save to My Lists" reuses the existing
+       "Add to a List" modal (openCollectionModalFor) rather than a new
+       save flow, so someone can add these talks to a brand-new list or an
+       existing one exactly like they would from anywhere else in the app. -->
+  <div class="modal-overlay" id="sharedListModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sharedListModalTitle">
+      <div class="modal-header">
+        <h3 id="sharedListModalTitle">Shared List</h3>
+        <button type="button" class="modal-close" id="sharedListModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy" id="sharedListModalSubtitle"></p>
+      <div class="list-items" id="sharedListModalItems"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="sharedListSaveBtn">Save to My Lists</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Idea 35 — "Show me around" onboarding tour. Shown automatically once,
        the first time someone opens the app (see maybeShowOnboarding()), and
        re-openable anytime via the "Show me around" button in Settings
@@ -4095,10 +4117,10 @@ function renderStreak(){
    broke), reading-count badges read from readKeys.size. No new data
    collection needed — both signals already exist. */
 const BADGE_DEFS = [
-  {id:'streak-7',    kind:'streak',  threshold:7,    label:'7-Day Streak',      desc:'Opened a talk 7 days in a row'},
-  {id:'streak-30',   kind:'streak',  threshold:30,   label:'30-Day Streak',     desc:'Opened a talk 30 days in a row'},
-  {id:'streak-100',  kind:'streak',  threshold:100,  label:'100-Day Streak',    desc:'Opened a talk 100 days in a row'},
-  {id:'streak-365',  kind:'streak',  threshold:365,  label:'365-Day Streak',    desc:'Opened a talk 365 days in a row'},
+  {id:'streak-7',    kind:'streak',  threshold:7,    label:'7-Day Streak',      desc:'Studied 7 days in a row'},
+  {id:'streak-30',   kind:'streak',  threshold:30,   label:'30-Day Streak',     desc:'Studied 30 days in a row'},
+  {id:'streak-100',  kind:'streak',  threshold:100,  label:'100-Day Streak',    desc:'Studied 100 days in a row'},
+  {id:'streak-365',  kind:'streak',  threshold:365,  label:'365-Day Streak',    desc:'Studied 365 days in a row'},
   {id:'reading-10',  kind:'reading', threshold:10,   label:'10 Talks Read',     desc:'Read 10 talks'},
   {id:'reading-50',  kind:'reading', threshold:50,   label:'50 Talks Read',     desc:'Read 50 talks'},
   {id:'reading-100', kind:'reading', threshold:100,  label:'100 Talks Read',    desc:'Read 100 talks'},
@@ -4284,20 +4306,46 @@ async function updateStreakRiskNotification(){
       notifications: [{
         id: STREAK_RISK_NOTIF_ID,
         title: 'FindATalk',
-        body: `Don't lose your ${streak.count}-day streak — open a talk before midnight!`,
+        body: `Don't lose your ${streak.count}-day streak — study a talk before midnight!`,
         schedule: { at: fireAt, allowWhileIdle: true }
       }]
     });
   } catch(err){ /* not fatal */ }
 }
-/* Re-checked on every return to the foreground — separate listener from
-   watchForDayRollover()/watchForPendingRead() elsewhere in this file, kept
-   single-purpose like those two rather than folded together. */
-function watchForStreakRisk(){
+/* Shared "on return to foreground" registration — covers BOTH triggers,
+   since only one of them is reliable per platform:
+   - `visibilitychange` — correct and sufficient on the web build (opening
+     a talk link in a new tab genuinely does hide the original tab, per
+     the Page Visibility API).
+   - Capacitor's native `App` plugin's `resume` event — the reliable
+     native-app-foreground signal. Confirmed via real device testing
+     (chrome://inspect on a real Android build, not just the web preview)
+     that `visibilitychange` DOES NOT reliably fire on native Android when
+     a talk link opens an external browser via an Android Intent — 0
+     visibilitychange events observed across a real open-wait-return
+     cycle, so the read/streak-credit gate, day-rollover check, and
+     streak-risk notification were all silently never firing on native.
+     `App.resume` is what several native-lifecycle features in this app
+     (day rollover, the read/streak gate, streak-risk notifications) now
+     actually depend on to work at all outside the web build.
+   Both listeners stay registered together, harmlessly — the callbacks
+   this feeds (checkPendingRead(), the day-rollover check,
+   updateStreakRiskNotification()) are all safe to call more than once in
+   a row (they check their own state and no-op if there's nothing to do),
+   so no risk of double-firing if a browser somehow fired both. */
+function onForeground(callback){
   document.addEventListener('visibilitychange', ()=>{
     if (document.visibilityState !== 'visible') return;
-    updateStreakRiskNotification();
+    callback();
   });
+  const cap = window.Capacitor;
+  if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
+    cap.Plugins.App.addListener('resume', callback);
+  }
+}
+
+function watchForStreakRisk(){
+  onForeground(updateStreakRiskNotification);
 }
 
 /* Trigger 3: weekly Come Follow Me reminder — a second, separately opt-in
@@ -4314,7 +4362,7 @@ async function scheduleWeeklyCfmReminder(LocalNotifications){
     notifications: [{
       id: WEEKLY_CFM_REMINDER_ID,
       title: 'FindATalk',
-      body: "This week's Come Follow Me talks are ready — tap to explore.",
+      body: "Talks that support this week's Come, Follow Me are ready — tap to explore.",
       schedule: { on: { weekday: 1, hour: 9, minute: 0 }, allowWhileIdle: true }
     }]
   });
@@ -6245,8 +6293,7 @@ function renderTalkOfTheDay(){
    on every return to the foreground; a no-op unless the local calendar
    date has actually moved on since the last render. */
 function watchForDayRollover(){
-  document.addEventListener('visibilitychange', ()=>{
-    if (document.visibilityState !== 'visible') return;
+  onForeground(()=>{
     if (lastRenderedDayNumber !== null && localDayNumber() === lastRenderedDayNumber) return;
     renderTalkOfTheDay();
     renderStreak();
@@ -6258,10 +6305,7 @@ function watchForDayRollover(){
    return to the foreground, not just day changes, since a pending read
    can be checked any time, same day or not. */
 function watchForPendingRead(){
-  document.addEventListener('visibilitychange', ()=>{
-    if (document.visibilityState !== 'visible') return;
-    checkPendingRead();
-  });
+  onForeground(checkPendingRead);
 }
 
 /* ---------------- Daily reminder notification ----------------
@@ -6726,11 +6770,61 @@ async function copyText(text){
   }
 }
 
+/* Shared three-tier share mechanism, used by shareTalk() and shareText()
+   below. Tier order matters and was fixed for a real reason, not written
+   this way originally:
+   1. Capacitor's native Share plugin (window.Capacitor.Plugins.Share) —
+      this app already ships @capacitor/share as a real dependency
+      specifically for this. Capacitor does NOT auto-polyfill
+      navigator.share() to use it (confirmed against the plugin's own
+      docs) — it has to be called directly, or it just sits there unused.
+   2. navigator.share() (the Web Share API) — works on many mobile
+      browsers on the web build, where there's no native plugin to call.
+   3. Copy the FULL text to the clipboard — a real bug, not a design
+      choice, was found and fixed here: the previous version of this
+      function only ever copied the bare `url` in this fallback, silently
+      dropping the entire prefilled message. That's why a real-device test
+      showed "just a link, no message" — this app was falling all the way
+      through to tier 3 (no native Share call existed at all, and
+      navigator.share isn't reliably available in an Android WebView)
+      and hitting that bug. `text` is required and MUST already contain
+      the full message including any link that needs to survive a plain
+      clipboard paste — `url` is optional and only adds a second,
+      separately-structured link for platforms that show it specially
+      (e.g. iMessage's link preview card); it is never required for the
+      message to make sense on its own. */
+async function performShare({title, text, url}, btnEl){
+  const cap = window.Capacitor;
+  const NativeShare = cap && cap.Plugins && cap.Plugins.Share;
+  if (NativeShare){
+    try {
+      await NativeShare.share({ title, text, url, dialogTitle: 'Share' });
+      return;
+    } catch(err){ return; } // cancelled, or the plugin rejected — either way, no fallback needed on native
+  }
+  if (navigator.share){
+    try {
+      await navigator.share({ title, text, url });
+      return;
+    } catch(err){
+      // Person cancelling the native share sheet throws AbortError — that's a
+      // normal outcome, not a failure, so stay quiet. Anything else falls
+      // through to the copy fallback below.
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const copied = await copyText(text);
+  flashShareButton(btnEl, copied ? 'Copied!' : 'Copy failed');
+}
+
 async function shareTalk(pick, btnEl, context='other'){
   const [title, speaker] = pick;
   const url = talkUrl(pick);
 
-  // Build prefilled message based on context (native share only)
+  // Build prefilled message based on context. The url is embedded
+  // directly in the text (not left to the separate `url` param alone) so
+  // it's guaranteed to survive every tier, including a plain clipboard
+  // copy — see performShare()'s comment above for why that matters.
   let shareText;
   if (context === 'totd'){
     shareText = `I thought of you while studying today's Talk of the Day. Check it out: ${url} (via FindATalk)`;
@@ -6738,21 +6832,7 @@ async function shareTalk(pick, btnEl, context='other'){
     shareText = `I found this talk and thought of you. Check it out: ${url} (via FindATalk)`;
   }
 
-  if (navigator.share){
-    try {
-      // Use prefilled message for native share (URL must be separate parameter)
-      await navigator.share({ title, text: shareText, url });
-      return;
-    } catch(err){
-      // Person cancelling the native share sheet throws AbortError — that's a
-      // normal outcome, not a failure, so stay quiet. Anything else (e.g. the
-      // browser advertises navigator.share but rejects this particular call)
-      // falls through to the copy-link fallback below.
-      if (err && err.name === 'AbortError') return;
-    }
-  }
-  const copied = await copyText(url);
-  flashShareButton(btnEl, copied ? 'Link copied!' : 'Copy failed');
+  await performShare({ title, text: shareText, url }, btnEl);
 }
 /* Briefly swaps a share button's content to a confirmation message, then
    restores its original icon. The ticket's share button and every list
@@ -6773,22 +6853,23 @@ function flashShareButton(btnEl, message){
   btnEl.dataset.flashTimer = String(timer);
 }
 
+// The real, live domain (idea 40) — used as the structured `url` param for
+// streak/badge/list shares, so there's a genuine, functional link back to
+// the app in every one of them (see shareText() below for why it's also
+// embedded directly in the text, not left to this field alone).
+const FINDATALK_URL = 'https://findatalk.com';
+
 /* Phase 3 (idea 45) — generic plain-text share, for things that aren't a
    single talk (streak, a milestone, a whole list) so don't have their own
-   separate `url` the way shareTalk() does. Same navigator.share-first,
-   copy-to-clipboard-fallback pattern, same flash confirmation — no new
-   interaction language, just applied to a different kind of content. */
-async function shareText(text, btnEl){
-  if (navigator.share){
-    try {
-      await navigator.share({ text });
-      return;
-    } catch(err){
-      if (err && err.name === 'AbortError') return; // cancelling the share sheet is normal, not a failure
-    }
-  }
-  const copied = await copyText(text);
-  flashShareButton(btnEl, copied ? 'Copied!' : 'Copy failed');
+   per-item `url` the way shareTalk() does. Routes through performShare()
+   just like shareTalk() does — same native-Share-first, then
+   navigator.share, then full-text-clipboard-copy tiers.
+   `url` defaults to FINDATALK_URL — a real link back to the app is
+   included by default rather than needing every call site to remember
+   it, since that's what these three share types are all supposed to
+   include per how idea 45's copy was scoped. */
+async function shareText(text, btnEl, url = FINDATALK_URL){
+  await performShare({ text, url }, btnEl);
 }
 
 const shareBtn = document.getElementById('shareBtn');
@@ -6808,8 +6889,8 @@ streakShareBtn.addEventListener('click', ()=>{
   const streak = loadStreak();
   if (streak.count <= 0) return;
   const text = streak.count === 1
-    ? "I just started a streak on FindATalk! 🔥 (via FindATalk)"
-    : `I'm on a ${streak.count}-day streak on FindATalk! 🔥 (via FindATalk)`;
+    ? `I just started a streak on FindATalk! 🔥 ${FINDATALK_URL}`
+    : `I'm on a ${streak.count}-day streak on FindATalk! 🔥 ${FINDATALK_URL}`;
   shareText(text, streakShareBtn);
 });
 
@@ -7908,16 +7989,30 @@ const collectionSearchFieldEl = document.getElementById('collectionSearchField')
 const collectionSortRowEl = document.getElementById('collectionSortToggle').closest('.filters-actions');
 const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=> renderCollectionPage(currentCollectionId));
 const collectionSearch = createSearchBox(document.getElementById('collectionQuery'), document.getElementById('collectionQueryClear'), ()=> renderCollectionPage(currentCollectionId));
-/* Phase 3 (idea 45) — "share a list." No backend, so this is a formatted
-   text snapshot (talk titles + real churchofjesuschrist.org links), not a
-   live synced link — consistent with the app's local-only philosophy
-   throughout. Capped at LIST_SHARE_MAX talks so a big list doesn't produce
-   an unwieldy message; the deep-linking upgrade (a real findatalk.com/
-   ?list=... URL someone can tap to open the app straight into this list)
-   is a separate, larger follow-on — see idea 45's Phase 3 notes on the
-   URL-encoding scheme and the new "shared list preview" UI it would need
-   — deliberately not attempted in this pass. */
+/* Phase 3 (idea 45) — "share a list": a formatted text snapshot (talk
+   titles + real churchofjesuschrist.org links) capped at LIST_SHARE_MAX so
+   a big list doesn't produce an unwieldy message, PLUS a real deep link
+   back to the app (see buildListShareUrl() below) — someone with the app
+   installed can tap it to open a read-only preview of this exact list,
+   not just read the text. */
 const LIST_SHARE_MAX = 20;
+
+/* Encodes a list into a real, shareable findatalk.com URL. Talk keys
+   (year|month|slug), not TALKS array indices — deliberately, since a key
+   is self-describing and stays correct even if data.json's talk order
+   ever changes, where an index would silently point at the wrong talk.
+   URLSearchParams handles all the percent-encoding (the `|` in each key,
+   spaces/punctuation in the list name), so this never hand-rolls escaping.
+   Same LIST_SHARE_MAX cap as the text share, for the same reason — a
+   huge list would make an unwieldy URL, not just an unwieldy message. */
+function buildListShareUrl(col){
+  const keys = (collectionMembers[col.id] || []).slice(0, LIST_SHARE_MAX);
+  const params = new URLSearchParams();
+  params.set('list', keys.join(','));
+  params.set('name', col.name);
+  return `${FINDATALK_URL}/?${params.toString()}`;
+}
+
 function buildListShareText(col){
   const keys = collectionMembers[col.id] || [];
   const picks = keys.map(k=> TALKS_BY_KEY[k]).filter(Boolean);
@@ -7928,8 +8023,70 @@ function buildListShareText(col){
   });
   let text = `My "${col.name}" list from FindATalk:\n\n${lines.join('\n\n')}`;
   if (picks.length > LIST_SHARE_MAX) text += `\n\n+ ${picks.length - LIST_SHARE_MAX} more`;
-  text += '\n\n(via FindATalk)';
+  text += `\n\n${buildListShareUrl(col)}`;
   return text;
+}
+
+/* Phase 3 (idea 45) deep-link upgrade — the other half of
+   buildListShareUrl() above: given a URL someone actually opened (or
+   tapped into the app), pulls out `list`/`name` and resolves real talk
+   objects. Guarded, never throws: an unparseable URL, a missing `list`
+   param, or a list whose keys don't resolve to any real talk (stale link,
+   corrupted, or from a future data.json this copy doesn't have yet) all
+   just return null — same "missing data means nothing shows" philosophy
+   as every other guarded lookup in this file, not a crash. */
+function parseSharedListFromUrl(urlString){
+  let params;
+  try { params = new URL(urlString).searchParams; }
+  catch(err){ return null; }
+  const rawList = params.get('list');
+  if (!rawList) return null;
+  const talks = rawList.split(',').map(k=> TALKS_BY_KEY[k]).filter(Boolean);
+  if (!talks.length) return null;
+  return { name: params.get('name') || 'Shared List', talks };
+}
+
+// The talks currently shown in the shared-list preview — read by
+// sharedListSaveBtn's click handler below, since openCollectionModalFor()
+// needs the real talk array, not just whatever's on screen.
+let sharedListPreviewTalks = [];
+function openSharedListModal({name, talks}){
+  sharedListPreviewTalks = talks;
+  document.getElementById('sharedListModalTitle').textContent = name;
+  const count = talks.length;
+  document.getElementById('sharedListModalSubtitle').textContent =
+    `Someone shared ${count} talk${count===1?'':'s'} with you from FindATalk. Nothing is saved to your own lists until you choose to.`;
+  const itemsEl = document.getElementById('sharedListModalItems');
+  itemsEl.innerHTML = '';
+  talks.forEach(pick=> itemsEl.appendChild(buildListItemRow(pick)));
+  document.getElementById('sharedListModalOverlay').hidden = false;
+}
+function closeSharedListModal(){
+  document.getElementById('sharedListModalOverlay').hidden = true;
+}
+document.getElementById('sharedListModalClose').addEventListener('click', closeSharedListModal);
+document.getElementById('sharedListModalOverlay').addEventListener('click', (e)=>{
+  if (e.target === document.getElementById('sharedListModalOverlay')) closeSharedListModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !document.getElementById('sharedListModalOverlay').hidden) closeSharedListModal();
+});
+// Reuses the existing "Add to a List" modal (same one every other "add to
+// a list" entry point in the app uses) rather than a bespoke save flow —
+// lets someone add these into a brand-new list or an existing one, same
+// as anywhere else.
+document.getElementById('sharedListSaveBtn').addEventListener('click', ()=>{
+  if (!sharedListPreviewTalks.length) return;
+  closeSharedListModal();
+  openCollectionModalFor(sharedListPreviewTalks);
+});
+
+/* Shared by both routing paths below (web on-load, native appUrlOpen) —
+   the one place that actually decides "does this URL point at a shared
+   list, and if so, show it." */
+function checkForSharedListLink(urlString){
+  const parsed = parseSharedListFromUrl(urlString);
+  if (parsed) openSharedListModal(parsed);
 }
 
 function renderCollectionPage(id){
@@ -8020,7 +8177,7 @@ function renderCollectionsIndexPage(){
     listShareBtn.innerHTML = SHARE_ICON_SVG;
     listShareBtn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      shareText(buildListShareText(col), listShareBtn);
+      shareText(buildListShareText(col), listShareBtn, buildListShareUrl(col));
     });
     row.appendChild(listShareBtn);
 
@@ -8734,10 +8891,38 @@ document.getElementById('badgesModalList').addEventListener('click', (e)=>{
   if (!btn) return;
   const def = BADGE_DEFS.find(d=> d.id === btn.dataset.badgeId);
   if (!def) return;
-  shareText(`I just earned the "${def.label}" badge on FindATalk! 🎉 (via FindATalk)`, btn);
+  shareText(`I just earned the "${def.label}" badge on FindATalk! 🎉 ${FINDATALK_URL}`, btn);
 });
 updateStreakRiskNotification(); // Phase 2 (idea 45) — also check once on startup, not just on later foregrounds, in case a streak is already at risk from before this exact code existed
 maybeShowOnboarding();
+
+/* Phase 3 (idea 45) deep-link routing — the two real entry points a
+   shared-list link can arrive through:
+   - Web: the page just loaded WITH a ?list=... in its own URL (someone
+     followed the link straight to findatalk.com in a browser, no app
+     involved). Checked once, here, after TALKS_BY_KEY exists. The URL is
+     cleaned up afterward via replaceState so refreshing the page doesn't
+     re-trigger the preview and the address bar doesn't keep the params
+     dangling once they've been consumed.
+   - Native: the app was already running (or launches) because a
+     findatalk.com link was tapped and idea 40's Universal/App Links
+     mechanism opened it — Capacitor's App plugin fires `appUrlOpen` with
+     the real URL that opened it. Registered here, native-only. NOTE: not
+     yet verified on a real device whether Capacitor buffers this event
+     for a cold start (app not already running) until this listener
+     attaches, or whether it can be missed if the JS bridge isn't ready in
+     time — worth a real cold-start test, not just a resume-from-
+     background one, before trusting this fully. */
+checkForSharedListLink(window.location.href);
+if (window.location.search){
+  history.replaceState(null, '', window.location.pathname);
+}
+const cap = window.Capacitor;
+if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
+  cap.Plugins.App.addListener('appUrlOpen', (data)=>{
+    if (data && data.url) checkForSharedListLink(data.url);
+  });
+}
 }
 
 /* ---------------------------------------------------------------

@@ -16,6 +16,7 @@ this updated.
 - App-exclusive: earn badges for streak milestones (7/30/100/365 days) and reading milestones (10/50/100/250/500/1,000 talks), with a celebration the moment you earn one and a "My Badges" page in Settings to look back at everything you've earned. Not available on the website.
 - App-exclusive: a few new notifications, on top of the existing Daily Reminder — one when a new conference goes live, one nudging you if a streak is about to lapse for the day, and one the moment you earn a badge. Also added an opt-in Weekly Come Follow Me Reminder (Sunday mornings) in Settings, separate from the Daily Reminder.
 - Share your current streak from the streak badge, share a badge you've earned from "My Badges," and share a whole list (as a formatted message with each talk's title, speaker, and link) from the My Lists page.
+- Sharing a list now includes a real findatalk.com link — anyone who opens it (with the app installed, or just in a browser) sees a preview of that exact list and can save it to their own My Lists with one tap. Nothing is added to your lists automatically just from opening a shared link.
 
 ### Changed
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
@@ -24,6 +25,8 @@ this updated.
 ### Fixed
 - Creating a new list from the "Add to a List" popup now briefly confirms it worked ("Added 1 talk!") instead of the only sign being a new, easy-to-miss checked row — most noticeable the first time you create a list from a talk.
 - Opening a talk no longer instantly marks it "read" or advances your streak — a talk is now only marked read once you've been away for about 10 seconds (so an accidental tap doesn't count), and your streak only advances after about 60 seconds away, so rapid-clicking through talks can't inflate either one. Recently Viewed still updates right away.
+- Fixed the "read" checkmark and streak never updating on Android after actually reading a talk (returning to the app after opening a talk wasn't reliably detected on that platform) — also fixes Talk of the Day sometimes not refreshing itself after midnight without a full app restart.
+- Fixed sharing (a talk, your streak, a badge, or a list) sometimes only copying a bare link with no message on Android, and not using the app's proper native share sheet at all.
 
 ## [1.4.1] — 2026-09-02
 
