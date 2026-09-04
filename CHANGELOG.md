@@ -15,8 +15,8 @@ this updated.
 - Tapping a findatalk.com link will now open the app directly instead of your browser, if the app is installed (requires a new app build to take effect — not live for existing installs until then).
 - App-exclusive: earn badges for streak milestones (7/30/100/365 days) and reading milestones (10/50/100/250/500/1,000 talks), with a celebration the moment you earn one and a "My Badges" page in Settings to look back at everything you've earned. Not available on the website.
 - App-exclusive: a few new notifications, on top of the existing Daily Reminder — one when a new conference goes live, one nudging you if a streak is about to lapse for the day, and one the moment you earn a badge. Also added an opt-in Weekly Come Follow Me Reminder (Sunday mornings) in Settings, separate from the Daily Reminder.
-- Share your current streak from the streak badge, share a badge you've earned from "My Badges," and share a whole list (as a formatted message with each talk's title, speaker, and link) from the My Lists page.
-- Sharing a list now includes a real findatalk.com link — anyone who opens it (with the app installed, or just in a browser) sees a preview of that exact list and can save it to their own My Lists with one tap. Nothing is added to your lists automatically just from opening a shared link.
+- Share your current streak from the streak badge, share a badge you've earned from "My Badges," and share a whole list from the My Lists page — as a short message with one real findatalk.com link. Anyone who opens it (with the app installed, or just in a browser) lands on their own Lists page and is asked to confirm before anything is added — they'll see how many talks are in it first. Nothing is ever added automatically just from opening a shared link.
+- Tapping "A new conference is live!" now takes you straight to that conference's talks instead of plain Home, and tapping the Weekly Come Follow Me Reminder opens straight into the "Come, Follow Me" tab.
 
 ### Changed
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.

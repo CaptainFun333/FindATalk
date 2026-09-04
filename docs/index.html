@@ -2834,22 +2834,23 @@
 
   <!-- Phase 3 (idea 45) deep-link upgrade — opened when the app is
        launched/foregrounded via a findatalk.com/?list=... link (see
-       checkForSharedListLink() in the script). A READ-ONLY preview,
-       deliberately distinct from the recipient's own My Lists — nothing
-       is saved automatically. "Save to My Lists" reuses the existing
-       "Add to a List" modal (openCollectionModalFor) rather than a new
-       save flow, so someone can add these talks to a brand-new list or an
-       existing one exactly like they would from anywhere else in the app. -->
+       checkForSharedListLink() in the script). Lands on the Lists page
+       first (see goToNavZone('collectionsIndex') in the script), then this
+       shows as a lightweight confirm — a name + talk count, not a full
+       row-by-row preview — since nothing should be added without an
+       explicit yes. Confirming reuses the existing "Add to a List" modal
+       (openCollectionModalFor) rather than a bespoke save flow, so the
+       talks can go into a brand-new list or an existing one exactly like
+       anywhere else in the app. -->
   <div class="modal-overlay" id="sharedListModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sharedListModalTitle">
       <div class="modal-header">
         <h3 id="sharedListModalTitle">Shared List</h3>
-        <button type="button" class="modal-close" id="sharedListModalClose" aria-label="Close">&times;</button>
       </div>
       <p class="modal-copy" id="sharedListModalSubtitle"></p>
-      <div class="list-items" id="sharedListModalItems"></div>
       <div class="modal-actions">
-        <button type="button" class="btn btn-primary" id="sharedListSaveBtn">Save to My Lists</button>
+        <button type="button" class="btn btn-ghost" id="sharedListDismissBtn">Not Now</button>
+        <button type="button" class="btn btn-primary" id="sharedListSaveBtn">Add to My Lists</button>
       </div>
     </div>
   </div>
@@ -7989,12 +7990,15 @@ const collectionSearchFieldEl = document.getElementById('collectionSearchField')
 const collectionSortRowEl = document.getElementById('collectionSortToggle').closest('.filters-actions');
 const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=> renderCollectionPage(currentCollectionId));
 const collectionSearch = createSearchBox(document.getElementById('collectionQuery'), document.getElementById('collectionQueryClear'), ()=> renderCollectionPage(currentCollectionId));
-/* Phase 3 (idea 45) — "share a list": a formatted text snapshot (talk
-   titles + real churchofjesuschrist.org links) capped at LIST_SHARE_MAX so
-   a big list doesn't produce an unwieldy message, PLUS a real deep link
-   back to the app (see buildListShareUrl() below) — someone with the app
-   installed can tap it to open a read-only preview of this exact list,
-   not just read the text. */
+/* Phase 3 (idea 45) — "share a list": one short message plus one real deep
+   link back to the app (see buildListShareUrl() below) — the link IS the
+   whole mechanism, not a supplement to a long per-talk listing. Originally
+   this also spelled out every talk's own title/speaker/churchofjesuschrist.org
+   link inline; simplified per request to just the link, since the link
+   already opens a real confirm dialog with the count, and works even for
+   someone without the app (it's a real URL, opens in a browser same as
+   any other). Capped at LIST_SHARE_MAX so a huge list doesn't produce an
+   unwieldy URL. */
 const LIST_SHARE_MAX = 20;
 
 /* Encodes a list into a real, shareable findatalk.com URL. Talk keys
@@ -8014,17 +8018,12 @@ function buildListShareUrl(col){
 }
 
 function buildListShareText(col){
-  const keys = collectionMembers[col.id] || [];
-  const picks = keys.map(k=> TALKS_BY_KEY[k]).filter(Boolean);
-  const shown = picks.slice(0, LIST_SHARE_MAX);
-  const lines = shown.map((pick, i)=>{
-    const [title, speaker] = pick;
-    return `${i+1}. "${title}" — ${speaker}\n   ${talkUrl(pick)}`;
-  });
-  let text = `My "${col.name}" list from FindATalk:\n\n${lines.join('\n\n')}`;
-  if (picks.length > LIST_SHARE_MAX) text += `\n\n+ ${picks.length - LIST_SHARE_MAX} more`;
-  text += `\n\n${buildListShareUrl(col)}`;
-  return text;
+  // Same real count shown here as what the link actually carries — using
+  // the full (uncapped) count would be misleading for a list over
+  // LIST_SHARE_MAX, since the link itself only ever encodes the first
+  // LIST_SHARE_MAX talks.
+  const count = Math.min((collectionMembers[col.id] || []).length, LIST_SHARE_MAX);
+  return `Check out my "${col.name}" list (${count} talk${count===1?'':'s'}) on FindATalk: ${buildListShareUrl(col)}`;
 }
 
 /* Phase 3 (idea 45) deep-link upgrade — the other half of
@@ -8046,25 +8045,27 @@ function parseSharedListFromUrl(urlString){
   return { name: params.get('name') || 'Shared List', talks };
 }
 
-// The talks currently shown in the shared-list preview — read by
-// sharedListSaveBtn's click handler below, since openCollectionModalFor()
-// needs the real talk array, not just whatever's on screen.
+// The talks behind the current confirm dialog — read by sharedListSaveBtn's
+// click handler below, since openCollectionModalFor() needs the real talk
+// array, not just whatever's in the dialog's text.
 let sharedListPreviewTalks = [];
 function openSharedListModal({name, talks}){
   sharedListPreviewTalks = talks;
+  // Lands on the Lists page first, so the confirm dialog that follows
+  // makes sense in context (not a random popup over whatever page the app
+  // happened to open to) and there's somewhere obvious to land once it's
+  // dismissed either way.
+  goToNavZone('collectionsIndex');
   document.getElementById('sharedListModalTitle').textContent = name;
   const count = talks.length;
   document.getElementById('sharedListModalSubtitle').textContent =
-    `Someone shared ${count} talk${count===1?'':'s'} with you from FindATalk. Nothing is saved to your own lists until you choose to.`;
-  const itemsEl = document.getElementById('sharedListModalItems');
-  itemsEl.innerHTML = '';
-  talks.forEach(pick=> itemsEl.appendChild(buildListItemRow(pick)));
+    `Someone shared "${name}" with you — ${count} talk${count===1?'':'s'}. Add ${count===1?'it':'them'} to your own lists?`;
   document.getElementById('sharedListModalOverlay').hidden = false;
 }
 function closeSharedListModal(){
   document.getElementById('sharedListModalOverlay').hidden = true;
 }
-document.getElementById('sharedListModalClose').addEventListener('click', closeSharedListModal);
+document.getElementById('sharedListDismissBtn').addEventListener('click', closeSharedListModal);
 document.getElementById('sharedListModalOverlay').addEventListener('click', (e)=>{
   if (e.target === document.getElementById('sharedListModalOverlay')) closeSharedListModal();
 });
@@ -8074,7 +8075,7 @@ document.addEventListener('keydown', (e)=>{
 // Reuses the existing "Add to a List" modal (same one every other "add to
 // a list" entry point in the app uses) rather than a bespoke save flow —
 // lets someone add these into a brand-new list or an existing one, same
-// as anywhere else.
+// as anywhere else, once they've confirmed via the dialog above.
 document.getElementById('sharedListSaveBtn').addEventListener('click', ()=>{
   if (!sharedListPreviewTalks.length) return;
   closeSharedListModal();
@@ -8087,6 +8088,50 @@ document.getElementById('sharedListSaveBtn').addEventListener('click', ()=>{
 function checkForSharedListLink(urlString){
   const parsed = parseSharedListFromUrl(urlString);
   if (parsed) openSharedListModal(parsed);
+}
+
+/* Idea 46 — notification tap routing. A tap on the "New conference is
+   live!" notification (NEW_CONFERENCE_NOTIF_ID) should land straight on
+   results for that conference, not plain Home requiring a manual filter
+   pick. Resets every OTHER filter first (not just setting year on top of
+   whatever was already active) — a stale filter combo from a previous
+   session could otherwise intersect with the new conference and show
+   zero results, which would be a confusing way to land from an exciting
+   notification. allConfs is already sorted newest-first (see its own
+   declaration), so [0] is exactly right. */
+function openNewestConferenceResults(){
+  if (!allConfs.length) return;
+  Object.keys(DIM_CONFIG).forEach(dim=>{ filterState[dim] = []; });
+  filterState.query = '';
+  filterState.citeQuery = '';
+  filterState.year = [allConfs[0]];
+  refreshCount();
+  goToNavZone('home');
+  showList();
+}
+
+/* Idea 46 — the weekly Come Follow Me reminder's tap target. Confirmed
+   simpler than the conference case: renderCfmPage() already defaults
+   cfmCurrentIndex to this week whenever it's null, which is exactly the
+   state on a fresh app open — navigating to the zone is the whole job,
+   no parameter to pass. */
+function openThisWeeksCfm(){
+  goToNavZone('cfm');
+}
+
+/* Routes a tapped local notification to somewhere specific instead of
+   leaving the app on whatever it happened to open to. Deliberately only
+   handles the two triggers idea 46 scoped — daily reminder, streak-risk,
+   and milestone taps intentionally fall through to default (no-op)
+   behavior, since nothing more specific than "open the app" was asked for
+   those. Matched by the fixed numeric ids each trigger already schedules
+   under (see the Phase 2 notification constants) — a tap on ANY action
+   (including the default whole-notification tap, not just a distinct
+   action button) reaches this, matching idea 46's "the whole notification
+   is the action" decision. */
+function handleNotificationTap(notificationId){
+  if (notificationId === NEW_CONFERENCE_NOTIF_ID) openNewestConferenceResults();
+  else if (notificationId === WEEKLY_CFM_REMINDER_ID) openThisWeeksCfm();
 }
 
 function renderCollectionPage(id){
@@ -8921,6 +8966,16 @@ const cap = window.Capacitor;
 if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
   cap.Plugins.App.addListener('appUrlOpen', (data)=>{
     if (data && data.url) checkForSharedListLink(data.url);
+  });
+}
+/* Idea 46 — notification tap routing (see handleNotificationTap() above
+   for what each id does). Registered the same way/place as appUrlOpen
+   just above — same NOTE applies here too: not yet verified on a real
+   device whether a tap that cold-starts the app (not already running)
+   reaches this listener or arrives before it's attached. */
+if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.LocalNotifications){
+  cap.Plugins.LocalNotifications.addListener('localNotificationActionPerformed', (action)=>{
+    if (action && action.notification) handleNotificationTap(action.notification.id);
   });
 }
 }
