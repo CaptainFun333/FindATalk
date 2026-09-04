@@ -31,6 +31,7 @@ this updated.
 - Fixed the real reason the "read" checkmark and streak still weren't updating after the fix above: marking a talk read was silently hitting an error right afterward, so the streak (and everything after it) never got credited even though the talk itself was correctly marked read. Also made the "about to be marked read" state survive the app being closed and reopened while away, not just backgrounded, for extra reliability.
 - Fixed the native share sheet showing every link twice (once in the message, once appended again) when sharing a talk, your streak, a badge, or a list.
 - Fixed the "read" checkmark not showing up next to a talk in Show a List, Recently Viewed, Favorites, or My Lists after reading it, even though it correctly showed up on the talk itself — it now updates right away in every list it appears in, without needing to leave and come back to that page.
+- Fixed a newly created list (including one created while adding talks from a shared list link) not showing up on the My Lists page until you left and came back — it now appears right away.
 
 ## [1.4.1] — 2026-09-02
 

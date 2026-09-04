@@ -8721,6 +8721,11 @@ function renderCollectionModalList(){
       if (cb.checked) addTalksToCollection(col.id, collectionModalTalks);
       else removeTalksFromCollection(col.id, collectionModalTalks);
       if (currentCollectionId === col.id) renderCollectionPage(col.id);
+      // My Lists (the collectionsIndex page) shows each list's talk count
+      // too — refresh it live if it's the page sitting behind this modal,
+      // same reasoning as currentCollectionId above, otherwise it's stuck
+      // showing the pre-change count until the user leaves and returns.
+      if (collectionsIndexZone.style.display === 'block') renderCollectionsIndexPage();
       collectionModalTalks.forEach(t=> refreshCollectionBadgesFor(t));
       // Re-render so the "(count)" after each list name reflects the
       // membership change we just made.
@@ -8773,6 +8778,13 @@ newCollectionBtn.addEventListener('click', ()=>{
   addTalksToCollection(id, collectionModalTalks);
   newCollectionInput.value = '';
   renderCollectionModalList();
+  // My Lists (collectionsIndex) doesn't otherwise learn a brand-new list
+  // exists until its next full render — most visible from the shared-list
+  // confirm flow, which lands on this exact page first (see
+  // openSharedListModal()) and then opens this modal on top of it. Same
+  // live-refresh-the-page-behind-the-modal fix as the checkbox toggle
+  // above.
+  if (collectionsIndexZone.style.display === 'block') renderCollectionsIndexPage();
   collectionModalTalks.forEach(t=> refreshCollectionBadgesFor(t));
   // Idea 41: creating a list + adding the first talk(s) to it was entirely
   // passive feedback before this (just a new checked row quietly appearing
