@@ -10,8 +10,12 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- Added a notice on the website (not shown inside the app) letting people know FindATalk is moving to findatalk.com soon, with a one-tap "Back Up Now" button, since favorites/notes/lists/streak saved in a browser won't automatically carry over to the new address.
+
 ### Changed
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
+- The app (native and web alike) now checks findatalk.com for new conference data going forward, instead of the old GitHub Pages address — the domain move is now fully live.
 
 ## [1.4.1] — 2026-09-02
 

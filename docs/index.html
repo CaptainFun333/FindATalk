@@ -524,6 +524,44 @@
     transition:border-color .15s, color .15s;
   }
   .settings-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
+
+  /* ---------- pre-migration safety banner (see HTML comment above
+     #migrationBanner for full context; remove alongside that block once
+     the domain migration is complete) ---------- */
+  .migration-banner{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    justify-content:space-between;
+    background:var(--paper-raised);
+    border:1px solid var(--brass);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    /* Top margin clears #settings-btn, which is position:absolute at
+       top:0/right:0 of .wrap regardless of what's first in normal flow —
+       without this the button's circle overlaps the banner's top-right
+       corner/border. 46px = the button's 38px height + a small gap. */
+    margin:46px 0 24px;
+    box-shadow:var(--shadow);
+  }
+  .migration-banner[hidden]{ display:none; }
+  .migration-banner-text{
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.5;
+    color:var(--ink-soft); flex:1 1 260px;
+  }
+  .migration-banner-text strong{ color:var(--ink); }
+  .migration-banner-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  #migrationBannerBackupBtn{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+    padding:9px 14px;
+    background:var(--ink); color:var(--paper-raised);
+    border:1px solid var(--ink); border-radius:var(--radius); cursor:pointer;
+    white-space:nowrap;
+  }
+  #migrationBannerBackupBtn:hover{ background:#26364e; }
+  #migrationBannerDismissBtn{
+    font-size:22px; line-height:1; color:var(--ink-soft);
+    background:none; border:none; cursor:pointer; padding:4px 8px;
+  }
+  #migrationBannerDismissBtn:hover{ color:var(--burgundy); }
   .settings-btn:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
   .settings-btn svg{ width:19px; height:19px; }
 
@@ -2057,6 +2095,34 @@
   <button type="button" class="settings-btn" id="settingsBtn" aria-label="Settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L14.9 3h-3.8l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h3.8l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z"/></svg>
   </button>
+
+  <!-- Pre-migration safety banner (FindATalk.com domain migration). Shown
+       ONLY on the plain web build — the native app's local data lives in
+       the app bundle itself and is completely unaffected by any domain
+       change, so this never applies there (see initMigrationBanner()).
+       Warns anyone using the site directly in a browser that favorites/
+       notes/lists/streak are stored per-origin (localStorage) and won't
+       carry over automatically once the site moves from
+       captainfun333.github.io to FindATalk.com — same-origin policy means
+       the new domain literally cannot see data left at the old one.
+       Dismissible; dismissal persists in localStorage so it doesn't nag on
+       every repeat visit once acknowledged. A direct child of .wrap (same
+       reasoning as #settingsBtn above) so it survives zone-innerHTML
+       swaps on navigation. REMOVE THIS WHOLE BLOCK once the domain
+       migration is complete and REMOTE_DATA_URL has been cut over to the
+       new domain — it has no purpose after that point. -->
+  <div class="migration-banner" id="migrationBanner" hidden>
+    <div class="migration-banner-text">
+      <strong>We're moving to FindATalk.com soon.</strong> If you're using
+      this site in a browser (not the app), your favorites, notes, lists,
+      and streak live only here and won't carry over automatically. Back up
+      now to be safe.
+    </div>
+    <div class="migration-banner-actions">
+      <button type="button" id="migrationBannerBackupBtn">Back Up Now</button>
+      <button type="button" id="migrationBannerDismissBtn" aria-label="Dismiss">&times;</button>
+    </div>
+  </div>
 
   <div class="eyebrow">From General Conference of<br>The Church of Jesus Christ<br>of Latter-day Saints</div>
   <h1>FindATalk</h1>
@@ -7669,6 +7735,39 @@ backupImportInput.addEventListener('change', ()=>{
   });
 });
 
+/* Pre-migration safety banner — see the HTML comment above #migrationBanner
+   for full context. Native-app-only exemption: the app's local data lives
+   in the bundle itself and is unaffected by any web-domain change, so this
+   never applies there. Runs independent of loadData()/initApp() — it has
+   nothing to do with TALKS data, so it shows as fast as possible rather
+   than waiting on the data fetch. REMOVE alongside the HTML/CSS blocks
+   once the domain migration is complete. */
+function initMigrationBanner(){
+  const banner = document.getElementById('migrationBanner');
+  if (!banner) return;
+  const cap = window.Capacitor;
+  const isNative = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+  if (isNative) return;
+  const DISMISS_KEY = 'findATalkMigrationBannerDismissed';
+  let dismissed = false;
+  try { dismissed = localStorage.getItem(DISMISS_KEY) === '1'; }
+  catch(err){ /* storage unavailable — just show it, harmless either way */ }
+  if (dismissed) return;
+  banner.hidden = false;
+  document.getElementById('migrationBannerDismissBtn').addEventListener('click', ()=>{
+    banner.hidden = true;
+    try { localStorage.setItem(DISMISS_KEY, '1'); }
+    catch(err){ /* storage unavailable — not fatal, just won't persist */ }
+  });
+  document.getElementById('migrationBannerBackupBtn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('migrationBannerBackupBtn');
+    const result = await saveBackupToFile();
+    if (result === 'device') flashShareButton(btn, 'Saved to device!');
+    else if (result) flashShareButton(btn, 'Saved!');
+  });
+}
+initMigrationBanner();
+
 /* ---------------- "Add to a List" modal ---------------- */
 // Reused for every talk on the page (ticket, list rows, Talk of the Day,
 // Recently Viewed/Favorites/My Lists rows) — which talk it's currently
@@ -8036,11 +8135,14 @@ maybeShowOnboarding();
      it from its own bundle rather than the network.
    - REMOTE_DATA_URL is the canonical, continuously-updated copy hosted on
      GitHub Pages (github.com/CaptainFun333/find-a-talk, served from
-     /docs). Update data.json in that repo and it reaches everyone on
-     their next launch — no new app-store build needed.
+     /docs) at findatalk.com, its custom domain as of this commit — was
+     previously captainfun333.github.io (that GitHub Pages URL still
+     works and still serves the same content, just isn't the canonical
+     address anymore). Update data.json in that repo and it reaches
+     everyone on their next launch — no new app-store build needed.
 ------------------------------------------------------------------*/
 const LOCAL_DATA_URL = './data.json';
-const REMOTE_DATA_URL = 'https://captainfun333.github.io/find-a-talk/data.json';
+const REMOTE_DATA_URL = 'https://findatalk.com/data.json';
 /* This cache used to live in localStorage under the key 'findATalkData'.
    Adding scripture/hymn/talk/magazine citation tables (see applyData()
    below) roughly tripled data.json's size — from ~1.4MB to ~4.2MB, which
