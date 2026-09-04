@@ -2405,6 +2405,14 @@
       </div>
     </div>
     <div class="pool-count" id="recentFilterCount"></div>
+    <div class="list-select-row" id="recentSelectRow">
+      <button type="button" class="btn btn-ghost" id="recentSelectAllBtn">Select All</button>
+    </div>
+    <div class="list-bulk-bar" id="recentBulkBar" hidden>
+      <span id="recentBulkCount"></span>
+      <button type="button" class="btn btn-ghost" id="recentBulkAddBtn">+ Add to List</button>
+      <button type="button" class="reset-link" id="recentBulkClearBtn">Clear selection</button>
+    </div>
     <div class="list-items" id="recentItems"></div>
     <div class="list-empty" id="recentEmpty"></div>
   </div>
@@ -2428,6 +2436,14 @@
       </div>
     </div>
     <div class="pool-count" id="favoritesFilterCount"></div>
+    <div class="list-select-row" id="favoritesSelectRow">
+      <button type="button" class="btn btn-ghost" id="favoritesSelectAllBtn">Select All</button>
+    </div>
+    <div class="list-bulk-bar" id="favoritesBulkBar" hidden>
+      <span id="favoritesBulkCount"></span>
+      <button type="button" class="btn btn-ghost" id="favoritesBulkAddBtn">+ Add to List</button>
+      <button type="button" class="reset-link" id="favoritesBulkClearBtn">Clear selection</button>
+    </div>
     <div class="list-items" id="favoritesItems"></div>
     <div class="list-empty" id="favoritesEmpty"></div>
   </div>
@@ -7297,7 +7313,7 @@ function createSearchBox(inputEl, clearBtnEl, onChange){
    nothing shows "no talks match your search" rather than the "you
    haven't saved anything yet" empty state — and importantly keeps the
    search/sort controls visible so the person can actually clear it. */
-function renderSubsetList(itemsEl, emptyEl, countEl, controlsEls, pool, query, matcher, noTalksMessage, noMatchMessage){
+function renderSubsetList(itemsEl, emptyEl, countEl, controlsEls, pool, query, matcher, noTalksMessage, noMatchMessage, rowOpts={}){
   const total = pool.length;
   itemsEl.innerHTML = '';
   if (total === 0){
@@ -7306,7 +7322,7 @@ function renderSubsetList(itemsEl, emptyEl, countEl, controlsEls, pool, query, m
     emptyEl.textContent = noTalksMessage;
     countEl.textContent = '';
     controlsEls.forEach(el=> el.style.display = 'none');
-    return;
+    return [];
   }
   controlsEls.forEach(el=> el.style.display = '');
   const q = query.trim();
@@ -7318,12 +7334,65 @@ function renderSubsetList(itemsEl, emptyEl, countEl, controlsEls, pool, query, m
   } else {
     itemsEl.style.display = '';
     emptyEl.style.display = 'none';
-    filtered.forEach(pick=> itemsEl.appendChild(buildListItemRow(pick)));
+    filtered.forEach(pick=> itemsEl.appendChild(buildListItemRow(pick, rowOpts)));
   }
   countEl.textContent = filtered.length === total
     ? `Showing all ${total} talk${total===1?'':'s'}`
     : `Showing ${filtered.length} of ${total} talk${total===1?'':'s'}`;
+  return filtered;
 }
+
+/* Generic bulk-select wiring shared by Recently Viewed and Favorites —
+   both are unpaginated (everything matching is always fully rendered at
+   once, unlike Show a List/CFM), so there's no "Select First 10" here,
+   just "Select All" over whatever's currently visible (i.e. post-search),
+   same semantics as Show a List/CFM's Select All. Selection deliberately
+   is NOT cleared on every re-render (search typing, sort switch) — unlike
+   Show a List's selection (cleared on a fresh draw, since the pool itself
+   changes), Recent/Favorites' underlying pool is stable, so keeping a
+   selection while narrowing the search is the more useful behavior; a
+   checkbox for a talk that scrolls out of view via search still "remembers"
+   its checked state if the search is cleared again, since buildListItemRow
+   always reads straight from the selectionMap at render time. */
+function wireSubsetBulkSelect(prefix){
+  const selection = new Map();
+  const bulkBar = document.getElementById(`${prefix}BulkBar`);
+  const bulkCount = document.getElementById(`${prefix}BulkCount`);
+  const bulkAddBtn = document.getElementById(`${prefix}BulkAddBtn`);
+  const bulkClearBtn = document.getElementById(`${prefix}BulkClearBtn`);
+  const selectRow = document.getElementById(`${prefix}SelectRow`);
+  const selectAllBtn = document.getElementById(`${prefix}SelectAllBtn`);
+  const itemsEl = document.getElementById(`${prefix}Items`);
+  function sync(){
+    const n = selection.size;
+    bulkBar.hidden = n === 0;
+    bulkCount.textContent = `${n} talk${n===1?'':'s'} selected`;
+  }
+  function clear(){
+    selection.clear();
+    itemsEl.querySelectorAll('.list-item-select input').forEach(cb=> cb.checked = false);
+    sync();
+  }
+  bulkClearBtn.addEventListener('click', clear);
+  bulkAddBtn.addEventListener('click', ()=>{
+    if (!selection.size) return;
+    openCollectionModalFor([...selection.values()], clear);
+  });
+  let currentPicks = [];
+  selectAllBtn.addEventListener('click', ()=>{
+    const total = currentPicks.length;
+    if (total > 10 && !confirm(`Select all ${total} matching talks?`)) return;
+    currentPicks.forEach(pick=> selection.set(talkKey(pick), pick));
+    itemsEl.querySelectorAll('.list-item-select input').forEach(cb=> cb.checked = selection.has(cb.closest('.list-item').dataset.talkKey));
+    sync();
+  });
+  return {
+    selection, selectRow, sync,
+    setCurrentPicks(picks){ currentPicks = picks; }
+  };
+}
+const recentBulk = wireSubsetBulkSelect('recent');
+const favoritesBulk = wireSubsetBulkSelect('favorites');
 
 const recentFilterCountEl = document.getElementById('recentFilterCount');
 const recentSearchFieldEl = document.getElementById('recentSearchField');
@@ -7334,12 +7403,14 @@ function renderRecentPage(){
   let picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (recentSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
   const q = recentSearch.query;
-  renderSubsetList(
-    recentItemsEl, recentEmptyEl, recentFilterCountEl, [recentSearchFieldEl, recentSortRowEl],
+  const filtered = renderSubsetList(
+    recentItemsEl, recentEmptyEl, recentFilterCountEl, [recentSearchFieldEl, recentSortRowEl, recentBulk.selectRow],
     picks, q, matchesSubsetSearch,
     "You haven't opened any talks yet — talks you open from a ticket or a list will show up here.",
-    `No recently viewed talks match "${q.trim()}".`
+    `No recently viewed talks match "${q.trim()}".`,
+    {selectable:true, selectionMap: recentBulk.selection, onSelectionChange: recentBulk.sync}
   );
+  recentBulk.setCurrentPicks(filtered);
 }
 
 const favoritesFilterCountEl = document.getElementById('favoritesFilterCount');
@@ -7353,12 +7424,14 @@ function renderFavoritesPage(){
   let picks = [...favoriteKeys].reverse().map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (favoritesSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
   const q = favoritesSearch.query;
-  renderSubsetList(
-    favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, [favoritesSearchFieldEl, favoritesSortRowEl],
+  const filtered = renderSubsetList(
+    favoritesItemsEl, favoritesEmptyEl, favoritesFilterCountEl, [favoritesSearchFieldEl, favoritesSortRowEl, favoritesBulk.selectRow],
     picks, q, matchesSubsetSearch,
     "No favorites yet — tap the star on any talk to save it here.",
-    `No favorites match "${q.trim()}".`
+    `No favorites match "${q.trim()}".`,
+    {selectable:true, selectionMap: favoritesBulk.selection, onSelectionChange: favoritesBulk.sync}
   );
+  favoritesBulk.setCurrentPicks(filtered);
 }
 
 const notesFilterCountEl = document.getElementById('notesFilterCount');

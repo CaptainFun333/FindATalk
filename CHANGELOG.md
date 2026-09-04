@@ -17,6 +17,7 @@ this updated.
 - App-exclusive: a few new notifications, on top of the existing Daily Reminder — one when a new conference goes live, one nudging you if a streak is about to lapse for the day, and one the moment you earn a badge. Also added an opt-in Weekly Come Follow Me Reminder (Sunday mornings) in Settings, separate from the Daily Reminder.
 - Share your current streak from the streak badge, share a badge you've earned from "My Badges," and share a whole list from the My Lists page — as a short message with one real findatalk.com link. Anyone who opens it (with the app installed, or just in a browser) lands on their own Lists page and is asked to confirm before anything is added — they'll see how many talks are in it first. Nothing is ever added automatically just from opening a shared link.
 - Tapping "A new conference is live!" now takes you straight to that conference's talks instead of plain Home, and tapping the Weekly Come Follow Me Reminder opens straight into the "Come, Follow Me" tab.
+- Recently Viewed and Favorites now support selecting several talks at once (with a "Select All") to add them to a list together, the same way Show a List and "Come, Follow Me" already worked.
 
 ### Changed
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
