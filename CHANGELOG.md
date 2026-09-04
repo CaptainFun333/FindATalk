@@ -13,6 +13,9 @@ this updated.
 ### Added
 - Added a notice on the old website address (not shown on findatalk.com itself, and not shown inside the app) letting anyone who still lands there know FindATalk has moved to findatalk.com, with a one-tap "Back Up Now" button, since favorites/notes/lists/streak saved in a browser won't automatically carry over to the new address.
 - Tapping a findatalk.com link will now open the app directly instead of your browser, if the app is installed (requires a new app build to take effect — not live for existing installs until then).
+- App-exclusive: earn badges for streak milestones (7/30/100/365 days) and reading milestones (10/50/100/250/500/1,000 talks), with a celebration the moment you earn one and a "My Badges" page in Settings to look back at everything you've earned. Not available on the website.
+- App-exclusive: a few new notifications, on top of the existing Daily Reminder — one when a new conference goes live, one nudging you if a streak is about to lapse for the day, and one the moment you earn a badge. Also added an opt-in Weekly Come Follow Me Reminder (Sunday mornings) in Settings, separate from the Daily Reminder.
+- Share your current streak from the streak badge, share a badge you've earned from "My Badges," and share a whole list (as a formatted message with each talk's title, speaker, and link) from the My Lists page.
 
 ### Changed
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
@@ -20,6 +23,7 @@ this updated.
 
 ### Fixed
 - Creating a new list from the "Add to a List" popup now briefly confirms it worked ("Added 1 talk!") instead of the only sign being a new, easy-to-miss checked row — most noticeable the first time you create a list from a talk.
+- Opening a talk no longer instantly marks it "read" or advances your streak — a talk is now only marked read once you've been away for about 10 seconds (so an accidental tap doesn't count), and your streak only advances after about 60 seconds away, so rapid-clicking through talks can't inflate either one. Recently Viewed still updates right away.
 
 ## [1.4.1] — 2026-09-02
 
