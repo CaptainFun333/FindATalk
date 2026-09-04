@@ -21,12 +21,16 @@ this updated.
 ### Changed
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
 - The app (native and web alike) now checks findatalk.com for new conference data going forward, instead of the old GitHub Pages address — the domain move is now fully live.
+- Shortened the link included when you share a list — same destination and behavior, just a much shorter web address.
 
 ### Fixed
 - Creating a new list from the "Add to a List" popup now briefly confirms it worked ("Added 1 talk!") instead of the only sign being a new, easy-to-miss checked row — most noticeable the first time you create a list from a talk.
 - Opening a talk no longer instantly marks it "read" or advances your streak — a talk is now only marked read once you've been away for about 10 seconds (so an accidental tap doesn't count), and your streak only advances after about 60 seconds away, so rapid-clicking through talks can't inflate either one. Recently Viewed still updates right away.
 - Fixed the "read" checkmark and streak never updating on Android after actually reading a talk (returning to the app after opening a talk wasn't reliably detected on that platform) — also fixes Talk of the Day sometimes not refreshing itself after midnight without a full app restart.
 - Fixed sharing (a talk, your streak, a badge, or a list) sometimes only copying a bare link with no message on Android, and not using the app's proper native share sheet at all.
+- Fixed the real reason the "read" checkmark and streak still weren't updating after the fix above: marking a talk read was silently hitting an error right afterward, so the streak (and everything after it) never got credited even though the talk itself was correctly marked read. Also made the "about to be marked read" state survive the app being closed and reopened while away, not just backgrounded, for extra reliability.
+- Fixed the native share sheet showing every link twice (once in the message, once appended again) when sharing a talk, your streak, a badge, or a list.
+- Fixed the "read" checkmark not showing up next to a talk in Show a List, Recently Viewed, Favorites, or My Lists after reading it, even though it correctly showed up on the talk itself — it now updates right away in every list it appears in, without needing to leave and come back to that page.
 
 ## [1.4.1] — 2026-09-02
 

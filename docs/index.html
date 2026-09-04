@@ -3839,6 +3839,55 @@ const MIN_AWAY_TO_MARK_READ_MS = 10000; // ~10s — just enough to rule out an a
 const MIN_AWAY_TO_COUNT_STREAK_MS = 60000; // ~60s — meant to require plausible real engagement, not just a quick bounce
 let pendingReadTalk = null;
 let pendingReadDepartedAt = 0;
+// Set by initApp() once syncReadBadge() (a nested function — see its own
+// declaration for why) exists, so checkPendingRead() below — top-level,
+// can't see inside initApp()'s closure — can still trigger it without a
+// direct, always-broken reference to a name it can never actually resolve.
+let onTicketReadBadgeSync = null;
+/* Real-device testing found the read/streak credit still wasn't firing
+   even after the App.resume fix (see onForeground()'s own comment) — kept
+   as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
+   would be silently wiped by ANY full reload of the JS execution context
+   (e.g. if Android recreates the WebView, rather than just pausing the
+   Activity, when switching to an external browser and back — plausible
+   and not something this codebase could previously distinguish from
+   "resume just isn't firing"). Persisting to localStorage makes the
+   pending candidate survive that regardless of which exact thing is
+   happening on a given device — defensive, not just a guess at the one
+   true cause. */
+const PENDING_READ_KEY = 'findATalkPendingRead';
+function savePendingRead(){
+  try {
+    if (pendingReadTalk){
+      localStorage.setItem(PENDING_READ_KEY, JSON.stringify({ key: talkKey(pendingReadTalk), departedAt: pendingReadDepartedAt }));
+    } else {
+      localStorage.removeItem(PENDING_READ_KEY);
+    }
+  } catch(err){ /* storage full/unavailable — not fatal, the in-memory copy still works within this same session */ }
+}
+function loadPendingRead(){
+  try {
+    const raw = localStorage.getItem(PENDING_READ_KEY);
+    if (!raw) return;
+    const { key, departedAt } = JSON.parse(raw);
+    // TALKS_BY_KEY (the O(1) lookup) is built inside initApp()'s closure,
+    // not reachable from here — this runs once at startup on a small
+    // (~4,000-item) array, so a plain linear scan is cheap enough not to
+    // need it.
+    const talk = TALKS.find(t=> talkKey(t) === key);
+    if (talk){
+      pendingReadTalk = talk;
+      pendingReadDepartedAt = departedAt;
+    } else {
+      localStorage.removeItem(PENDING_READ_KEY); // stale/unresolvable — don't keep it around forever
+    }
+  } catch(err){ /* corrupted entry — ignore, same as having none */ }
+}
+function clearPendingRead(){
+  pendingReadTalk = null;
+  pendingReadDepartedAt = 0;
+  try { localStorage.removeItem(PENDING_READ_KEY); } catch(err){ /* not fatal */ }
+}
 
 function loadRecentAndFavorites(){
   try {
@@ -3891,6 +3940,7 @@ function recordOpened(talk){
   // person has genuinely gone and come back.
   pendingReadTalk = talk;
   pendingReadDepartedAt = Date.now();
+  savePendingRead(); // persisted, not just in-memory — see the comment above PENDING_READ_KEY for why
 }
 
 /* Called on every visibilitychange -> 'visible' (see watchForPendingRead()
@@ -3899,15 +3949,43 @@ function recordOpened(talk){
    was set — see the "read/streak-credit integrity gate" comment above
    readKeys for the full reasoning. Clears pendingReadTalk either way once
    checked, so a single departure can only ever credit once. */
+/* Live-refreshes any list-row "Read" badge currently on screen for this
+   talk — a plain DOM query, not a cross-closure function reference (the
+   exact class of bug just fixed for the ticket's own badge), so it works
+   regardless of which page/scope originally rendered the row. Each
+   badge's icon+"Read" markup is already baked into its innerHTML at
+   creation time (see buildListItemRow()) — crediting only ever needs to
+   reveal it, never rebuild it, so this doesn't need anything nested
+   (like CHECK_ICON_SVG) at all. A CSS attribute selector with the raw key
+   is safe here without CSS.escape() — talk keys are built from this
+   app's own data (year|month|slug), never arbitrary/untrusted input. */
+function refreshReadBadgesFor(talk){
+  document.querySelectorAll(`[data-talk-key="${talkKey(talk)}"]`).forEach(el=> el.hidden = false);
+}
+
 function checkPendingRead(){
   if (!pendingReadTalk) return;
   const talk = pendingReadTalk;
   const awayMs = Date.now() - pendingReadDepartedAt;
-  pendingReadTalk = null;
-  pendingReadDepartedAt = 0;
+  clearPendingRead();
   if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
   markRead(talk);
-  syncReadBadge(); // live-refresh the ticket's badge if it's still showing this talk — list rows pick it up on their next render
+  refreshReadBadgesFor(talk); // list-row "Read" badges (Show a List, Recently Viewed, Favorites, My Lists, TOTD, CFM) — the ticket's own badge is handled separately below via onTicketReadBadgeSync
+  // syncReadBadge() itself lives inside initApp()'s closure (it needs
+  // lastPicked/ticketReadBadge, both nested there too) — checkPendingRead()
+  // is top-level and can't call it directly. A REAL bug, not a hypothetical:
+  // this was throwing "syncReadBadge is not defined" every single time this
+  // line was reached, silently aborting the rest of this function — meaning
+  // checkForNewBadges()/touchStreak()/renderStreak() below never ran either.
+  // That's the actual root cause behind the read-checkmark AND streak both
+  // failing to update on a real device — not the App.resume/visibilitychange
+  // mechanism, which was correctly reaching this function; it just crashed
+  // once inside it. Fixed with a small indirection instead of relocating
+  // lastPicked/ticketReadBadge to top-level (a much bigger, riskier change):
+  // initApp() registers syncReadBadge into this top-level slot once it's
+  // defined (see onTicketReadBadgeSync's declaration), and this calls
+  // through it instead of referencing the nested function by name.
+  if (onTicketReadBadgeSync) onTicketReadBadgeSync();
   checkForNewBadges(); // reading-count badges (idea 45) — a no-op on web, see that function's own gate
   if (awayMs < MIN_AWAY_TO_COUNT_STREAK_MS) return; // read, but not away long enough to plausibly count as real engagement — streak stays untouched
   touchStreak();
@@ -4647,6 +4725,13 @@ function speakerDisplayName(name){
 
 /* ---------------- build filter options ---------------- */
 function initApp(){
+// Restores a pending read that survived a full JS reload (see the
+// PENDING_READ_KEY comment) and, if enough time already passed while this
+// was away, credits it immediately — covers the case where the app (not
+// just its WebView) was fully killed and relaunched, so no resume/
+// visibilitychange event would ever fire for it at all.
+loadPendingRead();
+checkPendingRead();
 const poolCountEl = document.getElementById('poolCount');
 // Home's narrow-box header doubles as a live match count (see
 // refreshCount() below) — narrowBoxHeaderTextEl holds just the text span
@@ -5590,6 +5675,7 @@ function syncReadBadge(){
   ticketReadBadge.hidden = !read;
   if (read) ticketReadBadge.innerHTML = `${CHECK_ICON_SVG}<span>You already read this talk</span>`;
 }
+onTicketReadBadgeSync = syncReadBadge; // registers with checkPendingRead() — see that top-level slot's own comment
 
 function updateBackBtn(){
   backBtn.disabled = pickHistory.length === 0;
@@ -5871,17 +5957,24 @@ function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, o
     refreshCount();
     if (recentZone.style.display === 'block') renderRecentPage();
     // Not marked read immediately anymore — see the "read/streak-credit
-    // integrity gate" comment above readKeys. This row's badge picks up
-    // the change on its next render (revisiting the page, etc.); no live
-    // in-place refresh here since checkPendingRead() fires later/globally
-    // and this specific row may not even still be on screen by then.
+    // integrity gate" comment above readKeys. checkPendingRead() fires
+    // later/globally once the credit actually lands, and live-refreshes
+    // this exact row (if it's still on screen) via refreshReadBadgesFor()
+    // — see that function's own comment for how.
   });
   titleGroup.appendChild(titleLink);
 
   // Shown once a talk has actually been opened (see recordOpened() ->
   // markRead()) — never interactive, just a small "already read" flag.
+  // data-talk-key lets checkPendingRead() live-refresh this badge the
+  // instant a read is credited (see refreshReadBadgesFor() below) — a
+  // plain DOM query works from any scope, unlike a direct function
+  // reference across a closure boundary (the exact class of bug fixed
+  // elsewhere this session), and doesn't care which page/render call
+  // created this particular row.
   const readBadge = document.createElement('span');
   readBadge.className = 'list-item-read-badge';
+  readBadge.dataset.talkKey = talkKey(pick);
   readBadge.innerHTML = `${CHECK_ICON_SVG}<span>Read</span>`;
   readBadge.title = 'You already opened this talk';
   readBadge.hidden = !isRead(pick);
@@ -6779,10 +6872,22 @@ async function copyText(text){
       specifically for this. Capacitor does NOT auto-polyfill
       navigator.share() to use it (confirmed against the plugin's own
       docs) — it has to be called directly, or it just sits there unused.
+      Deliberately passes `text` ONLY, not `url` — a real bug, found via
+      real-device testing: Android's native share sheet (via this plugin)
+      concatenates `text` and `url` into one combined string when both are
+      given, and every message this app builds already embeds its link
+      directly inside `text` (specifically so it survives a plain
+      clipboard-paste fallback too — see tier 3) — so passing `url` here
+      as well produced a visibly duplicated link in the real share sheet.
    2. navigator.share() (the Web Share API) — works on many mobile
       browsers on the web build, where there's no native plugin to call.
+      `url` genuinely IS passed here, safely: the Web Share API treats it
+      as a real, separate structured field (some apps, e.g. iMessage on
+      iOS Safari, show it as its own link-preview attachment) rather than
+      string-concatenating it into `text` the way the native tier above
+      does — no duplication risk on this tier specifically.
    3. Copy the FULL text to the clipboard — a real bug, not a design
-      choice, was found and fixed here: the previous version of this
+      choice, was found and fixed here: an earlier version of this
       function only ever copied the bare `url` in this fallback, silently
       dropping the entire prefilled message. That's why a real-device test
       showed "just a link, no message" — this app was falling all the way
@@ -6790,16 +6895,13 @@ async function copyText(text){
       navigator.share isn't reliably available in an Android WebView)
       and hitting that bug. `text` is required and MUST already contain
       the full message including any link that needs to survive a plain
-      clipboard paste — `url` is optional and only adds a second,
-      separately-structured link for platforms that show it specially
-      (e.g. iMessage's link preview card); it is never required for the
-      message to make sense on its own. */
+      clipboard paste. */
 async function performShare({title, text, url}, btnEl){
   const cap = window.Capacitor;
   const NativeShare = cap && cap.Plugins && cap.Plugins.Share;
   if (NativeShare){
     try {
-      await NativeShare.share({ title, text, url, dialogTitle: 'Share' });
+      await NativeShare.share({ title, text, dialogTitle: 'Share' });
       return;
     } catch(err){ return; } // cancelled, or the plugin rejected — either way, no fallback needed on native
   }
@@ -8001,18 +8103,32 @@ const collectionSearch = createSearchBox(document.getElementById('collectionQuer
    unwieldy URL. */
 const LIST_SHARE_MAX = 20;
 
-/* Encodes a list into a real, shareable findatalk.com URL. Talk keys
-   (year|month|slug), not TALKS array indices — deliberately, since a key
-   is self-describing and stays correct even if data.json's talk order
-   ever changes, where an index would silently point at the wrong talk.
-   URLSearchParams handles all the percent-encoding (the `|` in each key,
-   spaces/punctuation in the list name), so this never hand-rolls escaping.
-   Same LIST_SHARE_MAX cap as the text share, for the same reason — a
-   huge list would make an unwieldy URL, not just an unwieldy message. */
+/* Encodes a list into a real, shareable findatalk.com URL. Shortened per
+   user feedback on a real device — the original version used full talk
+   keys (year|month|slug), which made even a 3-talk list's URL huge (each
+   key ~35-45 chars once percent-encoded). Switched to each talk's INDEX
+   within sortedTalks() instead — a few digits instead of a whole slug,
+   ~90% shorter. This reuses an already-shipped precedent in this exact
+   file rather than inventing a new risk: talkOfTheDay() already indexes
+   into this same sortedTalks() array and accepts the same bounded
+   trade-off its own comment documents — sorting by key keeps a talk's
+   position stable across ordinary data.json growth (new conferences just
+   get appended, so most existing talks' sorted position never moves), and
+   only a talk inserted BEFORE others in sorted-key order could shift
+   what an old link points to. That's a real, accepted trade-off, not
+   nothing — full keys would be immune to it — but this codebase already
+   made that same call for talkOfTheDay(), so applying it here too is a
+   deliberate, precedented choice, not an oversight. URLSearchParams still
+   handles all percent-encoding (now just for the list name's spaces/
+   punctuation, since digits/commas need none). Same LIST_SHARE_MAX cap as
+   the text share. */
 function buildListShareUrl(col){
   const keys = (collectionMembers[col.id] || []).slice(0, LIST_SHARE_MAX);
+  const sorted = sortedTalks();
+  const indexByKey = new Map(sorted.map((t, i)=> [talkKey(t), i]));
+  const indices = keys.map(k=> indexByKey.get(k)).filter(i=> i !== undefined);
   const params = new URLSearchParams();
-  params.set('list', keys.join(','));
+  params.set('list', indices.join(','));
   params.set('name', col.name);
   return `${FINDATALK_URL}/?${params.toString()}`;
 }
@@ -8029,9 +8145,10 @@ function buildListShareText(col){
 /* Phase 3 (idea 45) deep-link upgrade — the other half of
    buildListShareUrl() above: given a URL someone actually opened (or
    tapped into the app), pulls out `list`/`name` and resolves real talk
-   objects. Guarded, never throws: an unparseable URL, a missing `list`
-   param, or a list whose keys don't resolve to any real talk (stale link,
-   corrupted, or from a future data.json this copy doesn't have yet) all
+   objects from their sortedTalks() indices (see buildListShareUrl()'s own
+   comment for why indices, not full keys). Guarded, never throws: an
+   unparseable URL, a missing `list` param, or a list whose indices don't
+   resolve to any real talk (stale link, out of range, or corrupted) all
    just return null — same "missing data means nothing shows" philosophy
    as every other guarded lookup in this file, not a crash. */
 function parseSharedListFromUrl(urlString){
@@ -8040,7 +8157,10 @@ function parseSharedListFromUrl(urlString){
   catch(err){ return null; }
   const rawList = params.get('list');
   if (!rawList) return null;
-  const talks = rawList.split(',').map(k=> TALKS_BY_KEY[k]).filter(Boolean);
+  const sorted = sortedTalks();
+  const talks = rawList.split(',')
+    .map(s=> sorted[parseInt(s, 10)])
+    .filter(Boolean);
   if (!talks.length) return null;
   return { name: params.get('name') || 'Shared List', talks };
 }
