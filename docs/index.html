@@ -6938,13 +6938,26 @@ async function copyText(text){
       directly inside `text` (specifically so it survives a plain
       clipboard-paste fallback too — see tier 3) — so passing `url` here
       as well produced a visibly duplicated link in the real share sheet.
-   2. navigator.share() (the Web Share API) — works on many mobile
+   2. navigator.share() (the Web Share API) — works on many mobile/desktop
       browsers on the web build, where there's no native plugin to call.
-      `url` genuinely IS passed here, safely: the Web Share API treats it
-      as a real, separate structured field (some apps, e.g. iMessage on
-      iOS Safari, show it as its own link-preview attachment) rather than
-      string-concatenating it into `text` the way the native tier above
-      does — no duplication risk on this tier specifically.
+      Also omits `url` now — a real bug, found via real-device testing on
+      Chrome: the assumption below (kept for the historical record) that
+      the Web Share API treats `url` as a safely separate field turned out
+      to be wrong in practice. A real share from this tier produced
+      "https://findatalk.com/ I just started a streak on FindATalk! 🔥
+      https://findatalk.com" — Chrome's own share sheet concatenated `url`
+      and `text` together, same duplication as the native tier's bug,
+      just with `url` prepended instead of appended. Since `text` already
+      embeds the link in every caller (same reason as the native tier),
+      dropping `url` here loses nothing functional.
+      ORIGINAL (WRONG) REASONING, kept so this isn't "fixed" back to it by
+      mistake: `url` was believed to be safe here specifically because the
+      Web Share API treats it as a real, separate structured field (some
+      apps, e.g. iMessage on iOS Safari, show it as its own link-preview
+      attachment) rather than string-concatenating it into `text` the way
+      the native tier does. That's apparently true for SOME share targets
+      but not all — Chrome's own sheet is a counterexample — so it's not a
+      safe general assumption and isn't worth the inconsistent risk.
    3. Copy the FULL text to the clipboard — a real bug, not a design
       choice, was found and fixed here: an earlier version of this
       function only ever copied the bare `url` in this fallback, silently
@@ -6955,7 +6968,7 @@ async function copyText(text){
       and hitting that bug. `text` is required and MUST already contain
       the full message including any link that needs to survive a plain
       clipboard paste. */
-async function performShare({title, text, url}, btnEl){
+async function performShare({title, text}, btnEl){
   const cap = window.Capacitor;
   const NativeShare = cap && cap.Plugins && cap.Plugins.Share;
   if (NativeShare){
@@ -6966,7 +6979,7 @@ async function performShare({title, text, url}, btnEl){
   }
   if (navigator.share){
     try {
-      await navigator.share({ title, text, url });
+      await navigator.share({ title, text }); // no url — see this function's own comment for why
       return;
     } catch(err){
       // Person cancelling the native share sheet throws AbortError — that's a
@@ -6984,9 +6997,11 @@ async function shareTalk(pick, btnEl, context='other'){
   const url = talkUrl(pick);
 
   // Build prefilled message based on context. The url is embedded
-  // directly in the text (not left to the separate `url` param alone) so
-  // it's guaranteed to survive every tier, including a plain clipboard
-  // copy — see performShare()'s comment above for why that matters.
+  // directly in the text — performShare() no longer accepts a separate
+  // `url` field at all (every tier was found to duplicate it against
+  // this embedded copy — see that function's own comment) — so this is
+  // the only place the link needs to live for it to survive every tier,
+  // including a plain clipboard copy.
   let shareText;
   if (context === 'totd'){
     shareText = `I thought of you while studying today's Talk of the Day. Check it out: ${url} (via FindATalk)`;
@@ -6994,7 +7009,7 @@ async function shareTalk(pick, btnEl, context='other'){
     shareText = `I found this talk and thought of you. Check it out: ${url} (via FindATalk)`;
   }
 
-  await performShare({ title, text: shareText, url }, btnEl);
+  await performShare({ title, text: shareText }, btnEl);
 }
 /* Briefly swaps a share button's content to a confirmation message, then
    restores its original icon. The ticket's share button and every list
@@ -7015,23 +7030,25 @@ function flashShareButton(btnEl, message){
   btnEl.dataset.flashTimer = String(timer);
 }
 
-// The real, live domain (idea 40) — used as the structured `url` param for
-// streak/badge/list shares, so there's a genuine, functional link back to
-// the app in every one of them (see shareText() below for why it's also
-// embedded directly in the text, not left to this field alone).
+// The real, live domain (idea 40) — every streak/badge/list share message
+// embeds this directly so there's a genuine, functional link back to the
+// app in each one (see shareText() below and performShare()'s own
+// comment for why it's only ever embedded in the text, never passed to
+// performShare as a separate field).
 const FINDATALK_URL = 'https://findatalk.com';
 
 /* Phase 3 (idea 45) — generic plain-text share, for things that aren't a
    single talk (streak, a milestone, a whole list) so don't have their own
    per-item `url` the way shareTalk() does. Routes through performShare()
    just like shareTalk() does — same native-Share-first, then
-   navigator.share, then full-text-clipboard-copy tiers.
-   `url` defaults to FINDATALK_URL — a real link back to the app is
-   included by default rather than needing every call site to remember
-   it, since that's what these three share types are all supposed to
-   include per how idea 45's copy was scoped. */
-async function shareText(text, btnEl, url = FINDATALK_URL){
-  await performShare({ text, url }, btnEl);
+   navigator.share, then full-text-clipboard-copy tiers. Every caller
+   already embeds its own link directly in `text` (FINDATALK_URL or, for
+   a list share, buildListShareUrl()'s short link) — there used to be a
+   second `url` parameter here passed through to performShare as a
+   "structured" field, removed after real-device testing found it just
+   produced a duplicated link (see performShare()'s comment). */
+async function shareText(text, btnEl){
+  await performShare({ text }, btnEl);
 }
 
 const shareBtn = document.getElementById('shareBtn');
@@ -8458,7 +8475,7 @@ function renderCollectionsIndexPage(){
     listShareBtn.innerHTML = SHARE_ICON_SVG;
     listShareBtn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      shareText(buildListShareText(col), listShareBtn, buildListShareUrl(col));
+      shareText(buildListShareText(col), listShareBtn);
     });
     row.appendChild(listShareBtn);
 
