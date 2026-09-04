@@ -645,6 +645,24 @@
     transition:background .15s;
     pointer-events:none;
   }
+  /* APP ONLY (idea 45, Phase 1) — badges list + celebration modal. Same
+     visual language as .settings-row/-text just above (Inter, --ink/
+     --ink-soft) so this doesn't feel like a bolted-on second system. */
+  .badges-list{ display:flex; flex-direction:column; gap:14px; }
+  .badge-row{ display:flex; align-items:flex-start; gap:12px; }
+  .badge-icon{ font-size:22px; line-height:1; flex-shrink:0; margin-top:1px; }
+  .badge-row-text strong{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:14.5px; font-weight:600; color:var(--ink);
+  }
+  .badge-row-text span{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft); margin-top:2px;
+  }
+  .badge-locked{ opacity:.55; }
+  .badge-celebration-modal{ text-align:center; }
+  .badge-celebration-modal h3{ margin-top:0; }
+  .badge-celebration-modal .btn-primary{ margin-top:8px; }
   .switch-track::before{
     content:"";
     position:absolute; top:3px; left:3px;
@@ -686,7 +704,14 @@
      .list-items above) — no margin/padding of its own, so it adds no
      space when the badge inside is hidden. The badge keeps its own
      margin-top so that spacing still collapses away with it. */
-  .streak-badge-row{ max-width:620px; margin:0 auto; }
+  .streak-badge-row{
+    max-width:620px; margin:0 auto;
+    display:flex; justify-content:center; align-items:center; gap:8px;
+  }
+  /* Phase 3 (idea 45) — hidden alongside the badge itself (see
+     syncStreakShareBtn() in the script), same [hidden] rule needed since
+     it's a flex child now, not just relying on the badge's own display. */
+  #streakShareBtn[hidden]{ display:none; }
   .streak-badge[hidden]{ display:none; }
   .streak-badge{
     display:inline-flex;
@@ -2152,6 +2177,11 @@
          the page's left edge instead of the card's). -->
     <div class="streak-badge-row">
       <div class="streak-badge" id="streakBadge" hidden></div>
+      <!-- Phase 3 (idea 45) — hidden until there's a real streak worth
+           sharing (count > 0); see syncStreakShareBtn() in the script. -->
+      <button type="button" class="share-btn-icon" id="streakShareBtn" aria-label="Share your streak" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+      </button>
     </div>
   </div>
 
@@ -2732,6 +2762,13 @@
         <button type="button" class="btn btn-ghost" id="showMeAroundBtn">Show me around</button>
       </div>
 
+      <!-- APP ONLY (idea 45) — hidden by default, unhidden only on native,
+           same pattern as #reminderSettingsSection just below. -->
+      <div class="settings-section" id="badgesSettingsSection" hidden>
+        <p class="settings-label">Achievements</p>
+        <button type="button" class="btn btn-ghost" id="viewBadgesBtn">My Badges</button>
+      </div>
+
       <div class="settings-section" id="reminderSettingsSection" hidden>
         <p class="settings-label">Notifications</p>
         <div class="settings-row">
@@ -2751,6 +2788,68 @@
           </div>
           <input type="time" id="reminderTimeInput" aria-label="Reminder time">
         </div>
+        <!-- Phase 2 (idea 45) — a second, separate opt-in from the Daily
+             Reminder above (different cadence/commitment), same
+             switch/row pattern. Streak-at-risk, new-conference, and
+             milestone notifications aren't separate toggles — they piggy-
+             back on whichever of these two is already granted, same as
+             how OS notification permission itself works app-wide. -->
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <strong>Weekly Come Follow Me Reminder</strong>
+            <span>One nudge a week pointing to this week's matching talks.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="weeklyCfmReminderToggle">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP ONLY (idea 45, Phase 1) — the full badges list, opened from the
+       "My Badges" button in Settings (itself only shown on native). -->
+  <div class="modal-overlay" id="badgesModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="badgesModalTitle">
+      <div class="modal-header">
+        <h3 id="badgesModalTitle">My Badges</h3>
+        <button type="button" class="modal-close" id="badgesModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="badges-list" id="badgesModalList"></div>
+    </div>
+  </div>
+
+  <!-- APP ONLY (idea 45, Phase 1) — the celebratory moment shown the
+       instant a new badge is earned. Separate from the list modal above
+       (different purpose: a one-time celebration vs. a browsable record),
+       queued one at a time — see showNextBadgeCelebration() in the script. -->
+  <div class="modal-overlay" id="badgeCelebrationModalOverlay" hidden>
+    <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="badgeCelebrationTitle">
+      <h3 id="badgeCelebrationTitle"></h3>
+      <p class="modal-copy" id="badgeCelebrationDesc"></p>
+      <button type="button" class="btn btn-primary" id="badgeCelebrationOkBtn">Nice!</button>
+    </div>
+  </div>
+
+  <!-- Phase 3 (idea 45) deep-link upgrade — opened when the app is
+       launched/foregrounded via a findatalk.com/?list=... link (see
+       checkForSharedListLink() in the script). A READ-ONLY preview,
+       deliberately distinct from the recipient's own My Lists — nothing
+       is saved automatically. "Save to My Lists" reuses the existing
+       "Add to a List" modal (openCollectionModalFor) rather than a new
+       save flow, so someone can add these talks to a brand-new list or an
+       existing one exactly like they would from anywhere else in the app. -->
+  <div class="modal-overlay" id="sharedListModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sharedListModalTitle">
+      <div class="modal-header">
+        <h3 id="sharedListModalTitle">Shared List</h3>
+        <button type="button" class="modal-close" id="sharedListModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy" id="sharedListModalSubtitle"></p>
+      <div class="list-items" id="sharedListModalItems"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="sharedListSaveBtn">Save to My Lists</button>
       </div>
     </div>
   </div>
@@ -3097,6 +3196,44 @@ document.addEventListener('keydown', (e)=>{
 document.getElementById('showMeAroundBtn').addEventListener('click', ()=>{
   closeSettingsModal();
   openOnboardingModal();
+});
+
+/* APP ONLY (idea 45, Phase 1) — badges list modal wiring. The trigger
+   button (#viewBadgesBtn) lives in a section that's hidden by default in
+   HTML and only unhidden on native — see initBadgesUI() further down —
+   so this listener is harmless to attach unconditionally on web too, it
+   just never gets triggered there since the button stays hidden. */
+const badgesModalOverlay = document.getElementById('badgesModalOverlay');
+function openBadgesModal(){
+  renderBadgesList();
+  badgesModalOverlay.hidden = false;
+}
+function closeBadgesModal(){
+  badgesModalOverlay.hidden = true;
+}
+document.getElementById('viewBadgesBtn').addEventListener('click', ()=>{
+  closeSettingsModal();
+  openBadgesModal();
+});
+document.getElementById('badgesModalClose').addEventListener('click', closeBadgesModal);
+badgesModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === badgesModalOverlay) closeBadgesModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !badgesModalOverlay.hidden) closeBadgesModal();
+});
+
+/* APP ONLY (idea 45, Phase 1) — badge celebration modal wiring. Opened
+   only from showNextBadgeCelebration() (see the badges block above), never
+   by a direct user click, so the only user-initiated action here is
+   dismissing it. */
+const badgeCelebrationModalOverlay = document.getElementById('badgeCelebrationModalOverlay');
+document.getElementById('badgeCelebrationOkBtn').addEventListener('click', dismissBadgeCelebration);
+badgeCelebrationModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === badgeCelebrationModalOverlay) dismissBadgeCelebration();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !badgeCelebrationModalOverlay.hidden) dismissBadgeCelebration();
 });
 
 /* ---------------------------------------------------------------
@@ -3670,6 +3807,38 @@ let recentKeys = [];
 let favoriteKeys = new Set();
 let readKeys = new Set();
 
+/* ---------------- read/streak-credit integrity gate ----------------
+   Opening a talk (recordOpened() below) still instantly updates
+   recentKeys — that's pure "what did they click on" bookkeeping (Recently
+   Viewed) and doesn't need protecting. readKeys ("already read" badge) and
+   the STREAK are both gamifiable/meaningful-sounding numbers, so crediting
+   either just because a link was clicked would let someone farm them
+   (streaks now, reading-count milestones later — see the badges/milestones
+   plan) by rapid-clicking through talks with no real engagement — or even
+   just a genuine accidental tap. Instead, a click only makes the talk a
+   *candidate*; readKeys/the streak are actually credited once the person
+   has left the app (to read/listen on the Church's own site) AND come back
+   AND enough time has passed — see checkPendingRead() below, fired on
+   visibilitychange. Two separate thresholds, since they're guarding
+   against two different things:
+     - MIN_AWAY_TO_MARK_READ_MS: short, just long enough to rule out a pure
+       accidental/mis-tap. Below this, not even the low-stakes "read" flag
+       is set.
+     - MIN_AWAY_TO_COUNT_STREAK_MS: longer, meant to require plausible real
+       engagement before crediting something people build daily habits
+       around. Always >= the read threshold, so crossing the streak bar
+       always also crosses the read bar in the same check.
+   Only the most recent departure is tracked (bouncing between several
+   links without ever returning just means no credit fires at all) —
+   simple, and matches "they're now reading whichever they most recently
+   opened." No upper bound on how long they were away: a long, legitimate
+   reading session should still credit normally, so this only guards
+   against being too FAST, never too slow. */
+const MIN_AWAY_TO_MARK_READ_MS = 10000; // ~10s — just enough to rule out an accidental/mis-tap
+const MIN_AWAY_TO_COUNT_STREAK_MS = 60000; // ~60s — meant to require plausible real engagement, not just a quick bounce
+let pendingReadTalk = null;
+let pendingReadDepartedAt = 0;
+
 function loadRecentAndFavorites(){
   try {
     const raw = localStorage.getItem(RECENT_KEY);
@@ -3713,12 +3882,37 @@ function recordOpened(talk){
   recentKeys.unshift(key);
   if (recentKeys.length > RECENT_MAX) recentKeys.length = RECENT_MAX;
   saveRecent();
+  // Neither readKeys nor the streak are touched instantly anymore — see the
+  // "read/streak-credit integrity gate" comment above readKeys. Clicking
+  // just marks this talk as the pending candidate; checkPendingRead()
+  // (fired on visibilitychange, wired up via watchForPendingRead() near
+  // the bottom of this file) is what actually credits them once the
+  // person has genuinely gone and come back.
+  pendingReadTalk = talk;
+  pendingReadDepartedAt = Date.now();
+}
+
+/* Called on every visibilitychange -> 'visible' (see watchForPendingRead()
+   near the bottom of this file). Credits pendingReadTalk's read flag
+   and/or the streak depending on how much real time has passed since it
+   was set — see the "read/streak-credit integrity gate" comment above
+   readKeys for the full reasoning. Clears pendingReadTalk either way once
+   checked, so a single departure can only ever credit once. */
+function checkPendingRead(){
+  if (!pendingReadTalk) return;
+  const talk = pendingReadTalk;
+  const awayMs = Date.now() - pendingReadDepartedAt;
+  pendingReadTalk = null;
+  pendingReadDepartedAt = 0;
+  if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
   markRead(talk);
-  // Actually opening a talk is what advances the streak (see the Daily
-  // streak section below) — not just having the app open — so this is
-  // the one shared place both recentKeys and the streak get touched.
+  syncReadBadge(); // live-refresh the ticket's badge if it's still showing this talk — list rows pick it up on their next render
+  checkForNewBadges(); // reading-count badges (idea 45) — a no-op on web, see that function's own gate
+  if (awayMs < MIN_AWAY_TO_COUNT_STREAK_MS) return; // read, but not away long enough to plausibly count as real engagement — streak stays untouched
   touchStreak();
   renderStreak();
+  checkForNewBadges(); // streak badges (idea 45) — called again since streak.longest may have just changed too
+  updateStreakRiskNotification(); // Phase 2 (idea 45) — cancels today's at-risk nudge now that it's been credited; a no-op on web/no-permission
 }
 
 /* yyyy-mm-dd for the device's local calendar date — shared by
@@ -3905,6 +4099,295 @@ function renderStreak(){
   } else {
     el.textContent = `🔥 ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
   }
+  // Phase 3 (idea 45) — nothing worth sharing until there's a real streak.
+  const shareBtnEl = document.getElementById('streakShareBtn');
+  if (shareBtnEl) shareBtnEl.hidden = streak.count <= 0;
+}
+
+/* ---------------- APP ONLY — Milestones: badges (idea 45, Phase 1) ----------------
+   Gated behind Capacitor.isNativePlatform() throughout — a deliberate
+   product choice (part of the app-only-perks strategy), not a technical
+   necessity, so web users should never see any trace of this: no Settings
+   entry point, no celebration modal, nothing. See initBadgesUI() below for
+   where that gate actually applies.
+
+   Tiers, matching the settled plan: streak badges read from
+   streak.longest (the permanent high-water mark, not the current streak
+   count — a badge shouldn't un-earn itself just because today's streak
+   broke), reading-count badges read from readKeys.size. No new data
+   collection needed — both signals already exist. */
+const BADGE_DEFS = [
+  {id:'streak-7',    kind:'streak',  threshold:7,    label:'7-Day Streak',      desc:'Studied 7 days in a row'},
+  {id:'streak-30',   kind:'streak',  threshold:30,   label:'30-Day Streak',     desc:'Studied 30 days in a row'},
+  {id:'streak-100',  kind:'streak',  threshold:100,  label:'100-Day Streak',    desc:'Studied 100 days in a row'},
+  {id:'streak-365',  kind:'streak',  threshold:365,  label:'365-Day Streak',    desc:'Studied 365 days in a row'},
+  {id:'reading-10',  kind:'reading', threshold:10,   label:'10 Talks Read',     desc:'Read 10 talks'},
+  {id:'reading-50',  kind:'reading', threshold:50,   label:'50 Talks Read',     desc:'Read 50 talks'},
+  {id:'reading-100', kind:'reading', threshold:100,  label:'100 Talks Read',    desc:'Read 100 talks'},
+  {id:'reading-250', kind:'reading', threshold:250,  label:'250 Talks Read',    desc:'Read 250 talks'},
+  {id:'reading-500', kind:'reading', threshold:500,  label:'500 Talks Read',    desc:'Read 500 talks'},
+  {id:'reading-1000',kind:'reading', threshold:1000, label:'1,000 Talks Read',  desc:'Read 1,000 talks'}
+];
+const BADGES_KEY = 'findATalkBadges';
+let earnedBadges = {}; // {badgeId: earnedAtTimestamp}, append-only — never un-earned
+function loadBadges(){
+  try {
+    const raw = localStorage.getItem(BADGES_KEY);
+    if (raw) earnedBadges = JSON.parse(raw);
+  } catch(err){ earnedBadges = {}; }
+}
+function saveBadges(){
+  try { localStorage.setItem(BADGES_KEY, JSON.stringify(earnedBadges)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+}
+loadBadges();
+
+/* Queue rather than a single pending badge, in case more than one tier
+   is crossed in the same check (e.g. importing a backup that instantly
+   raises readKeys.size past several reading thresholds at once). Shown
+   one at a time so each gets its own clear celebratory moment instead of
+   a cluttered combined message. */
+let badgeCelebrationQueue = [];
+function showNextBadgeCelebration(){
+  const overlay = document.getElementById('badgeCelebrationModalOverlay');
+  if (!overlay) return; // web build — no modal in the DOM to show
+  if (!badgeCelebrationQueue.length){ overlay.hidden = true; return; }
+  const badge = badgeCelebrationQueue[0];
+  document.getElementById('badgeCelebrationTitle').textContent = `🎉 ${badge.label}`;
+  document.getElementById('badgeCelebrationDesc').textContent = badge.desc;
+  overlay.hidden = false;
+}
+function dismissBadgeCelebration(){
+  badgeCelebrationQueue.shift();
+  showNextBadgeCelebration();
+}
+
+/* Called after readKeys or the streak change (see checkPendingRead()
+   above) — compares current progress against BADGE_DEFS, records any
+   newly-crossed tier (append-only, keyed by real earn time), and queues a
+   celebration for each. Safe to call often — badges already in
+   earnedBadges are skipped, so this is a no-op once everything's earned. */
+function checkForNewBadges(){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return; // app-only — see the file header above
+  const streak = loadStreak();
+  const readingCount = readKeys.size;
+  let earnedSomething = false;
+  BADGE_DEFS.forEach(def=>{
+    if (earnedBadges[def.id]) return; // already earned — never re-check or un-earn
+    const progress = def.kind === 'streak' ? streak.longest : readingCount;
+    if (progress < def.threshold) return;
+    earnedBadges[def.id] = Date.now();
+    earnedSomething = true;
+    badgeCelebrationQueue.push(def);
+    notifyMilestoneAchieved(def); // Phase 2 — alongside, not instead of, the in-app celebration below
+  });
+  if (earnedSomething){
+    saveBadges();
+    showNextBadgeCelebration();
+  }
+}
+
+/* Renders the full badges list modal — earned badges show their real
+   earn date, unearned ones show as locked with their threshold. */
+function renderBadgesList(){
+  const listEl = document.getElementById('badgesModalList');
+  if (!listEl) return;
+  const streak = loadStreak();
+  const readingCount = readKeys.size;
+  listEl.innerHTML = BADGE_DEFS.map(def=>{
+    const earnedAt = earnedBadges[def.id];
+    const progress = def.kind === 'streak' ? streak.longest : readingCount;
+    if (earnedAt){
+      const dateStr = new Date(earnedAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+      // Phase 3 (idea 45) — share button only on earned rows (nothing to
+      // share for a locked one). Plain data-badge-id + one delegated
+      // listener on the whole list (see badgesModalList's click listener
+      // below) rather than rewriting this function's simple string-
+      // template rendering into createElement/addEventListener per row.
+      return `<div class="badge-row badge-earned">
+        <span class="badge-icon">🏅</span>
+        <div class="badge-row-text"><strong>${def.label}</strong><span>${def.desc} — earned ${dateStr}</span></div>
+        <button type="button" class="share-btn-icon badge-share-btn" data-badge-id="${def.id}" aria-label="Share this badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+        </button>
+      </div>`;
+    }
+    return `<div class="badge-row badge-locked">
+      <span class="badge-icon">🔒</span>
+      <div class="badge-row-text"><strong>${def.label}</strong><span>${def.desc} — ${progress} / ${def.threshold}</span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- APP ONLY — Phase 2 (idea 45): richer push notifications ----------------
+   Reuses the daily reminder's existing LocalNotifications plumbing rather
+   than a second system — same permission model (asked once, via the daily
+   reminder's own flow in Settings; every trigger below just checks whether
+   permission is already granted and silently does nothing if not, never
+   re-prompting on its own). Distinct numeric ids per trigger, since
+   scheduling an id that's already in use replaces it rather than adding a
+   second notification — DAILY_REMINDER_ID (1) already existed; these are
+   new. Kept top-level (not nested in initApp(), unlike
+   initReminderSettingsToggle() which wires the actual Settings toggles) —
+   checkForNewBadges() and checkPendingRead() are also top-level and need
+   to call into this directly. */
+const NEW_CONFERENCE_NOTIF_ID = 2;
+const STREAK_RISK_NOTIF_ID = 3;
+const WEEKLY_CFM_REMINDER_ID = 4;
+const MILESTONE_NOTIF_ID_BASE = 100; // + BADGE_DEFS index, so up to 10 distinct milestone ids without colliding with anything above
+const WEEKLY_CFM_ENABLED_KEY = 'findATalkWeeklyCfmReminderEnabled';
+
+async function getGrantedLocalNotifications(){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return null;
+  const LocalNotifications = cap.Plugins && cap.Plugins.LocalNotifications;
+  if (!LocalNotifications) return null;
+  try {
+    const perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== 'granted') return null; // never re-prompt from a background trigger — permission is only ever asked via the reminder toggles
+  } catch(err){ return null; }
+  return LocalNotifications;
+}
+
+/* Trigger 1: "New conference is live!" — fired from loadData()'s existing
+   background remote-refresh check (see the comment above REMOTE_DATA_URL's
+   fetch further down), the moment more talks exist remotely than are
+   currently loaded in this session. A real new conference is the only
+   thing that grows the talk count — a data correction/fix to existing
+   talks wouldn't — so this is a cheap, reliable enough signal without
+   needing to diff conference lists. One-time, not recurring. */
+async function notifyNewConference(){
+  const LocalNotifications = await getGrantedLocalNotifications();
+  if (!LocalNotifications) return;
+  try {
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: NEW_CONFERENCE_NOTIF_ID,
+        title: 'FindATalk',
+        body: 'A new conference is live! Tap to explore the newest talks.',
+        schedule: { at: new Date(Date.now() + 1000) }
+      }]
+    });
+  } catch(err){ /* not fatal */ }
+}
+
+/* Trigger 2: streak-at-risk nudge. LocalNotifications can't evaluate live
+   app state at delivery time — whatever title/body/time is scheduled is
+   exactly what fires, no conditional logic — so this works by
+   re-evaluating "is a nudge warranted?" every time it's called (on
+   foreground, via watchForStreakRisk() below, and right after the streak
+   is credited, via checkPendingRead()) and either (re)scheduling a
+   same-day one-time notification with the current streak count baked into
+   the message, or cancelling a stale one if the person already engaged
+   today or has no active streak to protect. Always the same fixed id, so
+   each call safely replaces (or removes) whatever was there before rather
+   than accumulating duplicates. */
+async function updateStreakRiskNotification(){
+  const LocalNotifications = await getGrantedLocalNotifications();
+  if (!LocalNotifications) return;
+  try {
+    const streak = loadStreak();
+    const today = localDateSeed();
+    const atRisk = streak.count > 0 && streak.lastDate !== today;
+    if (!atRisk){
+      await LocalNotifications.cancel({ notifications: [{ id: STREAK_RISK_NOTIF_ID }] });
+      return;
+    }
+    const fireAt = new Date();
+    fireAt.setHours(20, 0, 0, 0); // 8pm local — late enough to be a real "still time tonight" nudge, not premature
+    if (fireAt.getTime() <= Date.now()){
+      // Already past 8pm with no credit yet today — nothing useful left to
+      // schedule for today; clear any stale prior-day entry instead.
+      await LocalNotifications.cancel({ notifications: [{ id: STREAK_RISK_NOTIF_ID }] });
+      return;
+    }
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: STREAK_RISK_NOTIF_ID,
+        title: 'FindATalk',
+        body: `Don't lose your ${streak.count}-day streak — study a talk before midnight!`,
+        schedule: { at: fireAt, allowWhileIdle: true }
+      }]
+    });
+  } catch(err){ /* not fatal */ }
+}
+/* Shared "on return to foreground" registration — covers BOTH triggers,
+   since only one of them is reliable per platform:
+   - `visibilitychange` — correct and sufficient on the web build (opening
+     a talk link in a new tab genuinely does hide the original tab, per
+     the Page Visibility API).
+   - Capacitor's native `App` plugin's `resume` event — the reliable
+     native-app-foreground signal. Confirmed via real device testing
+     (chrome://inspect on a real Android build, not just the web preview)
+     that `visibilitychange` DOES NOT reliably fire on native Android when
+     a talk link opens an external browser via an Android Intent — 0
+     visibilitychange events observed across a real open-wait-return
+     cycle, so the read/streak-credit gate, day-rollover check, and
+     streak-risk notification were all silently never firing on native.
+     `App.resume` is what several native-lifecycle features in this app
+     (day rollover, the read/streak gate, streak-risk notifications) now
+     actually depend on to work at all outside the web build.
+   Both listeners stay registered together, harmlessly — the callbacks
+   this feeds (checkPendingRead(), the day-rollover check,
+   updateStreakRiskNotification()) are all safe to call more than once in
+   a row (they check their own state and no-op if there's nothing to do),
+   so no risk of double-firing if a browser somehow fired both. */
+function onForeground(callback){
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState !== 'visible') return;
+    callback();
+  });
+  const cap = window.Capacitor;
+  if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
+    cap.Plugins.App.addListener('resume', callback);
+  }
+}
+
+function watchForStreakRisk(){
+  onForeground(updateStreakRiskNotification);
+}
+
+/* Trigger 3: weekly Come Follow Me reminder — a second, separately opt-in
+   recurring notification (own Settings toggle, #weeklyCfmReminderToggle,
+   wired in initReminderSettingsToggle()), same schedule.on recurring-
+   trigger mechanism scheduleDailyReminder() already uses, just with
+   `weekday` added. Sunday 9:00am local, fixed (not user-configurable yet,
+   unlike the Daily Reminder's time picker) — a deliberately smaller first
+   pass; see idea 45 notes if that's wanted later. weekday:1 = Sunday per
+   Capacitor's LocalNotifications convention (1=Sunday..7=Saturday,
+   confirmed against the plugin's own docs, not assumed). */
+async function scheduleWeeklyCfmReminder(LocalNotifications){
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: WEEKLY_CFM_REMINDER_ID,
+      title: 'FindATalk',
+      body: "Talks that support this week's Come, Follow Me are ready — tap to explore.",
+      schedule: { on: { weekday: 1, hour: 9, minute: 0 }, allowWhileIdle: true }
+    }]
+  });
+}
+
+/* Trigger 4: milestone achieved. Fired alongside (not instead of) the
+   in-app celebration modal built in Phase 1 (see checkForNewBadges() just
+   above), since that modal only helps if the person is still looking at
+   the app right when it appears; this covers them seeing it later even if
+   they'd already backgrounded the app. Per-badge id (MILESTONE_NOTIF_ID_BASE
+   + its BADGE_DEFS index) so earning several at once produces several real
+   notifications, not one overwriting another. */
+async function notifyMilestoneAchieved(def){
+  const LocalNotifications = await getGrantedLocalNotifications();
+  if (!LocalNotifications) return;
+  try {
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: MILESTONE_NOTIF_ID_BASE + BADGE_DEFS.indexOf(def),
+        title: `🎉 ${def.label}`,
+        body: def.desc,
+        schedule: { at: new Date(Date.now() + 1000) }
+      }]
+    });
+  } catch(err){ /* not fatal */ }
 }
 
 function isFavorite(talk){ return favoriteKeys.has(talkKey(talk)); }
@@ -5386,7 +5869,11 @@ function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, o
     recordOpened(pick);
     refreshCount();
     if (recentZone.style.display === 'block') renderRecentPage();
-    readBadge.hidden = false; // opening it just marked it read — reflect that immediately
+    // Not marked read immediately anymore — see the "read/streak-credit
+    // integrity gate" comment above readKeys. This row's badge picks up
+    // the change on its next render (revisiting the page, etc.); no live
+    // in-place refresh here since checkPendingRead() fires later/globally
+    // and this specific row may not even still be on screen by then.
   });
   titleGroup.appendChild(titleLink);
 
@@ -5806,12 +6293,19 @@ function renderTalkOfTheDay(){
    on every return to the foreground; a no-op unless the local calendar
    date has actually moved on since the last render. */
 function watchForDayRollover(){
-  document.addEventListener('visibilitychange', ()=>{
-    if (document.visibilityState !== 'visible') return;
+  onForeground(()=>{
     if (lastRenderedDayNumber !== null && localDayNumber() === lastRenderedDayNumber) return;
     renderTalkOfTheDay();
     renderStreak();
   });
+}
+/* Separate listener from watchForDayRollover() above (different concern —
+   see the "streak-credit integrity gate" comment above readKeys) rather
+   than folding into it, so each stays single-purpose. Fires on every
+   return to the foreground, not just day changes, since a pending read
+   can be checked any time, same day or not. */
+function watchForPendingRead(){
+  onForeground(checkPendingRead);
 }
 
 /* ---------------- Daily reminder notification ----------------
@@ -5940,6 +6434,22 @@ async function setupDailyReminder(){
    to reschedule until it's on — and re-schedules the existing notification
    immediately on change, same replace-in-place behavior scheduleDailyReminder()
    already relies on elsewhere. */
+/* APP ONLY (idea 45, Phase 1) — unhides the "My Badges" row in Settings on
+   native only, same pattern as initReminderSettingsToggle() just below.
+   Unlike that one, badges don't depend on a specific Capacitor plugin —
+   just isNativePlatform() — since it's local data/UI only, no OS
+   permission or native API involved. */
+function initBadgesUI(){
+  const cap = window.Capacitor;
+  const section = document.getElementById('badgesSettingsSection');
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  section.hidden = false;
+  // Also catch any badges already earned before this exact code existed
+  // (e.g. a streak that already crossed 7 days pre-update) — run once on
+  // startup so nobody's missed milestone silently stays unearned forever.
+  checkForNewBadges();
+}
+
 async function initReminderSettingsToggle(){
   const cap = window.Capacitor;
   const section = document.getElementById('reminderSettingsSection');
@@ -5993,6 +6503,39 @@ async function initReminderSettingsToggle(){
     setReminderTime(h, m);
     if (!toggle.checked) return; // nothing scheduled to update yet
     try { await scheduleDailyReminder(LocalNotifications); } catch(err){ /* ignore */ }
+  });
+
+  // Phase 2 (idea 45) — Weekly Come Follow Me Reminder toggle. Same
+  // section, same LocalNotifications instance already resolved above,
+  // deliberately its own opt-in default-off state (WEEKLY_CFM_ENABLED_KEY)
+  // rather than tied to the Daily Reminder toggle — a different
+  // commitment someone might want independently of the daily one.
+  const weeklyCfmToggle = document.getElementById('weeklyCfmReminderToggle');
+  try {
+    const perm = await LocalNotifications.checkPermissions();
+    weeklyCfmToggle.checked = perm.display === 'granted' &&
+      localStorage.getItem(WEEKLY_CFM_ENABLED_KEY) === '1';
+  } catch(err){ weeklyCfmToggle.checked = false; }
+
+  weeklyCfmToggle.addEventListener('change', async ()=>{
+    const turningOn = weeklyCfmToggle.checked;
+    try {
+      if (turningOn){
+        let perm = await LocalNotifications.checkPermissions();
+        if (perm.display !== 'granted'){
+          perm = await LocalNotifications.requestPermissions();
+        }
+        if (perm.display !== 'granted'){
+          weeklyCfmToggle.checked = false; // OS-level denial
+          return;
+        }
+        await scheduleWeeklyCfmReminder(LocalNotifications);
+        try { localStorage.setItem(WEEKLY_CFM_ENABLED_KEY, '1'); } catch(err){ /* ignore */ }
+      } else {
+        await LocalNotifications.cancel({ notifications: [{ id: WEEKLY_CFM_REMINDER_ID }] });
+        try { localStorage.setItem(WEEKLY_CFM_ENABLED_KEY, '0'); } catch(err){ /* ignore */ }
+      }
+    } catch(err){ /* plugin unavailable, etc. — leave the switch as the user set it */ }
   });
 }
 // NOTE: the actual renderTalkOfTheDay() call happens at the very end of
@@ -6227,11 +6770,61 @@ async function copyText(text){
   }
 }
 
+/* Shared three-tier share mechanism, used by shareTalk() and shareText()
+   below. Tier order matters and was fixed for a real reason, not written
+   this way originally:
+   1. Capacitor's native Share plugin (window.Capacitor.Plugins.Share) —
+      this app already ships @capacitor/share as a real dependency
+      specifically for this. Capacitor does NOT auto-polyfill
+      navigator.share() to use it (confirmed against the plugin's own
+      docs) — it has to be called directly, or it just sits there unused.
+   2. navigator.share() (the Web Share API) — works on many mobile
+      browsers on the web build, where there's no native plugin to call.
+   3. Copy the FULL text to the clipboard — a real bug, not a design
+      choice, was found and fixed here: the previous version of this
+      function only ever copied the bare `url` in this fallback, silently
+      dropping the entire prefilled message. That's why a real-device test
+      showed "just a link, no message" — this app was falling all the way
+      through to tier 3 (no native Share call existed at all, and
+      navigator.share isn't reliably available in an Android WebView)
+      and hitting that bug. `text` is required and MUST already contain
+      the full message including any link that needs to survive a plain
+      clipboard paste — `url` is optional and only adds a second,
+      separately-structured link for platforms that show it specially
+      (e.g. iMessage's link preview card); it is never required for the
+      message to make sense on its own. */
+async function performShare({title, text, url}, btnEl){
+  const cap = window.Capacitor;
+  const NativeShare = cap && cap.Plugins && cap.Plugins.Share;
+  if (NativeShare){
+    try {
+      await NativeShare.share({ title, text, url, dialogTitle: 'Share' });
+      return;
+    } catch(err){ return; } // cancelled, or the plugin rejected — either way, no fallback needed on native
+  }
+  if (navigator.share){
+    try {
+      await navigator.share({ title, text, url });
+      return;
+    } catch(err){
+      // Person cancelling the native share sheet throws AbortError — that's a
+      // normal outcome, not a failure, so stay quiet. Anything else falls
+      // through to the copy fallback below.
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const copied = await copyText(text);
+  flashShareButton(btnEl, copied ? 'Copied!' : 'Copy failed');
+}
+
 async function shareTalk(pick, btnEl, context='other'){
   const [title, speaker] = pick;
   const url = talkUrl(pick);
 
-  // Build prefilled message based on context (native share only)
+  // Build prefilled message based on context. The url is embedded
+  // directly in the text (not left to the separate `url` param alone) so
+  // it's guaranteed to survive every tier, including a plain clipboard
+  // copy — see performShare()'s comment above for why that matters.
   let shareText;
   if (context === 'totd'){
     shareText = `I thought of you while studying today's Talk of the Day. Check it out: ${url} (via FindATalk)`;
@@ -6239,21 +6832,7 @@ async function shareTalk(pick, btnEl, context='other'){
     shareText = `I found this talk and thought of you. Check it out: ${url} (via FindATalk)`;
   }
 
-  if (navigator.share){
-    try {
-      // Use prefilled message for native share (URL must be separate parameter)
-      await navigator.share({ title, text: shareText, url });
-      return;
-    } catch(err){
-      // Person cancelling the native share sheet throws AbortError — that's a
-      // normal outcome, not a failure, so stay quiet. Anything else (e.g. the
-      // browser advertises navigator.share but rejects this particular call)
-      // falls through to the copy-link fallback below.
-      if (err && err.name === 'AbortError') return;
-    }
-  }
-  const copied = await copyText(url);
-  flashShareButton(btnEl, copied ? 'Link copied!' : 'Copy failed');
+  await performShare({ title, text: shareText, url }, btnEl);
 }
 /* Briefly swaps a share button's content to a confirmation message, then
    restores its original icon. The ticket's share button and every list
@@ -6274,12 +6853,45 @@ function flashShareButton(btnEl, message){
   btnEl.dataset.flashTimer = String(timer);
 }
 
+// The real, live domain (idea 40) — used as the structured `url` param for
+// streak/badge/list shares, so there's a genuine, functional link back to
+// the app in every one of them (see shareText() below for why it's also
+// embedded directly in the text, not left to this field alone).
+const FINDATALK_URL = 'https://findatalk.com';
+
+/* Phase 3 (idea 45) — generic plain-text share, for things that aren't a
+   single talk (streak, a milestone, a whole list) so don't have their own
+   per-item `url` the way shareTalk() does. Routes through performShare()
+   just like shareTalk() does — same native-Share-first, then
+   navigator.share, then full-text-clipboard-copy tiers.
+   `url` defaults to FINDATALK_URL — a real link back to the app is
+   included by default rather than needing every call site to remember
+   it, since that's what these three share types are all supposed to
+   include per how idea 45's copy was scoped. */
+async function shareText(text, btnEl, url = FINDATALK_URL){
+  await performShare({ text, url }, btnEl);
+}
+
 const shareBtn = document.getElementById('shareBtn');
 shareBtn.addEventListener('click', ()=>{
   if (!lastPicked) return;
   // Check if the ticket is showing today's Talk of the Day
   const isTotd = lastPicked && lastPicked === talkOfTheDay();
   shareTalk(lastPicked, shareBtn, isTotd ? 'totd' : 'other');
+});
+
+/* Phase 3 (idea 45) — share current streak. Same branding pattern as
+   shareTalk()'s messages, just no separate url — the streak isn't a page
+   anyone else can visit (yet — see idea 45's deep-linking gap notes for
+   what a future upgrade could look like). */
+const streakShareBtn = document.getElementById('streakShareBtn');
+streakShareBtn.addEventListener('click', ()=>{
+  const streak = loadStreak();
+  if (streak.count <= 0) return;
+  const text = streak.count === 1
+    ? `I just started a streak on FindATalk! 🔥 ${FINDATALK_URL}`
+    : `I'm on a ${streak.count}-day streak on FindATalk! 🔥 ${FINDATALK_URL}`;
+  shareText(text, streakShareBtn);
 });
 
 /* ---------------- Recently Viewed / Favorites / My Lists pages ---------------- */
@@ -7377,6 +7989,106 @@ const collectionSearchFieldEl = document.getElementById('collectionSearchField')
 const collectionSortRowEl = document.getElementById('collectionSortToggle').closest('.filters-actions');
 const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=> renderCollectionPage(currentCollectionId));
 const collectionSearch = createSearchBox(document.getElementById('collectionQuery'), document.getElementById('collectionQueryClear'), ()=> renderCollectionPage(currentCollectionId));
+/* Phase 3 (idea 45) — "share a list": a formatted text snapshot (talk
+   titles + real churchofjesuschrist.org links) capped at LIST_SHARE_MAX so
+   a big list doesn't produce an unwieldy message, PLUS a real deep link
+   back to the app (see buildListShareUrl() below) — someone with the app
+   installed can tap it to open a read-only preview of this exact list,
+   not just read the text. */
+const LIST_SHARE_MAX = 20;
+
+/* Encodes a list into a real, shareable findatalk.com URL. Talk keys
+   (year|month|slug), not TALKS array indices — deliberately, since a key
+   is self-describing and stays correct even if data.json's talk order
+   ever changes, where an index would silently point at the wrong talk.
+   URLSearchParams handles all the percent-encoding (the `|` in each key,
+   spaces/punctuation in the list name), so this never hand-rolls escaping.
+   Same LIST_SHARE_MAX cap as the text share, for the same reason — a
+   huge list would make an unwieldy URL, not just an unwieldy message. */
+function buildListShareUrl(col){
+  const keys = (collectionMembers[col.id] || []).slice(0, LIST_SHARE_MAX);
+  const params = new URLSearchParams();
+  params.set('list', keys.join(','));
+  params.set('name', col.name);
+  return `${FINDATALK_URL}/?${params.toString()}`;
+}
+
+function buildListShareText(col){
+  const keys = collectionMembers[col.id] || [];
+  const picks = keys.map(k=> TALKS_BY_KEY[k]).filter(Boolean);
+  const shown = picks.slice(0, LIST_SHARE_MAX);
+  const lines = shown.map((pick, i)=>{
+    const [title, speaker] = pick;
+    return `${i+1}. "${title}" — ${speaker}\n   ${talkUrl(pick)}`;
+  });
+  let text = `My "${col.name}" list from FindATalk:\n\n${lines.join('\n\n')}`;
+  if (picks.length > LIST_SHARE_MAX) text += `\n\n+ ${picks.length - LIST_SHARE_MAX} more`;
+  text += `\n\n${buildListShareUrl(col)}`;
+  return text;
+}
+
+/* Phase 3 (idea 45) deep-link upgrade — the other half of
+   buildListShareUrl() above: given a URL someone actually opened (or
+   tapped into the app), pulls out `list`/`name` and resolves real talk
+   objects. Guarded, never throws: an unparseable URL, a missing `list`
+   param, or a list whose keys don't resolve to any real talk (stale link,
+   corrupted, or from a future data.json this copy doesn't have yet) all
+   just return null — same "missing data means nothing shows" philosophy
+   as every other guarded lookup in this file, not a crash. */
+function parseSharedListFromUrl(urlString){
+  let params;
+  try { params = new URL(urlString).searchParams; }
+  catch(err){ return null; }
+  const rawList = params.get('list');
+  if (!rawList) return null;
+  const talks = rawList.split(',').map(k=> TALKS_BY_KEY[k]).filter(Boolean);
+  if (!talks.length) return null;
+  return { name: params.get('name') || 'Shared List', talks };
+}
+
+// The talks currently shown in the shared-list preview — read by
+// sharedListSaveBtn's click handler below, since openCollectionModalFor()
+// needs the real talk array, not just whatever's on screen.
+let sharedListPreviewTalks = [];
+function openSharedListModal({name, talks}){
+  sharedListPreviewTalks = talks;
+  document.getElementById('sharedListModalTitle').textContent = name;
+  const count = talks.length;
+  document.getElementById('sharedListModalSubtitle').textContent =
+    `Someone shared ${count} talk${count===1?'':'s'} with you from FindATalk. Nothing is saved to your own lists until you choose to.`;
+  const itemsEl = document.getElementById('sharedListModalItems');
+  itemsEl.innerHTML = '';
+  talks.forEach(pick=> itemsEl.appendChild(buildListItemRow(pick)));
+  document.getElementById('sharedListModalOverlay').hidden = false;
+}
+function closeSharedListModal(){
+  document.getElementById('sharedListModalOverlay').hidden = true;
+}
+document.getElementById('sharedListModalClose').addEventListener('click', closeSharedListModal);
+document.getElementById('sharedListModalOverlay').addEventListener('click', (e)=>{
+  if (e.target === document.getElementById('sharedListModalOverlay')) closeSharedListModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !document.getElementById('sharedListModalOverlay').hidden) closeSharedListModal();
+});
+// Reuses the existing "Add to a List" modal (same one every other "add to
+// a list" entry point in the app uses) rather than a bespoke save flow —
+// lets someone add these into a brand-new list or an existing one, same
+// as anywhere else.
+document.getElementById('sharedListSaveBtn').addEventListener('click', ()=>{
+  if (!sharedListPreviewTalks.length) return;
+  closeSharedListModal();
+  openCollectionModalFor(sharedListPreviewTalks);
+});
+
+/* Shared by both routing paths below (web on-load, native appUrlOpen) —
+   the one place that actually decides "does this URL point at a shared
+   list, and if so, show it." */
+function checkForSharedListLink(urlString){
+  const parsed = parseSharedListFromUrl(urlString);
+  if (parsed) openSharedListModal(parsed);
+}
+
 function renderCollectionPage(id){
   currentCollectionId = id;
   const col = collections.find(c=> c.id === id);
@@ -7452,6 +8164,22 @@ function renderCollectionsIndexPage(){
     main.appendChild(countEl);
     main.addEventListener('click', ()=>{ renderCollectionPage(col.id); showZone('collection'); });
     row.appendChild(main);
+
+    // Phase 3 (idea 45) — share a list. Real DOM/addEventListener here
+    // (unlike renderBadgesList()'s delegated approach), since this
+    // function already builds each row with createElement, so a direct
+    // closure over `col` is simplest and consistent with the rest of this
+    // function.
+    const listShareBtn = document.createElement('button');
+    listShareBtn.type = 'button';
+    listShareBtn.className = 'share-btn-icon';
+    listShareBtn.setAttribute('aria-label', `Share "${col.name}"`);
+    listShareBtn.innerHTML = SHARE_ICON_SVG;
+    listShareBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      shareText(buildListShareText(col), listShareBtn, buildListShareUrl(col));
+    });
+    row.appendChild(listShareBtn);
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
@@ -8143,9 +8871,58 @@ attachCalendarSwipe(cfmCalGrid, cfmCalPrevBtn, cfmCalNextBtn);
 renderTalkOfTheDay();
 renderStreak();
 watchForDayRollover();
+watchForPendingRead();
+watchForStreakRisk();
 setupDailyReminder();
 initReminderSettingsToggle();
+initBadgesUI();
+// Phase 3 (idea 45) — share a milestone. Delegated (renderBadgesList()
+// rebuilds #badgesModalList's innerHTML from a plain string template, so
+// a per-row listener would just get thrown away on every re-render) — one
+// listener on the container, matched by the badge-share-btn class and its
+// data-badge-id. Attached here (inside initApp(), not near the rest of
+// the badges-modal wiring further up the file) specifically so it can see
+// shareText() — that whole "share" subsystem lives inside initApp()'s
+// closure, unlike BADGE_DEFS/renderBadgesList() which are top-level; a
+// listener attached outside initApp() genuinely cannot reach it. Caught
+// live as a real ReferenceError before landing here — see idea 45's notes.
+document.getElementById('badgesModalList').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.badge-share-btn');
+  if (!btn) return;
+  const def = BADGE_DEFS.find(d=> d.id === btn.dataset.badgeId);
+  if (!def) return;
+  shareText(`I just earned the "${def.label}" badge on FindATalk! 🎉 ${FINDATALK_URL}`, btn);
+});
+updateStreakRiskNotification(); // Phase 2 (idea 45) — also check once on startup, not just on later foregrounds, in case a streak is already at risk from before this exact code existed
 maybeShowOnboarding();
+
+/* Phase 3 (idea 45) deep-link routing — the two real entry points a
+   shared-list link can arrive through:
+   - Web: the page just loaded WITH a ?list=... in its own URL (someone
+     followed the link straight to findatalk.com in a browser, no app
+     involved). Checked once, here, after TALKS_BY_KEY exists. The URL is
+     cleaned up afterward via replaceState so refreshing the page doesn't
+     re-trigger the preview and the address bar doesn't keep the params
+     dangling once they've been consumed.
+   - Native: the app was already running (or launches) because a
+     findatalk.com link was tapped and idea 40's Universal/App Links
+     mechanism opened it — Capacitor's App plugin fires `appUrlOpen` with
+     the real URL that opened it. Registered here, native-only. NOTE: not
+     yet verified on a real device whether Capacitor buffers this event
+     for a cold start (app not already running) until this listener
+     attaches, or whether it can be missed if the JS bridge isn't ready in
+     time — worth a real cold-start test, not just a resume-from-
+     background one, before trusting this fully. */
+checkForSharedListLink(window.location.href);
+if (window.location.search){
+  history.replaceState(null, '', window.location.pathname);
+}
+const cap = window.Capacitor;
+if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
+  cap.Plugins.App.addListener('appUrlOpen', (data)=>{
+    if (data && data.url) checkForSharedListLink(data.url);
+  });
+}
 }
 
 /* ---------------------------------------------------------------
@@ -8353,7 +9130,19 @@ async function loadData(){
   if (REMOTE_DATA_URL){
     fetch(REMOTE_DATA_URL, {cache:'no-store'})
       .then(res => res.ok ? res.json() : Promise.reject())
-      .then(data => { if (data.generatedAt !== currentGeneratedAt) cacheData(data); })
+      .then(data => {
+        if (data.generatedAt === currentGeneratedAt) return;
+        cacheData(data);
+        // Phase 2 (idea 45) — "New conference is live!" A real new
+        // conference is the only thing that grows the talk count (a data
+        // correction/fix to existing talks wouldn't), so this is a cheap,
+        // reliable enough signal without diffing conference lists. TALKS
+        // is this session's already-applied copy (from the cache/bundle
+        // fast path above), so comparing against it — not the old
+        // currentGeneratedAt cache object — reflects what THIS session
+        // actually has loaded right now.
+        if (Array.isArray(data.talks) && TALKS && data.talks.length > TALKS.length) notifyNewConference();
+      })
       .catch(()=>{ /* offline or remote unreachable — keep what's cached */ });
   }
 }
