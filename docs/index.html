@@ -649,8 +649,8 @@
      visual language as .settings-row/-text just above (Inter, --ink/
      --ink-soft) so this doesn't feel like a bolted-on second system. */
   .badges-list{ display:flex; flex-direction:column; gap:14px; }
-  .badge-row{ display:flex; align-items:flex-start; gap:12px; }
-  .badge-icon{ font-size:22px; line-height:1; flex-shrink:0; margin-top:1px; }
+  .badge-row{ display:flex; align-items:center; gap:12px; }
+  .badge-icon{ font-size:22px; line-height:1; flex-shrink:0; }
   .badge-row-text strong{
     display:block;
     font-family:'Inter',sans-serif; font-size:14.5px; font-weight:600; color:var(--ink);
@@ -712,6 +712,14 @@
      syncStreakShareBtn() in the script), same [hidden] rule needed since
      it's a flex child now, not just relying on the badge's own display. */
   #streakShareBtn[hidden]{ display:none; }
+  /* .streak-badge carries its own margin-top (see below) for spacing
+     above the TOTD card, but that margin isn't mirrored on this button —
+     since align-items:center on the row centers each child's full margin
+     box, that asymmetry was enough to visibly throw the button's center
+     off from the pill's. Matching margin-top here (nothing else about
+     this button's size/position differs) restores true center alignment
+     between the two. */
+  #streakShareBtn{ margin-top:14px; }
   .streak-badge[hidden]{ display:none; }
   .streak-badge{
     display:inline-flex;
@@ -1960,6 +1968,14 @@
   .collection-row-count{
     font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); flex-shrink:0;
   }
+  /* The share button sits directly in .collection-row (align-items:stretch)
+     between .collection-row-main and .collection-row-delete — with an
+     explicit width/height (see .share-btn-icon) it doesn't stretch, but
+     "stretch" still positions a non-stretching item at the cross-axis
+     start (top) rather than centering it, hence align-self here. Right
+     margin gives it breathing room before the delete button's own
+     left border, instead of the two visually crowding each other. */
+  .collection-row > .share-btn-icon{ align-self:center; margin-right:12px; }
   .collection-row-delete{
     flex-shrink:0;
     width:48px;

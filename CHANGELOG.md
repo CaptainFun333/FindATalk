@@ -33,6 +33,7 @@ this updated.
 - Fixed the native share sheet showing every link twice (once in the message, once appended again) when sharing a talk, your streak, a badge, or a list.
 - Fixed the "read" checkmark not showing up next to a talk in Show a List, Recently Viewed, Favorites, or My Lists after reading it, even though it correctly showed up on the talk itself — it now updates right away in every list it appears in, without needing to leave and come back to that page.
 - Fixed a newly created list (including one created while adding talks from a shared list link) not showing up on the My Lists page until you left and came back — it now appears right away.
+- Fixed the share button not being vertically centered next to the streak pill, in each row on My Lists, and next to a badge's icon in My Badges — it was sitting noticeably higher/lower than the thing it's next to in all three spots.
 
 ## [1.4.1] — 2026-09-02
 
