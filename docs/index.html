@@ -4361,13 +4361,40 @@ async function getGrantedLocalNotifications(){
   return LocalNotifications;
 }
 
+/* Quiet-hours gate, shared by any notification that shouldn't wake someone
+   up or interrupt a late night just because a background check happened to
+   run then. Window is [windowStartHour, windowEndHour) local time — end
+   hour is exclusive, matching how the streak-risk nudge already treats
+   8pm (20) as its own cutoff elsewhere in this file, so "8pm" consistently
+   means "quiet hours start now," not "one more minute of daytime."
+   Returns "fire almost immediately" (now + 1s) when called inside the
+   window, otherwise the NEXT occurrence of windowStartHour:00 — same day
+   if it's still to come (e.g. a 3am trigger waits for 9am *today*), next
+   day if today's window has already closed (e.g. a 9:30pm trigger waits
+   for 9am *tomorrow*). Deliberately "next occurrence," not "always +1
+   calendar day" — a strict next-day rule would leave an early-morning
+   trigger (say 12:01am) sitting unnecessarily long, most of a day past
+   the actual 9am it could have used instead. */
+function nextQuietHoursTime(windowStartHour, windowEndHour){
+  const now = new Date();
+  const hour = now.getHours();
+  if (hour >= windowStartHour && hour < windowEndHour) return new Date(now.getTime() + 1000);
+  const next = new Date(now);
+  next.setHours(windowStartHour, 0, 0, 0);
+  if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+  return next;
+}
+
 /* Trigger 1: "New conference is live!" — fired from loadData()'s existing
    background remote-refresh check (see the comment above REMOTE_DATA_URL's
    fetch further down), the moment more talks exist remotely than are
    currently loaded in this session. A real new conference is the only
    thing that grows the talk count — a data correction/fix to existing
    talks wouldn't — so this is a cheap, reliable enough signal without
-   needing to diff conference lists. One-time, not recurring. */
+   needing to diff conference lists. One-time, not recurring.
+   Quiet-hours gated (9am–8pm local, see nextQuietHoursTime() above) — a
+   new conference detected outside that window waits for the next 9am
+   rather than pinging at 2am. */
 async function notifyNewConference(){
   const LocalNotifications = await getGrantedLocalNotifications();
   if (!LocalNotifications) return;
@@ -4377,7 +4404,7 @@ async function notifyNewConference(){
         id: NEW_CONFERENCE_NOTIF_ID,
         title: 'FindATalk',
         body: 'A new conference is live! Tap to explore the newest talks.',
-        schedule: { at: new Date(Date.now() + 1000) }
+        schedule: { at: nextQuietHoursTime(9, 20), allowWhileIdle: true }
       }]
     });
   } catch(err){ /* not fatal */ }
