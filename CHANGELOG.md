@@ -17,6 +17,9 @@ this updated.
 - The website is now configured to be reachable at findatalk.com (in addition to its existing GitHub Pages address) as part of an in-progress domain move.
 - The app (native and web alike) now checks findatalk.com for new conference data going forward, instead of the old GitHub Pages address — the domain move is now fully live.
 
+### Fixed
+- Creating a new list from the "Add to a List" popup now briefly confirms it worked ("Added 1 talk!") instead of the only sign being a new, easy-to-miss checked row — most noticeable the first time you create a list from a talk.
+
 ## [1.4.1] — 2026-09-02
 
 ### Added

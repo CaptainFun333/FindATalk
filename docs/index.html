@@ -7872,7 +7872,8 @@ collectionModalOverlay.addEventListener('click', (e)=>{
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !collectionModalOverlay.hidden) closeCollectionModal();
 });
-document.getElementById('newCollectionBtn').addEventListener('click', ()=>{
+const newCollectionBtn = document.getElementById('newCollectionBtn');
+newCollectionBtn.addEventListener('click', ()=>{
   const name = newCollectionInput.value.trim();
   if (!name || !collectionModalTalks.length) return;
   const id = createCollection(name);
@@ -7880,9 +7881,15 @@ document.getElementById('newCollectionBtn').addEventListener('click', ()=>{
   newCollectionInput.value = '';
   renderCollectionModalList();
   collectionModalTalks.forEach(t=> refreshCollectionBadgesFor(t));
+  // Idea 41: creating a list + adding the first talk(s) to it was entirely
+  // passive feedback before this (just a new checked row quietly appearing
+  // in the panel above) — flash the same confirmation language the Share
+  // button already uses elsewhere, so it's unambiguous the click worked.
+  const n = collectionModalTalks.length;
+  flashShareButton(newCollectionBtn, `✓ Added ${n} talk${n === 1 ? '' : 's'}!`);
 });
 newCollectionInput.addEventListener('keydown', (e)=>{
-  if (e.key === 'Enter') document.getElementById('newCollectionBtn').click();
+  if (e.key === 'Enter') newCollectionBtn.click();
 });
 
 /* ---------------- citation "destination" popup (idea 33, extended) ----
