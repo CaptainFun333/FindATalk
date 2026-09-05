@@ -49,7 +49,7 @@ KEEP TRACK
 BUILT ON REAL DATA
 Every topic tag comes from the Church's own official general-conference topics index — not guessed from titles. Callings are tagged for the specific conference the talk was given at, so a talk from someone's years as a Seventy shows as Seventy, even if they were later called as an Apostle.
 
-Everything runs on your device. No accounts, no ads, no analytics, no tracking — see the full privacy policy in-app or at captainfun333.github.io/find-a-talk/privacy.html.
+Everything runs on your device. No accounts, no ads, no analytics, no tracking — see the full privacy policy in-app or at findatalk.com/privacy.html.
 
 FindATalk is an independent, fan-made tool. It is not produced by, endorsed by, or affiliated with The Church of Jesus Christ of Latter-day Saints. For the complete official library, visit churchofjesuschrist.org/study/general-conference.
 ```
@@ -64,7 +64,7 @@ general conference,lds,talk,gospel,church,scripture,mormon,latter-day,seventy,ap
 
 **Support URL** (required)
 ```
-https://captainfun333.github.io/find-a-talk/
+https://findatalk.com
 ```
 Consider adding a `support.html` (or a short section on the main page)
 if you want something more explicit than the app's own homepage — not
@@ -72,12 +72,12 @@ required to launch.
 
 **Marketing URL** (optional)
 ```
-https://captainfun333.github.io/find-a-talk/
+https://findatalk.com
 ```
 
 **Privacy Policy URL** (required)
 ```
-https://captainfun333.github.io/find-a-talk/privacy.html
+https://findatalk.com/privacy.html
 ```
 
 **Category**
@@ -143,12 +143,12 @@ Lifestyle (or Books & Reference)
 **Contact details**
 ```
 Email: b.christensen333@gmail.com
-Website: https://captainfun333.github.io/find-a-talk/
+Website: https://findatalk.com
 ```
 
 **Privacy Policy URL** (required)
 ```
-https://captainfun333.github.io/find-a-talk/privacy.html
+https://findatalk.com/privacy.html
 ```
 
 **Data safety form**: same answer as Apple's — no data collected, no data
