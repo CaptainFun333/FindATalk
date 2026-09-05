@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.5.1] — 2026-09-05
+
 ### Added
 - You can now rename a list from the My Lists page — tap the new pencil icon next to Share and Delete on any list.
 
