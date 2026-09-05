@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- Fixed shared findatalk.com links (a talk, streak, badge, or list) opening in the browser instead of the app on phones that installed the app from Play Store — Play App Signing re-signs the app with a certificate that wasn't yet listed as trusted.
 
 ## [1.5.3] — 2026-09-05
 
