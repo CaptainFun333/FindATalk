@@ -1984,6 +1984,45 @@
     font-size:20px; color:var(--ink-soft);
   }
   .collection-row-delete:hover{ color:var(--burgundy); background:var(--tint); }
+  /* Rename (pencil) sits before Share, same small icon-button treatment —
+     see .collection-row > .share-btn-icon above for why align-self:center
+     is needed on a non-stretching flex child here. */
+  .collection-row > .collection-row-rename{ align-self:center; margin-right:8px; }
+  /* Edit mode replaces the whole row's normal content (main button + rename
+     + share + delete) with this instead — kept as a sibling structure
+     rather than nesting an <input> inside .collection-row-main's <button>,
+     since interactive content inside a <button> is invalid HTML and would
+     also fire the button's own "navigate to this list" click handler via
+     event bubbling. */
+  .collection-row-edit{
+    flex:1; min-width:0;
+    display:flex; align-items:center; gap:8px;
+    padding:12px 14px;
+  }
+  .collection-row-edit input{
+    flex:1; min-width:0;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink); /* see #querySearch's comment on iOS zoom-on-focus */
+  }
+  .collection-row-edit button{
+    flex-shrink:0;
+    width:36px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:4px; cursor:pointer;
+  }
+  .collection-row-edit-save{
+    background:var(--accent-fill); color:var(--on-accent); border:none;
+  }
+  .collection-row-edit-save:hover{ background:var(--accent-fill-hover); }
+  .collection-row-edit-save svg{ width:16px; height:16px; }
+  .collection-row-edit-cancel{
+    background:none; color:var(--ink-soft); border:1px solid var(--line);
+    font-size:18px;
+  }
+  .collection-row-edit-cancel:hover{ color:var(--burgundy); background:var(--tint); }
 
   .list-item-speaker{
     font-family:'Inter',sans-serif;
@@ -4584,6 +4623,16 @@ function deleteCollection(id){
   delete collectionMembers[id];
   saveCollections();
   saveCollectionMembers();
+}
+/* Renames a list in place — membership, id, and updatedAt are untouched,
+   only `name` changes. Caller (renderCollectionsIndexPage's edit-mode UI)
+   is responsible for trimming/validating the new name isn't empty before
+   calling this. */
+function renameCollection(id, newName){
+  const col = collections.find(c=> c.id === id);
+  if (!col) return;
+  col.name = newName;
+  saveCollections();
 }
 function isInCollection(id, talk){
   return (collectionMembers[id] || []).includes(talkKey(talk));
@@ -8419,6 +8468,12 @@ function visibleCollections(){
   return list;
 }
 
+// Set to a collection's id while its row is showing the inline rename
+// editor (see the edit-mode branch inside renderCollectionsIndexPage's
+// forEach); null the rest of the time. Only one row can be in edit mode
+// at once — starting a new edit implicitly cancels any other in-progress
+// one on the next render.
+let editingCollectionId = null;
 function renderCollectionsIndexPage(){
   const listEl = document.getElementById('collectionsIndexList');
   const emptyEl = document.getElementById('collectionsIndexEmpty');
@@ -8448,6 +8503,52 @@ function renderCollectionsIndexPage(){
     const row = document.createElement('div');
     row.className = 'collection-row';
 
+    if (editingCollectionId === col.id){
+      const editWrap = document.createElement('div');
+      editWrap.className = 'collection-row-edit';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = col.name;
+      input.setAttribute('aria-label', 'List name');
+      editWrap.appendChild(input);
+
+      const exitEdit = ()=>{ editingCollectionId = null; renderCollectionsIndexPage(); };
+      const commit = ()=>{
+        const trimmed = input.value.trim();
+        if (trimmed) renameCollection(col.id, trimmed);
+        exitEdit();
+      };
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'collection-row-edit-save';
+      saveBtn.setAttribute('aria-label', 'Save name');
+      saveBtn.innerHTML = CHECK_ICON_SVG;
+      saveBtn.addEventListener('click', commit);
+      editWrap.appendChild(saveBtn);
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'collection-row-edit-cancel';
+      cancelBtn.setAttribute('aria-label', 'Cancel');
+      cancelBtn.textContent = '×';
+      cancelBtn.addEventListener('click', exitEdit);
+      editWrap.appendChild(cancelBtn);
+
+      input.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter') commit();
+        else if (e.key === 'Escape') exitEdit();
+      });
+
+      row.appendChild(editWrap);
+      listEl.appendChild(row);
+      // Row wasn't in the DOM yet when this ran — defer focus/select to
+      // the next frame so it actually lands once appendChild takes effect.
+      requestAnimationFrame(()=>{ input.focus(); input.select(); });
+      return;
+    }
+
     const main = document.createElement('button');
     main.type = 'button';
     main.className = 'collection-row-main';
@@ -8462,6 +8563,18 @@ function renderCollectionsIndexPage(){
     main.appendChild(countEl);
     main.addEventListener('click', ()=>{ renderCollectionPage(col.id); showZone('collection'); });
     row.appendChild(main);
+
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.className = 'share-btn-icon collection-row-rename';
+    renameBtn.setAttribute('aria-label', `Rename "${col.name}"`);
+    renameBtn.innerHTML = NOTE_ICON_SVG;
+    renameBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      editingCollectionId = col.id;
+      renderCollectionsIndexPage();
+    });
+    row.appendChild(renameBtn);
 
     // Phase 3 (idea 45) — share a list. Real DOM/addEventListener here
     // (unlike renderBadgesList()'s delegated approach), since this
