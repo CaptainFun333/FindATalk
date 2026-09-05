@@ -12,6 +12,11 @@ this updated.
 
 Nothing yet.
 
+## [1.5.3] — 2026-09-05
+
+### Fixed
+- Android: the 1.5.2 build shipped without last-minute fixes (the list rename feature and the Monday Come, Follow Me reminder fix below) due to a packaging issue — both are correctly included now.
+
 ## [1.5.2] — 2026-09-05
 
 ### Fixed
