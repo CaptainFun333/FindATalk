@@ -12,6 +12,11 @@ this updated.
 
 Nothing yet.
 
+## [1.5.2] — 2026-09-05
+
+### Fixed
+- The opt-in Weekly Come Follow Me Reminder now arrives Monday morning instead of Sunday — Monday is when each week's Come, Follow Me reading (and the app's own "this week" match) actually starts.
+
 ## [1.5.1] — 2026-09-05
 
 ### Added
@@ -23,7 +28,7 @@ Nothing yet.
 - Added a notice on the old website address (not shown on findatalk.com itself, and not shown inside the app) letting anyone who still lands there know FindATalk has moved to findatalk.com, with a one-tap "Back Up Now" button, since favorites/notes/lists/streak saved in a browser won't automatically carry over to the new address.
 - Tapping a findatalk.com link will now open the app directly instead of your browser, if the app is installed (requires a new app build to take effect — not live for existing installs until then).
 - App-exclusive: earn badges for streak milestones (7/30/100/365 days) and reading milestones (10/50/100/250/500/1,000 talks), with a celebration the moment you earn one and a "My Badges" page in Settings to look back at everything you've earned. Not available on the website.
-- App-exclusive: a few new notifications, on top of the existing Daily Reminder — one when a new conference goes live, one nudging you if a streak is about to lapse for the day, and one the moment you earn a badge. Also added an opt-in Weekly Come Follow Me Reminder (Sunday mornings) in Settings, separate from the Daily Reminder.
+- App-exclusive: a few new notifications, on top of the existing Daily Reminder — one when a new conference goes live, one nudging you if a streak is about to lapse for the day, and one the moment you earn a badge. Also added an opt-in Weekly Come Follow Me Reminder (Monday mornings) in Settings, separate from the Daily Reminder.
 - Share your current streak from the streak badge, share a badge you've earned from "My Badges," and share a whole list from the My Lists page — as a short message with one real findatalk.com link. Anyone who opens it (with the app installed, or just in a browser) lands on their own Lists page and is asked to confirm before anything is added — they'll see how many talks are in it first. Nothing is ever added automatically just from opening a shared link.
 - Tapping "A new conference is live!" now takes you straight to that conference's talks instead of plain Home, and tapping the Weekly Come Follow Me Reminder opens straight into the "Come, Follow Me" tab.
 - Recently Viewed and Favorites now support selecting several talks at once (with a "Select All") to add them to a list together, the same way Show a List and "Come, Follow Me" already worked.

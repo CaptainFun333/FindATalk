@@ -4529,18 +4529,21 @@ function watchForStreakRisk(){
    recurring notification (own Settings toggle, #weeklyCfmReminderToggle,
    wired in initReminderSettingsToggle()), same schedule.on recurring-
    trigger mechanism scheduleDailyReminder() already uses, just with
-   `weekday` added. Sunday 9:00am local, fixed (not user-configurable yet,
+   `weekday` added. Monday 9:00am local, fixed (not user-configurable yet,
    unlike the Daily Reminder's time picker) — a deliberately smaller first
-   pass; see idea 45 notes if that's wanted later. weekday:1 = Sunday per
+   pass; see idea 45 notes if that's wanted later. weekday:2 = Monday per
    Capacitor's LocalNotifications convention (1=Sunday..7=Saturday,
-   confirmed against the plugin's own docs, not assumed). */
+   confirmed against the plugin's own docs, not assumed) — matches the
+   actual CFM_SCHEDULE data, where every week's `start` date is a Monday,
+   so this fires the same morning the new week's reading (and the app's
+   own "this week" match) actually rolls over, not the day before. */
 async function scheduleWeeklyCfmReminder(LocalNotifications){
   await LocalNotifications.schedule({
     notifications: [{
       id: WEEKLY_CFM_REMINDER_ID,
       title: 'FindATalk',
       body: "Talks that support this week's Come, Follow Me are ready — tap to explore.",
-      schedule: { on: { weekday: 1, hour: 9, minute: 0 }, allowWhileIdle: true }
+      schedule: { on: { weekday: 2, hour: 9, minute: 0 }, allowWhileIdle: true }
     }]
   });
 }
