@@ -821,6 +821,12 @@
      once the header text correctly says "matches" (plural, the common
      case) rather than the shorter "match" a first pass assumed. */
   .narrow-box-header .sort-toggle-btn{ padding:5px 9px; font-size:12px; }
+  /* CFM's count+toggle+reset row (idea 49, extended) — unlike Home's
+     narrow-box-header, allowed to wrap rather than forced onto one line,
+     since CFM's match count varies a lot week to week instead of sitting
+     near a predictable digit count. */
+  .cfm-count-actions{ flex-wrap:wrap; row-gap:10px; }
+  .cfm-count-toggle{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; row-gap:8px; }
   .narrow-box-header .nb-icon{
     width:26px; height:26px; border-radius:50%; flex-shrink:0;
     background:var(--tint); color:var(--brass);
@@ -2737,8 +2743,21 @@
             </div>
           </div>
         </div>
-        <div class="filters-actions">
-          <div class="pool-count pool-count-inline" id="cfmMatchCount"></div>
+        <!-- Idea 49, extended to CFM: same All/Unread/Read toggle as Home,
+             but CFM's match count varies week-to-week (a handful of talks
+             some weeks, a couple hundred others) rather than sitting near
+             a fixed digit count like Home's, so this row is allowed to
+             wrap onto two lines (cfm-count-actions below) instead of
+             forcing a tight one-line fit that could break on a bad week. -->
+        <div class="filters-actions cfm-count-actions">
+          <div class="cfm-count-toggle">
+            <div class="pool-count pool-count-inline" id="cfmMatchCount"></div>
+            <div class="sort-toggle" id="cfmReadStatusToggle" role="group" aria-label="Read status">
+              <button type="button" class="sort-toggle-btn is-active" data-cfm-read-status="">All</button>
+              <button type="button" class="sort-toggle-btn" data-cfm-read-status="unread">Unread</button>
+              <button type="button" class="sort-toggle-btn" data-cfm-read-status="read">Read</button>
+            </div>
+          </div>
           <button type="button" id="cfmResetBtn" class="reset-link">Reset filters</button>
         </div>
       </div>
@@ -3988,6 +4007,9 @@ let onTicketReadBadgeSync = null;
 // that indentation is misleading), so top-level checkPendingRead() can't
 // call it directly any more than it could call syncReadBadge() directly.
 let onNeedRefreshCount = null;
+// Same again for cfmRefreshResults() (idea 49, extended to CFM) — also
+// confirmed nested inside initApp() by the same brace-depth check.
+let onNeedCfmRefresh = null;
 /* Real-device testing found the read/streak credit still wasn't firing
    even after the App.resume fix (see onForeground()'s own comment) — kept
    as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
@@ -4122,6 +4144,7 @@ function checkPendingRead(){
   // above), so this goes through the same onNeedRefreshCount indirection,
   // not a direct call — cheap even when Home isn't the visible zone.
   if (onNeedRefreshCount) onNeedRefreshCount();
+  if (onNeedCfmRefresh) onNeedCfmRefresh(); // same, for CFM's own Read/Unread toggle
   // syncReadBadge() itself lives inside initApp()'s closure (it needs
   // lastPicked/ticketReadBadge, both nested there too) — checkPendingRead()
   // is top-level and can't call it directly. A REAL bug, not a hypothetical:
@@ -5450,8 +5473,13 @@ function matchesCiteSearch(t){
    select) — a segmented toggle in the narrow-box header, not a filter
    tile. filterState.readStatus holds at most one value: '' (or missing)
    means All, 'unread', or 'read'. */
-function matchesReadStatus(t){
-  const want = filterState.readStatus[0];
+// Takes the read-status array as a parameter rather than closing over
+// filterState directly — CFM has its own fully independent
+// CFM_FILTER_STATE (same pattern as every other filter dimension being
+// duplicated, not shared, between Home and CFM), so this is shared logic,
+// not shared state.
+function matchesReadStatus(t, readStatus){
+  const want = readStatus[0];
   if (!want) return true;
   return want === 'read' ? isRead(t) : !isRead(t);
 }
@@ -5461,11 +5489,11 @@ function poolExcept(excludeDim){
       if (dim===excludeDim) continue;
       if (!matchesDim(t, dim, filterState[dim])) return false;
     }
-    return matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t);
+    return matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t, filterState.readStatus);
   });
 }
 function currentPool(){
-  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t));
+  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t, filterState.readStatus));
 }
 function valuesForDim(pool, dim){
   const set = new Set();
@@ -7770,7 +7798,7 @@ cfmThisWeekBtn.addEventListener('click', ()=> cfmGoToWeek(cfmWeekIndexForDate())
    renderOptions/rebuildFilterOptions), since that part genuinely is a
    different page with different elements — but nothing about WHAT
    counts as a match is duplicated, only how it's displayed. */
-const CFM_FILTER_STATE = { year: [], speaker: [], topic: [], role: [], session: [] };
+const CFM_FILTER_STATE = { year: [], speaker: [], topic: [], role: [], session: [], readStatus: [] };
 const CFM_DIM_CONFIG = {
   topic: {
     allValues: allTopics, anyLabel:'Any topic', noun:'topics', searchable:true,
@@ -7824,7 +7852,7 @@ function cfmPoolExcept(excludeDim){
       if (dim===excludeDim) continue;
       if (!matchesDim(t, dim, CFM_FILTER_STATE[dim])) return false;
     }
-    return true;
+    return matchesReadStatus(t, CFM_FILTER_STATE.readStatus);
   });
 }
 // Filtering never reorders — cfmBaseMatches() already comes out in the
@@ -7834,7 +7862,7 @@ function cfmPoolExcept(excludeDim){
 function cfmFilteredMatches(){
   return cfmBaseMatches().filter(m=>{
     const t = TALKS_BY_KEY[m.talkKey];
-    return t && Object.keys(CFM_DIM_CONFIG).every(dim=>matchesDim(t, dim, CFM_FILTER_STATE[dim]));
+    return t && Object.keys(CFM_DIM_CONFIG).every(dim=>matchesDim(t, dim, CFM_FILTER_STATE[dim])) && matchesReadStatus(t, CFM_FILTER_STATE.readStatus);
   });
 }
 function cfmRenderOptions(dim){
@@ -7948,7 +7976,24 @@ document.addEventListener('keydown', (e)=>{
 });
 document.getElementById('cfmResetBtn').addEventListener('click', ()=>{
   Object.keys(CFM_DIM_CONFIG).forEach(dim=>{ CFM_FILTER_STATE[dim] = []; });
+  CFM_FILTER_STATE.readStatus = [];
+  cfmSyncReadStatusToggle();
   cfmOnFiltersChanged();
+});
+/* Idea 49, extended to CFM — same single-select toggle pattern as Home's
+   readStatusToggle, independent CFM_FILTER_STATE. */
+const cfmReadStatusButtons = [...document.getElementById('cfmReadStatusToggle').querySelectorAll('[data-cfm-read-status]')];
+function cfmSyncReadStatusToggle(){
+  const current = CFM_FILTER_STATE.readStatus[0] || '';
+  cfmReadStatusButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.cfmReadStatus === current));
+}
+cfmReadStatusButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const value = btn.dataset.cfmReadStatus;
+    CFM_FILTER_STATE.readStatus = value ? [value] : [];
+    cfmSyncReadStatusToggle();
+    cfmOnFiltersChanged();
+  });
 });
 function cfmOnFiltersChanged(){
   // A changed filter means a genuinely different pool — same reasoning
@@ -8069,6 +8114,13 @@ cfmListNextBtn.addEventListener('click', ()=>{
    week change by itself (renderCfmPage() calls this once after setting
    up the new week's header/link, see below). */
 function cfmRefreshResults(){
+  // Idea 49: now reachable from checkPendingRead() via onNeedCfmRefresh,
+  // which can fire before the CFM page has ever been visited this session
+  // (cfmCurrentIndex still null) — guard rather than let `entry.refs`
+  // below throw on `CFM_SCHEDULE[null]`. Nothing to refresh yet in that
+  // case; renderCfmPage() sets cfmCurrentIndex and calls this itself the
+  // first time CFM is actually opened.
+  if (cfmCurrentIndex === null) return;
   const entry = CFM_SCHEDULE[cfmCurrentIndex];
 
   if (!entry.refs && !entry.topics && !entry.keywords){
@@ -8109,7 +8161,10 @@ function cfmRefreshResults(){
     cfmItemsEl.innerHTML = '';
     cfmItemsEl.style.display = 'none';
     cfmEmptyEl.style.display = 'block';
-    cfmEmptyEl.textContent = "No talks match this week's reading and your filters — try clearing one.";
+    const cfmReadScope = CFM_FILTER_STATE.readStatus[0] === 'unread' ? 'unread talks'
+      : CFM_FILTER_STATE.readStatus[0] === 'read' ? 'read talks'
+      : 'talks';
+    cfmEmptyEl.textContent = `No ${cfmReadScope} match this week's reading and your filters — try clearing one.`;
     cfmSelectFirstBtn.hidden = true;
     cfmSelectAllBtn.hidden = true;
     cfmPagination.style.display = 'none';
@@ -8219,6 +8274,7 @@ function cfmRefreshResults(){
   }
   syncCfmBulkBar();
 }
+onNeedCfmRefresh = cfmRefreshResults; // registers with checkPendingRead() — see that top-level slot's own comment
 
 function renderCfmPage(){
   if (!CFM_SCHEDULE.length){
