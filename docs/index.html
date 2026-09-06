@@ -832,6 +832,17 @@
     font-weight:600;
   }
   .field{ position:relative; }
+  /* idea 50: Conference + Session share one grid cell as two half-width
+     triggers instead of Session getting an orphaned row to itself — each
+     .field-half keeps its own position:relative (needed so its .ms-panel
+     still anchors to itself, not to the shared wrapper) and stays a fully
+     independent filter, just narrower. Verified against the real
+     .ms-option width at this size (~150px) with the shortened
+     SESSION_LABELS/monthAbbrev() labels before shipping this — the
+     original full labels ("Saturday Afternoon", "April 2026") would have
+     clipped at this width. */
+  .field-pair{ display:flex; gap:8px; }
+  .field-pair .field-half{ flex:1; min-width:0; position:relative; }
 
   /* ---------- multi-select trigger + panel ---------- */
   .ms-trigger{
@@ -2348,26 +2359,36 @@
             <div class="ms-panel-footer"><button type="button" class="ms-clear" id="speakerClear">Clear</button></div>
           </div>
         </div>
-        <div class="field">
-          <label id="yearLabel">General Conference</label>
-          <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
-            <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
-            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div class="ms-panel" id="yearPanel" hidden>
-            <div class="ms-options" id="yearOptions"></div>
-            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
+        <!-- idea 50: Conference + Session share one grid cell (two
+             half-width triggers) instead of Session sitting alone on its
+             own row — both stay fully independent filters underneath,
+             only the layout changed. Labels shortened to fit: "General
+             Conference"→"Conference", session values got their own short
+             forms (see SESSION_LABELS), and this filter's month name uses
+             monthAbbrev() instead of monthName() (only here — the ticket/
+             list-row month display elsewhere is untouched). -->
+        <div class="field field-pair">
+          <div class="field-half">
+            <label id="yearLabel">Conference</label>
+            <button type="button" class="ms-trigger" id="yearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="yearLabel yearTriggerText">
+              <span class="ms-trigger-text" id="yearTriggerText">Any Conference</span>
+              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="ms-panel" id="yearPanel" hidden>
+              <div class="ms-options" id="yearOptions"></div>
+              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="yearClear">Clear</button></div>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label id="sessionLabel">Session</label>
-          <button type="button" class="ms-trigger" id="sessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="sessionLabel sessionTriggerText">
-            <span class="ms-trigger-text" id="sessionTriggerText">Any Session</span>
-            <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div class="ms-panel" id="sessionPanel" hidden>
-            <div class="ms-options" id="sessionOptions"></div>
-            <div class="ms-panel-footer"><button type="button" class="ms-clear" id="sessionClear">Clear</button></div>
+          <div class="field-half">
+            <label id="sessionLabel">Session</label>
+            <button type="button" class="ms-trigger" id="sessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="sessionLabel sessionTriggerText">
+              <span class="ms-trigger-text" id="sessionTriggerText">Any Session</span>
+              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="ms-panel" id="sessionPanel" hidden>
+              <div class="ms-options" id="sessionOptions"></div>
+              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="sessionClear">Clear</button></div>
+            </div>
           </div>
         </div>
       </div>
@@ -3377,6 +3398,12 @@ function talkUrl([,,y,m,slug]){
   return `https://www.churchofjesuschrist.org/study/general-conference/${y}/${m}/${slug}?lang=eng`;
 }
 function monthName(m){ return m === "04" ? "April" : "October"; }
+// Short form (idea 50), used ONLY by Home's Conference filter label, now
+// that it shares a grid cell with Session and needs to fit at half-width.
+// Deliberately NOT used by monthName()'s other callers (the ticket/list-
+// row "April 1995 General Conference" display) — those aren't space-
+// constrained and read better with the full month name.
+function monthAbbrev(m){ return m === "04" ? "Apr" : "Oct"; }
 /* Canonical display order for the role keys, most senior first — shared
    by the main Calling filter and the Recent/Favorites pages' own subset
    filters below, so both list roles in the same order. */
@@ -3401,11 +3428,16 @@ function talkKey(talk){ return `${talk[2]}|${talk[3]}|${talk[4]}`; }
    Order here is display order, oldest-in-the-day first, "other" last —
    matching the pattern ROLE_ORDER already sets above. */
 const SESSION_ORDER = ["sat-am","sat-pm","sat-evening","sun-am","sun-pm","priesthood","womens","other"];
+// Shortened (idea 50) so these fit once Session shares a grid cell with
+// Conference — measured against the real .ms-option width at that layout,
+// zero clipping. Only ever read by the Home/CFM filter panels (grep-
+// confirmed no other display surface uses SESSION_LABELS), so this is
+// safe to shorten directly rather than needing a separate short-form copy.
 const SESSION_LABELS = {
-  "sat-am": "Saturday Morning", "sat-pm": "Saturday Afternoon",
-  "sat-evening": "Saturday Evening (post-2020)",
-  "sun-am": "Sunday Morning", "sun-pm": "Sunday Afternoon",
-  "priesthood": "General Priesthood", "womens": "General Women’s",
+  "sat-am": "Sat AM", "sat-pm": "Sat PM",
+  "sat-evening": "Sat Evening",
+  "sun-am": "Sun AM", "sun-pm": "Sun PM",
+  "priesthood": "Priesthood", "womens": "Women’s",
   "other": "Other"
 };
 let SESSION_LOOKUP;
@@ -5412,7 +5444,7 @@ const DIM_CONFIG = {
   },
   year: {
     allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
-    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
+    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthAbbrev(m)} ${y}`; },
     trigger: document.getElementById('yearTrigger'), triggerText: document.getElementById('yearTriggerText'),
     panel: document.getElementById('yearPanel'), options: document.getElementById('yearOptions'),
     search: null, clearBtn: document.getElementById('yearClear')
