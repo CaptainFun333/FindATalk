@@ -8397,6 +8397,46 @@ let cfmCalViewDate = null;
 function cfmScheduleStartIso(){ return CFM_SCHEDULE.length ? CFM_SCHEDULE[0].start : null; }
 function cfmScheduleEndIso(){ return CFM_SCHEDULE.length ? localIsoDate(cfmWeekEndDate(CFM_SCHEDULE.length - 1)) : null; }
 
+/* Visual confirmation before actually jumping — same "show, don't just do"
+   spirit as the "Added 1 talk!" list-add confirmation. Sequentially
+   highlights each day of the selected week (reusing TOTD calendar's own
+   .is-selected fill, not a new visual language) so the whole week visibly
+   "draws in" across the row, pauses once fully lit, then navigates.
+   Only animates whichever of the week's 7 days are visible in the
+   CURRENTLY shown month — a week spanning two months just plays a shorter
+   partial sequence for the visible half, since the calendar is only an
+   entry point (the real week is set correctly regardless of how much of
+   it happened to render). Respects prefers-reduced-motion by skipping
+   straight to navigating. */
+function animateCfmWeekSelection(index){
+  const entry = CFM_SCHEDULE[index];
+  if (!entry){ return; }
+  const startIso = entry.start;
+  const endIso = localIsoDate(cfmWeekEndDate(index));
+  const dayBtns = [...cfmCalGrid.querySelectorAll('.totd-calendar-day:not(.is-empty)')]
+    .filter(b => b.dataset.dateKey >= startIso && b.dataset.dateKey <= endIso)
+    .sort((a, b) => a.dataset.dateKey < b.dataset.dateKey ? -1 : 1);
+
+  const finish = ()=>{
+    cfmGoToWeek(index);
+    closeCfmCalendarModal();
+  };
+
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion || !dayBtns.length){ finish(); return; }
+
+  // Disable every day button so a second click can't stack another
+  // animation mid-sequence — also has the nice side effect of visually
+  // dimming the rest of the grid while this week draws in.
+  cfmCalGrid.querySelectorAll('.totd-calendar-day').forEach(b => { b.disabled = true; });
+
+  const STEP_MS = 80, PAUSE_MS = 350;
+  dayBtns.forEach((btn, i)=>{
+    setTimeout(()=> btn.classList.add('is-selected'), i * STEP_MS);
+  });
+  setTimeout(finish, dayBtns.length * STEP_MS + PAUSE_MS);
+}
+
 function renderCfmCalendar(){
   const y = cfmCalViewDate.getFullYear();
   const m = cfmCalViewDate.getMonth();
@@ -8440,12 +8480,10 @@ function renderCfmCalendar(){
     if (curStartIso && dateKey >= curStartIso && dateKey <= curEndIso) btn.classList.add('is-cfm-week');
     btn.textContent = String(day);
     btn.disabled = !inSchedule;
+    btn.dataset.dateKey = dateKey; // read back by animateCfmWeekSelection() below
     if (inSchedule){
       btn.setAttribute('aria-label', `Jump to the Come, Follow Me week covering ${dateKey}`);
-      btn.addEventListener('click', ()=>{
-        cfmGoToWeek(cfmWeekIndexForDate(new Date(y, m, day)));
-        closeCfmCalendarModal();
-      });
+      btn.addEventListener('click', ()=> animateCfmWeekSelection(cfmWeekIndexForDate(new Date(y, m, day))));
     }
     cfmCalGrid.appendChild(btn);
   }
