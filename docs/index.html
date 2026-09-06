@@ -795,7 +795,7 @@
     overflow:hidden;
   }
   .narrow-box-header{
-    display:flex; align-items:center; gap:9px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:14px 18px;
     border-bottom:1px solid var(--line);
     font-family:'Inter',sans-serif;
@@ -803,6 +803,24 @@
     font-size:13.5px;
     color:var(--ink);
   }
+  /* Idea 49: icon+text used to be the header's only content, laid out
+     directly on .narrow-box-header itself; now it shares the row with
+     the read-status toggle, so it's its own flex group instead — same
+     gap it always had, just moved down a level. min-width:0 lets it
+     actually shrink instead of forcing the toggle off the end. */
+  .narrow-box-header .nb-header-text{
+    display:flex; align-items:center; gap:9px; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .narrow-box-header .sort-toggle{ flex-shrink:0; }
+  /* Scoped denser sizing for THIS toggle only, not a change to
+     .sort-toggle-btn itself (Show a List's Random/Most Recent etc. keep
+     their existing size) — measured live against the real header padding
+     and the real pluralized "N matches" text: the default button padding
+     left this ~15px short of fitting on one line at a real 375px phone,
+     once the header text correctly says "matches" (plural, the common
+     case) rather than the shorter "match" a first pass assumed. */
+  .narrow-box-header .sort-toggle-btn{ padding:5px 9px; font-size:12px; }
   .narrow-box-header .nb-icon{
     width:26px; height:26px; border-radius:50%; flex-shrink:0;
     background:var(--tint); color:var(--brass);
@@ -2319,8 +2337,20 @@
 
   <div class="narrow-box">
     <div class="narrow-box-header" id="narrowBoxHeader">
-      <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
-      <span id="narrowBoxHeaderText">Looking for something more specific?</span>
+      <div class="nb-header-text">
+        <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
+        <span id="narrowBoxHeaderText">Looking for something more specific?</span>
+      </div>
+      <!-- Idea 49: Read/Unread, folded into this header rather than a
+           7th filter tile — see matchesReadStatus()'s comment for why.
+           Reuses .sort-toggle/.sort-toggle-btn verbatim (same component
+           already used for Show a List's Random/Most Recent, etc.), not
+           a new toggle style. -->
+      <div class="sort-toggle" id="readStatusToggle" role="group" aria-label="Read status">
+        <button type="button" class="sort-toggle-btn is-active" data-read-status="">All</button>
+        <button type="button" class="sort-toggle-btn" data-read-status="unread">Unread</button>
+        <button type="button" class="sort-toggle-btn" data-read-status="read">Read</button>
+      </div>
     </div>
     <div class="narrow-box-body">
       <div class="filters">
@@ -3952,6 +3982,12 @@ let pendingReadDepartedAt = 0;
 // can't see inside initApp()'s closure — can still trigger it without a
 // direct, always-broken reference to a name it can never actually resolve.
 let onTicketReadBadgeSync = null;
+// Same indirection, same reason, for refreshCount() (idea 49) — it's also
+// nested inside initApp()'s closure (confirmed by real brace-depth
+// tracking, not assumed from its zero-indent appearance in the source —
+// that indentation is misleading), so top-level checkPendingRead() can't
+// call it directly any more than it could call syncReadBadge() directly.
+let onNeedRefreshCount = null;
 /* Real-device testing found the read/streak credit still wasn't firing
    even after the App.resume fix (see onForeground()'s own comment) — kept
    as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
@@ -4079,6 +4115,13 @@ function checkPendingRead(){
   if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
   markRead(talk);
   refreshReadBadgesFor(talk); // list-row "Read" badges (Show a List, Recently Viewed, Favorites, My Lists, TOTD, CFM) — the ticket's own badge is handled separately below via onTicketReadBadgeSync
+  // Idea 49: Read/Unread filter — a talk just marked read needs to drop
+  // out of an active "Unread" filter (or appear under "Read") without
+  // waiting for the person to touch a filter themselves. refreshCount()
+  // is nested inside initApp()'s closure (same situation as syncReadBadge
+  // above), so this goes through the same onNeedRefreshCount indirection,
+  // not a direct call — cheap even when Home isn't the visible zone.
+  if (onNeedRefreshCount) onNeedRefreshCount();
   // syncReadBadge() itself lives inside initApp()'s closure (it needs
   // lastPicked/ticketReadBadge, both nested there too) — checkPendingRead()
   // is top-level and can't call it directly. A REAL bug, not a hypothetical:
@@ -5273,7 +5316,7 @@ function sortByConferenceDate(picks){
    membership test against recentKeys/favoriteKeys, not a talk property,
    so it needed its own special-cased branch in matchesDim()/valuesForDim()
    rather than fitting the generic pattern the other dims use. */
-const filterState = { year: [], speaker: [], topic: [], role: [], session: [], query: '', citeQuery: '' };
+const filterState = { year: [], speaker: [], topic: [], role: [], session: [], query: '', citeQuery: '', readStatus: [] };
 
 // "Show a List" pagination state — declared up here (not down by the rest
 // of the list-pagination code) because refreshCount() resets it on every
@@ -5399,17 +5442,30 @@ function matchesCiteSearch(t){
   if (talkCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
   return talkHymnCitations(t).some(c=>c.ref.toLowerCase().includes(q));
 }
+/* Idea 49 — Read/Unread. Deliberately NOT a DIM_CONFIG dimension: every
+   other dim is a fixed property of the talk data (its topic, its speaker),
+   with cascading-availability/checkbox-panel machinery built for exactly
+   that. Read status is live, per-device state that changes as talks are
+   actually read, and only ever has three states (All/Unread/Read, single-
+   select) — a segmented toggle in the narrow-box header, not a filter
+   tile. filterState.readStatus holds at most one value: '' (or missing)
+   means All, 'unread', or 'read'. */
+function matchesReadStatus(t){
+  const want = filterState.readStatus[0];
+  if (!want) return true;
+  return want === 'read' ? isRead(t) : !isRead(t);
+}
 function poolExcept(excludeDim){
   return TALKS.filter(t=>{
     for (const dim of Object.keys(DIM_CONFIG)){
       if (dim===excludeDim) continue;
       if (!matchesDim(t, dim, filterState[dim])) return false;
     }
-    return matchesSearch(t) && matchesCiteSearch(t);
+    return matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t);
   });
 }
 function currentPool(){
-  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t) && matchesCiteSearch(t));
+  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t));
 }
 function valuesForDim(pool, dim){
   const set = new Set();
@@ -5572,7 +5628,15 @@ function refreshCount(){
   const pool = currentPool();
   if (pool.length === 0){
     poolCountEl.textContent = '';
-    narrowBoxHeaderTextEl.textContent = 'No talks match — try widening a filter';
+    // Idea 49: read-status-aware empty message — filtering to Unread with
+    // everything already read (or Read with nothing read yet) is a real,
+    // reachable state, and "No talks match" alone would be a confusing
+    // thing to see while a filter you can't even see the effect of (it's
+    // not a checkbox in the panel below) is silently narrowing things.
+    const readScope = filterState.readStatus[0] === 'unread' ? 'unread talks'
+      : filterState.readStatus[0] === 'read' ? 'read talks'
+      : 'talks';
+    narrowBoxHeaderTextEl.textContent = `No ${readScope} match — try widening a filter`;
     noMatchEl.style.display = 'block';
     drawBtn.disabled = true;
     listBtn.disabled = true;
@@ -5586,7 +5650,14 @@ function refreshCount(){
     listBtn2.disabled = false;
     const matchPhrase = `<strong>${pool.length}</strong> talk${pool.length===1?'':'s'} match${pool.length===1?'es':''}`;
     poolCountEl.innerHTML = `${matchPhrase} right now`;
-    narrowBoxHeaderTextEl.innerHTML = `${matchPhrase} — narrow it down`;
+    // Idea 49: header copy shortened to just "<strong>N</strong> match(es)"
+    // — dropped "talks"/"right now"/"— narrow it down" (returning users
+    // already know what this box does; idea 35's onboarding tutorial
+    // covers that explanation for first-time users instead). This is what
+    // makes room for the read-status toggle to share the same line at
+    // real phone widths — measured against the real header padding before
+    // building this, see idea 49's notes for the numbers.
+    narrowBoxHeaderTextEl.innerHTML = `<strong>${pool.length}</strong> match${pool.length===1?'':'es'}`;
   }
   // Same count, shown twice (top header, bottom pill) — flash both
   // together on change so they read as one live figure, not two counts
@@ -5600,9 +5671,10 @@ function refreshCount(){
     });
   }
   lastPoolCount = pool.length;
-  resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim() && !filterState.citeQuery.trim();
+  resetBtn.disabled = !Object.keys(DIM_CONFIG).some(dim=>filterState[dim].length) && !filterState.query.trim() && !filterState.citeQuery.trim() && !filterState.readStatus.length;
   refreshQueryAliasHint();
 }
+onNeedRefreshCount = refreshCount; // registers with checkPendingRead() — see that top-level slot's own comment
 // Idea 25: shows/hides the "Also showing talks about X" note under the
 // title/kicker search box, kept in sync with filterState.query on every
 // refreshCount() call (typing, clearing, and Reset filters all flow
@@ -5682,7 +5754,30 @@ resetBtn.addEventListener('click', ()=>{
   filterState.citeQuery = '';
   citeQuerySearchEl.value = '';
   citeQueryClearBtn.hidden = true;
+  filterState.readStatus = [];
+  syncReadStatusToggle();
   refreshCount();
+});
+
+/* ---------------- Read/Unread toggle (idea 49) ----------------
+   Single-select, unlike the checkbox-panel dims — clicking a button
+   replaces filterState.readStatus outright rather than adding/removing
+   from it. '' (the "All" button's own data-read-status) clears the
+   filter entirely, matching how an empty array already means "no
+   restriction" for every other dim. */
+const readStatusToggleEl = document.getElementById('readStatusToggle');
+const readStatusButtons = [...readStatusToggleEl.querySelectorAll('[data-read-status]')];
+function syncReadStatusToggle(){
+  const current = filterState.readStatus[0] || '';
+  readStatusButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.readStatus === current));
+}
+readStatusButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const value = btn.dataset.readStatus;
+    filterState.readStatus = value ? [value] : [];
+    syncReadStatusToggle();
+    refreshCount();
+  });
 });
 
 /* ---------------- keyword search (title + kicker) ---------------- */
@@ -9367,15 +9462,25 @@ maybeShowOnboarding();
      cleaned up afterward via replaceState so refreshing the page doesn't
      re-trigger the preview and the address bar doesn't keep the params
      dangling once they've been consumed.
-   - Native: the app was already running (or launches) because a
-     findatalk.com link was tapped and idea 40's Universal/App Links
-     mechanism opened it — Capacitor's App plugin fires `appUrlOpen` with
-     the real URL that opened it. Registered here, native-only. NOTE: not
-     yet verified on a real device whether Capacitor buffers this event
-     for a cold start (app not already running) until this listener
-     attaches, or whether it can be missed if the JS bridge isn't ready in
-     time — worth a real cold-start test, not just a resume-from-
-     background one, before trusting this fully. */
+   - Native, already running: the app was in the background (or
+     foreground) when a findatalk.com link was tapped and idea 40's
+     Universal/App Links mechanism opened it — Capacitor's App plugin
+     fires `appUrlOpen` with the real URL that opened it.
+   - Native, cold start: a REAL bug, found via real-device testing on
+     iOS — a findatalk.com link that launches the app fresh (it wasn't
+     already running) opened the app but never showed the shared-list
+     dialog. `appUrlOpen` has no documented buffering/replay guarantee
+     for a listener that attaches after the event already fired (confirmed
+     against Capacitor's own docs — this was flagged as unverified, never
+     tested on a real cold start, when this was first built), so a cold
+     launch's URL is genuinely lost if the native side hands it off before
+     this listener is registered. Capacitor's own fix for exactly this
+     case is `App.getLaunchUrl()` — a separate, explicit call (not an
+     event) that returns the URL the app was cold-launched with, if any.
+     Calling both this and registering the listener below covers each
+     case; calling both for the same cold-launch URL (if that ever
+     happens) is harmless — checkForSharedListLink()/openSharedListModal()
+     are safe to run twice with identical input. */
 checkForSharedListLink(window.location.href);
 if (window.location.search){
   history.replaceState(null, '', window.location.pathname);
@@ -9385,6 +9490,9 @@ if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.
   cap.Plugins.App.addListener('appUrlOpen', (data)=>{
     if (data && data.url) checkForSharedListLink(data.url);
   });
+  cap.Plugins.App.getLaunchUrl().then((result)=>{
+    if (result && result.url) checkForSharedListLink(result.url);
+  }).catch(()=>{}); // not available on web/unsupported platform — nothing to do
 }
 /* Idea 46 — notification tap routing (see handleNotificationTap() above
    for what each id does). Registered the same way/place as appUrlOpen
