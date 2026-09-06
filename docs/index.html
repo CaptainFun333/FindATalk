@@ -8426,15 +8426,16 @@ function animateCfmWeekSelection(index){
   if (reduceMotion || !dayBtns.length){ finish(); return; }
 
   // Disable every day button so a second click can't stack another
-  // animation mid-sequence — also has the nice side effect of visually
-  // dimming the rest of the grid while this week draws in.
+  // animation mid-flight — also has the nice side effect of visually
+  // dimming the rest of the grid while this week is highlighted.
   cfmCalGrid.querySelectorAll('.totd-calendar-day').forEach(b => { b.disabled = true; });
 
-  const STEP_MS = 80, PAUSE_MS = 350;
-  dayBtns.forEach((btn, i)=>{
-    setTimeout(()=> btn.classList.add('is-selected'), i * STEP_MS);
-  });
-  setTimeout(finish, dayBtns.length * STEP_MS + PAUSE_MS);
+  // All days of the week light up together (not staggered one-at-a-time —
+  // tried that first, felt hokey per user feedback), held for PAUSE_MS so
+  // it registers as a confirmation, then navigates.
+  dayBtns.forEach(btn => btn.classList.add('is-selected'));
+  const PAUSE_MS = 400;
+  setTimeout(finish, PAUSE_MS);
 }
 
 function renderCfmCalendar(){
