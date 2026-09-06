@@ -2679,26 +2679,31 @@
               <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmSpeakerClear">Clear</button></div>
             </div>
           </div>
-          <div class="field">
-            <label id="cfmYearLabel">General Conference</label>
-            <button type="button" class="ms-trigger" id="cfmYearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmYearLabel cfmYearTriggerText">
-              <span class="ms-trigger-text" id="cfmYearTriggerText">Any Conference</span>
-              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <div class="ms-panel" id="cfmYearPanel" hidden>
-              <div class="ms-options" id="cfmYearOptions"></div>
-              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmYearClear">Clear</button></div>
+          <!-- idea 50, extended to CFM: same Conference+Session pairing
+               as Home, same reasoning (both stay fully independent, just
+               share one grid cell as two half-width triggers). -->
+          <div class="field field-pair">
+            <div class="field-half">
+              <label id="cfmYearLabel">Conference</label>
+              <button type="button" class="ms-trigger" id="cfmYearTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmYearLabel cfmYearTriggerText">
+                <span class="ms-trigger-text" id="cfmYearTriggerText">Any Conference</span>
+                <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="ms-panel" id="cfmYearPanel" hidden>
+                <div class="ms-options" id="cfmYearOptions"></div>
+                <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmYearClear">Clear</button></div>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label id="cfmSessionLabel">Session</label>
-            <button type="button" class="ms-trigger" id="cfmSessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmSessionLabel cfmSessionTriggerText">
-              <span class="ms-trigger-text" id="cfmSessionTriggerText">Any Session</span>
-              <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <div class="ms-panel" id="cfmSessionPanel" hidden>
-              <div class="ms-options" id="cfmSessionOptions"></div>
-              <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmSessionClear">Clear</button></div>
+            <div class="field-half">
+              <label id="cfmSessionLabel">Session</label>
+              <button type="button" class="ms-trigger" id="cfmSessionTrigger" aria-haspopup="true" aria-expanded="false" aria-labelledby="cfmSessionLabel cfmSessionTriggerText">
+                <span class="ms-trigger-text" id="cfmSessionTriggerText">Any Session</span>
+                <svg class="ms-chevron" viewBox="0 0 14 9" fill="none"><path d="M1 1l6 6 6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="ms-panel" id="cfmSessionPanel" hidden>
+                <div class="ms-options" id="cfmSessionOptions"></div>
+                <div class="ms-panel-footer"><button type="button" class="ms-clear" id="cfmSessionClear">Clear</button></div>
+              </div>
             </div>
           </div>
         </div>
@@ -3398,11 +3403,11 @@ function talkUrl([,,y,m,slug]){
   return `https://www.churchofjesuschrist.org/study/general-conference/${y}/${m}/${slug}?lang=eng`;
 }
 function monthName(m){ return m === "04" ? "April" : "October"; }
-// Short form (idea 50), used ONLY by Home's Conference filter label, now
-// that it shares a grid cell with Session and needs to fit at half-width.
-// Deliberately NOT used by monthName()'s other callers (the ticket/list-
-// row "April 1995 General Conference" display) — those aren't space-
-// constrained and read better with the full month name.
+// Short form (idea 50), used by Home's and CFM's Conference filter labels
+// now that each shares a grid cell with Session and needs to fit at
+// half-width. Deliberately NOT used by monthName()'s other callers (the
+// ticket/list-row "April 1995 General Conference" display) — those aren't
+// space-constrained and read better with the full month name.
 function monthAbbrev(m){ return m === "04" ? "Apr" : "Oct"; }
 /* Canonical display order for the role keys, most senior first — shared
    by the main Calling filter and the Recent/Favorites pages' own subset
@@ -7695,7 +7700,7 @@ const CFM_DIM_CONFIG = {
   },
   year: {
     allValues: allConfs, anyLabel:'Any Conference', noun:'conferences', searchable:false,
-    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthName(m)} ${y}`; },
+    labelFor: v=>{ const [y,m]=v.split('-'); return `${monthAbbrev(m)} ${y}`; },
     trigger: document.getElementById('cfmYearTrigger'), triggerText: document.getElementById('cfmYearTriggerText'),
     panel: document.getElementById('cfmYearPanel'), options: document.getElementById('cfmYearOptions'),
     search: null, clearBtn: document.getElementById('cfmYearClear')

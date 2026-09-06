@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Changed
-- On the Home filter panel, Conference and Session now sit side by side in one row instead of Session getting its own row below — shortened conference dates (e.g. "Apr 2026") and session names (e.g. "Sat AM", "Priesthood") to fit. Filtering behavior is unchanged, just the layout.
+- On the Home and Come, Follow Me filter panels, Conference and Session now sit side by side in one row instead of Session getting its own row below — shortened conference dates (e.g. "Apr 2026") and session names (e.g. "Sat AM", "Priesthood") to fit. Filtering behavior is unchanged, just the layout.
 
 ## [1.5.4] — 2026-09-05
 
