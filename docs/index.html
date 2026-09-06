@@ -2614,11 +2614,32 @@
     <div class="page-header">
       <h2 class="page-title" id="collectionTitle">List</h2>
     </div>
-    <div class="search-field" id="collectionSearchField">
-      <label id="collectionQueryLabel" for="collectionQuery">Search this list</label>
-      <div class="search-input-wrap">
-        <input type="text" id="collectionQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="collectionQueryLabel">
-        <button type="button" id="collectionQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+    <!-- Idea 49, extended a third time: same box treatment as Home/CFM —
+         icon + live count + All/Unread/Read toggle in the header, with
+         "Search this list" moved inside the body (where a filter field
+         like Topic would sit on Home). Different count wording than
+         Home/CFM's "matches" — "N talks" reads more naturally for a list
+         someone curated themselves, not a search/filter result. -->
+    <div class="narrow-box">
+      <div class="narrow-box-header" id="collectionNarrowBoxHeader">
+        <div class="nb-header-text">
+          <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
+          <span id="collectionNarrowBoxHeaderText"></span>
+        </div>
+        <div class="sort-toggle" id="collectionReadStatusToggle" role="group" aria-label="Read status">
+          <button type="button" class="sort-toggle-btn is-active" data-collection-read-status="">All</button>
+          <button type="button" class="sort-toggle-btn" data-collection-read-status="unread">Unread</button>
+          <button type="button" class="sort-toggle-btn" data-collection-read-status="read">Read</button>
+        </div>
+      </div>
+      <div class="narrow-box-body">
+        <div class="search-field" id="collectionSearchField">
+          <label id="collectionQueryLabel" for="collectionQuery">Search this list</label>
+          <div class="search-input-wrap">
+            <input type="text" id="collectionQuery" class="search-input" placeholder="Search by title, speaker, calling, or topic…" autocomplete="off" aria-labelledby="collectionQueryLabel">
+            <button type="button" id="collectionQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="filters-actions">
@@ -2627,7 +2648,10 @@
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
       </div>
     </div>
-    <div class="pool-count" id="collectionFilterCount"></div>
+    <!-- Superseded by the live header count above — kept only because
+         renderSubsetList() (shared with Recently Viewed/Favorites/My
+         Notes, which still show this text) writes to it unconditionally. -->
+    <div class="pool-count" id="collectionFilterCount" style="display:none"></div>
     <div class="list-items" id="collectionItems"></div>
     <div class="list-empty" id="collectionEmpty"></div>
   </div>
@@ -2668,9 +2692,19 @@
          no matching mechanism at all. -->
     <div id="cfmControlsBox">
     <div class="narrow-box">
-      <div class="narrow-box-header">
-        <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
-        <span>Want to narrow down these matches?</span>
+      <!-- Idea 49: matches Home's header exactly now — a live match count
+           instead of a static question, with the All/Unread/Read toggle
+           folded in the same way (moved up from the bottom row below). -->
+      <div class="narrow-box-header" id="cfmNarrowBoxHeader">
+        <div class="nb-header-text">
+          <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
+          <span id="cfmNarrowBoxHeaderText">Want to narrow down these matches?</span>
+        </div>
+        <div class="sort-toggle" id="cfmReadStatusToggle" role="group" aria-label="Read status">
+          <button type="button" class="sort-toggle-btn is-active" data-cfm-read-status="">All</button>
+          <button type="button" class="sort-toggle-btn" data-cfm-read-status="unread">Unread</button>
+          <button type="button" class="sort-toggle-btn" data-cfm-read-status="read">Read</button>
+        </div>
       </div>
       <div class="narrow-box-body">
         <div class="filters">
@@ -3988,6 +4022,15 @@ let onTicketReadBadgeSync = null;
 // that indentation is misleading), so top-level checkPendingRead() can't
 // call it directly any more than it could call syncReadBadge() directly.
 let onNeedRefreshCount = null;
+// Same again for cfmRefreshResults() (idea 49, extended to CFM) — also
+// confirmed nested inside initApp() by the same brace-depth check.
+let onNeedCfmRefresh = null;
+// Same again for renderCollectionPage() (idea 49, extended a third time
+// to a single List's own page) — also nested inside initApp(). Guarded
+// as a no-op (via a closure, not a bare function reference) when no list
+// is currently open, since unlike Home/CFM there's no single "current
+// pool" to refresh without knowing which list that is.
+let onNeedCollectionRefresh = null;
 /* Real-device testing found the read/streak credit still wasn't firing
    even after the App.resume fix (see onForeground()'s own comment) — kept
    as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
@@ -4122,6 +4165,8 @@ function checkPendingRead(){
   // above), so this goes through the same onNeedRefreshCount indirection,
   // not a direct call — cheap even when Home isn't the visible zone.
   if (onNeedRefreshCount) onNeedRefreshCount();
+  if (onNeedCfmRefresh) onNeedCfmRefresh(); // same, for CFM's own Read/Unread toggle
+  if (onNeedCollectionRefresh) onNeedCollectionRefresh(); // same, for a single List's own Read/Unread toggle
   // syncReadBadge() itself lives inside initApp()'s closure (it needs
   // lastPicked/ticketReadBadge, both nested there too) — checkPendingRead()
   // is top-level and can't call it directly. A REAL bug, not a hypothetical:
@@ -5450,8 +5495,13 @@ function matchesCiteSearch(t){
    select) — a segmented toggle in the narrow-box header, not a filter
    tile. filterState.readStatus holds at most one value: '' (or missing)
    means All, 'unread', or 'read'. */
-function matchesReadStatus(t){
-  const want = filterState.readStatus[0];
+// Takes the read-status array as a parameter rather than closing over
+// filterState directly — CFM has its own fully independent
+// CFM_FILTER_STATE (same pattern as every other filter dimension being
+// duplicated, not shared, between Home and CFM), so this is shared logic,
+// not shared state.
+function matchesReadStatus(t, readStatus){
+  const want = readStatus[0];
   if (!want) return true;
   return want === 'read' ? isRead(t) : !isRead(t);
 }
@@ -5461,11 +5511,11 @@ function poolExcept(excludeDim){
       if (dim===excludeDim) continue;
       if (!matchesDim(t, dim, filterState[dim])) return false;
     }
-    return matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t);
+    return matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t, filterState.readStatus);
   });
 }
 function currentPool(){
-  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t));
+  return TALKS.filter(t=> Object.keys(DIM_CONFIG).every(dim=>matchesDim(t, dim, filterState[dim])) && matchesSearch(t) && matchesCiteSearch(t) && matchesReadStatus(t, filterState.readStatus));
 }
 function valuesForDim(pool, dim){
   const set = new Set();
@@ -7718,6 +7768,7 @@ let cfmCurrentIndex = null;
 const cfmRangeEl = document.getElementById('cfmRange');
 const cfmDatesEl = document.getElementById('cfmDates');
 const cfmMatchCountEl = document.getElementById('cfmMatchCount');
+const cfmNarrowBoxHeaderTextEl = document.getElementById('cfmNarrowBoxHeaderText');
 const cfmHintEl = document.getElementById('cfmHint');
 const cfmHintLeadEl = document.getElementById('cfmHintLead');
 const cfmHintSubEl = document.getElementById('cfmHintSub');
@@ -7770,7 +7821,7 @@ cfmThisWeekBtn.addEventListener('click', ()=> cfmGoToWeek(cfmWeekIndexForDate())
    renderOptions/rebuildFilterOptions), since that part genuinely is a
    different page with different elements — but nothing about WHAT
    counts as a match is duplicated, only how it's displayed. */
-const CFM_FILTER_STATE = { year: [], speaker: [], topic: [], role: [], session: [] };
+const CFM_FILTER_STATE = { year: [], speaker: [], topic: [], role: [], session: [], readStatus: [] };
 const CFM_DIM_CONFIG = {
   topic: {
     allValues: allTopics, anyLabel:'Any topic', noun:'topics', searchable:true,
@@ -7824,7 +7875,7 @@ function cfmPoolExcept(excludeDim){
       if (dim===excludeDim) continue;
       if (!matchesDim(t, dim, CFM_FILTER_STATE[dim])) return false;
     }
-    return true;
+    return matchesReadStatus(t, CFM_FILTER_STATE.readStatus);
   });
 }
 // Filtering never reorders — cfmBaseMatches() already comes out in the
@@ -7834,7 +7885,7 @@ function cfmPoolExcept(excludeDim){
 function cfmFilteredMatches(){
   return cfmBaseMatches().filter(m=>{
     const t = TALKS_BY_KEY[m.talkKey];
-    return t && Object.keys(CFM_DIM_CONFIG).every(dim=>matchesDim(t, dim, CFM_FILTER_STATE[dim]));
+    return t && Object.keys(CFM_DIM_CONFIG).every(dim=>matchesDim(t, dim, CFM_FILTER_STATE[dim])) && matchesReadStatus(t, CFM_FILTER_STATE.readStatus);
   });
 }
 function cfmRenderOptions(dim){
@@ -7948,7 +7999,24 @@ document.addEventListener('keydown', (e)=>{
 });
 document.getElementById('cfmResetBtn').addEventListener('click', ()=>{
   Object.keys(CFM_DIM_CONFIG).forEach(dim=>{ CFM_FILTER_STATE[dim] = []; });
+  CFM_FILTER_STATE.readStatus = [];
+  cfmSyncReadStatusToggle();
   cfmOnFiltersChanged();
+});
+/* Idea 49, extended to CFM — same single-select toggle pattern as Home's
+   readStatusToggle, independent CFM_FILTER_STATE. */
+const cfmReadStatusButtons = [...document.getElementById('cfmReadStatusToggle').querySelectorAll('[data-cfm-read-status]')];
+function cfmSyncReadStatusToggle(){
+  const current = CFM_FILTER_STATE.readStatus[0] || '';
+  cfmReadStatusButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.cfmReadStatus === current));
+}
+cfmReadStatusButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const value = btn.dataset.cfmReadStatus;
+    CFM_FILTER_STATE.readStatus = value ? [value] : [];
+    cfmSyncReadStatusToggle();
+    cfmOnFiltersChanged();
+  });
 });
 function cfmOnFiltersChanged(){
   // A changed filter means a genuinely different pool — same reasoning
@@ -8069,6 +8137,13 @@ cfmListNextBtn.addEventListener('click', ()=>{
    week change by itself (renderCfmPage() calls this once after setting
    up the new week's header/link, see below). */
 function cfmRefreshResults(){
+  // Idea 49: now reachable from checkPendingRead() via onNeedCfmRefresh,
+  // which can fire before the CFM page has ever been visited this session
+  // (cfmCurrentIndex still null) — guard rather than let `entry.refs`
+  // below throw on `CFM_SCHEDULE[null]`. Nothing to refresh yet in that
+  // case; renderCfmPage() sets cfmCurrentIndex and calls this itself the
+  // first time CFM is actually opened.
+  if (cfmCurrentIndex === null) return;
   const entry = CFM_SCHEDULE[cfmCurrentIndex];
 
   if (!entry.refs && !entry.topics && !entry.keywords){
@@ -8104,12 +8179,22 @@ function cfmRefreshResults(){
   cfmMatchCountEl.innerHTML = sorted.length
     ? `<strong>${sorted.length}</strong> talk${sorted.length===1?'':'s'} match${sorted.length===1?'es':''}`
     : '';
+  // Idea 49: header now mirrors Home's exactly — a live, shorter count
+  // ("<strong>N</strong> match(es)") instead of a static question, same
+  // split as Home between this short header form and cfmMatchCountEl's
+  // fuller "N talks match" text below.
+  const cfmReadScope = CFM_FILTER_STATE.readStatus[0] === 'unread' ? 'unread talks'
+    : CFM_FILTER_STATE.readStatus[0] === 'read' ? 'read talks'
+    : 'talks';
+  cfmNarrowBoxHeaderTextEl.innerHTML = sorted.length
+    ? `<strong>${sorted.length}</strong> match${sorted.length===1?'':'es'}`
+    : `No ${cfmReadScope} match`;
 
   if (!sorted.length){
     cfmItemsEl.innerHTML = '';
     cfmItemsEl.style.display = 'none';
     cfmEmptyEl.style.display = 'block';
-    cfmEmptyEl.textContent = "No talks match this week's reading and your filters — try clearing one.";
+    cfmEmptyEl.textContent = `No ${cfmReadScope} match this week's reading and your filters — try clearing one.`;
     cfmSelectFirstBtn.hidden = true;
     cfmSelectAllBtn.hidden = true;
     cfmPagination.style.display = 'none';
@@ -8219,6 +8304,7 @@ function cfmRefreshResults(){
   }
   syncCfmBulkBar();
 }
+onNeedCfmRefresh = cfmRefreshResults; // registers with checkPendingRead() — see that top-level slot's own comment
 
 function renderCfmPage(){
   if (!CFM_SCHEDULE.length){
@@ -8316,11 +8402,17 @@ function renderCfmCalendar(){
   const curStartIso = curEntry ? curEntry.start : null;
   const curEndIso = curEntry ? localIsoDate(cfmWeekEndDate(cfmCurrentIndex)) : null;
 
-  const firstDow = new Date(y, m, 1).getDay();
+  // idea 51: Monday-first columns, unlike TOTD's calendar — every real
+  // CFM_SCHEDULE entry starts on a Monday (matches the Weekly CFM
+  // Reminder's own Monday firing day), so a Sunday-first grid split a
+  // real Monday–Sunday week's highlight across two rows (six days on one
+  // row, the seventh wrapping to the next). getDay() is 0=Sun..6=Sat;
+  // +6 %7 rotates that to 0=Mon..6=Sun to match CFM_CAL_DOW_LABELS below.
+  const firstDow = (new Date(y, m, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(y, m + 1, 0).getDate();
 
   cfmCalGrid.innerHTML = '';
-  TOTD_CAL_DOW_LABELS.forEach(label=>{
+  CFM_CAL_DOW_LABELS.forEach(label=>{
     const el = document.createElement('div');
     el.className = 'totd-calendar-dow';
     el.textContent = label;
@@ -8405,10 +8497,31 @@ cfmCalNextBtn.addEventListener('click', ()=>{
 let currentCollectionId = null;
 
 const collectionFilterCountEl = document.getElementById('collectionFilterCount');
+const collectionNarrowBoxHeaderTextEl = document.getElementById('collectionNarrowBoxHeaderText');
 const collectionSearchFieldEl = document.getElementById('collectionSearchField');
 const collectionSortRowEl = document.getElementById('collectionSortToggle').closest('.filters-actions');
 const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=> renderCollectionPage(currentCollectionId));
 const collectionSearch = createSearchBox(document.getElementById('collectionQuery'), document.getElementById('collectionQueryClear'), ()=> renderCollectionPage(currentCollectionId));
+/* Idea 49, extended a third time — same single-select All/Unread/Read
+   toggle as Home/CFM, scoped to just this one list. Single module-level
+   array (not per-list), same as collectionSearch's query above — neither
+   resets when switching to a different list, matching that existing
+   precedent (a search typed while viewing one list stays typed if you
+   open another), not something new introduced here. */
+let collectionReadStatus = [];
+const collectionReadStatusButtons = [...document.getElementById('collectionReadStatusToggle').querySelectorAll('[data-collection-read-status]')];
+function collectionSyncReadStatusToggle(){
+  const current = collectionReadStatus[0] || '';
+  collectionReadStatusButtons.forEach(btn=> btn.classList.toggle('is-active', btn.dataset.collectionReadStatus === current));
+}
+collectionReadStatusButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const value = btn.dataset.collectionReadStatus;
+    collectionReadStatus = value ? [value] : [];
+    collectionSyncReadStatusToggle();
+    renderCollectionPage(currentCollectionId);
+  });
+});
 /* Phase 3 (idea 45) — "share a list": one short message plus one real deep
    link back to the app (see buildListShareUrl() below) — the link IS the
    whole mechanism, not a supplement to a long per-talk listing. Originally
@@ -8581,14 +8694,30 @@ function renderCollectionPage(id){
   const keys = (collectionMembers[id] || []).slice().reverse();
   let picks = keys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
   if (collectionSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  // Idea 49: applied before handing off to renderSubsetList() — becomes
+  // that function's own "total" baseline, so "no talks in this list yet"
+  // vs. "no talks match your search" naturally becomes read-status-aware
+  // too (see the two message strings below) without touching
+  // renderSubsetList() itself.
+  if (collectionReadStatus[0]) picks = picks.filter(t=> matchesReadStatus(t, collectionReadStatus));
   const q = collectionSearch.query;
-  renderSubsetList(
+  const readScope = collectionReadStatus[0] === 'unread' ? 'unread talks'
+    : collectionReadStatus[0] === 'read' ? 'read talks'
+    : 'talks';
+  const filtered = renderSubsetList(
     collectionItemsEl, collectionEmptyEl, collectionFilterCountEl, [collectionSearchFieldEl, collectionSortRowEl],
     picks, q, matchesSubsetSearch,
-    'No talks in this list yet.',
-    `No talks in this list match "${q.trim()}".`
+    `No ${readScope} in this list yet.`,
+    `No ${readScope} in this list match "${q.trim()}".`
   );
+  // Idea 49: header mirrors Home/CFM's live count, but "N talks" instead
+  // of "N matches" — this is a list someone curated themselves, not a
+  // search/filter result, so "matches" doesn't read naturally here.
+  collectionNarrowBoxHeaderTextEl.innerHTML = filtered.length
+    ? `<strong>${filtered.length}</strong> talk${filtered.length===1?'':'s'}`
+    : `No ${readScope}`;
 }
+onNeedCollectionRefresh = ()=>{ if (currentCollectionId) renderCollectionPage(currentCollectionId); }; // registers with checkPendingRead() — see that top-level slot's own comment
 
 // "Search your lists" + sort — filters/sorts the list of *list names*
 // (not talks inside them, that's what each list's own page/filters are
@@ -9280,6 +9409,12 @@ const totdCalResult = document.getElementById('totdCalResult');
 const totdCalPrevBtn = document.getElementById('totdCalPrevBtn');
 const totdCalNextBtn = document.getElementById('totdCalNextBtn');
 const TOTD_CAL_DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+// idea 51: CFM's own Monday-first labels — see the comment above
+// renderCfmCalendar()'s firstDow calculation for why. Deliberately a
+// separate array rather than reordering TOTD_CAL_DOW_LABELS itself — TOTD's
+// calendar only ever highlights single days, never a week span, so
+// Sunday-first stays the more familiar default there.
+const CFM_CAL_DOW_LABELS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 // Always normalized to the 1st of the shown month so prev/next month math
 // never drifts across different-length months (e.g. Jan 31 -> Feb 28).
 let totdCalViewDate = null;

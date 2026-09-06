@@ -12,13 +12,18 @@ this updated.
 
 ### Added
 - A new Read/Unread filter on Home, right in the "N matches" box — narrow results down to talks you haven't read yet, or just the ones you have. Updates automatically the moment a talk you're viewing gets marked read.
+- The same Read/Unread filter is now on the "Come, Follow Me" tab too, right at the top of its filter box, same as Home.
+- Each of your own Lists now has the same Read/Unread filter too, right at the top of the list — handy for working through a reading list you're building.
 
 ### Fixed
 - iOS: fixed a shared findatalk.com link opening the app but not showing the "add this list" dialog when the app wasn't already running — only worked if the app was already open in the background. Requires a new iOS build to take effect.
+- The "Jump to a Week" calendar on Come, Follow Me now starts each row on Monday instead of Sunday, so a week's highlighted box shows as one clean row instead of splitting across two.
 
 ### Changed
 - On the Home and Come, Follow Me filter panels, Conference and Session now sit side by side in one row instead of Session getting its own row below — shortened conference dates (e.g. "Apr 2026") and session names (e.g. "Sat AM", "Priesthood") to fit. Filtering behavior is unchanged, just the layout.
 - Shortened the "N talks match right now — narrow it down" text at the top of Home's filter box to just "N matches," to make room for the new Read/Unread toggle on the same line.
+- The Come, Follow Me filter box's "Want to narrow down these matches?" header now shows a live "N matches" count with the Read/Unread toggle instead, matching Home.
+- A List's own page now shows its talk count and the Read/Unread toggle at the top in the same style as Home and Come, Follow Me, with "Search this list" moved inside that box; removed the separate "Showing all N talks" line since the count above already covers it.
 
 ## [1.5.4] — 2026-09-05
 
