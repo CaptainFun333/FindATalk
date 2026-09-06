@@ -986,6 +986,13 @@
     margin-top:-6px;
     margin-bottom:20px;
   }
+  /* Idea 49: the -6px above was tuned for this row sitting directly under
+     a Reset-filters-style link/count (its usual context elsewhere) — on a
+     List's own page it now sits right under the new .narrow-box instead,
+     and that negative margin pulled it up far enough to visually overlap
+     the box's own bottom border/padding. Scoped override, not a change to
+     the shared rule other pages still rely on. */
+  .collection-sort-row{ margin-top:16px; }
   .sort-toggle{
     display:inline-flex;
     border:1px solid var(--line);
@@ -2642,7 +2649,7 @@
         </div>
       </div>
     </div>
-    <div class="filters-actions">
+    <div class="filters-actions collection-sort-row">
       <div class="sort-toggle" id="collectionSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Added</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
