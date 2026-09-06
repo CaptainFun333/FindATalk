@@ -9367,15 +9367,25 @@ maybeShowOnboarding();
      cleaned up afterward via replaceState so refreshing the page doesn't
      re-trigger the preview and the address bar doesn't keep the params
      dangling once they've been consumed.
-   - Native: the app was already running (or launches) because a
-     findatalk.com link was tapped and idea 40's Universal/App Links
-     mechanism opened it — Capacitor's App plugin fires `appUrlOpen` with
-     the real URL that opened it. Registered here, native-only. NOTE: not
-     yet verified on a real device whether Capacitor buffers this event
-     for a cold start (app not already running) until this listener
-     attaches, or whether it can be missed if the JS bridge isn't ready in
-     time — worth a real cold-start test, not just a resume-from-
-     background one, before trusting this fully. */
+   - Native, already running: the app was in the background (or
+     foreground) when a findatalk.com link was tapped and idea 40's
+     Universal/App Links mechanism opened it — Capacitor's App plugin
+     fires `appUrlOpen` with the real URL that opened it.
+   - Native, cold start: a REAL bug, found via real-device testing on
+     iOS — a findatalk.com link that launches the app fresh (it wasn't
+     already running) opened the app but never showed the shared-list
+     dialog. `appUrlOpen` has no documented buffering/replay guarantee
+     for a listener that attaches after the event already fired (confirmed
+     against Capacitor's own docs — this was flagged as unverified, never
+     tested on a real cold start, when this was first built), so a cold
+     launch's URL is genuinely lost if the native side hands it off before
+     this listener is registered. Capacitor's own fix for exactly this
+     case is `App.getLaunchUrl()` — a separate, explicit call (not an
+     event) that returns the URL the app was cold-launched with, if any.
+     Calling both this and registering the listener below covers each
+     case; calling both for the same cold-launch URL (if that ever
+     happens) is harmless — checkForSharedListLink()/openSharedListModal()
+     are safe to run twice with identical input. */
 checkForSharedListLink(window.location.href);
 if (window.location.search){
   history.replaceState(null, '', window.location.pathname);
@@ -9385,6 +9395,9 @@ if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.
   cap.Plugins.App.addListener('appUrlOpen', (data)=>{
     if (data && data.url) checkForSharedListLink(data.url);
   });
+  cap.Plugins.App.getLaunchUrl().then((result)=>{
+    if (result && result.url) checkForSharedListLink(result.url);
+  }).catch(()=>{}); // not available on web/unsupported platform — nothing to do
 }
 /* Idea 46 — notification tap routing (see handleNotificationTap() above
    for what each id does). Registered the same way/place as appUrlOpen
