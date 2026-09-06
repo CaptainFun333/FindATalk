@@ -821,12 +821,6 @@
      once the header text correctly says "matches" (plural, the common
      case) rather than the shorter "match" a first pass assumed. */
   .narrow-box-header .sort-toggle-btn{ padding:5px 9px; font-size:12px; }
-  /* CFM's count+toggle+reset row (idea 49, extended) — unlike Home's
-     narrow-box-header, allowed to wrap rather than forced onto one line,
-     since CFM's match count varies a lot week to week instead of sitting
-     near a predictable digit count. */
-  .cfm-count-actions{ flex-wrap:wrap; row-gap:10px; }
-  .cfm-count-toggle{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; row-gap:8px; }
   .narrow-box-header .nb-icon{
     width:26px; height:26px; border-radius:50%; flex-shrink:0;
     background:var(--tint); color:var(--brass);
@@ -2674,9 +2668,19 @@
          no matching mechanism at all. -->
     <div id="cfmControlsBox">
     <div class="narrow-box">
-      <div class="narrow-box-header">
-        <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
-        <span>Want to narrow down these matches?</span>
+      <!-- Idea 49: matches Home's header exactly now — a live match count
+           instead of a static question, with the All/Unread/Read toggle
+           folded in the same way (moved up from the bottom row below). -->
+      <div class="narrow-box-header" id="cfmNarrowBoxHeader">
+        <div class="nb-header-text">
+          <span class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><path d="M10 6h10"/><circle cx="16" cy="14" r="2"/><path d="M4 14h10"/><circle cx="9" cy="20" r="2"/><path d="M13 20h9"/></svg></span>
+          <span id="cfmNarrowBoxHeaderText">Want to narrow down these matches?</span>
+        </div>
+        <div class="sort-toggle" id="cfmReadStatusToggle" role="group" aria-label="Read status">
+          <button type="button" class="sort-toggle-btn is-active" data-cfm-read-status="">All</button>
+          <button type="button" class="sort-toggle-btn" data-cfm-read-status="unread">Unread</button>
+          <button type="button" class="sort-toggle-btn" data-cfm-read-status="read">Read</button>
+        </div>
       </div>
       <div class="narrow-box-body">
         <div class="filters">
@@ -2743,21 +2747,8 @@
             </div>
           </div>
         </div>
-        <!-- Idea 49, extended to CFM: same All/Unread/Read toggle as Home,
-             but CFM's match count varies week-to-week (a handful of talks
-             some weeks, a couple hundred others) rather than sitting near
-             a fixed digit count like Home's, so this row is allowed to
-             wrap onto two lines (cfm-count-actions below) instead of
-             forcing a tight one-line fit that could break on a bad week. -->
-        <div class="filters-actions cfm-count-actions">
-          <div class="cfm-count-toggle">
-            <div class="pool-count pool-count-inline" id="cfmMatchCount"></div>
-            <div class="sort-toggle" id="cfmReadStatusToggle" role="group" aria-label="Read status">
-              <button type="button" class="sort-toggle-btn is-active" data-cfm-read-status="">All</button>
-              <button type="button" class="sort-toggle-btn" data-cfm-read-status="unread">Unread</button>
-              <button type="button" class="sort-toggle-btn" data-cfm-read-status="read">Read</button>
-            </div>
-          </div>
+        <div class="filters-actions">
+          <div class="pool-count pool-count-inline" id="cfmMatchCount"></div>
           <button type="button" id="cfmResetBtn" class="reset-link">Reset filters</button>
         </div>
       </div>
@@ -7746,6 +7737,7 @@ let cfmCurrentIndex = null;
 const cfmRangeEl = document.getElementById('cfmRange');
 const cfmDatesEl = document.getElementById('cfmDates');
 const cfmMatchCountEl = document.getElementById('cfmMatchCount');
+const cfmNarrowBoxHeaderTextEl = document.getElementById('cfmNarrowBoxHeaderText');
 const cfmHintEl = document.getElementById('cfmHint');
 const cfmHintLeadEl = document.getElementById('cfmHintLead');
 const cfmHintSubEl = document.getElementById('cfmHintSub');
@@ -8156,14 +8148,21 @@ function cfmRefreshResults(){
   cfmMatchCountEl.innerHTML = sorted.length
     ? `<strong>${sorted.length}</strong> talk${sorted.length===1?'':'s'} match${sorted.length===1?'es':''}`
     : '';
+  // Idea 49: header now mirrors Home's exactly — a live, shorter count
+  // ("<strong>N</strong> match(es)") instead of a static question, same
+  // split as Home between this short header form and cfmMatchCountEl's
+  // fuller "N talks match" text below.
+  const cfmReadScope = CFM_FILTER_STATE.readStatus[0] === 'unread' ? 'unread talks'
+    : CFM_FILTER_STATE.readStatus[0] === 'read' ? 'read talks'
+    : 'talks';
+  cfmNarrowBoxHeaderTextEl.innerHTML = sorted.length
+    ? `<strong>${sorted.length}</strong> match${sorted.length===1?'':'es'}`
+    : `No ${cfmReadScope} match`;
 
   if (!sorted.length){
     cfmItemsEl.innerHTML = '';
     cfmItemsEl.style.display = 'none';
     cfmEmptyEl.style.display = 'block';
-    const cfmReadScope = CFM_FILTER_STATE.readStatus[0] === 'unread' ? 'unread talks'
-      : CFM_FILTER_STATE.readStatus[0] === 'read' ? 'read talks'
-      : 'talks';
     cfmEmptyEl.textContent = `No ${cfmReadScope} match this week's reading and your filters — try clearing one.`;
     cfmSelectFirstBtn.hidden = true;
     cfmSelectAllBtn.hidden = true;
