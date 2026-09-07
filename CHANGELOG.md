@@ -11,6 +11,17 @@ this updated.
 ## [Unreleased]
 
 ### Added
+- Nothing yet.
+
+### Fixed
+- Nothing yet.
+
+### Changed
+- Nothing yet.
+
+## [1.6] — 2026-09-07
+
+### Added
 - Picking a week in Come, Follow Me's "Jump to a Week" calendar now visibly highlights that whole week before taking you to it — a quick confirmation so it's clear exactly which week you picked.
 - A new Read/Unread filter on Home, right in the "N matches" box — narrow results down to talks you haven't read yet, or just the ones you have. Updates automatically the moment a talk you're viewing gets marked read.
 - The same Read/Unread filter is now on the "Come, Follow Me" tab too, right at the top of its filter box, same as Home.
