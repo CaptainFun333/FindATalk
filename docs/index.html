@@ -707,6 +707,13 @@
     margin-right:6px; vertical-align:-1px; flex-shrink:0;
   }
   .palette-segmented button{ display:inline-flex; align-items:center; justify-content:center; }
+  /* Idea 54 — same bug class as .badge-row's, found live on production
+     (findatalk.com), not just in testing: this unconditional display
+     was defeating the `hidden` attribute on #celestialPaletteChoice,
+     showing the secret palette to everyone regardless of whether they'd
+     actually found it. `hidden` was correctly present on the element the
+     whole time — it just never took visual effect. */
+  .palette-segmented button[hidden]{ display:none; }
   /* Daily-reminder on/off switch, native app only. */
   .settings-row{
     display:flex; align-items:center; justify-content:space-between; gap:16px;
@@ -2282,6 +2289,14 @@
     border:1px solid transparent;
     display:inline-flex; align-items:center; gap:7px;
   }
+  /* Same [hidden]-defeated-by-unconditional-display bug as .badge-row's
+     and .palette-segmented button's — found via a proactive sweep for
+     the same pattern, not another live report. #listSelectFirstBtn,
+     #cfmSelectFirstBtn, and #cfmSelectAllBtn (idea 16/24) all get
+     `.hidden` toggled by real app logic (e.g. "Select First 10"
+     auto-hiding once a pool fits on one page) that this silently
+     defeated — confirmed live on findatalk.com before fixing. */
+  .btn[hidden]{ display:none; }
   .btn-primary{
     background:var(--accent-fill);
     color:var(--on-accent);
@@ -3177,7 +3192,7 @@
         <span class="badge-icon">🌟</span>
         <div class="badge-row-text">
           <strong>Think Celestial!</strong>
-          <span>Found the secret behind the star</span>
+          <span>Not everyone finds this one</span>
           <span id="secretBadgeEarnedDate"></span>
         </div>
       </div>
@@ -4801,7 +4816,7 @@ function renderBadgesList(){
     const dateStr = new Date(earnedBadges['think-celestial']).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
     listEl.insertAdjacentHTML('beforeend', `<div class="badge-row badge-earned">
       <span class="badge-icon">🌟</span>
-      <div class="badge-row-text"><strong>Think Celestial!</strong><span>Found the secret behind the star</span><span>earned ${dateStr}</span></div>
+      <div class="badge-row-text"><strong>Think Celestial!</strong><span>Not everyone finds this one</span><span>earned ${dateStr}</span></div>
       <button type="button" class="share-btn-icon badge-share-btn" data-badge-id="think-celestial" aria-label="Share this badge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
       </button>
