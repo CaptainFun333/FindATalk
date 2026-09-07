@@ -707,6 +707,16 @@
     margin-right:6px; vertical-align:-1px; flex-shrink:0;
   }
   .palette-segmented button{ display:inline-flex; align-items:center; justify-content:center; }
+  /* A 5th (or later, 6th+) option no longer fits one row on a phone —
+     confirmed live, the last button was running off the edge of the
+     modal. Overriding .segmented's plain `flex:1` (flex-basis:0%, which
+     lets buttons shrink toward unreadable widths instead of wrapping)
+     with a natural content-sized basis so flex-wrap actually kicks in
+     once real content stops fitting, rather than squeezing forever.
+     With today's 4 default options this still lays out as one full row,
+     same as before — wrapping only starts once a 5th is added. */
+  .palette-segmented{ flex-wrap:wrap; }
+  .palette-segmented button{ flex:1 1 auto; white-space:nowrap; }
   /* Idea 54 — same bug class as .badge-row's, found live on production
      (findatalk.com), not just in testing: this unconditional display
      was defeating the `hidden` attribute on #celestialPaletteChoice,
@@ -4716,7 +4726,16 @@ const BADGE_DEFS = [
   {id:'reading-100', kind:'reading', threshold:100,  label:'100 Talks Read',    desc:'Read 100 talks'},
   {id:'reading-250', kind:'reading', threshold:250,  label:'250 Talks Read',    desc:'Read 250 talks'},
   {id:'reading-500', kind:'reading', threshold:500,  label:'500 Talks Read',    desc:'Read 500 talks'},
-  {id:'reading-1000',kind:'reading', threshold:1000, label:'1,000 Talks Read',  desc:'Read 1,000 talks'}
+  {id:'reading-1000',kind:'reading', threshold:1000, label:'1,000 Talks Read',  desc:'Read 1,000 talks'},
+  {id:'reading-2000',kind:'reading', threshold:2000, label:'2,000 Talks Read',  desc:'Read 2,000 talks'},
+  {id:'reading-3000',kind:'reading', threshold:3000, label:'3,000 Talks Read',  desc:'Read 3,000 talks'},
+  // "The Whole Library" — the one deliberate exception to "never re-check
+  // or un-earn" below: threshold is a FUNCTION (the current library size,
+  // which grows every conference, not a fixed number) and `canUnearn`
+  // lets checkForNewBadges() take it away again the moment new talks
+  // land and the reader hasn't caught up yet. Decided: un-earning wipes
+  // it clean back to a plain locked row, no "completed once" memory kept.
+  {id:'whole-library',kind:'reading', threshold:()=>TALKS.length, label:'The Whole Library', desc:'Read every talk in the app', canUnearn:true}
 ];
 const BADGES_KEY = 'findATalkBadges';
 let earnedBadges = {}; // {badgeId: earnedAtTimestamp}, append-only — never un-earned
@@ -4762,11 +4781,22 @@ function checkForNewBadges(){
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return; // app-only — see the file header above
   const streak = loadStreak();
   const readingCount = readKeys.size;
-  let earnedSomething = false;
+  let earnedSomething = false; // also true on a silent un-earn, so it still gets saved
   BADGE_DEFS.forEach(def=>{
-    if (earnedBadges[def.id]) return; // already earned — never re-check or un-earn
+    const threshold = typeof def.threshold === 'function' ? def.threshold() : def.threshold;
     const progress = def.kind === 'streak' ? streak.longest : readingCount;
-    if (progress < def.threshold) return;
+    if (earnedBadges[def.id]){
+      // Every badge except "The Whole Library" stops here — never
+      // re-checked or un-earned once earned, same as always. Only a
+      // `canUnearn` def keeps going, and only to silently take the badge
+      // back (no celebration for losing it) if new talks outpaced it.
+      if (def.canUnearn && progress < threshold){
+        delete earnedBadges[def.id];
+        earnedSomething = true;
+      }
+      return;
+    }
+    if (progress < threshold) return;
     earnedBadges[def.id] = Date.now();
     earnedSomething = true;
     badgeCelebrationQueue.push(def);
@@ -4786,6 +4816,7 @@ function renderBadgesList(){
   const streak = loadStreak();
   const readingCount = readKeys.size;
   listEl.innerHTML = BADGE_DEFS.map(def=>{
+    const threshold = typeof def.threshold === 'function' ? def.threshold() : def.threshold;
     const earnedAt = earnedBadges[def.id];
     const progress = def.kind === 'streak' ? streak.longest : readingCount;
     if (earnedAt){
@@ -4805,7 +4836,7 @@ function renderBadgesList(){
     }
     return `<div class="badge-row badge-locked">
       <span class="badge-icon">🔒</span>
-      <div class="badge-row-text"><strong>${def.label}</strong><span>${def.desc} — ${progress} / ${def.threshold}</span></div>
+      <div class="badge-row-text"><strong>${def.label}</strong><span>${def.desc} — ${progress} / ${threshold}</span></div>
     </div>`;
   }).join('');
   // Idea 54 — "Think Celestial!" appended after the BADGE_DEFS rows above,

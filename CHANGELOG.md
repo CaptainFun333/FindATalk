@@ -17,6 +17,7 @@ this updated.
 - Each of your own Lists now has the same Read/Unread filter too, right at the top of the list — handy for working through a reading list you're building.
 - App-exclusive (iOS 16+): ask Siri for your Talk of the Day — "Hey Siri, give me my Talk of the Day in FindATalk" speaks today's pick and opens the app to it. Also shows up as a shortcut in the Shortcuts app.
 - A little something extra hidden in the app, for anyone curious enough to go looking.
+- Three new reading milestones to earn: 2,000 Talks Read, 3,000 Talks Read, and one for reading every talk currently in the app.
 
 ### Fixed
 - iOS: fixed a shared findatalk.com link opening the app but not showing the "add this list" dialog when the app wasn't already running — only worked if the app was already open in the background. Requires a new iOS build to take effect.
@@ -27,6 +28,7 @@ this updated.
 - Enlarged the favorite, add-to-list, note, and share icon buttons throughout the app (talk cards, list rows, badges) to match — same "too small on iPad" problem, just app-wide.
 - Long lists in popups (like My Badges, once it has more badges than fit on one screen) now scroll properly, with the title staying put and a subtle shadow hinting there's more below.
 - Fixed a popup that could close itself from a stray tap nearby, before you'd had a chance to read it.
+- Fixed the Color Palette buttons in Settings running off the edge of the screen on some phones.
 
 ### Changed
 - On the Home and Come, Follow Me filter panels, Conference and Session now sit side by side in one row instead of Session getting its own row below — shortened conference dates (e.g. "Apr 2026") and session names (e.g. "Sat AM", "Priesthood") to fit. Filtering behavior is unchanged, just the layout.
