@@ -6639,25 +6639,35 @@ function talkForDate(d){
 function talkOfTheDay(){
   return talkForDate(new Date());
 }
-/* Seeds some initial Talk-of-the-Day HISTORY (see the long comment on
-   TOTD_HISTORY_KEY, up near loadTotdHistory()) on a fresh install, using
-   the exact real talkForDate() algorithm "today" uses — safe to do only
-   because nothing about TALKS' sort order has changed yet at the moment
-   this one-time backfill runs. Guarded to run at most once (totdHistory
-   starts completely empty only on a fresh install); every day after
-   that, renderTalkOfTheDay() below appends the real value for that day
-   as it's actually shown, which stays accurate even after later data
-   updates in a way recomputing an old date later would not. */
+/* Seeds Talk-of-the-Day HISTORY (see the long comment on TOTD_HISTORY_KEY,
+   up near loadTotdHistory()) for any of the last TOTD_BACKFILL_DAYS days
+   that don't already have a recorded entry, using the exact real
+   talkForDate() algorithm "today" uses. This covers both a fresh install
+   (nothing recorded yet) AND ordinary gaps that appear whenever someone
+   doesn't have the app open right around local midnight — the app only
+   suspends rather than reloads while backgrounded (see
+   watchForDayRollover() below), so a day skipped entirely, or several
+   midnights crossed before the next foreground, never gets its
+   renderTalkOfTheDay() write and would otherwise stay permanently
+   unrecorded, showing as a greyed-out, unopenable day in the calendar.
+   Only ever fills in a MISSING key — never overwrites a day that already
+   has a recorded value — so a day actually shown keeps the exact value
+   it showed even after later data updates change talkForDate()'s output
+   for that date; only the never-shown gap days get today's best-effort
+   recomputed value. */
 const TOTD_BACKFILL_DAYS = 30;
 function backfillTotdHistoryIfNeeded(){
-  if (Object.keys(totdHistory).length || !TALKS.length) return;
+  if (!TALKS.length) return;
   const now = new Date();
+  let changed = false;
   for (let i = 0; i < TOTD_BACKFILL_DAYS; i++){
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const dateKey = localDateSeed(d);
+    if (dateKey in totdHistory) continue;
     const pick = talkForDate(d);
-    if (pick) totdHistory[localDateSeed(d)] = talkKey(pick);
+    if (pick){ totdHistory[dateKey] = talkKey(pick); changed = true; }
   }
-  saveTotdHistory();
+  if (changed) saveTotdHistory();
 }
 // Local calendar day (see localDayNumber()) that renderTalkOfTheDay() last
 // ran for. Used by watchForDayRollover() below to notice when it's stale.
