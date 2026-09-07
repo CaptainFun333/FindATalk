@@ -11,6 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Added
+- Picking a week in Come, Follow Me's "Jump to a Week" calendar now visibly highlights that whole week before taking you to it — a quick confirmation so it's clear exactly which week you picked.
 - A new Read/Unread filter on Home, right in the "N matches" box — narrow results down to talks you haven't read yet, or just the ones you have. Updates automatically the moment a talk you're viewing gets marked read.
 - The same Read/Unread filter is now on the "Come, Follow Me" tab too, right at the top of its filter box, same as Home.
 - Each of your own Lists now has the same Read/Unread filter too, right at the top of the list — handy for working through a reading list you're building.
@@ -19,6 +20,7 @@ this updated.
 - iOS: fixed a shared findatalk.com link opening the app but not showing the "add this list" dialog when the app wasn't already running — only worked if the app was already open in the background. Requires a new iOS build to take effect.
 - The "Jump to a Week" calendar on Come, Follow Me now starts each row on Monday instead of Sunday, so a week's highlighted box shows as one clean row instead of splitting across two.
 - Fixed the "Recently Added / Conference Date" sort buttons overlapping the bottom of the new count box on a List's own page.
+- Fixed some days in the Talk of the Day History calendar showing up greyed out and unclickable — this happened to any day you didn't have the app open around midnight, and could leave one day or a short run of several days stuck that way permanently.
 
 ### Changed
 - On the Home and Come, Follow Me filter panels, Conference and Session now sit side by side in one row instead of Session getting its own row below — shortened conference dates (e.g. "Apr 2026") and session names (e.g. "Sat AM", "Priesthood") to fit. Filtering behavior is unchanged, just the layout.
