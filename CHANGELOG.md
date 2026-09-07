@@ -17,7 +17,7 @@ this updated.
 - Nothing yet.
 
 ### Changed
-- Nothing yet.
+- Tightened the footer's "about this app" text at the bottom of Home.
 
 ## [1.6] — 2026-09-07
 

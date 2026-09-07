@@ -3254,10 +3254,7 @@
   </div>
 
   <footer>
-    <strong id="totalCount"></strong> real, verified talks from every General Conference,<br>
-    April 1971–April 2026 (111 conferences, no gaps).<br>
-    Topics, sessions &amp; citations are all pulled from<br>
-    the Church's own official records — never guessed.<br>
+    From <strong id="confCount"></strong> General Conferences — April 1971–present.<br>
     For the complete library, visit:<br>
     <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>.<br>
     FindATalk is a fan-made tool, not produced by the Church.
@@ -5682,7 +5679,11 @@ const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 // once real per-talk data starts populating SESSION_LOOKUP.
 const allSessions = SESSION_ORDER.filter(s=>TALKS.some(t=>talkSession(t)===s));
 
-document.getElementById('totalCount').textContent = TALKS.length;
+// Footer's conference count (idea 56) — computed from allConfs (distinct
+// conferences actually in the data), not hardcoded, so it never needs a
+// manual bump as new conferences ship, same reasoning as the footer's
+// "present" end date just above it in the markup.
+document.getElementById('confCount').textContent = allConfs.length;
 
 // Looks a talk back up by its talkKey() — used to render the Recently
 // Viewed / Favorites pages from the key lists in localStorage.
