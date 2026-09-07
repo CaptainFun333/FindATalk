@@ -26,6 +26,7 @@ this updated.
 - The little calendar icon that opens Talk of the Day History was too small to see or tap comfortably, especially on iPad — made it noticeably bigger.
 - Enlarged the favorite, add-to-list, note, and share icon buttons throughout the app (talk cards, list rows, badges) to match — same "too small on iPad" problem, just app-wide.
 - Long lists in popups (like My Badges, once it has more badges than fit on one screen) now scroll properly, with the title staying put and a subtle shadow hinting there's more below.
+- Fixed a popup that could close itself from a stray tap nearby, before you'd had a chance to read it.
 
 ### Changed
 - On the Home and Come, Follow Me filter panels, Conference and Session now sit side by side in one row instead of Session getting its own row below — shortened conference dates (e.g. "Apr 2026") and session names (e.g. "Sat AM", "Priesthood") to fit. Filtering behavior is unchanged, just the layout.

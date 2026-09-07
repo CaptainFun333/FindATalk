@@ -3694,9 +3694,12 @@ document.getElementById('secretTryPaletteBtn').addEventListener('click', ()=>{
   closeSecretRevealModal();
 });
 document.getElementById('secretMaybeLaterBtn').addEventListener('click', closeSecretRevealModal);
-document.getElementById('secretRevealModalOverlay').addEventListener('click', (e)=>{
-  if (e.target === document.getElementById('secretRevealModalOverlay')) closeSecretRevealModal();
-});
+// Deliberately no overlay-click-to-dismiss here (unlike every other modal
+// in the app) — this one only ever shows once, right after 12 real clicks
+// on a small target, and a real user reported an accidental miss-click
+// on the overlay closing it before they could read the note. Escape is
+// left as-is (a deliberate keypress, not a stray tap) and the two real
+// buttons (Try the palette / Maybe later) are still the intended way out.
 document.addEventListener('keydown', (e)=>{
   const overlay = document.getElementById('secretRevealModalOverlay');
   if (e.key === 'Escape' && !overlay.hidden) closeSecretRevealModal();
