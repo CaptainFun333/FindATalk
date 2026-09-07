@@ -4815,7 +4815,28 @@ function renderBadgesList(){
   if (!listEl) return;
   const streak = loadStreak();
   const readingCount = readKeys.size;
-  listEl.innerHTML = BADGE_DEFS.map(def=>{
+  // Idea 54 — "Think Celestial!" is real static markup, not a BADGE_DEFS
+  // entry (it's earned by an event — finding the secret star — not a
+  // progress threshold, so it doesn't fit that array's shape), built here
+  // and placed at the TOP of the list, only when earned (never a locked
+  // row — nothing should hint it exists before it's found, same reasoning
+  // the secret star's own aria-label follows). Its own three-line subtext
+  // (description + a SEPARATE earned-date line) is the one deliberate
+  // exception to every other badge's single-line subtext — its title
+  // doesn't self-describe the way "10 Talks Read" does, so it still needs
+  // the description line.
+  let celestialRowHtml = '';
+  if (earnedBadges['think-celestial']){
+    const dateStr = new Date(earnedBadges['think-celestial']).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    celestialRowHtml = `<div class="badge-row badge-earned">
+      <span class="badge-icon">🌟</span>
+      <div class="badge-row-text"><strong>Think Celestial!</strong><span>Not everyone finds this one</span><span>earned ${dateStr}</span></div>
+      <button type="button" class="share-btn-icon badge-share-btn" data-badge-id="think-celestial" aria-label="Share this badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+      </button>
+    </div>`;
+  }
+  listEl.innerHTML = celestialRowHtml + BADGE_DEFS.map(def=>{
     const threshold = typeof def.threshold === 'function' ? def.threshold() : def.threshold;
     const earnedAt = earnedBadges[def.id];
     const progress = def.kind === 'streak' ? streak.longest : readingCount;
@@ -4839,23 +4860,6 @@ function renderBadgesList(){
       <div class="badge-row-text"><strong>${def.label}</strong><span>${def.desc} — ${progress} / ${threshold}</span></div>
     </div>`;
   }).join('');
-  // Idea 54 — "Think Celestial!" appended after the BADGE_DEFS rows above,
-  // only when earned (never a locked row — nothing should hint it exists
-  // before it's found, same reasoning the secret star's own aria-label
-  // follows). Its own three-line subtext (description + a SEPARATE earned-
-  // date line) is the one deliberate exception to every other badge's
-  // single-line subtext — its title doesn't self-describe the way "10
-  // Talks Read" does, so it still needs the description line.
-  if (earnedBadges['think-celestial']){
-    const dateStr = new Date(earnedBadges['think-celestial']).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-    listEl.insertAdjacentHTML('beforeend', `<div class="badge-row badge-earned">
-      <span class="badge-icon">🌟</span>
-      <div class="badge-row-text"><strong>Think Celestial!</strong><span>Not everyone finds this one</span><span>earned ${dateStr}</span></div>
-      <button type="button" class="share-btn-icon badge-share-btn" data-badge-id="think-celestial" aria-label="Share this badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
-      </button>
-    </div>`);
-  }
 }
 
 /* ---------------- APP ONLY — Phase 2 (idea 45): richer push notifications ----------------
