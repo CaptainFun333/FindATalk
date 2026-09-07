@@ -21,6 +21,7 @@ this updated.
 - The "Jump to a Week" calendar on Come, Follow Me now starts each row on Monday instead of Sunday, so a week's highlighted box shows as one clean row instead of splitting across two.
 - Fixed the "Recently Added / Conference Date" sort buttons overlapping the bottom of the new count box on a List's own page.
 - Fixed some days in the Talk of the Day History calendar showing up greyed out and unclickable — this happened to any day you didn't have the app open around midnight, and could leave one day or a short run of several days stuck that way permanently.
+- The little calendar icon that opens Talk of the Day History was too small to see or tap comfortably, especially on iPad — made it noticeably bigger.
 
 ### Changed
 - On the Home and Come, Follow Me filter panels, Conference and Session now sit side by side in one row instead of Session getting its own row below — shortened conference dates (e.g. "Apr 2026") and session names (e.g. "Sat AM", "Priesthood") to fit. Filtering behavior is unchanged, just the layout.
