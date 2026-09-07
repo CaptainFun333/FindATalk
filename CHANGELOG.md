@@ -15,6 +15,7 @@ this updated.
 - A new Read/Unread filter on Home, right in the "N matches" box — narrow results down to talks you haven't read yet, or just the ones you have. Updates automatically the moment a talk you're viewing gets marked read.
 - The same Read/Unread filter is now on the "Come, Follow Me" tab too, right at the top of its filter box, same as Home.
 - Each of your own Lists now has the same Read/Unread filter too, right at the top of the list — handy for working through a reading list you're building.
+- App-exclusive (iOS 16+): ask Siri for your Talk of the Day — "Hey Siri, give me my Talk of the Day in FindATalk" speaks today's pick and opens the app to it. Also shows up as a shortcut in the Shortcuts app.
 
 ### Fixed
 - iOS: fixed a shared findatalk.com link opening the app but not showing the "add this list" dialog when the app wasn't already running — only worked if the app was already open in the background. Requires a new iOS build to take effect.

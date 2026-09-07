@@ -24,6 +24,8 @@
 		A7245A7253EADC5940C7D1E3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E2F9BAD01C0038E9132B5378 /* PrivacyInfo.xcprivacy */; };
 		C8E78B63C2CDAB56C506C74E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5BA9C38F80D37FCBD7626408 /* PrivacyInfo.xcprivacy */; };
 		CB69B3BEF16D504324966580 /* data.json in Resources */ = {isa = PBXBuildFile; fileRef = 42DE0F6D203D4C8F2CE32BB2 /* data.json */; };
+		A1B2C3D4E5F6789001020305 /* TalkOfDayIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789001020304 /* TalkOfDayIntent.swift */; };
+		A1B2C3D4E5F6789001020306 /* TalkModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CF787F825C71776A4E0407 /* TalkModel.swift */; };
 		DD0DF2586103BC338DADA85B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FE895B1857DBAAFD41775DA0 /* SwiftUI.framework */; };
 		E0C4C368E2DA3C4D0B703ADF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9EBEEEFDE35A3F50ECB43029 /* WidgetKit.framework */; };
 		E56A3F4325D1F14C4C4B182E /* TalkOfDayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1376106DB7F765FFBB23F338 /* TalkOfDayWidgetBundle.swift */; };
@@ -68,6 +70,7 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		54CF787F825C71776A4E0407 /* TalkModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TalkModel.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789001020304 /* TalkOfDayIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TalkOfDayIntent.swift; sourceTree = "<group>"; };
 		5BA9C38F80D37FCBD7626408 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		6857864C3046463300D6E8A9 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		6857864D3046466900D6E8A9 /* TalkOfDayWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkOfDayWidgetExtension.entitlements; sourceTree = "<group>"; };
@@ -142,6 +145,7 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				F8730587BCF53F7ED54038A1 /* StreakBridgePlugin.swift */,
+				A1B2C3D4E5F6789001020304 /* TalkOfDayIntent.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -289,6 +293,8 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				55D2DBCDC515F3ECB211BCCC /* StreakBridgePlugin.swift in Sources */,
+				A1B2C3D4E5F6789001020305 /* TalkOfDayIntent.swift in Sources */,
+				A1B2C3D4E5F6789001020306 /* TalkModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
