@@ -2141,8 +2141,15 @@
     font-family:'Inter',sans-serif; font-size:12px; font-style:italic;
     color:var(--ink-soft); margin:6px 2px 0;
   }
+  /* Idea 58, Option A: was one row (name/count/rename/share/delete all on
+     one line — ~150px of fixed icon-chrome left long names only ~120px
+     to work with on a phone). Now a column: the name+count button gets
+     the row's full width on its own line, rename/share/delete drop to a
+     second line underneath. Name still truncates to one line (that's
+     Option B, not built here) — this alone already fits meaningfully
+     longer names since it isn't fighting three icon buttons for space. */
   .collection-row{
-    display:flex; align-items:stretch; gap:0;
+    display:flex; flex-direction:column;
     background:var(--paper-raised);
     border:1px solid var(--line);
     border-radius:6px;
@@ -2150,41 +2157,39 @@
     overflow:hidden;
   }
   .collection-row-main{
-    flex:1; min-width:0;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px;
-    padding:18px 20px;
+    display:flex; flex-direction:column; align-items:flex-start;
+    gap:2px;
+    padding:16px 18px 4px;
     background:none; border:none; cursor:pointer;
-    text-align:left;
+    text-align:left; width:100%;
   }
   .collection-row-main:hover{ background:var(--tint); }
   .collection-row-name{
     font-family:'Lora',serif; font-weight:600; font-size:17px; color:var(--ink);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    max-width:100%;
   }
   .collection-row-count{
     font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); flex-shrink:0;
   }
-  /* The share button sits directly in .collection-row (align-items:stretch)
-     between .collection-row-main and .collection-row-delete — with an
-     explicit width/height (see .share-btn-icon) it doesn't stretch, but
-     "stretch" still positions a non-stretching item at the cross-axis
-     start (top) rather than centering it, hence align-self here. Right
-     margin gives it breathing room before the delete button's own
-     left border, instead of the two visually crowding each other. */
-  .collection-row > .share-btn-icon{ align-self:center; margin-right:12px; }
+  /* Second line: rename/share/delete, right-aligned, all three now the
+     same small icon-button treatment (delete used to be a full-height
+     48px strip with a left border — that was specifically for the old
+     single-row layout, and reads as an odd, taller outlier now that it's
+     just one of three peers on their own row). */
+  .collection-row-actions{
+    display:flex; align-items:center; justify-content:flex-end;
+    gap:8px;
+    padding:4px 14px 14px;
+  }
   .collection-row-delete{
     flex-shrink:0;
-    width:48px;
+    width:34px; height:34px;
     display:flex; align-items:center; justify-content:center;
-    background:none; border:none; border-left:1px solid var(--line); cursor:pointer;
-    font-size:20px; color:var(--ink-soft);
+    background:none; border:1px solid var(--line); border-radius:4px; cursor:pointer;
+    font-size:18px; color:var(--ink-soft);
   }
   .collection-row-delete:hover{ color:var(--burgundy); background:var(--tint); }
-  /* Rename (pencil) sits before Share, same small icon-button treatment —
-     see .collection-row > .share-btn-icon above for why align-self:center
-     is needed on a non-stretching flex child here. */
-  .collection-row > .collection-row-rename{ align-self:center; margin-right:8px; }
   /* Edit mode replaces the whole row's normal content (main button + rename
      + share + delete) with this instead — kept as a sibling structure
      rather than nesting an <input> inside .collection-row-main's <button>,
@@ -9244,6 +9249,11 @@ function renderCollectionsIndexPage(){
     main.addEventListener('click', ()=>{ renderCollectionPage(col.id); showZone('collection'); });
     row.appendChild(main);
 
+    // Idea 58, Option A — rename/share/delete now share one row of their
+    // own underneath the name, instead of crowding onto the name's line.
+    const actions = document.createElement('div');
+    actions.className = 'collection-row-actions';
+
     const renameBtn = document.createElement('button');
     renameBtn.type = 'button';
     renameBtn.className = 'share-btn-icon collection-row-rename';
@@ -9254,7 +9264,7 @@ function renderCollectionsIndexPage(){
       editingCollectionId = col.id;
       renderCollectionsIndexPage();
     });
-    row.appendChild(renameBtn);
+    actions.appendChild(renameBtn);
 
     // Phase 3 (idea 45) — share a list. Real DOM/addEventListener here
     // (unlike renderBadgesList()'s delegated approach), since this
@@ -9270,7 +9280,7 @@ function renderCollectionsIndexPage(){
       e.stopPropagation();
       shareText(buildListShareText(col), listShareBtn);
     });
-    row.appendChild(listShareBtn);
+    actions.appendChild(listShareBtn);
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
@@ -9284,8 +9294,9 @@ function renderCollectionsIndexPage(){
         renderCollectionsIndexPage();
       }
     });
-    row.appendChild(delBtn);
+    actions.appendChild(delBtn);
 
+    row.appendChild(actions);
     listEl.appendChild(row);
   });
 }
