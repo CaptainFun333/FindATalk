@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Added
-- Nothing yet.
+- App-exclusive (Android): the back button now takes you somewhere sensible instead of doing nothing — it closes whatever popup is open, backs out of a list to My Lists, or returns to Home, before finally exiting the app.
 
 ### Fixed
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.
