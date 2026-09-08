@@ -14,7 +14,7 @@ this updated.
 - Nothing yet.
 
 ### Fixed
-- Nothing yet.
+- App-exclusive: fixed the home screen widget not always matching your Color Palette choice.
 
 ### Changed
 - Nothing yet.
