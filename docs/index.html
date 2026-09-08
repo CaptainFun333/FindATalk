@@ -10050,6 +10050,62 @@ if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.
     if (result && result.url) checkForSharedListLink(result.url);
   }).catch(()=>{}); // not available on web/unsupported platform — nothing to do
 }
+/* Idea 59 — finds whichever of the app's 12 separate modal/popup
+   overlays is currently open (at most one ever is, in practice) and
+   closes it through its own real close function — same dismiss path as
+   tapping its Cancel/X button, clicking the overlay backdrop, or (where
+   one already exists) pressing Escape, so nothing about closing it this
+   way is new or skips cleanup those paths already handle. Returns true
+   if something was actually open and got closed, false otherwise, so the
+   backButton handler below knows whether to fall through to zone-level
+   navigation. notifPermModalOverlay has no exported close function (its
+   real close() is a closure private to showNotifPermModal()'s own
+   Promise executor) — clicking its Skip button resolves that same
+   promise the way a real tap would, so that's used instead of a direct
+   call. */
+function closeTopmostModal(){
+  const overlay = (id)=> document.getElementById(id);
+  if (!overlay('badgeCelebrationModalOverlay').hidden){ dismissBadgeCelebration(); return true; }
+  if (!overlay('settingsModalOverlay').hidden){ closeSettingsModal(); return true; }
+  if (!overlay('badgesModalOverlay').hidden){ closeBadgesModal(); return true; }
+  if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }
+  if (!overlay('secretRevealModalOverlay').hidden){ closeSecretRevealModal(); return true; }
+  if (!overlay('sharedListModalOverlay').hidden){ closeSharedListModal(); return true; }
+  if (!overlay('collectionModalOverlay').hidden){ closeCollectionModal(); return true; }
+  if (!overlay('citeDestModalOverlay').hidden){ closeCiteDestModal(); return true; }
+  if (!overlay('noteModalOverlay').hidden){ closeNoteModal(); return true; }
+  if (!overlay('totdCalendarModalOverlay').hidden){ closeTotdCalendarModal(); return true; }
+  if (!overlay('cfmCalendarModalOverlay').hidden){ closeCfmCalendarModal(); return true; }
+  const notifPermOverlay = overlay('notifPermModalOverlay');
+  if (notifPermOverlay && !notifPermOverlay.hidden){
+    const skipBtn = overlay('notifPermSkipBtn');
+    if (skipBtn) skipBtn.click();
+    return true;
+  }
+  return false;
+}
+/* Idea 59 — Android's hardware/gesture back button navigates within the
+   app instead of doing nothing. Confirmed before this existed: no
+   backButton listener was registered anywhere, and the app never uses
+   real browser history either (zones are plain JS/CSS state, not
+   navigation entries) — so Android's back button had nothing to act on.
+   Registering a listener at all makes this app fully responsible for
+   what back does on Android from here on (Capacitor no longer supplies
+   any default), so the last branch below explicitly exits the app
+   rather than silently doing nothing. Priority, closest thing first:
+   1) an open modal/popup — close it, and nothing else;
+   2) the List-detail page — back to the My Lists index (the exact case
+      that prompted this);
+   3) any other tab — back to Home;
+   4) already on Home with nothing open — exit the app. */
+if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
+  cap.Plugins.App.addListener('backButton', ()=>{
+    if (closeTopmostModal()) return;
+    if (activeZone === 'collection'){ goToNavZone('collectionsIndex'); return; }
+    if (activeZone !== 'home'){ goToNavZone('home'); return; }
+    cap.Plugins.App.exitApp();
+  });
+}
 /* Idea 46 — notification tap routing (see handleNotificationTap() above
    for what each id does). Registered the same way/place as appUrlOpen
    just above — same NOTE applies here too: not yet verified on a real
