@@ -17,7 +17,7 @@ this updated.
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.
 
 ### Changed
-- Nothing yet.
+- On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
 
 ## [1.6] — 2026-09-07
 
