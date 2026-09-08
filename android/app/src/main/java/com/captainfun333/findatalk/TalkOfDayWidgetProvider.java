@@ -289,9 +289,10 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
 
     // Written by mirrorPaletteToNative() in docs/index.html, same
     // SharedPreferences file as theme/streak. Value is 'rose'/'slate'/
-    // 'sage' if the person picked a Color Palette in Settings, or absent
-    // if they haven't (still Brass, the default — the LIGHT_*/DARK_*
-    // constants above and their two drawables cover that case already).
+    // 'sage'/'celestial' if the person picked a Color Palette in Settings,
+    // or absent if they haven't (still Brass, the default — the
+    // LIGHT_*/DARK_* constants above and their two drawables cover that
+    // case already).
     private static final String PALETTE_KEY = "findATalkPalette";
 
     // One more literal color set per non-Brass palette, same reasoning as
@@ -324,6 +325,21 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
     private static final int DARK_SAGE_INK_SOFT = Color.parseColor("#B9C2B5");
     private static final int DARK_SAGE_ACCENT = Color.parseColor("#9DB06A");
     private static final int DARK_SAGE_ACCENT2 = Color.parseColor("#D98A63");
+
+    // Celestial — idea 54's secret sixth palette, only reachable in-app
+    // once its own easter egg is found (see docs/index.html). No special
+    // handling needed here beyond that: mirrorPaletteToNative() writes
+    // whatever string setPalette() gives it regardless of which palette
+    // it is, so this widget just needs its own literal color set like
+    // every other non-Brass palette above.
+    private static final int LIGHT_CELESTIAL_INK = Color.parseColor("#211F3D");
+    private static final int LIGHT_CELESTIAL_INK_SOFT = Color.parseColor("#565285");
+    private static final int LIGHT_CELESTIAL_ACCENT = Color.parseColor("#B4903A");
+    private static final int LIGHT_CELESTIAL_ACCENT2 = Color.parseColor("#4A3F8F");
+    private static final int DARK_CELESTIAL_INK = Color.parseColor("#FFFFFF");
+    private static final int DARK_CELESTIAL_INK_SOFT = Color.parseColor("#C3BDF0");
+    private static final int DARK_CELESTIAL_ACCENT = Color.parseColor("#E8D38A");
+    private static final int DARK_CELESTIAL_ACCENT2 = Color.parseColor("#A9A0F5");
 
     /** True if the system is currently in night mode — used as the
         fallback when a palette is set but no explicit Light/Dark choice
@@ -375,6 +391,13 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
                 inkSoft = dark ? DARK_SAGE_INK_SOFT : LIGHT_SAGE_INK_SOFT;
                 accent = dark ? DARK_SAGE_ACCENT : LIGHT_SAGE_ACCENT;
                 accent2 = dark ? DARK_SAGE_ACCENT2 : LIGHT_SAGE_ACCENT2;
+                break;
+            case "celestial":
+                backgroundRes = dark ? R.drawable.widget_background_celestial_dark : R.drawable.widget_background_celestial_light;
+                ink = dark ? DARK_CELESTIAL_INK : LIGHT_CELESTIAL_INK;
+                inkSoft = dark ? DARK_CELESTIAL_INK_SOFT : LIGHT_CELESTIAL_INK_SOFT;
+                accent = dark ? DARK_CELESTIAL_ACCENT : LIGHT_CELESTIAL_ACCENT;
+                accent2 = dark ? DARK_CELESTIAL_ACCENT2 : LIGHT_CELESTIAL_ACCENT2;
                 break;
             default:
                 backgroundRes = dark ? R.drawable.widget_background_dark : R.drawable.widget_background_light;

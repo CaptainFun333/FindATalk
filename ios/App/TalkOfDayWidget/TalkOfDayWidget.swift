@@ -9,9 +9,9 @@ struct TalkEntry: TimelineEntry {
     // in-app toggle, nil if they haven't (still following the system
     // setting) — see ThemeStore below.
     let themeOverride: String?
-    // "rose" / "slate" / "sage" if the person picked a Color Palette in
-    // Settings, nil if they haven't (still Brass, the default) — see
-    // PaletteStore below.
+    // "rose" / "slate" / "sage" / "celestial" if the person picked a
+    // Color Palette in Settings, nil if they haven't (still Brass, the
+    // default) — see PaletteStore below.
     let paletteOverride: String?
 }
 
@@ -239,6 +239,29 @@ private enum TalkPalette {
         )
     )
 
+    // Celestial — idea 54's secret sixth palette, only reachable in-app
+    // once its own easter egg is found (see docs/index.html). No special
+    // gating needed here: paletteSet(for:) below just adds one more case,
+    // same as every other non-Brass palette.
+    static let celestial = PaletteSet(
+        light: Scheme(
+            paperRaised: Color(red: 0.973, green: 0.965, blue: 1.0),
+            ink: Color(red: 0.129, green: 0.122, blue: 0.239),
+            inkSoft: Color(red: 0.337, green: 0.322, blue: 0.522),
+            brass: Color(red: 0.706, green: 0.565, blue: 0.227),
+            line: Color(red: 0.871, green: 0.831, blue: 0.949),
+            burgundy: Color(red: 0.290, green: 0.247, blue: 0.561)
+        ),
+        dark: Scheme(
+            paperRaised: Color(red: 0.086, green: 0.075, blue: 0.188),
+            ink: Color(red: 1.0, green: 1.0, blue: 1.0),
+            inkSoft: Color(red: 0.765, green: 0.741, blue: 0.941),
+            brass: Color(red: 0.910, green: 0.827, blue: 0.541),
+            line: Color(red: 0.200, green: 0.176, blue: 0.361),
+            burgundy: Color(red: 0.663, green: 0.627, blue: 0.961)
+        )
+    )
+
     // Two fixes from user feedback after reviewing all four palettes live:
     // (1) every dark Scheme.ink above is now pure white (1,1,1), not a
     // tinted off-white — dark ink dominates the widget's visual weight
@@ -259,6 +282,7 @@ private enum TalkPalette {
         case "rose": return rose
         case "slate": return slate
         case "sage": return sage
+        case "celestial": return celestial
         default: return brass
         }
     }
