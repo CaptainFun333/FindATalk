@@ -2696,6 +2696,7 @@
       <div class="sort-toggle" id="recentSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Viewed</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date</button>
+        <button type="button" class="sort-toggle-btn" data-sort="mostRead">Most Read</button>
       </div>
     </div>
     <div class="pool-count" id="recentFilterCount"></div>
@@ -4301,14 +4302,25 @@ function cfmMatchesForWeek(index){
      explicit "I've read this" flag someone would want to keep, so it's
      included in backup export/import alongside favorites (see the
      Backup export/import section further down).
+   - visitCounts (idea 55): a plain {talkKey: count} object, keeps
+     incrementing on every credited read past the first (unlike readKeys,
+     which only ever flips once) — powers the "Read ×N" badge and the
+     Recently Viewed "Most Read" sort. Genuinely different from recentKeys:
+     recentKeys is capped/reordered (see RECENT_MAX below), so a talk read
+     20 times months ago but not opened since would already have scrolled
+     out of it — "Most Read" needs this separate, unbounded map instead.
+     Authored, non-recomputable data, so — like readKeys — it's included
+     in backup export/import.
 ------------------------------------------------------------------*/
 const RECENT_KEY = 'findATalkRecent';
 const FAVORITES_KEY = 'findATalkFavorites';
 const READ_KEY = 'findATalkRead';
+const VISIT_COUNTS_KEY = 'findATalkVisitCounts';
 const RECENT_MAX = 50;
 let recentKeys = [];
 let favoriteKeys = new Set();
 let readKeys = new Set();
+let visitCounts = {};
 
 /* ---------------- read/streak-credit integrity gate ----------------
    Opening a talk (recordOpened() below) still instantly updates
@@ -4361,6 +4373,13 @@ let onNeedCfmRefresh = null;
 // is currently open, since unlike Home/CFM there's no single "current
 // pool" to refresh without knowing which list that is.
 let onNeedCollectionRefresh = null;
+// Idea 55 — same reason again: the actual readBadgeHtml() (needs
+// CHECK_ICON_SVG, which — like syncReadBadge()'s needs — only exists
+// inside initApp()'s closure) is nested there too; top-level
+// refreshReadBadgesFor() below calls through this slot instead of
+// referencing it directly, hit and fixed the same way while building this
+// feature, before it ever shipped broken like the syncReadBadge bug did.
+let onReadBadgeHtml = null;
 /* Real-device testing found the read/streak credit still wasn't firing
    even after the App.resume fix (see onForeground()'s own comment) — kept
    as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
@@ -4419,6 +4438,10 @@ function loadRecentAndFavorites(){
     const raw = localStorage.getItem(READ_KEY);
     if (raw) readKeys = new Set(JSON.parse(raw));
   } catch(err){ readKeys = new Set(); }
+  try {
+    const raw = localStorage.getItem(VISIT_COUNTS_KEY);
+    if (raw) visitCounts = JSON.parse(raw);
+  } catch(err){ visitCounts = {}; }
 }
 loadRecentAndFavorites();
 
@@ -4434,12 +4457,26 @@ function saveRead(){
   try { localStorage.setItem(READ_KEY, JSON.stringify([...readKeys])); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
 }
+function saveVisitCounts(){
+  try { localStorage.setItem(VISIT_COUNTS_KEY, JSON.stringify(visitCounts)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+}
 function isRead(talk){ return readKeys.has(talkKey(talk)); }
+function visitCountFor(talk){ return visitCounts[talkKey(talk)] || 0; }
 function markRead(talk){
   const key = talkKey(talk);
   if (readKeys.has(key)) return; // already marked — skip the write
   readKeys.add(key);
   saveRead();
+}
+// Idea 55 — unlike markRead() above (which no-ops after the first credited
+// read), this keeps incrementing on every later one. Called alongside
+// markRead() from checkPendingRead(), through the same integrity gate —
+// see that function below, and the comment above VISIT_COUNTS_KEY.
+function incrementVisitCount(talk){
+  const key = talkKey(talk);
+  visitCounts[key] = (visitCounts[key] || 0) + 1;
+  saveVisitCounts();
 }
 function recordOpened(talk){
   if (!talk) return;
@@ -4477,7 +4514,18 @@ function recordOpened(talk){
    is safe here without CSS.escape() — talk keys are built from this
    app's own data (year|month|slug), never arbitrary/untrusted input. */
 function refreshReadBadgesFor(talk){
-  document.querySelectorAll(`[data-talk-key="${talkKey(talk)}"]`).forEach(el=> el.hidden = false);
+  // Idea 55 — a repeat credited read needs the badge's actual content
+  // rebuilt (✓ Read → Read ×2, etc.), not just unhidden, in case one is
+  // already on screen from an earlier credit this same session. The
+  // selector also matches each row's outer .list-item (see
+  // buildListItemRow — same data-talk-key attribute on both), which was
+  // never hidden to begin with, so the plain `.hidden = false` there stays
+  // a harmless no-op, same as before this change.
+  const count = visitCountFor(talk);
+  document.querySelectorAll(`[data-talk-key="${talkKey(talk)}"]`).forEach(el=>{
+    if (el.classList.contains('list-item-read-badge') && onReadBadgeHtml) el.innerHTML = onReadBadgeHtml(count);
+    el.hidden = false;
+  });
 }
 
 function checkPendingRead(){
@@ -4487,6 +4535,7 @@ function checkPendingRead(){
   clearPendingRead();
   if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
   markRead(talk);
+  incrementVisitCount(talk); // idea 55 — keeps counting past the first credited read, unlike markRead() above
   refreshReadBadgesFor(talk); // list-row "Read" badges (Show a List, Recently Viewed, Favorites, My Lists, TOTD, CFM) — the ticket's own badge is handled separately below via onTicketReadBadgeSync
   // Idea 49: Read/Unread filter — a talk just marked read needs to drop
   // out of an active "Unread" filter (or appear under "Read") without
@@ -6330,6 +6379,18 @@ noteBtn.addEventListener('click', ()=>{
   openNoteModal(lastPicked);
 });
 
+// Idea 55 — the "Read" badge's actual markup (used by buildListItemRow()
+// below and, live, by refreshReadBadgesFor() via the onReadBadgeHtml slot
+// above): a bare checkmark for a single read, count only once it's
+// genuinely worth reporting (2+), per the user's explicit call — dropping
+// the checkmark at that point rather than keeping both. Nested here (not
+// top-level) since it needs CHECK_ICON_SVG, which only exists inside this
+// closure — same reason syncReadBadge() just below it does.
+function readBadgeHtml(count){
+  return count >= 2 ? `<span>Read ×${count}</span>` : `${CHECK_ICON_SVG}<span>Read</span>`;
+}
+onReadBadgeHtml = readBadgeHtml; // registers with refreshReadBadgesFor() — see that top-level slot's own comment
+
 // Reflects whether the currently-shown talk has already been opened at
 // least once (see markRead(), called from recordOpened() above) — a
 // small non-interactive line, same "already read" flag as the one shown
@@ -6338,7 +6399,16 @@ const ticketReadBadge = document.getElementById('ticketReadBadge');
 function syncReadBadge(){
   const read = !!(lastPicked && isRead(lastPicked));
   ticketReadBadge.hidden = !read;
-  if (read) ticketReadBadge.innerHTML = `${CHECK_ICON_SVG}<span>You already read this talk</span>`;
+  if (read){
+    // Idea 55 — same "only report the count once it's genuinely worth it"
+    // rule as the list-row badge, but as a sentence swap instead of an
+    // appended ×N (a bare number tacked onto prose reads worse than one
+    // tacked onto a chip) — the checkmark itself stays either way, unlike
+    // the list-row badge, since this is a full sentence, not a compact chip.
+    const count = visitCountFor(lastPicked);
+    const text = count >= 2 ? `You've read this talk ${count} times` : 'You already read this talk';
+    ticketReadBadge.innerHTML = `${CHECK_ICON_SVG}<span>${text}</span>`;
+  }
 }
 onTicketReadBadgeSync = syncReadBadge; // registers with checkPendingRead() — see that top-level slot's own comment
 
@@ -6640,7 +6710,7 @@ function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, o
   const readBadge = document.createElement('span');
   readBadge.className = 'list-item-read-badge';
   readBadge.dataset.talkKey = talkKey(pick);
-  readBadge.innerHTML = `${CHECK_ICON_SVG}<span>Read</span>`;
+  readBadge.innerHTML = readBadgeHtml(visitCountFor(pick)); // idea 55 — ✓ Read once, Read ×N (no checkmark) from the second credited read on
   readBadge.title = 'You already opened this talk';
   readBadge.hidden = !isRead(pick);
   titleGroup.appendChild(readBadge);
@@ -8076,8 +8146,30 @@ const recentSortRowEl = document.getElementById('recentSortToggle').closest('.fi
 const recentSortToggle = createSortToggle(document.getElementById('recentSortToggle'), ()=> renderRecentPage());
 const recentSearch = createSearchBox(document.getElementById('recentQuery'), document.getElementById('recentQueryClear'), ()=> renderRecentPage());
 function renderRecentPage(){
-  let picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
-  if (recentSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  let picks;
+  if (recentSortToggle.mode === 'mostRead'){
+    // Idea 55 — deliberately sourced from visitCounts, NOT recentKeys:
+    // recentKeys is capped at RECENT_MAX and reordered on every open, so a
+    // talk read 20 times months ago but not opened since would already
+    // have scrolled out of it. All-time "most read" needs this separate,
+    // unbounded map instead. Ties (equal count) fall back to whichever was
+    // more recently opened per recentKeys' own order — a talk that has
+    // since scrolled out of recentKeys (indexOf -1) sorts as *least*
+    // recent among ties, not most, since Infinity always loses a tiebreak.
+    picks = Object.keys(visitCounts)
+      .filter(k=> visitCounts[k] > 0 && TALKS_BY_KEY[k])
+      .map(k=> TALKS_BY_KEY[k])
+      .sort((a,b)=>{
+        const diff = visitCountFor(b) - visitCountFor(a);
+        if (diff !== 0) return diff;
+        const ai = recentKeys.indexOf(talkKey(a));
+        const bi = recentKeys.indexOf(talkKey(b));
+        return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+      });
+  } else {
+    picks = recentKeys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
+    if (recentSortToggle.mode === 'conference') picks = sortByConferenceDate(picks);
+  }
   const q = recentSearch.query;
   const filtered = renderSubsetList(
     recentItemsEl, recentEmptyEl, recentFilterCountEl, [recentSearchFieldEl, recentSortRowEl, recentBulk.selectRow],
@@ -9353,6 +9445,7 @@ function exportBackupData(){
     exportedAt: new Date().toISOString(),
     favorites: [...favoriteKeys],
     read: [...readKeys],
+    visitCounts: {...visitCounts}, // idea 55 — authored, non-recomputable, same category as read/favorites
     collections,
     collectionMembers,
     notes: noteMap,
@@ -9484,6 +9577,19 @@ function mergeBackupData(data){
   (data.read || []).forEach(key=>{
     if (typeof key === 'string') readKeys.add(key);
   });
+  // `visitCounts` (idea 55) is later still — same no-op-on-older-files
+  // handling. Takes the max of the two sides per key, not a sum — re-
+  // importing the same backup twice (or restoring onto a device that
+  // already has some counts) must stay safe, same "never double-counts"
+  // guarantee every other merge here already has.
+  if (data.visitCounts && typeof data.visitCounts === 'object'){
+    Object.keys(data.visitCounts).forEach(key=>{
+      const val = data.visitCounts[key];
+      if (typeof val === 'number' && val > 0){
+        visitCounts[key] = Math.max(visitCounts[key] || 0, val);
+      }
+    });
+  }
   (data.collections || []).forEach(col=>{
     if (!col || typeof col.id !== 'string' || typeof col.name !== 'string') return;
     const incomingMembers = (data.collectionMembers && data.collectionMembers[col.id]) || [];
@@ -9519,6 +9625,7 @@ function mergeBackupData(data){
   mergeStreakData(data.streak);
   saveFavorites();
   saveRead();
+  saveVisitCounts();
   saveCollections();
   saveCollectionMembers();
   saveNotes();
