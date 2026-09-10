@@ -12,6 +12,7 @@ this updated.
 
 ### Added
 - App-exclusive (Android): the back button now takes you somewhere sensible instead of doing nothing — it closes whatever popup is open, backs out of a list to My Lists, or returns to Home, before finally exiting the app.
+- App-exclusive (iOS): swiping in from the left edge of the screen now closes whatever popup is open, or backs out of a list to My Lists, or returns to Home — the same navigation the Android back button got, as a swipe gesture. Requires a new iOS build to take effect.
 - The "Read" checkmark now shows how many times you've read a talk once it's more than once — "Read ×3" instead of just a checkmark. A new "Most Read" sort on Recently Viewed lets you see your most-read talks, across all time, not just what you've opened lately.
 - More everyday words now find the right topic — searching things like "vaping," "eating disorder," "miscarriage," "cyberbullying," "climate change," "gossip," "genealogy," "boy scouts," "heartbreak," "empty nest," or "movies" now also surfaces talks tagged with the matching official topic.
 
