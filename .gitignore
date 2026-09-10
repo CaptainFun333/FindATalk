@@ -2,6 +2,13 @@
 node_modules/
 talktest
 
+# Xcode/SPM local build state generated when resolving a local Swift
+# package (e.g. packages/capacitor-streak-bridge) outside ios/ — ios/
+# has its own xcuserdata rule already, but this covers local packages
+# living elsewhere in the repo too.
+.swiftpm/
+xcuserdata/
+
 # In-progress full-text talk-body collection for Idea 5 (full-text search).
 # Deliberately NOT committed until the whole set is gathered and verified —
 # see research/talk-bodies/README.md for status and how to resume.

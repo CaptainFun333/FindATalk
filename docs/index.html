@@ -5561,6 +5561,159 @@ const TOPIC_ALIASES = {
   'dying': 'death',
   'afterlife': 'eternal-life',
   'natural disasters': 'humanitarian-aid',
+
+  // Batch 4 — same method again, previewed to the user before committing.
+  'eating disorder': 'mental-illness',
+  'ocd': 'mental-illness',
+  'bipolar': 'mental-illness',
+  'anxious': 'anxiety',
+  'suicidal': 'suicide',
+  'postpartum depression': 'depression',
+  'homesickness': 'loneliness',
+  'narcissism': 'pride',
+  'vaping': 'word-of-wisdom',
+  'caffeine': 'word-of-wisdom',
+  'tea': 'word-of-wisdom',
+  'marijuana': 'addiction',
+  'weed': 'addiction',
+  'opioids': 'addiction',
+  'alcoholism': 'addiction',
+  'addicted': 'addiction',
+  'same-gender attraction': 'homosexuality',
+  'child abuse': 'abuse',
+  'sexual abuse': 'abuse',
+  'emotional abuse': 'abuse',
+  'foster care': 'family',
+  'stepfamily': 'family',
+  'stepparent': 'family',
+  'engaged': 'marriage',
+  'wedding': 'marriage',
+  'polygamy': 'church-history',
+  'plural marriage': 'church-history',
+  'miscarriage': 'death',
+  'stillbirth': 'death',
+  'widower': 'death',
+  'singleness': 'single-adults',
+  'cyberbullying': 'bullying',
+  'gangs': 'violence',
+  'homelessness': 'poverty',
+  'homeless': 'poverty',
+  'hunger': 'humanitarian-aid',
+  'veterans': 'military',
+  'climate change': 'environment',
+  'pollution': 'environment',
+  'cults': 'false-doctrines',
+  'false prophets': 'false-doctrines',
+  'misinformation': 'truth',
+  'self-care': 'health',
+  'chronic illness': 'health',
+  'cancer': 'healing',
+  'thankfulness': 'gratitude',
+  'gaming': 'media',
+  'ai': 'technology',
+
+  // Batch 5 — same method again, previewed to the user before committing.
+  // Note: resentment/bitterness/grudge/backbiting routed to Contention
+  // rather than Forgiveness/Honesty per user correction during preview.
+  'letting go': 'forgiveness',
+  'guilt': 'repentance',
+  'shame': 'repentance',
+  'confession': 'repentance',
+  'starting over': 'repentance',
+  'betrayal': 'trust',
+  'trust issues': 'trust',
+  'resentment': 'contention',
+  'bitterness': 'contention',
+  'grudge': 'contention',
+  'backbiting': 'contention',
+  'living prophet': 'prophets',
+  'genealogy': 'family-history',
+  'ancestors': 'family-history',
+  'communion': 'sacrament',
+  'endowment': 'temple-work',
+  'fast offering': 'fasting',
+  'nursery': 'primary',
+  'young men': 'aaronic-priesthood',
+  'boy scouts': 'scouting',
+  'cub scouts': 'scouting',
+  'eagle scout': 'scouting',
+  'mission call': 'missionary-service',
+  'returned missionary': 'missionary-service',
+  'retirement': 'financial-management',
+  'savings': 'financial-management',
+  'bankruptcy': 'financial-management',
+  'layoff': 'employment',
+  'workplace': 'employment',
+  'homeschooling': 'education',
+  'food storage': 'self-reliance',
+  'emergency preparedness': 'self-reliance',
+  'gossip': 'honesty',
+  'rumors': 'honesty',
+  'cliques': 'belonging',
+  'making friends': 'friendship',
+  'self-image': 'self-esteem',
+  'perfectionism': 'self-esteem',
+  'bereavement': 'death',
+  'hospice': 'death',
+  'life after death': 'eternal-life',
+  'self injury': 'mental-illness',
+  'worrying': 'anxiety',
+  'artificial intelligence': 'technology',
+  'recycling': 'environment',
+  'conservation': 'environment',
+  'elections': 'government',
+  'deployment': 'military',
+  'soldiers': 'military',
+
+  // Batch 6 — same method again, previewed to the user before committing.
+  // Note: heartbreak routed to Death (grief's target) rather than Dating,
+  // and inclusion/inclusivity routed to Belonging rather than Diversity,
+  // per user correction during preview. "dyslexia" and the
+  // "police officers"/"first responders" duplicates were dropped at the
+  // user's request (kept "learning disability" and "police").
+  'answered prayers': 'prayer',
+  'affairs': 'sexual-purity',
+  'heartbreak': 'death',
+  'feeling alone': 'loneliness',
+  'feeling unloved': 'belonging',
+  'not good enough': 'self-esteem',
+  'impostor syndrome': 'self-esteem',
+  'workaholic': 'balance',
+  'work-life balance': 'balance',
+  'overworked': 'balance',
+  'busyness': 'balance',
+  'chronic pain': 'health',
+  'terminal illness': 'death',
+  'family reunion': 'family',
+  'extended family': 'family',
+  'adopted': 'family',
+  'custody battle': 'divorce',
+  'co-parenting': 'divorce',
+  'empty nest': 'parenthood',
+  'immodesty': 'modesty',
+  'dress code': 'modesty',
+  'pornography addiction': 'pornography',
+  'same-sex couples': 'homosexuality',
+  'poor': 'poverty',
+  'rich': 'wealth',
+  'greedy': 'greed',
+  'unemployed': 'employment',
+  'coworkers': 'employment',
+  'boss': 'employment',
+  'learning disability': 'disabilities',
+  'racial unity': 'unity',
+  'inclusion': 'belonging',
+  'inclusivity': 'belonging',
+  'pets': 'animals',
+  'movies': 'media',
+  'tv': 'media',
+  'television': 'media',
+  'streaming': 'media',
+  'police': 'safety',
+  'combat': 'military',
+  'global warming': 'environment',
+  'baptismal covenant': 'baptism',
+  'gift of the holy ghost': 'holy-ghost',
 };
 
 // Looks up a "did you mean" suggestion for a failed topic search. Tries an
@@ -10202,6 +10355,23 @@ function closeTopmostModal(){
   }
   return false;
 }
+/* Idea 59 — one level of "back" within the app: closes whatever's
+   topmost (a modal, else the current zone), same priority chain either
+   platform's gesture uses. Split out of the backButton listener itself
+   so idea 60 (iOS edge-swipe) can call the exact same logic instead of
+   re-deriving it. Returns true if something was actually closed/changed
+   so each platform's own listener can decide what "nothing left to back
+   out of" means for it. Priority, closest thing first:
+   1) an open modal/popup — close it, and nothing else;
+   2) the List-detail page — back to the My Lists index (the exact case
+      that prompted idea 59);
+   3) any other tab — back to Home. */
+function stepBackOneLevel(){
+  if (closeTopmostModal()) return true;
+  if (activeZone === 'collection'){ goToNavZone('collectionsIndex'); return true; }
+  if (activeZone !== 'home'){ goToNavZone('home'); return true; }
+  return false;
+}
 /* Idea 59 — Android's hardware/gesture back button navigates within the
    app instead of doing nothing. Confirmed before this existed: no
    backButton listener was registered anywhere, and the app never uses
@@ -10209,21 +10379,28 @@ function closeTopmostModal(){
    navigation entries) — so Android's back button had nothing to act on.
    Registering a listener at all makes this app fully responsible for
    what back does on Android from here on (Capacitor no longer supplies
-   any default), so the last branch below explicitly exits the app
-   rather than silently doing nothing. Priority, closest thing first:
-   1) an open modal/popup — close it, and nothing else;
-   2) the List-detail page — back to the My Lists index (the exact case
-      that prompted this);
-   3) any other tab — back to Home;
-   4) already on Home with nothing open — exit the app. */
+   any default), so exiting when stepBackOneLevel() has nothing left to
+   do is deliberate, not a fallback being skipped. */
 if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
   cap.Plugins.App.addListener('backButton', ()=>{
-    if (closeTopmostModal()) return;
-    if (activeZone === 'collection'){ goToNavZone('collectionsIndex'); return; }
-    if (activeZone !== 'home'){ goToNavZone('home'); return; }
+    if (stepBackOneLevel()) return;
     cap.Plugins.App.exitApp();
   });
 }
+/* Idea 60 — iOS left-edge swipe-to-go-back, Path A from the idea 60
+   write-up: a native UIScreenEdgePanGestureRecognizer (added in
+   SceneDelegate.swift, not through WKWebView's own
+   allowsBackForwardNavigationGestures — this app has no real
+   history.pushState entries for that gesture to walk) calls this
+   function via evaluateJavaScript, the same way goToHomeScreen() is
+   already called from native for the widget's tap-to-open. Deliberately
+   NOT wired to Android's stepBackOneLevel()-then-exitApp() behavior:
+   unlike a hardware back button, an edge swipe with nothing left to back
+   out of should just do nothing on iOS, not quit the app — that's not
+   what the gesture means to an iOS user. Exposed on window rather than
+   called directly since this file has no module system for native code
+   to import from. */
+window.handleEdgeSwipeBack = stepBackOneLevel;
 /* Idea 46 — notification tap routing (see handleNotificationTap() above
    for what each id does). Registered the same way/place as appUrlOpen
    just above — same NOTE applies here too: not yet verified on a real

@@ -1,0 +1,28 @@
+{
+  "name": "capacitor-streak-bridge",
+  "version": "0.0.1",
+  "description": "Local, app-only Capacitor plugin: mirrors streak/theme/palette state from the WebView into the App Group UserDefaults the TalkOfDayWidget extension reads from. Not published — used only via the file: dependency in this repo's root package.json so `npx cap sync` can discover it and manage its native registration automatically instead of that being hand-maintained.",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "dist/",
+    "ios/Sources",
+    "Package.swift"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}
