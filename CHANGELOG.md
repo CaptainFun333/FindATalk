@@ -18,6 +18,7 @@ this updated.
 
 ### Fixed
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.
+- Your streak now credits the day you actually opened a talk, instead of whatever day you happen to come back to the app — if you open a talk and don't return until later, that day still counts.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
