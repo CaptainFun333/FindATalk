@@ -4531,7 +4531,8 @@ function refreshReadBadgesFor(talk){
 function checkPendingRead(){
   if (!pendingReadTalk) return;
   const talk = pendingReadTalk;
-  const awayMs = Date.now() - pendingReadDepartedAt;
+  const departedAt = pendingReadDepartedAt;
+  const awayMs = Date.now() - departedAt;
   clearPendingRead();
   if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
   markRead(talk);
@@ -4563,7 +4564,7 @@ function checkPendingRead(){
   if (onTicketReadBadgeSync) onTicketReadBadgeSync();
   checkForNewBadges(); // reading-count badges (idea 45) — a no-op on web, see that function's own gate
   if (awayMs < MIN_AWAY_TO_COUNT_STREAK_MS) return; // read, but not away long enough to plausibly count as real engagement — streak stays untouched
-  touchStreak();
+  touchStreak(new Date(departedAt)); // credits the day the talk was actually OPENED, not whatever day this happens to be resolving on — see touchStreak()'s own comment
   renderStreak();
   checkForNewBadges(); // streak badges (idea 45) — called again since streak.longest may have just changed too
   updateStreakRiskNotification(); // Phase 2 (idea 45) — cancels today's at-risk nudge now that it's been credited; a no-op on web/no-permission
@@ -4574,8 +4575,8 @@ function checkPendingRead(){
    the streak counter directly below (as the unit it counts in), so both
    agree on when "today" rolls over. Top-level (not nested in initApp
    like talkOfTheDay is) because touchStreak() needs it and touchStreak
-   is called from recordOpened() above, which also has to be top-level —
-   see the note on that below. */
+   is called from checkPendingRead() above, which also has to be
+   top-level — see the note on that below. */
 function localDateSeed(d){
   d = d || new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -4583,22 +4584,30 @@ function localDateSeed(d){
 
 /* ---------------- Daily streak ----------------
    Two related but separate stats, both counted from "was a talk actually
-   OPENED today" — touchStreak() is called from recordOpened() above, the
-   same trigger recentKeys uses (the ticket's "Open This Talk" link, or a
-   title link in Show a List/Recently Viewed/Favorites), not from just
-   launching the app. Not tied to actually reading/finishing a talk
-   though — same "opening it is enough" spirit as recentKeys itself:
+   OPENED" (the ticket's "Open This Talk" link, or a title link in Show a
+   List/Recently Viewed/Favorites/My Lists/Notes/TOTD/CFM — every surface
+   funnels through the same titleLink handler in buildListItemRow(), see
+   recordOpened()). Credited to the calendar day it was OPENED, not the
+   day the credit happens to get processed — those can differ whenever
+   someone opens a talk, goes to read it, and doesn't return to the app
+   until later; touchStreak() is called from checkPendingRead() with that
+   original day passed through, not from recordOpened() itself and not
+   from just launching the app. Not tied to actually reading/finishing a
+   talk though — same "opening it is enough" spirit as recentKeys itself:
    - count: CONSECUTIVE calendar days, resets hard to 1 on any gap. The
      all-or-nothing "don't stop now" number.
    - activeDays: how many of the last 365 calendar days were active, as a
      rolling window (old days age out as new ones are added). Forgiving
      where `count` isn't — one missed day doesn't erase it, so there's
      still a number that only goes up even after a streak breaks.
-   Stored as {count, longest, lastDate, activeDays}:
-   - lastDate === today: already counted today, leave everything as-is
-     (so re-opening the app five times in one day doesn't inflate either
-     number).
-   - lastDate === yesterday: the streak continues, count++.
+   Stored as {count, longest, lastDate, activeDays}. Below, "today" means
+   the day being credited (creditDate), not necessarily the real
+   right-now:
+   - lastDate === today: already counted that day, leave everything as-is
+     (so opening several talks in one sitting, or the same day resolving
+     twice, doesn't inflate either number).
+   - lastDate === yesterday (relative to creditDate): the streak
+     continues, count++.
    - anything else (a gap, or first-ever run): streak resets to 1.
    `longest` only ever grows, kept for a possible future "personal best"
    display even after a streak breaks. `activeDays` is an array of
@@ -4610,8 +4619,9 @@ function localDateSeed(d){
    This whole section is top-level, NOT nested inside initApp() (unlike
    most of the app's other functions, including talkOfTheDay() and
    setupDailyReminder() further down) — it has to be, because
-   recordOpened() above is top-level too (it's wired up before initApp()
-   ever runs) and needs to call touchStreak()/renderStreak() directly.
+   checkPendingRead() above is top-level too (it's wired up before
+   initApp() ever runs) and needs to call touchStreak()/renderStreak()
+   directly.
    mergeStreakData() below, by contrast, is only ever called from
    initApp()-nested code (mergeBackupData()), so it's fine left nested
    there even though it also reads/writes streak state — nested code can
@@ -4684,18 +4694,36 @@ function pruneActiveDays(days, now){
   const cutoff = localDateSeed(new Date(now.getTime() - (ACTIVE_DAYS_WINDOW - 1)*24*60*60*1000));
   return [...new Set(days)].filter(d=> d >= cutoff).sort();
 }
-/* Advances the streak for "today" if it hasn't been already, and returns
-   the (possibly just-updated) streak object. Called from recordOpened()
-   only — NOT from renderStreak()/page load — so merely having the app
-   open doesn't count, only actually opening a talk does. Safe to call
-   more than once per day (e.g. opening several talks in one sitting) —
-   only the first call each day actually changes anything beyond
-   re-pruning activeDays (harmless, and keeps old entries from lingering
-   if the app is left open across a day boundary). */
-function touchStreak(){
+/* Advances the streak for `creditDate` (defaults to right now) if it
+   hasn't been already, and returns the (possibly just-updated) streak
+   object. Called from checkPendingRead() only — NOT from
+   renderStreak()/page load — so merely having the app open doesn't count,
+   only actually opening a talk does. Safe to call more than once per day
+   (e.g. opening several talks in one sitting) — only the first call each
+   day actually changes anything beyond re-pruning activeDays (harmless,
+   and keeps old entries from lingering if the app is left open across a
+   day boundary).
+   `creditDate` is the day the talk was actually OPENED (tapped), not the
+   day the read/streak credit happens to get processed — those can differ
+   whenever someone opens a talk, goes and reads it, and doesn't come back
+   to the app until later (see checkPendingRead(), which passes
+   pendingReadDepartedAt through here rather than using "now"). Guarded
+   against ever moving the streak backwards: if `creditDate` is older than
+   the already-recorded lastDate, this only re-prunes activeDays and
+   leaves count/longest/lastDate untouched — shouldn't happen in normal
+   use (only one pending read is ever tracked at a time, and it's always
+   resolved before anything newer can update the streak — see the
+   integrity-gate comment above readKeys), but cheap insurance against an
+   edge case like a device clock/timezone change mid-trip. */
+function touchStreak(creditDate){
   const streak = loadStreak();
-  const now = new Date();
+  const now = creditDate || new Date();
   const today = localDateSeed(now);
+  if (streak.lastDate && today < streak.lastDate){
+    streak.activeDays = pruneActiveDays(streak.activeDays, new Date());
+    saveStreak(streak);
+    return streak;
+  }
   if (streak.lastDate !== today){
     const yesterday = localDateSeed(new Date(now.getTime() - 24*60*60*1000));
     streak.count = (streak.lastDate === yesterday) ? streak.count + 1 : 1;
@@ -4703,7 +4731,10 @@ function touchStreak(){
     streak.longest = Math.max(streak.longest, streak.count);
     streak.activeDays.push(today);
   }
-  streak.activeDays = pruneActiveDays(streak.activeDays, now);
+  // Pruning is always relative to the real current moment (the trailing
+  // window should reflect actual today, not a backdated creditDate), even
+  // though the push above used creditDate.
+  streak.activeDays = pruneActiveDays(streak.activeDays, new Date());
   saveStreak(streak);
   return streak;
 }
