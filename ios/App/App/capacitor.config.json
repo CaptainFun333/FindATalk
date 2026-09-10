@@ -3,11 +3,11 @@
 	"appName": "FindATalk",
 	"webDir": "docs",
 	"packageClassList": [
+		"StreakBridgePlugin",
 		"AppPlugin",
 		"FilesystemPlugin",
 		"LocalNotificationsPlugin",
 		"PreferencesPlugin",
-		"SharePlugin",
-		"StreakBridgePlugin"
+		"SharePlugin"
 	]
 }

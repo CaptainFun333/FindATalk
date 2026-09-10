@@ -11,12 +11,23 @@ import WidgetKit
 /// UserDefaults.standard, which the extension still can't see). Hence a
 /// dedicated plugin instead of a generic one.
 ///
-/// Requires the App Group capability enabled in Xcode on BOTH this
-/// target (App) and TalkOfDayWidget, with the same group ID as
-/// `appGroupID` below — a manual, one-time signing step (see
-/// PROJECT_HANDOFF.md). Until that's done, `UserDefaults(suiteName:)`
-/// below just returns nil and this silently writes nowhere; the app
-/// still works, the widget just never shows a streak.
+/// Packaged as its own local Capacitor plugin (`packages/
+/// capacitor-streak-bridge`, referenced from the root package.json via a
+/// `file:` dependency) rather than living directly in `ios/App/App/` —
+/// that's what lets `npx cap sync` discover it like any other plugin and
+/// keep `ios/App/App/capacitor.config.json`'s `packageClassList` and
+/// `ios/App/CapApp-SPM/Package.swift` up to date on its own. Before this
+/// move, both of those were hand-maintained and `cap sync` would
+/// silently strip this plugin's entry from `packageClassList` on every
+/// run, since it only scans plugins it actually knows about (see
+/// PROJECT_HANDOFF.md for the fuller story).
+///
+/// Requires the App Group capability enabled in Xcode on BOTH the App
+/// target and TalkOfDayWidget, with the same group ID as `appGroupID`
+/// below — a manual, one-time signing step (see PROJECT_HANDOFF.md).
+/// Until that's done, `UserDefaults(suiteName:)` below just returns nil
+/// and this silently writes nowhere; the app still works, the widget
+/// just never shows a streak.
 @objc(StreakBridgePlugin)
 public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "StreakBridgePlugin"
