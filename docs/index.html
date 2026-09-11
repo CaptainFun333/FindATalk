@@ -3323,21 +3323,33 @@ function setTheme(theme){
   updateThemeToggleUI();
   mirrorThemeToNative(theme);
 }
-/* Best-effort: tells the Android home-screen widget to redraw right now
-   (see WidgetRefreshPlugin.java) — used anywhere native state it reads
-   (theme, streak, or today's pick) just changed, so the widget doesn't
-   have to wait on its own ~daily periodic update or midnight broadcast
-   (see TalkOfDayWidgetProvider.onReceive()) to catch up. No iOS
-   equivalent: WidgetKit reloads TalkOfDayWidget's timeline on its own
-   schedule rather than being told to redraw like this. Pulled out as its
-   own function since mirrorThemeToNative()/mirrorStreakToNative() below
-   and renderTalkOfTheDay() further down all need it. */
-async function refreshAndroidWidget(){
+/* Best-effort: tells the home-screen widget to redraw right now — used
+   anywhere native state it reads (theme, streak, or today's pick) just
+   changed, so the widget doesn't have to wait on its own periodic
+   update/midnight reload (see TalkOfDayWidgetProvider.onReceive() on
+   Android, the `.after(startOfTomorrow)` timeline policy in
+   TalkOfDayWidget.swift on iOS) to catch up — both of those are
+   best-effort promises from the OS, not guarantees, and can lag behind an
+   app that's already showing fresh content. Two different native paths,
+   same shape as mirrorStreakToNative() below:
+   - Android: WidgetRefreshPlugin.refresh() re-broadcasts
+     ACTION_APPWIDGET_UPDATE.
+   - iOS: StreakBridgePlugin.refreshWidget() calls
+     WidgetCenter.shared.reloadTimelines(ofKind:).
+   Pulled out as its own function since mirrorThemeToNative()/
+   mirrorPaletteToNative()/mirrorStreakToNative() below and
+   renderTalkOfTheDay() further down all need it. */
+async function refreshNativeWidget(){
   const cap = window.Capacitor;
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
-  if ((cap.getPlatform ? cap.getPlatform() : '') !== 'android') return;
-  if (!cap.Plugins || !cap.Plugins.WidgetRefresh) return;
-  try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
+  const platform = cap.getPlatform ? cap.getPlatform() : '';
+  try {
+    if (platform === 'android' && cap.Plugins && cap.Plugins.WidgetRefresh){
+      await cap.Plugins.WidgetRefresh.refresh();
+    } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
+      await cap.Plugins.StreakBridge.refreshWidget();
+    }
+  } catch(err){ /* not fatal */ }
 }
 /* Copies the Appearance choice into native storage so the home-screen
    widgets can match it — same problem and same two platform-specific
@@ -3363,10 +3375,10 @@ async function mirrorThemeToNative(theme){
       } else {
         await cap.Plugins.Preferences.set({key: 'findATalkTheme', value: theme});
       }
-      await refreshAndroidWidget();
     } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
       await cap.Plugins.StreakBridge.setThemePreference({theme});
     }
+    await refreshNativeWidget();
   } catch(err){ /* native widget just won't see the fresh choice this time — not fatal */ }
 }
 document.querySelectorAll('[data-theme-choice]').forEach((btn)=>{
@@ -3444,10 +3456,10 @@ async function mirrorPaletteToNative(palette){
       } else {
         await cap.Plugins.Preferences.set({key: 'findATalkPalette', value: palette});
       }
-      await refreshAndroidWidget();
     } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
       await cap.Plugins.StreakBridge.setPalettePreference({palette});
     }
+    await refreshNativeWidget();
   } catch(err){ /* native widget just won't see the fresh choice this time — not fatal */ }
 }
 document.querySelectorAll('[data-palette-choice]').forEach((btn)=>{
@@ -4686,15 +4698,17 @@ async function mirrorStreakToNative(streak){
   try {
     if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
       await cap.Plugins.Preferences.set({key: STREAK_KEY, value: json});
-      // Preferences.set() only updates what's on disk — nothing repaints
-      // the widget until this fires (see WidgetRefreshPlugin.java), so
-      // without it a streak advance sits unseen on the widget for up to
-      // a day. Best-effort: plugin might not be registered yet, or might
-      // not exist on an older build.
-      await refreshAndroidWidget();
     } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
       await cap.Plugins.StreakBridge.setStreak({json});
     }
+    // Writing the preference alone doesn't repaint an already-placed
+    // widget on either platform — nothing does until refreshNativeWidget()
+    // fires (see WidgetRefreshPlugin.java on Android,
+    // StreakBridgePlugin.refreshWidget() on iOS), so without it a streak
+    // advance sits unseen on the widget for up to a day. Best-effort:
+    // the relevant plugin might not be registered yet, or might not
+    // exist on an older build.
+    await refreshNativeWidget();
   } catch(err){ /* native widget just won't see fresh data this time — not fatal */ }
 }
 /* Drops any activeDays entry older than the trailing ACTIVE_DAYS_WINDOW
@@ -7320,12 +7334,13 @@ function renderTalkOfTheDay(){
   // The home-screen widget computes its own pick independently (it has
   // no way to see this render), so nothing above actually tells it to
   // redraw. Without this, the widget only catches up via its own
-  // midnight broadcast/periodic update — which can lag well behind the
-  // app itself, as seen when the app was reopened fresh and still showed
+  // midnight broadcast/periodic update (Android) or timeline reload
+  // policy (iOS) — either of which can lag well behind the app itself,
+  // as seen on Android when the app was reopened fresh and still showed
   // yesterday's talk on the widget. Fired every time this runs (cold
   // start AND the day-rollover path in watchForDayRollover() below), not
   // just when the streak changes.
-  refreshAndroidWidget();
+  refreshNativeWidget();
 }
 /* Backgrounding the native app doesn't reload the WebView — Android (and
    iOS) just suspend it, so whatever was on screen at last launch stays
