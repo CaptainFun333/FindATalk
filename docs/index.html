@@ -3323,6 +3323,22 @@ function setTheme(theme){
   updateThemeToggleUI();
   mirrorThemeToNative(theme);
 }
+/* Best-effort: tells the Android home-screen widget to redraw right now
+   (see WidgetRefreshPlugin.java) — used anywhere native state it reads
+   (theme, streak, or today's pick) just changed, so the widget doesn't
+   have to wait on its own ~daily periodic update or midnight broadcast
+   (see TalkOfDayWidgetProvider.onReceive()) to catch up. No iOS
+   equivalent: WidgetKit reloads TalkOfDayWidget's timeline on its own
+   schedule rather than being told to redraw like this. Pulled out as its
+   own function since mirrorThemeToNative()/mirrorStreakToNative() below
+   and renderTalkOfTheDay() further down all need it. */
+async function refreshAndroidWidget(){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  if ((cap.getPlatform ? cap.getPlatform() : '') !== 'android') return;
+  if (!cap.Plugins || !cap.Plugins.WidgetRefresh) return;
+  try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
+}
 /* Copies the Appearance choice into native storage so the home-screen
    widgets can match it — same problem and same two platform-specific
    paths as mirrorStreakToNative() below: a widget runs in a separate
@@ -3347,9 +3363,7 @@ async function mirrorThemeToNative(theme){
       } else {
         await cap.Plugins.Preferences.set({key: 'findATalkTheme', value: theme});
       }
-      if (cap.Plugins.WidgetRefresh){
-        try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
-      }
+      await refreshAndroidWidget();
     } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
       await cap.Plugins.StreakBridge.setThemePreference({theme});
     }
@@ -3430,9 +3444,7 @@ async function mirrorPaletteToNative(palette){
       } else {
         await cap.Plugins.Preferences.set({key: 'findATalkPalette', value: palette});
       }
-      if (cap.Plugins.WidgetRefresh){
-        try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
-      }
+      await refreshAndroidWidget();
     } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
       await cap.Plugins.StreakBridge.setPalettePreference({palette});
     }
@@ -4679,9 +4691,7 @@ async function mirrorStreakToNative(streak){
       // without it a streak advance sits unseen on the widget for up to
       // a day. Best-effort: plugin might not be registered yet, or might
       // not exist on an older build.
-      if (cap.Plugins.WidgetRefresh){
-        try { await cap.Plugins.WidgetRefresh.refresh(); } catch(err){ /* not fatal */ }
-      }
+      await refreshAndroidWidget();
     } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge){
       await cap.Plugins.StreakBridge.setStreak({json});
     }
@@ -7307,6 +7317,15 @@ function renderTalkOfTheDay(){
       saveTotdHistory();
     }
   }
+  // The home-screen widget computes its own pick independently (it has
+  // no way to see this render), so nothing above actually tells it to
+  // redraw. Without this, the widget only catches up via its own
+  // midnight broadcast/periodic update — which can lag well behind the
+  // app itself, as seen when the app was reopened fresh and still showed
+  // yesterday's talk on the widget. Fired every time this runs (cold
+  // start AND the day-rollover path in watchForDayRollover() below), not
+  // just when the streak changes.
+  refreshAndroidWidget();
 }
 /* Backgrounding the native app doesn't reload the WebView — Android (and
    iOS) just suspend it, so whatever was on screen at last launch stays
