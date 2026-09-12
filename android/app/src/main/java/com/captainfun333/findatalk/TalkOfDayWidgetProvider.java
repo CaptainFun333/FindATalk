@@ -1,5 +1,6 @@
 package com.captainfun333.findatalk;
 
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -46,6 +47,13 @@ import java.util.Set;
 public class TalkOfDayWidgetProvider extends AppWidgetProvider {
 
     private static final String TAG = "TalkOfDayWidget";
+
+    // Custom action for the AlarmManager wake-up scheduled by
+    // scheduleMidnightAlarm() below — an explicit Intent(context,
+    // TalkOfDayWidgetProvider.class) delivers straight to this component
+    // regardless of intent-filter, so this never needs to be (and isn't)
+    // declared in AndroidManifest.xml.
+    private static final String ACTION_MIDNIGHT_ALARM = "com.captainfun333.findatalk.action.MIDNIGHT_ALARM";
 
     private static class Talk {
         final String title;
@@ -126,9 +134,22 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        // Runs at least once whenever a widget instance is (re)placed, and
+        // also for existing instances right after an app update — the one
+        // reliable place to (re-)arm the midnight alarm for someone who
+        // already had the widget before this code shipped, since
+        // onEnabled() only fires for a widget added AFTER it did.
+        scheduleMidnightAlarm(context);
         for (int appWidgetId : appWidgetIds) {
             updateWidget(context, appWidgetManager, appWidgetId);
         }
+    }
+
+    @Override
+    public void onDisabled(Context context) {
+        // Last widget instance was removed — nothing left to wake up for.
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) alarmManager.cancel(midnightAlarmPendingIntent(context));
     }
 
     @Override
@@ -137,11 +158,16 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         String action = intent.getAction();
         // Force a refresh right at midnight (and after reboot / manual
         // clock changes) instead of waiting on the ~daily periodic update,
-        // which the system is free to delay or batch.
+        // which the system is free to delay or batch. ACTION_MIDNIGHT_ALARM
+        // is the belt-and-suspenders path for when DATE_CHANGED itself gets
+        // deferred — e.g. the phone spent midnight asleep in Doze — see
+        // scheduleMidnightAlarm() below for why this one still gets
+        // through when a plain broadcast might not.
         if (Intent.ACTION_DATE_CHANGED.equals(action)
                 || Intent.ACTION_TIME_CHANGED.equals(action)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(action)
-                || Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+                || Intent.ACTION_BOOT_COMPLETED.equals(action)
+                || ACTION_MIDNIGHT_ALARM.equals(action)) {
             AppWidgetManager manager = AppWidgetManager.getInstance(context);
             ComponentName provider = new ComponentName(context, TalkOfDayWidgetProvider.class);
             int[] ids = manager.getAppWidgetIds(provider);
@@ -149,6 +175,59 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
                 updateWidget(context, manager, id);
             }
         }
+        // Re-arm for the next midnight wherever the previously scheduled
+        // alarm might now be stale or gone entirely: a reboot wipes all
+        // AlarmManager state, a clock/timezone change can invalidate the
+        // trigger time already queued, and the alarm firing obviously
+        // needs a new one queued up for tomorrow.
+        if (Intent.ACTION_BOOT_COMPLETED.equals(action)
+                || Intent.ACTION_TIME_CHANGED.equals(action)
+                || Intent.ACTION_TIMEZONE_CHANGED.equals(action)
+                || ACTION_MIDNIGHT_ALARM.equals(action)) {
+            scheduleMidnightAlarm(context);
+        }
+    }
+
+    private PendingIntent midnightAlarmPendingIntent(Context context) {
+        Intent intent = new Intent(context, TalkOfDayWidgetProvider.class);
+        intent.setAction(ACTION_MIDNIGHT_ALARM);
+        return PendingIntent.getBroadcast(
+            context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /** Schedules (or re-schedules) a wake-up alarm for the next local
+        midnight, using setAndAllowWhileIdle() so it can still fire while
+        the device is in Doze. This is deliberately NOT the same idea as
+        the DEVICE_IDLE_MODE_CHANGED broadcast attempted earlier (reverted
+        — see git history): that broadcast is sent with
+        FLAG_RECEIVER_REGISTERED_ONLY, which Android uses specifically to
+        exclude manifest-declared receivers like this one, so it could
+        never have worked here. AlarmManager's "while idle" variants are a
+        completely different, OS-sanctioned mechanism for exactly this —
+        breaking through Doze's normal alarm deferral — verified against
+        real DEVICE_IDLE_MODE_CHANGED broadcast delivery, not just docs.
+        Deliberately the *inexact* variant: setExactAndAllowWhileIdle()
+        needs the SCHEDULE_EXACT_ALARM permission on Android 12+, which
+        isn't worth requesting just to tighten up something already close
+        enough — being a few minutes later than exact midnight is fine for
+        a "what's today's talk" widget.
+        Re-armed every time it fires (see onReceive() above), on every
+        onUpdate() (covers a widget that already existed before this code
+        shipped), and after a boot or clock/timezone change, since none of
+        those carry AlarmManager state over on their own. */
+    private void scheduleMidnightAlarm(Context context) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Calendar next = Calendar.getInstance();
+        next.set(Calendar.HOUR_OF_DAY, 0);
+        next.set(Calendar.MINUTE, 0);
+        next.set(Calendar.SECOND, 5);
+        next.set(Calendar.MILLISECOND, 0);
+        next.add(Calendar.DAY_OF_MONTH, 1); // today's midnight already passed — always target tomorrow's
+
+        alarmManager.setAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP, next.getTimeInMillis(), midnightAlarmPendingIntent(context));
     }
 
     private void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
