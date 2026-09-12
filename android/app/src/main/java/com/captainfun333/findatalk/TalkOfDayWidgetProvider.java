@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.os.PowerManager;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -138,22 +137,11 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         String action = intent.getAction();
         // Force a refresh right at midnight (and after reboot / manual
         // clock changes) instead of waiting on the ~daily periodic update,
-        // which the system is free to delay or batch. DEVICE_IDLE_MODE_CHANGED
-        // covers the gap those miss: if the phone was asleep in Doze right
-        // through midnight, the system can hold DATE_CHANGED back until the
-        // device wakes — this fires the moment it does, as a catch-up check
-        // rather than a true "it's midnight" trigger (see the isDeviceIdle
-        // guard below, since this same broadcast also fires on ENTERING
-        // Doze, which isn't something we care about).
-        boolean shouldRefresh = Intent.ACTION_DATE_CHANGED.equals(action)
+        // which the system is free to delay or batch.
+        if (Intent.ACTION_DATE_CHANGED.equals(action)
                 || Intent.ACTION_TIME_CHANGED.equals(action)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(action)
-                || Intent.ACTION_BOOT_COMPLETED.equals(action);
-        if (!shouldRefresh && PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED.equals(action)) {
-            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-            shouldRefresh = pm != null && !pm.isDeviceIdleMode();
-        }
-        if (shouldRefresh) {
+                || Intent.ACTION_BOOT_COMPLETED.equals(action)) {
             AppWidgetManager manager = AppWidgetManager.getInstance(context);
             ComponentName provider = new ComponentName(context, TalkOfDayWidgetProvider.class);
             int[] ids = manager.getAppWidgetIds(provider);

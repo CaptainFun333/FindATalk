@@ -19,7 +19,6 @@ this updated.
 ### Fixed
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.
 - App-exclusive (Android and iOS): the home screen widget could get stuck showing an old day's talk, even after reopening the app — it now redraws right away whenever the app opens or the day changes. Requires a new iOS build to take effect.
-- App-exclusive (Android): the widget now also rechecks itself as soon as your phone wakes from a deep sleep, in case it missed the midnight update while your phone was asleep overnight.
 - Your streak now credits the day you actually opened a talk, instead of whatever day you happen to come back to the app — if you open a talk and don't return until later, that day still counts.
 
 ### Changed
