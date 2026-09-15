@@ -10401,11 +10401,21 @@ async function pushLocalDataToCloud(){
   const data = exportBackupData();
   const json = JSON.stringify(data);
   if (json === lastPushedJSON) return; // nothing actually changed since the last push
-  lastPushedJSON = json;
-  try { await window.firebaseWeb.setDoc(cloudDocRef(cloudSyncUid), data); }
-  catch(err){ /* offline, or a transient Firestore error — the next local
-    edit's scheduleCloudPush() call will retry naturally; nothing to
-    surface to the user for a background sync failure */ }
+  try {
+    await window.firebaseWeb.setDoc(cloudDocRef(cloudSyncUid), data);
+    // Only recorded as "pushed" once the write actually lands — setting
+    // this beforehand meant a failed write still got treated as done, so
+    // scheduleCloudPush()'s "nothing changed since last push" guard would
+    // skip every future attempt at the exact same data and it would never
+    // actually retry, silently leaving the cloud doc missing/stale forever.
+    lastPushedJSON = json;
+  }
+  catch(err){
+    console.error('[cloud sync] push failed', err);
+    /* offline, or a transient Firestore error — the next local edit's
+    scheduleCloudPush() call (or the next app start's startCloudSync())
+    will retry naturally now that lastPushedJSON wasn't falsely advanced */
+  }
 }
 
 function scheduleCloudPush(){
@@ -10451,8 +10461,15 @@ function startCloudSync(uid){
     try {
       const snap = await window.firebaseWeb.getDoc(cloudDocRef(uid));
       if (snap.exists()) applyCloudMergeAndRefresh(snap.data());
-    } catch(err){ /* offline on first sign-in, or a brand-new account with
-      no cloud doc yet — either way the push right below still runs */ }
+    } catch(err){
+      // A brand-new account with no cloud doc yet never lands here (getDoc
+      // resolves with exists()===false, it doesn't throw) — only a real
+      // failure (offline, denied Firestore rules, App Check, etc.) does.
+      // Logged rather than silently swallowed so a sync that never
+      // actually happens is at least visible in DevTools instead of
+      // looking identical to "nothing to merge yet".
+      console.error('[cloud sync] initial pull failed', err);
+    }
     if (cloudSyncUid !== uid) return; // signed out again while the above await was in flight
     await pushLocalDataToCloud(); // push the merged (or, for a fresh cloud slot, just-local) result up right away, not on the debounce timer
     if (cloudSyncUid !== uid) return;
@@ -10462,6 +10479,12 @@ function startCloudSync(uid){
       const json = JSON.stringify(snap.data());
       if (json === lastPushedJSON) return; // matches what we just pushed — nothing new actually arrived
       applyCloudMergeAndRefresh(snap.data());
+    }, (err)=>{
+      // onSnapshot's error callback — distinct from the try/catch above,
+      // and previously entirely unhandled: a denied/broken listener failed
+      // completely silently, with no trace anywhere that live sync had
+      // stopped working.
+      console.error('[cloud sync] live listener failed', err);
     });
   })();
 }

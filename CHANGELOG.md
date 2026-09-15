@@ -25,6 +25,7 @@ this updated.
 - Your streak now credits the day you actually opened a talk, instead of whatever day you happen to come back to the app — if you open a talk and don't return until later, that day still counts.
 - Signing in on a second device could wipe out a real streak instead of syncing it — two devices with genuine, separate streak history now correctly combine into one accurate streak instead of one side's progress getting lost.
 - App-exclusive (Android): "Continue with Google" on the sign-in screen was showing an error instead of signing you in — fixed.
+- Fixed a bug where a failed background sync to the cloud was mistakenly treated as successful, so it never retried — this could leave a signed-in device's favorites, notes, and streak stuck and never actually showing up on your other signed-in devices.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
