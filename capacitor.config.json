@@ -1,5 +1,11 @@
 {
   "appId": "com.captainfun333.findatalk",
   "appName": "FindATalk",
-  "webDir": "docs"
+  "webDir": "docs",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["apple.com", "google.com"]
+    }
+  }
 }
