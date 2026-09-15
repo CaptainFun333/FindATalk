@@ -3431,7 +3431,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
   import {
-    getAuth, onAuthStateChanged, signOut,
+    getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence,
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
     signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider
   } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
@@ -3454,6 +3454,18 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const firestore = getFirestore(app);
+  // Firebase Auth's default persistence (IndexedDB) can hang indefinitely
+  // inside a Capacitor iOS WKWebView — confirmed live: the network round
+  // trip to Google completes and returns valid tokens, but the SDK's own
+  // sign-in promise never resolves or rejects, and firebaseLocalStorageDb
+  // stays empty. Forcing plain localStorage-backed persistence instead
+  // sidesteps whatever IndexedDB is getting stuck on there; Android and
+  // desktop browsers have no trouble with the default, so this is scoped
+  // to fixing the WKWebView case specifically rather than changing
+  // behavior everywhere for a problem only one platform actually has.
+  setPersistence(auth, browserLocalPersistence).catch(err=>{
+    console.error('[cloud sync] setPersistence(browserLocalPersistence) failed — falling back to Firebase Auth\'s default', err);
+  });
 
   window.firebaseWeb = {
     auth, onAuthStateChanged, signOut,
@@ -3951,6 +3963,32 @@ if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() &
   capForAuth.Plugins.FirebaseAuthentication.addListener('authStateChange', (change)=>{
     updateAccountUI(change && change.user ? change.user : null);
   });
+  /* Cloud-sync-bridge workaround — see bridgeNativeAuthToWeb's own comment
+     for the full "why" of the bridge itself. This listener exists because
+     of a separate, documented Firebase JS SDK bug specific to WKWebView:
+     signInWithCredential()'s returned promise never resolves OR rejects
+     there — confirmed live, including with Firebase's own recommended
+     browserLocalPersistence and with navigator.locks (which the SDK also
+     depends on) both working fine — even though the underlying sign-in
+     genuinely succeeds server-side and window.firebaseWeb.auth.currentUser
+     does eventually update on its own, just with no promise ever settling
+     to say so. See https://github.com/firebase/firebase-js-sdk/issues/2700
+     and https://github.com/capawesome-team/capacitor-firebase/issues/221.
+     bridgeNativeAuthToWeb() firing this update is therefore NOT something
+     to count on — this listener is how cloud sync actually finds out.
+     It deliberately does NOT call updateAccountUI() (the native listener
+     above already owns the visible Account row on native — this is purely
+     about kicking cloud sync once the bridged web session catches up).
+     onCloudUserChanged/pendingCloudUser mirror updateAccountUI()'s own
+     "might fire before that slot exists yet" handling below. */
+  function wireWebAuthBridgeListener(){
+    window.firebaseWeb.onAuthStateChanged(window.firebaseWeb.auth, (user)=>{
+      if (onCloudUserChanged) onCloudUserChanged(user);
+      else { pendingCloudUser = user; pendingCloudUserSet = true; }
+    });
+  }
+  if (window.firebaseWeb) wireWebAuthBridgeListener();
+  else window.addEventListener('firebaseWebReady', wireWebAuthBridgeListener, {once: true});
 } else {
   function wireWebAuthListener(){
     window.firebaseWeb.onAuthStateChanged(window.firebaseWeb.auth, (user)=>{

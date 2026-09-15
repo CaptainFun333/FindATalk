@@ -29,6 +29,7 @@ this updated.
 - Fixed a bug where a failed background sync to the cloud was mistakenly treated as successful, so it never retried — this could leave a signed-in device's favorites, notes, and streak stuck and never actually showing up on your other signed-in devices.
 - App-exclusive (Android and iOS): signing in on the app never actually synced anything to the cloud — favorites, notes, lists, and streak stayed stuck on that one device even though Settings said you were signed in and synced. Fixed; if you signed in before this fix, sign out and back in once to pick it up.
 - App-exclusive (iOS): "Continue with Google" on the sign-in screen was crashing the app outright. Requires a new iOS build to take effect.
+- App-exclusive (iOS): signing in with Google appeared to work, but nothing actually synced to your other devices — a bug in Apple's WebView meant the app never found out sign-in had finished. Requires a new iOS build to take effect.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
