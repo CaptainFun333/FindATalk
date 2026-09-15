@@ -3972,6 +3972,19 @@ if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() &
    in Settings.
 ------------------------------------------------------------------*/
 const ONBOARDING_SEEN_KEY = 'findATalkOnboardingSeen';
+/* Badges are app-only — no badge UI, celebration modal, or Settings entry
+   exists on the web build at all (see the BADGE_DEFS comment further
+   down), so the "Earn Badges" screen below is filtered out on web rather
+   than shown to visitors who'll never find the feature it's describing.
+   `window.Capacitor` is read directly here (not the file's usual `cap`)
+   because that top-level const isn't declared until later in this same
+   script — see capForAuth's comment above for why every earlier
+   reference does its own local lookup instead. renderOnboardingScreen()
+   below reads ONBOARDING_SCREENS.length for the "Screen X of Y" count, so
+   filtering here (rather than hiding a screen after the fact) keeps that
+   count accurate on both platforms. */
+const onboardingCap = window.Capacitor;
+const onboardingIsNative = !!(onboardingCap && onboardingCap.isNativePlatform && onboardingCap.isNativePlatform());
 const ONBOARDING_SCREENS = [
   {
     icon: '👋',
@@ -3994,11 +4007,6 @@ const ONBOARDING_SCREENS = [
     copy: 'After you filter as much as you’d like, hit "Find a Talk" to draw a random talk from the matches, or tap "Show a List" to show 10.'
   },
   {
-    icon: '📋',
-    title: 'Save & Take Notes',
-    copy: 'Add talks to your favorites, or create your own collections and save for later. Jot down what you learned on any talk. Build study groups however you want.'
-  },
-  {
     icon: '📖',
     title: 'Connect to Come Follow Me',
     copy: 'Which talks relate to this week’s Come Follow Me? Find talks that cite the same scriptures you’re studying. Perfect for family study.'
@@ -4007,6 +4015,21 @@ const ONBOARDING_SCREENS = [
     icon: '🔗',
     title: 'Follow Citations',
     copy: 'Explore scriptures, hymns, and other talks mentioned here. Tap any citation to jump to the source, or to where it’s referenced.'
+  },
+  {
+    icon: '📋',
+    title: 'Save & Take Notes',
+    copy: 'Add talks to your favorites, or create your own collections and save for later. Jot down what you learned on any talk. Build study groups however you want.'
+  },
+  ...(onboardingIsNative ? [{
+    icon: '🏅',
+    title: 'Earn Badges',
+    copy: 'Unlock badges as you build your streak and rack up talks read — from your first 7-day streak to 1,000 talks and beyond.'
+  }] : []),
+  {
+    icon: '🔐',
+    title: 'Sign In to Sync',
+    copy: 'Sign in to back up your favorites, notes, lists, and streak — and pick up right where you left off on any device.'
   }
 ];
 const onboardingModalOverlay = document.getElementById('onboardingModalOverlay');
