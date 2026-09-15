@@ -870,6 +870,29 @@
     padding:5px 13px;
     margin-top:14px;
   }
+  /* Idea 62 — "lit" once today's reading is already credited
+     (streak.lastDate === today), ongoing streaks only (day 2+; Day 0/1
+     already say as much in their own copy — see renderStreak()). Options
+     B (a checkmark on the flame) + C (a warm fill on the whole pill),
+     combined per the mock-up. */
+  .streak-badge.is-lit{
+    background:linear-gradient(135deg, var(--brass), var(--brass-bright));
+    border-color:var(--brass-bright);
+    color:var(--on-accent);
+  }
+  .streak-icon-wrap{ position:relative; display:inline-flex; }
+  /* Same wrapper-span-around-CHECK_ICON_SVG pattern already used for the
+     Talk of the Day History calendar's read badge (.totd-calendar-day-check)
+     — position/size on the wrapper, the SVG itself untouched. */
+  .streak-check{
+    position:absolute; bottom:-3px; left:-5px;
+    display:flex; align-items:center; justify-content:center;
+    width:11px; height:11px;
+    background:var(--brass); color:var(--on-accent);
+    border-radius:50%; box-shadow:0 0 0 1.5px var(--paper-raised);
+  }
+  .streak-check svg{ width:7px; height:7px; stroke-width:3.5; }
+  .is-lit .streak-check{ background:var(--paper-raised); color:var(--brass); box-shadow:0 0 0 1.5px var(--brass-bright); }
 
   /* ---------- keyword search ---------- */
   .search-field{ margin-bottom:16px; }
@@ -1932,6 +1955,46 @@
     white-space:nowrap;
   }
   .modal-new-collection button:hover, .collections-new-row button:hover{ background:var(--accent-fill-hover); }
+  /* Idea 61 (Stage 2) — the Sign In / Create Account modal's own form
+     fields. Same plain bordered-input look as .modal-new-collection
+     input above (16px font — see #querySearch's own comment on why:
+     iOS zooms in on focusing any input under 16px), just given its own
+     class since this is a real multi-field form, not a single inline
+     text box next to a button. */
+  .auth-field-label{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink-soft);
+    margin:14px 0 6px;
+  }
+  .auth-field-label:first-of-type{ margin-top:0; }
+  .auth-field{
+    display:block; width:100%;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:11px 12px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink);
+  }
+  .auth-error{
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.5; color:var(--burgundy);
+    background:var(--tint); border:1px solid var(--chip-border); border-radius:4px;
+    padding:10px 12px; margin:0 0 16px;
+  }
+  .auth-link-btn{
+    display:block; width:100%; text-align:center;
+    background:none; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft);
+    padding:10px 4px; text-decoration:underline;
+  }
+  .auth-link-btn:hover{ color:var(--burgundy); }
+  .auth-link-btn[hidden]{ display:none; }
+  .auth-divider{
+    display:flex; align-items:center; gap:10px; margin:18px 0 14px;
+    font-family:'Inter',sans-serif; font-size:11.5px; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.06em;
+  }
+  .auth-divider::before, .auth-divider::after{ content:""; flex:1; height:1px; background:var(--line); }
+  #authAppleBtn, #authGoogleBtn{ margin-top:10px; }
   .modal-copy{
     font-family:'Inter',sans-serif; font-size:14.5px; line-height:1.5; color:var(--ink-soft);
     margin:0 0 20px;
@@ -2325,6 +2388,12 @@
   .btn-ghost:hover{ border-color:var(--brass); color:var(--burgundy); }
   .btn-ghost:disabled{ opacity:.4; cursor:default; }
   .btn-ghost:disabled:hover{ border-color:var(--line); color:var(--ink); }
+  /* Idea 61 — the Account section's Sign In/Sign Out buttons, and the
+     Sign In modal's own buttons, all span their container edge to edge
+     rather than sizing to their label like every other .btn in this
+     file does — a plain utility rather than baking width into .btn
+     itself, since nothing else needs this. */
+  .full-width{ display:flex; width:100%; justify-content:center; margin-top:10px; }
 
   /* ---------- footer ---------- */
   /* max-width + margin:auto centering, same pattern already used for other
@@ -3088,6 +3157,26 @@
         <button type="button" class="modal-close" id="settingsModalClose" aria-label="Close">&times;</button>
       </div>
 
+      <!-- Idea 61 (Stage 2) — sync account. Optional, not a wall: the app
+           keeps working fully offline for anyone who never signs in, same
+           as every idea-61 mock-up promised. Two states, toggled by
+           renderAccountSettingsRow() (see the auth section further down
+           in the script) — signed out (this markup's default) shows the
+           Sign In button; signed in swaps the text and shows a Sign Out
+           button instead. No sync status line yet — that's Firestore
+           sync, still ahead per idea 61's Stage 2 plan, not built here. -->
+      <div class="settings-section">
+        <p class="settings-label">Account</p>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <strong id="accountRowTitle">Not signed in</strong>
+            <span id="accountRowSubtitle">Sync your favorites, notes, and streak across your devices.</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost full-width" id="accountSignInBtn">Sign In / Create Account</button>
+        <button type="button" class="btn btn-ghost full-width" id="accountSignOutBtn" hidden>Sign Out</button>
+      </div>
+
       <div class="settings-section">
         <p class="settings-label">Appearance</p>
         <div class="segmented" role="group" aria-label="Appearance">
@@ -3158,6 +3247,54 @@
           </label>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Idea 61 (Stage 2) — Sign In / Create Account. One modal, two modes
+       (sign in vs. create account) toggled by JS rather than two separate
+       modals, since every field except the toggle link at the bottom is
+       identical between them — see renderSignInMode() further down.
+       Apple + Google buttons work identically in both modes (there's no
+       separate "create account" step for an OAuth provider — the first
+       sign-in with a new Apple/Google identity just creates the account).
+       Email/Password is deliberately kept as a fallback (not email-link —
+       Firebase Dynamic Links, which email-link auth for mobile apps
+       depends on, is shut down as of this build), so this also needs a
+       real forgot-password flow, not just a bare login form. -->
+  <div class="modal-overlay" id="signInModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="signInModalTitle">
+      <div class="modal-header">
+        <h3 id="signInModalTitle">Sign In</h3>
+        <button type="button" class="modal-close" id="signInModalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <p class="modal-copy" id="signInModalCopy">Sign in to sync your favorites, notes, and streak across your devices.</p>
+
+      <p class="auth-error" id="authErrorMsg" hidden></p>
+
+      <form id="signInForm">
+        <label class="auth-field-label" for="authEmailInput">Email</label>
+        <input type="email" id="authEmailInput" class="auth-field" autocomplete="email" required>
+
+        <label class="auth-field-label" for="authPasswordInput">Password</label>
+        <input type="password" id="authPasswordInput" class="auth-field" autocomplete="current-password" required minlength="6">
+
+        <button type="submit" class="btn btn-primary full-width" id="authSubmitBtn">Sign In</button>
+      </form>
+
+      <button type="button" class="auth-link-btn" id="authForgotPasswordBtn">Forgot password?</button>
+      <button type="button" class="auth-link-btn" id="authToggleModeBtn">Don't have an account? Create one</button>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <button type="button" class="btn btn-ghost full-width" id="authAppleBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.437 2.13-1.31 2.97-.996.96-2.13 1.44-3.24 1.35-.033-1.1.45-2.19 1.32-3.03.93-.9 2.13-1.41 3.22-1.29.007.003.01.003.01 0Zm3.24 16.67c-.56 1.28-.83 1.85-1.55 2.98-1 1.58-2.42 3.55-4.17 3.57-1.56.02-1.96-1.02-4.08-1.01-2.12.01-2.56 1.03-4.12 1.01-1.75-.02-3.1-1.8-4.1-3.38C-1.6 17.43-.46 11.6 3.06 8.5c1.62-1.43 3.4-1.5 4.6-.86 1.05.56 1.92.86 2.75.86.78 0 1.83-.34 3.14-.94 1.6-.72 3.55-.5 5.06.86-2.6 1.6-3.86 3.83-3.86 6.7 0 3.3 1.7 5.3 4.5 5.94-.16.4-.33.79-.5 1.13Z"/></svg>
+        Continue with Apple
+      </button>
+      <button type="button" class="btn btn-ghost full-width" id="authGoogleBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M23.52 12.27c0-.85-.07-1.48-.23-2.13H12v3.86h6.6c-.13 1.06-.85 2.66-2.45 3.73l-.02.15 3.56 2.7.25.02c2.26-2.02 3.58-5.02 3.58-8.33Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.05 7.94-2.86l-3.79-2.87c-1.01.7-2.38 1.19-4.15 1.19-3.17 0-5.86-2.04-6.82-4.87l-.14.01-3.7 2.8-.05.13C3.26 21.3 7.31 24 12 24Z"/><path fill="#FBBC05" d="M5.18 14.59A6.9 6.9 0 0 1 4.8 12c0-.9.16-1.77.37-2.59l-.01-.17-3.75-2.83-.12.06A11.9 11.9 0 0 0 0 12c0 1.92.47 3.74 1.29 5.34l3.89-2.75Z"/><path fill="#EA4335" d="M12 4.75c2.26 0 3.78.94 4.65 1.72l3.4-3.24C17.94 1.2 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.66l3.88 2.75C6.14 6.79 8.83 4.75 12 4.75Z"/></svg>
+        Continue with Google
+      </button>
     </div>
   </div>
 
@@ -3270,6 +3407,67 @@
   </footer>
 
 </div>
+
+<!-- ---------------------------------------------------------------
+     Idea 61 (Stage 2) — Firebase Auth, web path only. `window.Capacitor`
+     doesn't exist at all on the plain web build (confirmed elsewhere in
+     this file — see the comment above the `cap` const further down), so
+     the native @capacitor-firebase/authentication plugin bridge has
+     nothing to attach to here. This module loads the Firebase JS SDK
+     from Google's own CDN (no bundler exists in this project to `import`
+     the npm package with) and exposes just what the classic script below
+     needs via `window.firebaseWeb` — same "native does X, web falls back
+     to Y" shape as performShare()'s three-tier fallback. A `<script
+     type="module">` is deferred-like (runs after HTML parsing, in
+     parallel with the classic script below rather than before it), which
+     is fine here: nothing below calls into `window.firebaseWeb` until a
+     user actually taps a sign-in button, well after this has had time to
+     finish loading. Loaded unconditionally (including inside the native
+     apps, same as the Google Fonts CDN link in <head> already is) rather
+     than gated behind a platform check, since an unused script tag costs
+     nothing and keeps this file's loading story simple/uniform across
+     all three platforms; only the actual auth *calls* are gated by
+     platform, in the classic script below. -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+  import {
+    getAuth, onAuthStateChanged, signOut,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
+    signInWithPopup, GoogleAuthProvider, OAuthProvider
+  } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
+  import {
+    getFirestore, doc, getDoc, setDoc, onSnapshot
+  } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+
+  // Client config — safe to ship in a public client, same as
+  // GoogleService-Info.plist/google-services.json elsewhere in this repo
+  // (Firebase's own real security boundary is Firestore rules + App
+  // Check, not hiding this object). Project: findatalk-28e26.
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK90mmgiOFUQOdOIqMMO5aNyxu_LDB7BI",
+    authDomain: "findatalk-28e26.firebaseapp.com",
+    projectId: "findatalk-28e26",
+    storageBucket: "findatalk-28e26.firebasestorage.app",
+    messagingSenderId: "322287724872",
+    appId: "1:322287724872:web:9db35512b711c360846b7d"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
+
+  window.firebaseWeb = {
+    auth, onAuthStateChanged, signOut,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
+    signInWithPopup, GoogleAuthProvider, OAuthProvider,
+    firestore, doc, getDoc, setDoc, onSnapshot
+  };
+  // Fires once this module has actually finished initializing, in case
+  // anything below ever needs to wait for it rather than just calling in
+  // (nothing does yet, as of this comment, but see idea 61's Stage
+  // 2 write-up for what's still ahead — Firestore sync will care about
+  // auth state existing before it tries to read/write anything).
+  window.dispatchEvent(new Event('firebaseWebReady'));
+</script>
 
 <script>
 /* ---------------------------------------------------------------
@@ -3488,6 +3686,244 @@ settingsModalOverlay.addEventListener('click', (e)=>{
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !settingsModalOverlay.hidden) closeSettingsModal();
 });
+
+/* ---------------------------------------------------------------
+   Idea 61 (Stage 2) — sign in / create account / sign out. Three real
+   auth methods (Apple, Google, Email/Password), each with a native path
+   and a web path, following the same "native does X, web falls back to
+   Y" shape performShare() already uses elsewhere in this file. Native
+   goes through @capacitor-firebase/authentication (Capacitor.Plugins.
+   FirebaseAuthentication — auto-wired by `npx cap sync`, nothing to load
+   here); web goes through window.firebaseWeb, set up by the <script
+   type="module"> block up in <head>/near the top of <body>. Firestore
+   sync (reading/writing anything once signed in) is NOT part of this —
+   see idea 61's Stage 1/Stage 2 write-up for that, still ahead. This is
+   just "can someone sign in, and does the app know who they are."
+
+   `capForAuth` is its own local `window.Capacitor` reference, not the
+   file's usual top-level `cap` — that one isn't declared until much
+   later in this same script (see its own const, near the native-listener
+   wiring at the bottom of the file), so a bare `cap` reference here would
+   throw before that line ever ran, and this file's own top-level scope
+   can't declare a second `const cap` without a duplicate-identifier
+   SyntaxError. Every other function elsewhere in this file that needs
+   `window.Capacitor` before that point handles it the same way — its own
+   local `const cap = window.Capacitor` inside the function body — this
+   just needed a rename since one branch below runs at top level, not
+   inside a function, so a same-named local const isn't an option here. */
+const capForAuth = window.Capacitor;
+const signInModalOverlay = document.getElementById('signInModalOverlay');
+const signInForm = document.getElementById('signInForm');
+const accountRowTitle = document.getElementById('accountRowTitle');
+const accountRowSubtitle = document.getElementById('accountRowSubtitle');
+const accountSignInBtn = document.getElementById('accountSignInBtn');
+const accountSignOutBtn = document.getElementById('accountSignOutBtn');
+const authErrorMsg = document.getElementById('authErrorMsg');
+const authEmailInput = document.getElementById('authEmailInput');
+const authPasswordInput = document.getElementById('authPasswordInput');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authForgotPasswordBtn = document.getElementById('authForgotPasswordBtn');
+const authToggleModeBtn = document.getElementById('authToggleModeBtn');
+
+let authMode = 'signin'; // or 'signup' — toggled by authToggleModeBtn, see renderSignInMode()
+let currentUser = null; // set by onAuthStateChanged below, either platform
+
+function showAuthError(err){
+  // Firebase error codes are stable strings (e.g. "auth/wrong-password")
+  // regardless of platform — a small curated map for the ones someone
+  // will actually hit here, plain-language per this file's existing copy
+  // convention, falling back to the raw message for anything unmapped
+  // rather than guessing at wording for an error case not seen live yet.
+  const AUTH_ERROR_MESSAGES = {
+    'auth/invalid-email': "That doesn't look like a real email address.",
+    'auth/user-not-found': "No account found with that email.",
+    'auth/wrong-password': "That password doesn't match.",
+    'auth/invalid-credential': "Email or password doesn't match an account.",
+    'auth/email-already-in-use': "An account already exists with that email — try signing in instead.",
+    'auth/weak-password': "Password needs to be at least 6 characters.",
+    'auth/too-many-requests': "Too many attempts — wait a bit and try again.",
+    'auth/popup-closed-by-user': null, // user cancelled — not a real error, no message needed
+    'auth/network-request-failed': "Couldn't reach the server — check your connection and try again."
+  };
+  const code = err && err.code;
+  if (code && Object.prototype.hasOwnProperty.call(AUTH_ERROR_MESSAGES, code)){
+    const msg = AUTH_ERROR_MESSAGES[code];
+    if (!msg){ authErrorMsg.hidden = true; return; } // cancelled — silent
+    authErrorMsg.textContent = msg;
+  } else {
+    authErrorMsg.textContent = (err && err.message) || 'Something went wrong — try again.';
+  }
+  authErrorMsg.hidden = false;
+}
+
+function renderSignInMode(){
+  authErrorMsg.hidden = true;
+  if (authMode === 'signup'){
+    document.getElementById('signInModalTitle').textContent = 'Create Account';
+    document.getElementById('signInModalCopy').textContent = 'Sync your favorites, notes, and streak across your devices.';
+    authSubmitBtn.textContent = 'Create Account';
+    authToggleModeBtn.textContent = 'Already have an account? Sign in';
+    authForgotPasswordBtn.hidden = true;
+  } else {
+    document.getElementById('signInModalTitle').textContent = 'Sign In';
+    document.getElementById('signInModalCopy').textContent = 'Sign in to sync your favorites, notes, and streak across your devices.';
+    authSubmitBtn.textContent = 'Sign In';
+    authToggleModeBtn.textContent = "Don't have an account? Create one";
+    authForgotPasswordBtn.hidden = false;
+  }
+}
+authToggleModeBtn.addEventListener('click', ()=>{
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  renderSignInMode();
+});
+
+function openSignInModal(){
+  authMode = 'signin';
+  renderSignInMode();
+  authEmailInput.value = '';
+  authPasswordInput.value = '';
+  signInModalOverlay.hidden = false;
+}
+function closeSignInModal(){
+  signInModalOverlay.hidden = true;
+}
+accountSignInBtn.addEventListener('click', openSignInModal);
+document.getElementById('signInModalClose').addEventListener('click', closeSignInModal);
+signInModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === signInModalOverlay) closeSignInModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !signInModalOverlay.hidden) closeSignInModal();
+});
+
+/* Renders the Account row in Settings from whatever the last known auth
+   state is — called from updateAccountUI() below, itself called by each
+   platform's own auth-state listener, never guessed at independently. */
+function renderAccountRow(){
+  if (currentUser){
+    accountRowTitle.textContent = currentUser.email || 'Signed in';
+    accountRowSubtitle.textContent = 'Synced across your devices.';
+    accountSignInBtn.hidden = true;
+    accountSignOutBtn.hidden = false;
+  } else {
+    accountRowTitle.textContent = 'Not signed in';
+    accountRowSubtitle.textContent = 'Sync your favorites, notes, and streak across your devices.';
+    accountSignInBtn.hidden = false;
+    accountSignOutBtn.hidden = true;
+  }
+}
+function updateAccountUI(user){
+  currentUser = user;
+  renderAccountRow();
+  if (onCloudUserChanged) onCloudUserChanged(user);
+  else { pendingCloudUser = user; pendingCloudUserSet = true; }
+}
+
+/* ---- Email/Password ---- */
+signInForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  authErrorMsg.hidden = true;
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value;
+  authSubmitBtn.disabled = true;
+  try {
+    if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+      const method = authMode === 'signup' ? 'createUserWithEmailAndPassword' : 'signInWithEmailAndPassword';
+      await capForAuth.Plugins.FirebaseAuthentication[method]({email, password});
+    } else if (window.firebaseWeb){
+      const fn = authMode === 'signup' ? window.firebaseWeb.createUserWithEmailAndPassword : window.firebaseWeb.signInWithEmailAndPassword;
+      await fn(window.firebaseWeb.auth, email, password);
+    }
+    closeSignInModal();
+  } catch(err){
+    showAuthError(err);
+  } finally {
+    authSubmitBtn.disabled = false;
+  }
+});
+
+authForgotPasswordBtn.addEventListener('click', async ()=>{
+  const email = authEmailInput.value.trim();
+  if (!email){
+    authErrorMsg.textContent = 'Enter your email above first, then tap this again.';
+    authErrorMsg.hidden = false;
+    return;
+  }
+  authErrorMsg.hidden = true;
+  try {
+    if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+      await capForAuth.Plugins.FirebaseAuthentication.sendPasswordResetEmail({email});
+    } else if (window.firebaseWeb){
+      await window.firebaseWeb.sendPasswordResetEmail(window.firebaseWeb.auth, email);
+    }
+    authErrorMsg.textContent = `Password reset email sent to ${email}.`;
+    authErrorMsg.hidden = false;
+  } catch(err){
+    showAuthError(err);
+  }
+});
+
+/* ---- Apple / Google ---- */
+document.getElementById('authAppleBtn').addEventListener('click', async ()=>{
+  authErrorMsg.hidden = true;
+  try {
+    if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+      await capForAuth.Plugins.FirebaseAuthentication.signInWithApple();
+    } else if (window.firebaseWeb){
+      const provider = new window.firebaseWeb.OAuthProvider('apple.com');
+      await window.firebaseWeb.signInWithPopup(window.firebaseWeb.auth, provider);
+    }
+    closeSignInModal();
+  } catch(err){
+    showAuthError(err);
+  }
+});
+document.getElementById('authGoogleBtn').addEventListener('click', async ()=>{
+  authErrorMsg.hidden = true;
+  try {
+    if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+      await capForAuth.Plugins.FirebaseAuthentication.signInWithGoogle();
+    } else if (window.firebaseWeb){
+      const provider = new window.firebaseWeb.GoogleAuthProvider();
+      await window.firebaseWeb.signInWithPopup(window.firebaseWeb.auth, provider);
+    }
+    closeSignInModal();
+  } catch(err){
+    showAuthError(err);
+  }
+});
+
+/* ---- Sign out ---- */
+accountSignOutBtn.addEventListener('click', async ()=>{
+  try {
+    if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+      await capForAuth.Plugins.FirebaseAuthentication.signOut();
+    } else if (window.firebaseWeb){
+      await window.firebaseWeb.signOut(window.firebaseWeb.auth);
+    }
+  } catch(err){ /* not fatal — auth-state listener is the source of truth either way */ }
+});
+
+/* ---- Wire up whichever platform's auth-state listener applies ----
+   Native: Capacitor.Plugins.FirebaseAuthentication has its own
+   addListener('authStateChange', ...), available as soon as the plugin
+   is (no async load to wait for, unlike the web SDK). Web: the module
+   script may still be loading when this line runs (it's deferred-like —
+   see that script's own comment), so this waits for its 'firebaseWebReady'
+   event if needed rather than assuming window.firebaseWeb already exists. */
+if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+  capForAuth.Plugins.FirebaseAuthentication.addListener('authStateChange', (change)=>{
+    updateAccountUI(change && change.user ? change.user : null);
+  });
+} else {
+  function wireWebAuthListener(){
+    window.firebaseWeb.onAuthStateChanged(window.firebaseWeb.auth, (user)=>{
+      updateAccountUI(user);
+    });
+  }
+  if (window.firebaseWeb) wireWebAuthListener();
+  else window.addEventListener('firebaseWebReady', wireWebAuthListener, {once: true});
+}
 
 /* ---------------------------------------------------------------
    Idea 35 — "Show me around" onboarding tour. A single static modal (see
@@ -4404,6 +4840,26 @@ let onNeedCollectionRefresh = null;
 // referencing it directly, hit and fixed the same way while building this
 // feature, before it ever shipped broken like the syncReadBadge bug did.
 let onReadBadgeHtml = null;
+// Idea 61 (Stage 2) — same indirection again: scheduleCloudPush() only
+// exists inside initApp()'s closure (it needs exportBackupData(), which
+// needs collections/collectionMembers/noteMap, all nested there — see
+// their own declarations), so the top-level save*() functions below call
+// through this slot instead of referencing it directly. A no-op until
+// initApp() registers it (nothing to sync before the app has even loaded
+// data) and a no-op again whenever nobody's signed in (scheduleCloudPush()
+// itself checks that).
+let onLocalDataChanged = null;
+// Idea 61 (Stage 2) — mirror of onTicketReadBadgeSync et al., but for
+// "auth state changed" reaching startCloudSync()/stopCloudSync() (also
+// nested inside initApp() — see their own comment). Unlike the slots
+// above, this one CAN fire before initApp() ever registers it — Firebase
+// resolving a cached sign-in can beat initApp()'s own data load — so
+// updateAccountUI() below also latches the most recent user into
+// pendingCloudUser/pendingCloudUserSet, and initApp() replays it once
+// this slot is actually set, instead of silently losing that first event.
+let onCloudUserChanged = null;
+let pendingCloudUser = null;
+let pendingCloudUserSet = false;
 /* Real-device testing found the read/streak credit still wasn't firing
    even after the App.resume fix (see onForeground()'s own comment) — kept
    as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
@@ -4476,14 +4932,17 @@ function saveRecent(){
 function saveFavorites(){
   try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favoriteKeys])); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2) — push to cloud if signed in
 }
 function saveRead(){
   try { localStorage.setItem(READ_KEY, JSON.stringify([...readKeys])); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
 function saveVisitCounts(){
   try { localStorage.setItem(VISIT_COUNTS_KEY, JSON.stringify(visitCounts)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
 function isRead(talk){ return readKeys.has(talkKey(talk)); }
 function visitCountFor(talk){ return visitCounts[talkKey(talk)] || 0; }
@@ -4670,6 +5129,7 @@ function loadStreak(){
 function saveStreak(streak){
   try { localStorage.setItem(STREAK_KEY, JSON.stringify(streak)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
   mirrorStreakToNative(streak);
 }
 /* Copies the streak into native storage the home-screen widgets can read
@@ -4792,6 +5252,16 @@ function settleStreak(){
   saveStreak(streak);
   return streak;
 }
+/* Idea 62 — same checkmark glyph as CHECK_ICON_SVG (the "Read" badge, the
+   TotD calendar's read badge, etc.), but declared as its own top-level
+   const rather than reused directly: renderStreak() lives up here,
+   outside/before initApp(), while CHECK_ICON_SVG is declared *inside*
+   initApp()'s own function body (only actually available in scope once
+   initApp() has run, and never visible to code outside it at all) — a
+   genuine scope boundary, not just a matter of declaration order. Kept
+   deliberately tiny/duplicated rather than restructuring where either
+   function lives. */
+const STREAK_CHECK_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>';
 /* Pure display — reads whatever touchStreak() last recorded (after
    settleStreak() above has a chance to zero out a stale streak) without
    advancing anything itself. Safe (and cheap) to call on every page
@@ -4801,12 +5271,20 @@ function renderStreak(){
   const el = document.getElementById('streakBadge');
   if (!el) return;
   el.hidden = false; // Always show the badge now (new users see "Choose a talk to begin your streak")
+  // Idea 62 — "today's already done" only means something once there's an
+  // ongoing streak to keep going; Day 0's "choose a talk" and Day 1's "come
+  // back tomorrow" copy already say as much on their own, so this is
+  // deliberately gated to streak.count > 1, not just streak.lastDate === today.
+  const today = localDateSeed(new Date());
+  const doneToday = streak.count > 1 && streak.lastDate === today;
+  el.classList.toggle('is-lit', doneToday);
+  const flameHtml = `<span class="streak-icon-wrap">🔥${doneToday ? `<span class="streak-check">${STREAK_CHECK_ICON_SVG}</span>` : ''}</span>`;
   if (streak.count <= 0){
-    el.textContent = '🔥 Choose a talk to begin your streak';
+    el.innerHTML = `${flameHtml} Choose a talk to begin your streak`;
   } else if (streak.count === 1){
-    el.textContent = '🔥 Day 1 — come back tomorrow to start a streak';
+    el.innerHTML = `${flameHtml} Day 1 — come back tomorrow to start a streak`;
   } else {
-    el.textContent = `🔥 ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
+    el.innerHTML = `${flameHtml} ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
   }
   // Phase 3 (idea 45) — nothing worth sharing until there's a real streak.
   const shareBtnEl = document.getElementById('streakShareBtn');
@@ -5209,10 +5687,12 @@ loadCollections();
 function saveCollections(){
   try { localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections)); }
   catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2) — this function is top-level (before initApp()), same as saveFavorites() etc., not nested alongside scheduleCloudPush() as first assumed — goes through the indirection slot too
 }
 function saveCollectionMembers(){
   try { localStorage.setItem(COLLECTION_MEMBERS_KEY, JSON.stringify(collectionMembers)); }
   catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
 function createCollection(name){
   const id = 'col_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -5313,6 +5793,7 @@ loadNotes();
 function saveNotes(){
   try { localStorage.setItem(NOTES_KEY, JSON.stringify(noteMap)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2) — same correction as saveCollections()/saveCollectionMembers() above
 }
 function getNote(talk){ return noteMap[talkKey(talk)] || ''; }
 /* Fills a `.list-item-note` block with the "Your note:" label, the note
@@ -9849,6 +10330,137 @@ function mergeBackupData(data){
   saveNotes();
   return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
+/* ---------------------------------------------------------------
+   Idea 61 (Stage 2) — real live two-way Firestore sync, web path only
+   for now (native would need @capacitor-firebase/firestore installed and
+   wired — not done yet, same "web verified first, native later"
+   precedent as Auth itself further up this file). One Firestore document
+   per signed-in user, shaped exactly like exportBackupData()'s own
+   output — reuses mergeBackupData()/mergeStreakData() just above rather
+   than inventing a second reconciliation strategy for the same six data
+   buckets, including the one (streak) that already needed real "which
+   side is actually current" logic instead of a blind union.
+
+   Flow:
+   - On sign-in (startCloudSync): read the cloud doc once, merge it into
+     local via mergeBackupData(), push the merged result back up so the
+     cloud copy becomes a true superset, then attach a live onSnapshot
+     listener for whatever a *different* signed-in device pushes next.
+   - Any local mutation already calls through to here: the top-level
+     save*() functions (saveFavorites/saveRead/saveVisitCounts/
+     saveStreak) go through the onLocalDataChanged indirection slot (see
+     its own comment, near onTicketReadBadgeSync et al.) since
+     scheduleCloudPush() only exists in this closure; saveCollections/
+     saveCollectionMembers/saveNotes call scheduleCloudPush() directly,
+     already being nested in here themselves.
+   - scheduleCloudPush() debounces (1.5s) so several rapid local changes
+     collapse into one write instead of one per keystroke/tap.
+   - A snapshot the SDK marks `hasPendingWrites` is this device's own
+     write echoing back from the server — ignored, or every push would
+     immediately trigger a pointless self-merge.
+   - On sign-out (stopCloudSync): detach the listener only. Local data is
+     left exactly as-is — signing out was never meant to erase a device's
+     own copy, only to stop it talking to the cloud slot.
+   Known limitation, inherited from mergeBackupData()'s own union-only
+   design: deleting a list/note on one device doesn't yet propagate as a
+   deletion to another device that already pulled it — merging only ever
+   adds. Acceptable for a first real-sync milestone (favorites/streak/
+   notes/lists all still end up consistent and non-destructive across
+   devices); real tombstone-based deletion sync would be its own
+   follow-up if this turns out to matter in practice. */
+let cloudSyncUnsub = null;
+let cloudPushTimer = null;
+let cloudSyncUid = null;
+let lastPushedJSON = null; // recognizes "this snapshot is just our own last push echoing back"
+
+function cloudDocRef(uid){
+  return window.firebaseWeb.doc(window.firebaseWeb.firestore, 'users', uid);
+}
+
+async function pushLocalDataToCloud(){
+  if (!cloudSyncUid || !window.firebaseWeb) return;
+  const data = exportBackupData();
+  const json = JSON.stringify(data);
+  if (json === lastPushedJSON) return; // nothing actually changed since the last push
+  lastPushedJSON = json;
+  try { await window.firebaseWeb.setDoc(cloudDocRef(cloudSyncUid), data); }
+  catch(err){ /* offline, or a transient Firestore error — the next local
+    edit's scheduleCloudPush() call will retry naturally; nothing to
+    surface to the user for a background sync failure */ }
+}
+
+function scheduleCloudPush(){
+  if (!cloudSyncUid) return; // not signed in — sync is a no-op until it is
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(pushLocalDataToCloud, 1500);
+}
+
+/* Applies an incoming cloud document via the same merge logic manual
+   backup import already uses, then repaints whichever screens are
+   currently showing merged data — mirrors the refresh list the
+   backupImportInput 'change' handler further down already runs after a
+   manual import, kept in sync with it by hand (no shared helper for "a
+   merge just happened" exists yet). */
+function applyCloudMergeAndRefresh(data){
+  mergeBackupData(data);
+  renderCollectionsIndexPage();
+  if (favoritesZone.style.display === 'block') renderFavoritesPage();
+  if (notesZone.style.display === 'block') renderNotesPage();
+  renderStreak();
+  // The Talk of the Day card (the very first thing anyone sees, rendered
+  // via its own buildListItemRow() call, not showTicket()) is a gap the
+  // manual backup-import flow this was copied from already had — worth
+  // closing here since a stale favorite/read/note icon on the very first
+  // screen would be the most visible way a live sync bug could show up.
+  renderTalkOfTheDay();
+  // Same idea for the "Find Another" ticket flow's own favorite/list/
+  // note/read indicators (showTicket()'s #favoriteBtn etc.) — a no-op via
+  // their own lastPicked-null guard when that screen isn't the one
+  // currently showing, so safe to always call.
+  syncFavoriteBtn();
+  syncCollectionBtn();
+  syncNoteBtn();
+  syncReadBadge();
+}
+
+function startCloudSync(uid){
+  if (cloudSyncUid === uid) return; // already syncing this same user — don't double-attach a listener
+  stopCloudSync();
+  cloudSyncUid = uid;
+  lastPushedJSON = null;
+  (async ()=>{
+    try {
+      const snap = await window.firebaseWeb.getDoc(cloudDocRef(uid));
+      if (snap.exists()) applyCloudMergeAndRefresh(snap.data());
+    } catch(err){ /* offline on first sign-in, or a brand-new account with
+      no cloud doc yet — either way the push right below still runs */ }
+    if (cloudSyncUid !== uid) return; // signed out again while the above await was in flight
+    await pushLocalDataToCloud(); // push the merged (or, for a fresh cloud slot, just-local) result up right away, not on the debounce timer
+    if (cloudSyncUid !== uid) return;
+    cloudSyncUnsub = window.firebaseWeb.onSnapshot(cloudDocRef(uid), (snap)=>{
+      if (snap.metadata.hasPendingWrites) return; // this device's own write, echoing back — not a remote change
+      if (!snap.exists()) return;
+      const json = JSON.stringify(snap.data());
+      if (json === lastPushedJSON) return; // matches what we just pushed — nothing new actually arrived
+      applyCloudMergeAndRefresh(snap.data());
+    });
+  })();
+}
+
+function stopCloudSync(){
+  if (cloudSyncUnsub){ cloudSyncUnsub(); cloudSyncUnsub = null; }
+  cloudSyncUid = null;
+  clearTimeout(cloudPushTimer);
+  lastPushedJSON = null;
+}
+
+onCloudUserChanged = (user)=>{ if (user) startCloudSync(user.uid); else stopCloudSync(); };
+onLocalDataChanged = scheduleCloudPush;
+// Replays whatever auth state already arrived before this point registered
+// the two slots above — see pendingCloudUser/pendingCloudUserSet's own
+// comment for why that race is real and not just theoretical.
+if (pendingCloudUserSet){ onCloudUserChanged(pendingCloudUser); pendingCloudUserSet = false; }
+
 function importBackupFile(file, onDone){
   const reader = new FileReader();
   reader.onload = ()=>{

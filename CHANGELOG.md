@@ -15,6 +15,8 @@ this updated.
 - App-exclusive (iOS): swiping in from the left edge of the screen now closes whatever popup is open, or backs out of a list to My Lists, or returns to Home — the same navigation the Android back button got, as a swipe gesture. Requires a new iOS build to take effect.
 - The "Read" checkmark now shows how many times you've read a talk once it's more than once — "Read ×3" instead of just a checkmark. A new "Most Read" sort on Recently Viewed lets you see your most-read talks, across all time, not just what you've opened lately.
 - More everyday words now find the right topic — searching things like "vaping," "eating disorder," "miscarriage," "cyberbullying," "climate change," "gossip," "genealogy," "boy scouts," "heartbreak," "empty nest," or "movies" now also surfaces talks tagged with the matching official topic.
+- A new Account section in Settings lets you sign in or create an account (email/password, Sign in with Apple, or Sign in with Google). Once signed in, your favorites, notes, lists, and streak now sync automatically across every device you're signed in on.
+- The streak badge now lights up gold with a checkmark once you've already studied today — so it's clear at a glance whether today still needs a talk or you're already set.
 
 ### Fixed
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.

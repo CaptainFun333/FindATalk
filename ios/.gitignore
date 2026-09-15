@@ -8,6 +8,12 @@ xcuserdata
 # Cordova plugins for Capacitor
 capacitor-cordova-ios-plugins
 
+# Sign in with Apple private key (idea 61) — a real credential, not a safe
+# client config like GoogleService-Info.plist. Same "secret lives in the
+# tree but never in git" pattern as android/keystore.properties and
+# android/app/*.jks.
+*.p8
+
 # Generated Config files
 App/App/config.xml
 

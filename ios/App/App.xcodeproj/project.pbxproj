@@ -28,6 +28,7 @@
 		DD0DF2586103BC338DADA85B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FE895B1857DBAAFD41775DA0 /* SwiftUI.framework */; };
 		E0C4C368E2DA3C4D0B703ADF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9EBEEEFDE35A3F50ECB43029 /* WidgetKit.framework */; };
 		E56A3F4325D1F14C4C4B182E /* TalkOfDayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1376106DB7F765FFBB23F338 /* TalkOfDayWidgetBundle.swift */; };
+		A1B2C3D4E5F6789001020307 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789001020308 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789001020308 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		54CF787F825C71776A4E0407 /* TalkModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TalkModel.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6789001020304 /* TalkOfDayIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TalkOfDayIntent.swift; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
 				504EC3131FED79650016851F /* Info.plist */,
+				A1B2C3D4E5F6789001020308 /* GoogleService-Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				42DE0F6D203D4C8F2CE32BB2 /* data.json */,
@@ -268,6 +271,7 @@
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				C8E78B63C2CDAB56C506C74E /* PrivacyInfo.xcprivacy in Resources */,
+				A1B2C3D4E5F6789001020307 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,70 @@
+{
+  "project_info": {
+    "project_number": "322287724872",
+    "project_id": "findatalk-28e26",
+    "storage_bucket": "findatalk-28e26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:322287724872:android:6af11e884607a532846b7d",
+        "android_client_info": {
+          "package_name": "com.captainfun333.findatalk"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "322287724872-cn61gm2f4g1nfuhiiirj7f5fkfbcp83a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.captainfun333.findatalk",
+            "certificate_hash": "24a55c93fd2f4802963cd7d335c2acaf49312430"
+          }
+        },
+        {
+          "client_id": "322287724872-i4dl6jnfei7nkp1dgcrs3105k08371v6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.captainfun333.findatalk",
+            "certificate_hash": "e83e2ce20c2424377c8de10659e867a71fea4293"
+          }
+        },
+        {
+          "client_id": "322287724872-m675vfo2ohpbfdcrg9lvpq3v353g0327.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.captainfun333.findatalk",
+            "certificate_hash": "4f5013c9d93fca98a3498666aab50b70aab87000"
+          }
+        },
+        {
+          "client_id": "322287724872-dv2segkto97em5d9osu6lr4qfi9l3dr8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCv7fMYdUF0CN2aVl0v6opWk-63O2nc4o0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "322287724872-dv2segkto97em5d9osu6lr4qfi9l3dr8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "322287724872-jome3bqs2vpfruqcs7fiva1456509st7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.captainfun333.findatalk"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -4,7 +4,7 @@
     {
       "name": "findatalk-docs",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["/Users/smoothop/Downloads/FindATalk files/.claude/static-server.js"],
+      "runtimeArgs": ["/Users/smoothop/Developer/FindATalk/.claude/static-server.js"],
       "port": 8934
     }
   ]
