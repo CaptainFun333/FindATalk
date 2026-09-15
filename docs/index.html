@@ -10241,28 +10241,47 @@ async function saveBackupToFile(){
     return false;
   }
 }
+/* Recomputes {count, longest, lastDate} purely from a (already merged,
+   pruned, sorted) activeDays array, instead of trusting either side's own
+   cached count/lastDate. `count` is the length of the unbroken run of
+   consecutive calendar days ending on the most recent entry — replaying
+   the same "yesterday keeps it going, anything else breaks it" rule
+   touchStreak() uses, just walking backward across the real union of
+   both sides' activity instead of forward from a single new day.
+   Deliberately NOT "pick whichever side's cached count is bigger": a
+   cached count can't be trusted in isolation (nothing stops it drifting
+   from what activeDays actually supports), and two devices that were
+   each active on different, adjacent days should combine into one
+   longer streak rather than either side's smaller number winning — e.g.
+   device A active days 1–8, device B active day 9: the real answer is a
+   9-day streak, which neither side's own count alone would ever show.
+   Whether the resulting lastDate is actually still "current" (today or
+   yesterday, relative to right now) is deliberately left to
+   settleStreak() — this only answers "how long is the run," not "is it
+   still alive." */
+function recomputeStreakFromActiveDays(activeDays, priorLongest){
+  if (!activeDays.length) return {count: 0, longest: priorLongest|0, lastDate: null, activeDays};
+  const daySet = new Set(activeDays);
+  const lastDate = activeDays[activeDays.length - 1]; // pruneActiveDays returns a sorted copy
+  let count = 0;
+  let cursor = lastDate;
+  while (daySet.has(cursor)){
+    count++;
+    cursor = localDateSeed(new Date(new Date(cursor + 'T00:00:00').getTime() - 24*60*60*1000));
+  }
+  return {count, longest: Math.max(priorLongest|0, count), lastDate, activeDays};
+}
 function mergeStreakData(incoming){
   if (!incoming || typeof incoming !== 'object') return;
   const local = loadStreak();
-  const merged = {
-    count: local.count,
-    lastDate: local.lastDate,
-    longest: Math.max(local.longest|0, incoming.longest|0),
-    // activeDays is a plain union — unlike count/lastDate it's not a
-    // single "current" value that importing an old backup could regress,
-    // so days from either side are safe to just combine and re-prune.
-    activeDays: pruneActiveDays(
-      [...local.activeDays, ...(Array.isArray(incoming.activeDays) ? incoming.activeDays : [])],
-      new Date()
-    )
-  };
-  // Only adopt the incoming streak as "current" if it's actually newer —
-  // otherwise re-importing an old backup could stomp a longer streak
-  // that's been building on this device since that backup was made.
-  if (typeof incoming.lastDate === 'string' && (!local.lastDate || incoming.lastDate > local.lastDate)){
-    merged.count = incoming.count|0;
-    merged.lastDate = incoming.lastDate;
-  }
+  // activeDays is a plain union — unlike a cached count/lastDate it's not
+  // a single "current" value that merging in an old/other-device backup
+  // could regress, so days from either side are always safe to combine.
+  const activeDays = pruneActiveDays(
+    [...local.activeDays, ...(Array.isArray(incoming.activeDays) ? incoming.activeDays : [])],
+    new Date()
+  );
+  const merged = recomputeStreakFromActiveDays(activeDays, Math.max(local.longest|0, incoming.longest|0));
   saveStreak(merged);
 }
 function mergeBackupData(data){

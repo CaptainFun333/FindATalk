@@ -23,6 +23,7 @@ this updated.
 - App-exclusive (Android and iOS): the home screen widget could get stuck showing an old day's talk, even after reopening the app — it now redraws right away whenever the app opens or the day changes. Requires a new iOS build to take effect.
 - App-exclusive (Android): the widget now schedules its own wake-up right at midnight, so it stays current even if your phone was asleep through midnight overnight.
 - Your streak now credits the day you actually opened a talk, instead of whatever day you happen to come back to the app — if you open a talk and don't return until later, that day still counts.
+- Signing in on a second device could wipe out a real streak instead of syncing it — two devices with genuine, separate streak history now correctly combine into one accurate streak instead of one side's progress getting lost.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
