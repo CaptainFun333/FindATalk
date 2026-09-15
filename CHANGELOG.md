@@ -26,6 +26,7 @@ this updated.
 - Signing in on a second device could wipe out a real streak instead of syncing it — two devices with genuine, separate streak history now correctly combine into one accurate streak instead of one side's progress getting lost.
 - App-exclusive (Android): "Continue with Google" on the sign-in screen was showing an error instead of signing you in — fixed.
 - Fixed a bug where a failed background sync to the cloud was mistakenly treated as successful, so it never retried — this could leave a signed-in device's favorites, notes, and streak stuck and never actually showing up on your other signed-in devices.
+- App-exclusive (Android and iOS): signing in on the app never actually synced anything to the cloud — favorites, notes, lists, and streak stayed stuck on that one device even though Settings said you were signed in and synced. Fixed; if you signed in before this fix, sign out and back in once to pick it up.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.

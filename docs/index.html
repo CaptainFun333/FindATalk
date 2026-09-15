@@ -3433,7 +3433,7 @@
   import {
     getAuth, onAuthStateChanged, signOut,
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
-    signInWithPopup, GoogleAuthProvider, OAuthProvider
+    signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider
   } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
   import {
     getFirestore, doc, getDoc, setDoc, onSnapshot
@@ -3458,7 +3458,7 @@
   window.firebaseWeb = {
     auth, onAuthStateChanged, signOut,
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
-    signInWithPopup, GoogleAuthProvider, OAuthProvider,
+    signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider,
     firestore, doc, getDoc, setDoc, onSnapshot
   };
   // Fires once this module has actually finished initializing, in case
@@ -3819,6 +3819,30 @@ function updateAccountUI(user){
   else { pendingCloudUser = user; pendingCloudUserSet = true; }
 }
 
+/* Cloud sync (mergeStreakData/pushLocalDataToCloud/etc., further down)
+   reads and writes Firestore through window.firebaseWeb.firestore, which
+   is bound to the Firebase Web SDK's OWN auth instance
+   (window.firebaseWeb.auth) — a completely separate session from the
+   native @capacitor-firebase/authentication plugin used above on native
+   platforms (native sign-in has to go through the native plugin at all,
+   rather than just calling the web SDK everywhere, because Google refuses
+   to run its OAuth popup flow inside a WebView user-agent). Without this
+   bridge, window.firebaseWeb.auth.currentUser stays null forever on
+   native even while someone is genuinely signed in — every Firestore
+   call then goes out unauthenticated and Firestore's security rules
+   (correctly) reject it as request.auth == null, so cross-device sync
+   silently never works on native at all, no matter how signed-in the
+   Account row in Settings claims to be. Best-effort and non-blocking: a
+   failure here shouldn't stop the native sign-in the user actually
+   asked for and already got (renderAccountRow()/updateAccountUI() go by
+   the native auth state, not this), just leaves cloud sync unauthenticated
+   until the next successful bridge attempt. */
+async function bridgeNativeAuthToWeb(fn){
+  if (!window.firebaseWeb) return;
+  try { await fn(); }
+  catch(err){ console.error('[cloud sync] native auth session did not bridge to the web SDK', err); }
+}
+
 /* ---- Email/Password ---- */
 signInForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -3830,6 +3854,7 @@ signInForm.addEventListener('submit', async (e)=>{
     if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
       const method = authMode === 'signup' ? 'createUserWithEmailAndPassword' : 'signInWithEmailAndPassword';
       await capForAuth.Plugins.FirebaseAuthentication[method]({email, password});
+      bridgeNativeAuthToWeb(()=> window.firebaseWeb[method](window.firebaseWeb.auth, email, password));
     } else if (window.firebaseWeb){
       const fn = authMode === 'signup' ? window.firebaseWeb.createUserWithEmailAndPassword : window.firebaseWeb.signInWithEmailAndPassword;
       await fn(window.firebaseWeb.auth, email, password);
@@ -3868,7 +3893,13 @@ document.getElementById('authAppleBtn').addEventListener('click', async ()=>{
   authErrorMsg.hidden = true;
   try {
     if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
-      await capForAuth.Plugins.FirebaseAuthentication.signInWithApple();
+      const result = await capForAuth.Plugins.FirebaseAuthentication.signInWithApple();
+      const idToken = result && result.credential && result.credential.idToken;
+      if (idToken) bridgeNativeAuthToWeb(()=>{
+        const provider = new window.firebaseWeb.OAuthProvider('apple.com');
+        const cred = provider.credential({idToken, rawNonce: result.credential.nonce});
+        return window.firebaseWeb.signInWithCredential(window.firebaseWeb.auth, cred);
+      });
     } else if (window.firebaseWeb){
       const provider = new window.firebaseWeb.OAuthProvider('apple.com');
       await window.firebaseWeb.signInWithPopup(window.firebaseWeb.auth, provider);
@@ -3882,7 +3913,12 @@ document.getElementById('authGoogleBtn').addEventListener('click', async ()=>{
   authErrorMsg.hidden = true;
   try {
     if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
-      await capForAuth.Plugins.FirebaseAuthentication.signInWithGoogle();
+      const result = await capForAuth.Plugins.FirebaseAuthentication.signInWithGoogle();
+      const idToken = result && result.credential && result.credential.idToken;
+      if (idToken) bridgeNativeAuthToWeb(()=>{
+        const cred = window.firebaseWeb.GoogleAuthProvider.credential(idToken);
+        return window.firebaseWeb.signInWithCredential(window.firebaseWeb.auth, cred);
+      });
     } else if (window.firebaseWeb){
       const provider = new window.firebaseWeb.GoogleAuthProvider();
       await window.firebaseWeb.signInWithPopup(window.firebaseWeb.auth, provider);
