@@ -10488,6 +10488,18 @@ let cloudSyncUnsub = null;
 let cloudPushTimer = null;
 let cloudSyncUid = null;
 let lastPushedJSON = null; // recognizes "this snapshot is just our own last push echoing back"
+// True only once a startCloudSync() attempt for cloudSyncUid actually got a
+// real answer from Firestore (success OR a clean "doesn't exist yet" —
+// anything that ISN'T the denied/offline catch below). Exists because of
+// idea 61's native/web auth bridge: on iOS specifically, the native auth
+// listener fires (and calls startCloudSync) well before the bridged web
+// Firebase Auth session is actually ready — see bridgeNativeAuthToWeb's own
+// comment — so that first attempt reliably fails with permission-denied.
+// Without this flag, startCloudSync()'s "already syncing this uid" guard
+// would then permanently ignore the LATER, properly-authenticated retry
+// that fires once web auth genuinely catches up, since cloudSyncUid was
+// already set to the same uid by the doomed first attempt.
+let cloudSyncAuthed = false;
 
 function cloudDocRef(uid){
   return window.firebaseWeb.doc(window.firebaseWeb.firestore, 'users', uid);
@@ -10550,13 +10562,14 @@ function applyCloudMergeAndRefresh(data){
 }
 
 function startCloudSync(uid){
-  if (cloudSyncUid === uid) return; // already syncing this same user — don't double-attach a listener
+  if (cloudSyncUid === uid && cloudSyncAuthed) return; // already syncing this same user, for real — don't double-attach a listener
   stopCloudSync();
   cloudSyncUid = uid;
   lastPushedJSON = null;
   (async ()=>{
     try {
       const snap = await window.firebaseWeb.getDoc(cloudDocRef(uid));
+      cloudSyncAuthed = true; // reaching here without throwing means Firestore actually accepted this session
       if (snap.exists()) applyCloudMergeAndRefresh(snap.data());
     } catch(err){
       // A brand-new account with no cloud doc yet never lands here (getDoc
@@ -10564,7 +10577,9 @@ function startCloudSync(uid){
       // failure (offline, denied Firestore rules, App Check, etc.) does.
       // Logged rather than silently swallowed so a sync that never
       // actually happens is at least visible in DevTools instead of
-      // looking identical to "nothing to merge yet".
+      // looking identical to "nothing to merge yet". cloudSyncAuthed stays
+      // false, so a later retry for this same uid (see its own comment)
+      // isn't permanently blocked by the guard above.
       console.error('[cloud sync] initial pull failed', err);
     }
     if (cloudSyncUid !== uid) return; // signed out again while the above await was in flight
@@ -10589,6 +10604,7 @@ function startCloudSync(uid){
 function stopCloudSync(){
   if (cloudSyncUnsub){ cloudSyncUnsub(); cloudSyncUnsub = null; }
   cloudSyncUid = null;
+  cloudSyncAuthed = false;
   clearTimeout(cloudPushTimer);
   lastPushedJSON = null;
 }
