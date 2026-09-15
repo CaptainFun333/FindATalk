@@ -60,6 +60,20 @@
 				<string>com.captainfun333.findatalk</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Google Sign-In's iOS SDK redirects back into the app via
+				     this exact scheme (REVERSED_CLIENT_ID from
+				     GoogleService-Info.plist) once the user finishes signing
+				     in — without it registered here, the SDK throws
+				     immediately on the first sign-in attempt
+				     ('missing support for the following URL schemes'). -->
+				<string>com.googleusercontent.apps.322287724872-jome3bqs2vpfruqcs7fiva1456509st7</string>
+			</array>
+		</dict>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

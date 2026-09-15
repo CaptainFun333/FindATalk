@@ -7,5 +7,16 @@
       "skipNativeAuth": false,
       "providers": ["apple.com", "google.com"]
     }
+  },
+  "experimental": {
+    "ios": {
+      "spm": {
+        "packageOptions": {
+          "@capacitor-firebase/app": {
+            "symlink": true
+          }
+        }
+      }
+    }
   }
 }
