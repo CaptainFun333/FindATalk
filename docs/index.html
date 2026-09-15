@@ -12,6 +12,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pick a Talk — General Conference</title>
+<!-- Open Graph tags — no effect on FindATalk's own share buttons (Facebook
+     and other platforms ignore any prefilled caption/text for a link
+     share, by design, to stop spam), but this is what Facebook (and
+     iMessage/Slack/etc.) fetch when unfurling the findatalk.com link
+     itself, so the shared post at least gets a real title/description
+     card instead of a bare URL. -->
+<meta property="og:site_name" content="FindATalk">
+<meta property="og:title" content="FindATalk">
+<meta property="og:description" content="Discover, save, and revisit talks from General Conference.">
+<meta property="og:url" content="https://findatalk.com">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://findatalk.com/og-image.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta name="twitter:card" content="summary">
 <!-- Applies a saved dark-mode choice and a saved color palette (if any)
      before first paint, so the page never flashes light-then-dark, or
      Brass-then-something-else, on load. Must run before the <style> block
@@ -8476,7 +8491,15 @@ async function performShare({title, text}, btnEl){
 
 async function shareTalk(pick, btnEl, context='other'){
   const [title, speaker] = pick;
-  const url = talkUrl(pick);
+  // A FindATalk deep link (see buildTalkShareUrl()), not talkUrl()'s raw
+  // Gospel Library link — a Gospel Library URL carries zero FindATalk
+  // attribution when a platform like Facebook unfurls it (it shows the
+  // Church's own link preview, not ours), same reason buildListShareUrl()
+  // already points shared lists at FINDATALK_URL instead of anywhere
+  // else. Opening this link still lands the recipient on this exact
+  // talk (see checkForSharedTalkLink()), and the ticket view they land
+  // on has its own "Read on Gospel Library" link right there.
+  const url = buildTalkShareUrl(pick);
 
   // Build prefilled message based on context. The url is embedded
   // directly in the text — performShare() no longer accepts a separate
@@ -9872,6 +9895,16 @@ function buildListShareUrl(col){
   return `${FINDATALK_URL}/?${params.toString()}`;
 }
 
+/* Same deep-link pattern as buildListShareUrl() above, but for a single
+   talk — uses talkKey()'s exact y/m/slug instead of a sortedTalks()
+   index, so (unlike the list link) there's no drift risk at all: the
+   talk this resolves to never changes as the dataset grows. */
+function buildTalkShareUrl(pick){
+  const params = new URLSearchParams();
+  params.set('talk', talkKey(pick));
+  return `${FINDATALK_URL}/?${params.toString()}`;
+}
+
 function buildListShareText(col){
   // Same real count shown here as what the link actually carries — using
   // the full (uncapped) count would be misleading for a list over
@@ -9947,6 +9980,33 @@ document.getElementById('sharedListSaveBtn').addEventListener('click', ()=>{
 function checkForSharedListLink(urlString){
   const parsed = parseSharedListFromUrl(urlString);
   if (parsed) openSharedListModal(parsed);
+}
+
+/* Single-talk counterpart of parseSharedListFromUrl() — looks up the
+   exact talk a buildTalkShareUrl() link points at via TALKS_BY_KEY (no
+   sortedTalks()-index drift risk, since talkKey() is the same y/m/slug
+   the dataset already keys everything else by). Returns null for a
+   missing/unparseable `talk` param or a key with no match, same
+   "missing data means nothing shows" philosophy as the list version. */
+function parseSharedTalkFromUrl(urlString){
+  let params;
+  try { params = new URL(urlString).searchParams; }
+  catch(err){ return null; }
+  const key = params.get('talk');
+  if (!key) return null;
+  return TALKS_BY_KEY[key] || null;
+}
+
+// Counterpart of checkForSharedListLink() for a single shared talk —
+// straight to the ticket view, no confirm dialog needed since there's no
+// "add to a list" decision to make, unlike a shared list.
+function checkForSharedTalkLink(urlString){
+  const talk = parseSharedTalkFromUrl(urlString);
+  if (talk){
+    goToNavZone('home');
+    showTicket(talk);
+    updateBackBtn();
+  }
 }
 
 /* Idea 46 — notification tap routing. A tap on the "New conference is
@@ -11141,16 +11201,23 @@ maybeShowOnboarding();
      happens) is harmless — checkForSharedListLink()/openSharedListModal()
      are safe to run twice with identical input. */
 checkForSharedListLink(window.location.href);
+checkForSharedTalkLink(window.location.href);
 if (window.location.search){
   history.replaceState(null, '', window.location.pathname);
 }
 const cap = window.Capacitor;
 if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.App){
   cap.Plugins.App.addListener('appUrlOpen', (data)=>{
-    if (data && data.url) checkForSharedListLink(data.url);
+    if (data && data.url){
+      checkForSharedListLink(data.url);
+      checkForSharedTalkLink(data.url);
+    }
   });
   cap.Plugins.App.getLaunchUrl().then((result)=>{
-    if (result && result.url) checkForSharedListLink(result.url);
+    if (result && result.url){
+      checkForSharedListLink(result.url);
+      checkForSharedTalkLink(result.url);
+    }
   }).catch(()=>{}); // not available on web/unsupported platform — nothing to do
 }
 /* Idea 59 — finds whichever of the app's 12 separate modal/popup

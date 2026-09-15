@@ -30,6 +30,8 @@ this updated.
 - App-exclusive (Android and iOS): signing in on the app never actually synced anything to the cloud — favorites, notes, lists, and streak stayed stuck on that one device even though Settings said you were signed in and synced. Fixed; if you signed in before this fix, sign out and back in once to pick it up.
 - App-exclusive (iOS): "Continue with Google" on the sign-in screen was crashing the app outright. Requires a new iOS build to take effect.
 - App-exclusive (iOS): signing in with Google appeared to work, but nothing actually synced to your other devices — a bug in Apple's WebView meant the app never found out sign-in had finished. Requires a new iOS build to take effect.
+- Shared links (badges, streaks, talks) now show the FindATalk name, icon, and a description when they land in Facebook, instead of a bare link — Facebook itself still won't show the pre-filled caption text, that's a Facebook restriction on all link shares, not something FindATalk can change.
+- Sharing a talk now links back to FindATalk instead of straight to Gospel Library — opening the link takes you to the same talk right away, and it carries proper FindATalk attribution (name, icon, and description) wherever it's shared, including Facebook.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
