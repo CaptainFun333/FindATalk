@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = '/Users/smoothop/Downloads/FindATalk files/docs';
+const ROOT = '/Users/smoothop/Developer/FindATalk/docs';
 const PORT = 8934;
 
 const MIME = {
