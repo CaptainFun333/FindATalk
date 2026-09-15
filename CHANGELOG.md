@@ -36,6 +36,7 @@ this updated.
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
 - "Show me around" moved to the bottom of Settings, below Notifications.
+- Renamed the "Find Another" and "Show a List" buttons on Home to "Find a Talk" and "Show Matches" — same buttons, same behavior, just clearer wording.
 
 ## [1.6] — 2026-09-07
 
