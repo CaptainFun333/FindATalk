@@ -3779,3 +3779,40 @@ type instead of always saying "Open the verse" — defaults to
 'Scriptures' for the CFM citation badge's call site, which only ever
 matches Scripture citations.
 wants "look back at what I studied last year" — not done by default.
+
+## 📌 Decision (2026-09-14): monetization — free forever, donations only
+
+The app will stay **completely free, on every platform, forever, with
+every feature included** — no paywall, no paid tier, no gated features.
+Monetization will be **optional, occasional donations** ("keep the
+lights on" framing — e.g. covering the Apple Developer fee), not a
+purchase requirement of any kind.
+
+This is a **reversal** of an earlier same-session plan to relaunch
+Android as a brand-new paid app (new Play Console listing, new package
+name, one-time purchase at install, with existing testers' local data
+migrated via export/import or login+sync). That plan was fully scoped
+before being abandoned — worth knowing if it ever resurfaces as an old
+suggestion, it should not be revived without the user explicitly
+reopening it. Key facts from that abandoned research, kept here only
+for context in case a *paid* model is ever reconsidered down the road:
+Apple's App Store allows converting an existing free app to paid (for
+new downloads only, existing installs stay free); Google Play does
+**not** allow that — a paid Play listing would require a brand-new
+package name, since Play permanently reserves package names even after
+an app is unpublished.
+
+Still open, to be informed by the in-progress tester survey (see below):
+donation mechanism (native store IAP "tip jar" vs. an external
+Buy-Me-a-Coffee/Ko-fi-style link, or both), and cadence/UX — the
+survey's options were: a subtle always-visible tip option, a small
+recurring annual amount, prompting only at a meaningful moment (e.g. a
+long streak), offering a small non-functional perk in exchange (new
+color palette, "supporter" badge), or not asking at all.
+
+**Tester survey**: a Google Form ("FindATalk Testers") went out to the
+~9–18 daily friends/family testers, covering platform/OS tested, core
+feature usage, the widget's effect on habit-forming, bugs/friction/
+suggestions, and the donation-preference questions above, plus overall
+rating and recommend-likelihood. Live at:
+https://docs.google.com/forms/d/1bMTWa_I12HEOVqo9J_IXisuli_t7qN628B84eORLB94/edit?pli=1
