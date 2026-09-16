@@ -3451,7 +3451,7 @@
     signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider
   } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
   import {
-    getFirestore, doc, getDoc, setDoc, onSnapshot
+    getFirestore, doc, getDoc, setDoc, onSnapshot, increment
   } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
   // Client config — safe to ship in a public client, same as
@@ -3486,7 +3486,7 @@
     auth, onAuthStateChanged, signOut,
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
     signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider,
-    firestore, doc, getDoc, setDoc, onSnapshot
+    firestore, doc, getDoc, setDoc, onSnapshot, increment
   };
   // Fires once this module has actually finished initializing, in case
   // anything below ever needs to wait for it rather than just calling in
@@ -5072,6 +5072,42 @@ function incrementVisitCount(talk){
   const key = talkKey(talk);
   visitCounts[key] = (visitCounts[key] || 0) + 1;
   saveVisitCounts();
+  incrementGlobalReadCounter(); // idea 68 — collecting data now, no UI yet
+}
+/* Idea 68 — a single shared "how many talks has our whole community read"
+   counter, collected starting now even though no display for it exists
+   yet (that's still an open design question — live counter vs. a manual/
+   static number, exact placement/copy). Deliberately just a count, never
+   attached to which talk or which user — the least privacy-sensitive
+   metric this app could add, unlike idea 6's fuller analytics idea.
+   **Real limitation, by design, not a bug**: only ever fires for
+   signed-in users (cloudSyncUid, idea 61) — a client can only write to
+   Firestore it's authenticated for, and accounts are opt-in, so this
+   undercounts the app's true full usage. Whatever UI idea 68 eventually
+   builds needs to say "by signed-in members," not imply a total that
+   includes everyone.
+   Uses Firestore's atomic increment() (not a read-then-write) so this is
+   safe under many concurrent users incrementing at once with no need for
+   a Cloud Function. setDoc(..., {merge:true}) both creates the doc on
+   its very first-ever call and updates it on every one after — no
+   separate initialization step needed. Best-effort and silent on
+   failure, same non-fatal pattern as mirrorStreakToNative() — a failed
+   increment here should never block or surface an error for the read
+   credit itself, and there's nothing useful to retry (the next credited
+   read tries again on its own).
+   **Needs a matching Firestore security-rules addition before this can
+   actually write anything — not yet added, console-side, not in this
+   repo** (see PROJECT_HANDOFF.md or ask the assistant that added this for
+   the exact rule text: a stats/global doc, write-restricted to exactly
+   "+1 from whatever it already was," never an arbitrary value). Until
+   that rule exists, every call below fails permission-denied, silently
+   (caught, logged, not surfaced) — real data collection doesn't start
+   until the rule is live. */
+function incrementGlobalReadCounter(){
+  if (!cloudSyncUid || !window.firebaseWeb) return;
+  const ref = window.firebaseWeb.doc(window.firebaseWeb.firestore, 'stats', 'global');
+  window.firebaseWeb.setDoc(ref, {totalTalksRead: window.firebaseWeb.increment(1)}, {merge: true})
+    .catch(err=> console.error('[idea 68] global read counter increment failed', err));
 }
 function recordOpened(talk){
   if (!talk) return;
@@ -10680,6 +10716,23 @@ function cloudDocRef(uid){
 
 async function pushLocalDataToCloud(){
   if (!cloudSyncUid || !window.firebaseWeb) return;
+  const uid = cloudSyncUid;
+  // Pull and merge the latest cloud state before every push, not just the
+  // first one after sign-in. setDoc() below replaces the ENTIRE document —
+  // without this, a push built from a stale local snapshot can race another
+  // device's own push (e.g. it favorited something after our last pull) and
+  // silently wipe out that addition, since this isn't a field-level write.
+  // Merging first makes every push additive, matching the union-only design
+  // mergeBackupData already uses everywhere else.
+  try {
+    const snap = await window.firebaseWeb.getDoc(cloudDocRef(uid));
+    if (uid !== cloudSyncUid) return; // signed out / switched accounts mid-await
+    if (snap.exists()) applyCloudMergeAndRefresh(snap.data());
+  } catch(err){
+    console.error('[cloud sync] pre-push pull failed', err);
+    // Offline, or a transient Firestore error — push local data as-is
+    // rather than blocking this edit from ever reaching the cloud.
+  }
   const data = exportBackupData();
   const json = JSON.stringify(data);
   if (json === lastPushedJSON) return; // nothing actually changed since the last push
@@ -10715,8 +10768,12 @@ function scheduleCloudPush(){
 function applyCloudMergeAndRefresh(data){
   mergeBackupData(data);
   renderCollectionsIndexPage();
-  if (favoritesZone.style.display === 'block') renderFavoritesPage();
-  if (notesZone.style.display === 'block') renderNotesPage();
+  // Always repaint, not just when the zone happens to be the one currently
+  // shown — mergeBackupData already updated favoriteKeys/noteMap regardless
+  // of what's on screen, so skipping the repaint here just left a stale
+  // list in the DOM until the next unrelated tab click re-rendered it.
+  renderFavoritesPage();
+  renderNotesPage();
   renderStreak();
   // The Talk of the Day card (the very first thing anyone sees, rendered
   // via its own buildListItemRow() call, not showTicket()) is a gap the
