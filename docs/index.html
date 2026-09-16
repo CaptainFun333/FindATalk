@@ -2505,8 +2505,9 @@
   <!-- Idea 54 — the star at the center of the divider is a secret: click
        it SECRET_CLICK_THRESHOLD times (see the script) and it becomes a
        sun for good, matching the note it reveals ("...clicks the
-       mysterious icon a dozen times"). aria-label is deliberately generic
-       ("Decoration") pre-discovery — nothing should hint it's interactive. -->
+       mysterious icon a handful of times"). aria-label is deliberately
+       generic ("Decoration") pre-discovery — nothing should hint it's
+       interactive. -->
   <div class="divider">
     <button type="button" class="secret-star-btn" id="secretStarBtn" aria-label="Decoration">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
@@ -3350,7 +3351,7 @@
       <span class="secret-modal-glyph">✨</span>
       <h3 id="secretRevealTitle">Wow, you found it!</h3>
       <p class="modal-copy secret-note">
-        This app started as “let's randomize some talks so I can listen to something on the drive to work.” Somewhere along the way it turned into something else — a way to let angels deliver the message you needed. And, since you're clearly the type who clicks the mysterious icon a dozen times: thank you for being here.
+        This app started as “let's randomize some talks so I can listen to something on the drive to work.” Somewhere along the way it turned into something else — a way to let angels deliver the message you needed. And, since you're clearly the type who clicks the mysterious icon a handful of times: thank you for being here.
         <br><br>
         <a class="secret-note-link" href="https://www.churchofjesuschrist.org/study/general-conference/2023/10/51nelson?lang=eng" target="_blank" rel="noopener">“Think Celestial!” — Russell M. Nelson, Oct 2023</a>
         <br><br>
@@ -4196,9 +4197,9 @@ document.addEventListener('keydown', (e)=>{
 
 /* ---------------------------------------------------------------
    Idea 54 — the secret star. Click the divider's star
-   SECRET_CLICK_THRESHOLD times (12, matching the reveal note's own
-   "clicks the mysterious icon a dozen times") and it becomes a sun for
-   good; from then on, double-clicking it cycles Sun → Star → Moon → Sun.
+   SECRET_CLICK_THRESHOLD times (5, matching the reveal note's own
+   "clicks the mysterious icon a handful of times") and it becomes a sun
+   for good; from then on, double-clicking it cycles Sun → Star → Moon → Sun.
    Deliberately platform-agnostic (unlike the badge system below, this
    works identically on web and native) — only the actual "Think
    Celestial!" badge itself is native-only, per idea 45's existing
@@ -4209,7 +4210,7 @@ document.addEventListener('keydown', (e)=>{
 ------------------------------------------------------------------*/
 const SECRET_FOUND_KEY = 'findATalkSecretFound';
 const SECRET_CLICKS_KEY = 'findATalkSecretClicks';
-const SECRET_CLICK_THRESHOLD = 12;
+const SECRET_CLICK_THRESHOLD = 5;
 const SECRET_STAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>';
 const SECRET_SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="4.3"></circle><line x1="12" y1="2.3" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="21.7"></line><line x1="2.3" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="21.7" y2="12"></line><line x1="5.3" y1="5.3" x2="7.1" y2="7.1"></line><line x1="16.9" y1="16.9" x2="18.7" y2="18.7"></line><line x1="5.3" y1="18.7" x2="7.1" y2="16.9"></line><line x1="16.9" y1="7.1" x2="18.7" y2="5.3"></line></svg>';
 const SECRET_MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20.2 14.3A8.5 8.7 0 1 1 9.7 3.8a7 7 0 0 0 10.5 10.5z"/></svg>';
