@@ -6690,24 +6690,43 @@ function matchesSearch(t){
    2. Not recognized as a book reference at all (a hymn title, a typo,
       anything parseCiteQuery doesn't understand) — plain substring
       against both scripture and hymn display text, same as before. This
-      is the fallback for everything structural matching can't handle. */
-function matchesCiteSearch(t){
-  const q = filterState.citeQuery.trim().toLowerCase();
-  if (!q) return true;
+      is the fallback for everything structural matching can't handle.
+
+   Idea 63 — factored the actual matching logic out into
+   citeSearchMatchedCitations() below, which returns *which* citations
+   matched (real {ref,href,talkHref} chip objects, same shape
+   talkCitations()/talkHymnCitations() already produce), not just whether
+   any did. matchesCiteSearch() is now a thin boolean wrapper over that —
+   single source of truth, so the "N matching" badge (see
+   appendCiteSearchMatchBadge() near buildCitationsBlock()) can never
+   disagree with what actually made a talk show up in the results. */
+function citeSearchMatchedCitations(talk, rawQuery){
+  const q = (rawQuery || '').trim().toLowerCase();
+  if (!q) return {scripture: [], hymn: []};
 
   const parsed = parseCiteQuery(q);
   if (parsed){
-    const idxs = CITATION_LOOKUP[talkKey(t)];
-    return !!(idxs && idxs.some(i=>{
+    const idxs = CITATION_LOOKUP[talkKey(talk)] || [];
+    const matched = idxs.filter(i=>{
       const [, volume, book, chapter, anchor] = CITATION_REFS[i];
       if (volume !== parsed.volume || book !== parsed.book) return false;
       if (parsed.chapter != null && chapter !== parsed.chapter) return false;
       return citationCoversVerse(anchor, parsed.verseStart, parsed.verseEnd);
-    }));
+    });
+    // A structurally-recognized book reference only ever matches Scripture
+    // citations, never Hymns — same scoping matchesCiteSearch() always had.
+    return {scripture: matched.map(i=> citationEntryFromIndex(i, talk)), hymn: []};
   }
 
-  if (talkCitations(t).some(c=>c.ref.toLowerCase().includes(q))) return true;
-  return talkHymnCitations(t).some(c=>c.ref.toLowerCase().includes(q));
+  return {
+    scripture: talkCitations(talk).filter(c=> c.ref.toLowerCase().includes(q)),
+    hymn: talkHymnCitations(talk).filter(c=> c.ref.toLowerCase().includes(q))
+  };
+}
+function matchesCiteSearch(t){
+  if (!filterState.citeQuery.trim()) return true;
+  const {scripture, hymn} = citeSearchMatchedCitations(t, filterState.citeQuery);
+  return scripture.length > 0 || hymn.length > 0;
 }
 /* Idea 49 — Read/Unread. Deliberately NOT a DIM_CONFIG dimension: every
    other dim is a fixed property of the talk data (its topic, its speaker),
@@ -7291,6 +7310,7 @@ function showTicket(pick){
   citationsWrap.innerHTML = '';
   const citeBlock = buildCitationsBlock(pick);
   if (citeBlock) citationsWrap.appendChild(citeBlock);
+  appendCiteSearchMatchBadge(citationsWrap, pick); // idea 63
 
   const openLink = document.getElementById('openLink');
   openLink.href = url;
@@ -7583,25 +7603,38 @@ function createFavoriteButton(pick){
   btn.type = 'button';
   btn.className = 'share-btn-icon favorite-btn-icon';
   btn.innerHTML = STAR_ICON_SVG;
+  btn.dataset.talkKey = talkKey(pick);
   const sync = ()=>{
     const fav = isFavorite(pick);
     btn.classList.toggle('is-favorited', fav);
     btn.setAttribute('aria-label', fav ? `Remove "${pick[0]}" from favorites` : `Add "${pick[0]}" to favorites`);
     btn.setAttribute('aria-pressed', String(fav));
   };
+  btn._syncFavoriteBadge = sync;
   sync();
   btn.addEventListener('click', ()=>{
     toggleFavorite(pick);
-    sync();
     refreshCount();
     if (favoritesZone.style.display === 'block') renderFavoritesPage();
-    // Keep the ticket's own Favorite button in sync too, in case it's
-    // currently showing this same talk (favorited/unfavorited elsewhere —
-    // a list row, or the Recent/Favorites page — shouldn't leave the
-    // ticket's button showing stale state).
-    if (lastPicked && talkKey(lastPicked) === talkKey(pick)) syncFavoriteBtn();
+    refreshFavoriteBadgesFor(pick);
   });
   return btn;
+}
+/* Re-syncs every on-page copy of a talk's favorite star (list rows plus
+   the ticket's own button) after it was starred/unstarred anywhere — same
+   reasoning as refreshCollectionBadgesFor()/refreshNoteBadgesFor() above:
+   a talk can appear in several list rows at once (Show a List, Recently
+   Viewed, Favorites, Talk of the Day, Come Follow Me...), each with its
+   own button built by createFavoriteButton(), so toggling one needs to
+   walk the DOM and re-sync every other copy rather than just the button
+   that was clicked. */
+function refreshFavoriteBadgesFor(talk){
+  if (!talk) return;
+  const key = talkKey(talk);
+  document.querySelectorAll('.favorite-btn-icon').forEach(btn=>{
+    if (btn.dataset.talkKey === key && btn._syncFavoriteBadge) btn._syncFavoriteBadge();
+  });
+  if (lastPicked && talkKey(lastPicked) === key) syncFavoriteBtn();
 }
 
 /* A small icon button that opens the "Add to a List" modal for this
@@ -8237,7 +8270,11 @@ function showList(){
   listSelectFirstBtn.hidden = total <= LIST_SIZE;
   listSelectAllBtn.textContent = total > LIST_SIZE ? `Select All (${total})` : 'Select All';
   listItemsEl.innerHTML = '';
-  picks.forEach(pick=> listItemsEl.appendChild(buildListItemRow(pick, {selectable: true})));
+  picks.forEach(pick=>{
+    const row = buildListItemRow(pick, {selectable: true});
+    listItemsEl.appendChild(row);
+    appendCiteSearchMatchBadge(row, pick); // idea 63
+  });
 
   const rangeStart = start + 1;
   const rangeEnd = start + picks.length;
@@ -8387,6 +8424,82 @@ function buildCitationsBlock(talk, {compact=false}={}){
   });
 
   return block;
+}
+
+/* Idea 63 — "Search Scriptures & Hymns" match badge. Same DOM-append
+   pattern idea 31 already uses for CFM's "N citations in range" badge:
+   built and appended alongside whatever buildCitationsBlock() already
+   produced, rather than changing that function itself, so every other
+   caller/context is completely unaffected. Combines Scripture + Hymn
+   matches into one badge/count rather than two, matching how the search
+   box itself treats them as one concept ("Search Scriptures & Hymns"),
+   not two separate searches.
+   Only ever meaningful on Home (filterState.citeQuery only affects
+   Home's own filtering — matchesSubsetSearch(), used by Recently Viewed/
+   Favorites/My Lists/My Notes/CFM, never checks it), so this is called
+   only from Home's own render points (showTicket(), showList()) — never
+   folded into the shared buildListItemRow() itself, which would have
+   risked showing a stale "N matching" badge on an unrelated page just
+   because filterState.citeQuery happened to still hold a value from the
+   last time Home's search box was used. */
+function appendCiteSearchMatchBadge(row, talk){
+  if (!row) return;
+  const q = filterState.citeQuery.trim();
+  if (!q) return;
+  const {scripture, hymn} = citeSearchMatchedCitations(talk, q);
+  const matches = [...scripture, ...hymn];
+  if (!matches.length) return;
+
+  const badge = document.createElement('button');
+  badge.type = 'button';
+  badge.className = 'cite-count-badge';
+  badge.setAttribute('aria-expanded', 'false');
+  badge.textContent = `${matches.length} matching`;
+
+  const panel = document.createElement('div');
+  panel.className = 'row-cite-panel';
+  panel.hidden = true;
+  // Same destination-popup treatment as the talk's own Citations row and
+  // CFM's badge — a match with both a real link and a resolved in-talk
+  // paragraph anchor becomes a button that opens the popup; anything else
+  // stays a plain link/span (nothing to choose between).
+  matches.forEach(cite=>{
+    const {ref, href, talkHref} = cite;
+    const offerChoice = href && talkHref;
+    const el = document.createElement(offerChoice ? 'button' : (href ? 'a' : 'span'));
+    if (offerChoice){
+      el.type = 'button';
+      el.addEventListener('click', ()=> openCiteDestModal(cite));
+    } else if (href){
+      el.href = href; el.target = '_blank'; el.rel = 'noopener';
+    } else {
+      el.className = 'row-cite-plain';
+    }
+    el.textContent = ref;
+    panel.appendChild(el);
+  });
+
+  badge.addEventListener('click', ()=>{
+    const wasOpen = badge.getAttribute('aria-expanded') === 'true';
+    badge.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
+    panel.hidden = wasOpen;
+  });
+
+  // Sits right next to the citation-type icons instead of on its own line,
+  // same reasoning as CFM's badge: reads as a companion to the icons it's
+  // counting, not a separate fact further down. Falls back to appending
+  // directly on the row if there's somehow no cite-types-row/cite-block
+  // (shouldn't happen for a talk that just matched a citation search, but
+  // never silently drop the badge).
+  const citeTypesRow = row.querySelector('.cite-types-row');
+  const citeBlock = row.querySelector('.cite-block');
+  if (citeTypesRow && citeBlock){
+    citeTypesRow.appendChild(badge);
+    citeBlock.appendChild(panel);
+  } else {
+    row.appendChild(badge);
+    row.appendChild(panel);
+  }
 }
 const NOTE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
