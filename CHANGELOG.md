@@ -17,7 +17,8 @@ this updated.
 - More everyday words now find the right topic — searching things like "vaping," "eating disorder," "miscarriage," "cyberbullying," "climate change," "gossip," "genealogy," "boy scouts," "heartbreak," "empty nest," or "movies" now also surfaces talks tagged with the matching official topic.
 - A new Account section in Settings lets you sign in or create an account (email/password, Sign in with Apple, or Sign in with Google). Once signed in, your favorites, notes, lists, and streak now sync automatically across every device you're signed in on.
 - The streak badge now lights up gold with a checkmark once you've already studied today — so it's clear at a glance whether today still needs a talk or you're already set.
-- The "Show me around" tour now includes a screen about signing in to sync your favorites, notes, lists, and streak across devices. App-exclusive: it also gets a screen about earning badges for your streak and talks read.
+- The "Show me around" tour now includes a screen about signing in to sync your favorites, notes, lists, and streak across devices, and a screen about earning badges for your streak and talks read.
+- Badges are no longer app-exclusive — "My Badges" in Settings, badge celebrations, and the hidden "Think Celestial!" badge are all now available on the website too.
 - When you search by a scripture or hymn, a talk's results now show a "N matching" badge you can tap to see just the citations that actually matched your search — no more digging through a long list of everything the talk cites to find the ones you searched for.
 
 ### Changed

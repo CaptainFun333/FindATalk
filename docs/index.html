@@ -4032,19 +4032,6 @@ if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() &
    in Settings.
 ------------------------------------------------------------------*/
 const ONBOARDING_SEEN_KEY = 'findATalkOnboardingSeen';
-/* Badges are app-only — no badge UI, celebration modal, or Settings entry
-   exists on the web build at all (see the BADGE_DEFS comment further
-   down), so the "Earn Badges" screen below is filtered out on web rather
-   than shown to visitors who'll never find the feature it's describing.
-   `window.Capacitor` is read directly here (not the file's usual `cap`)
-   because that top-level const isn't declared until later in this same
-   script — see capForAuth's comment above for why every earlier
-   reference does its own local lookup instead. renderOnboardingScreen()
-   below reads ONBOARDING_SCREENS.length for the "Screen X of Y" count, so
-   filtering here (rather than hiding a screen after the fact) keeps that
-   count accurate on both platforms. */
-const onboardingCap = window.Capacitor;
-const onboardingIsNative = !!(onboardingCap && onboardingCap.isNativePlatform && onboardingCap.isNativePlatform());
 const ONBOARDING_SCREENS = [
   {
     icon: '👋',
@@ -4081,11 +4068,11 @@ const ONBOARDING_SCREENS = [
     title: 'Save & Take Notes',
     copy: 'Add talks to your favorites, or create your own collections and save for later. Jot down what you learned on any talk. Build study groups however you want.'
   },
-  ...(onboardingIsNative ? [{
+  {
     icon: '🏅',
     title: 'Earn Badges',
     copy: 'Unlock badges as you build your streak and rack up talks read — from your first 7-day streak to 1,000 talks and beyond.'
-  }] : []),
+  },
   {
     icon: '🔐',
     title: 'Sign In to Sync',
@@ -4245,16 +4232,11 @@ function renderSecretIcon(){
 function openSecretRevealModal(){
   const overlay = document.getElementById('secretRevealModalOverlay');
   const badgeRow = document.getElementById('secretBadgeRow');
-  const cap = window.Capacitor;
-  if (cap && cap.isNativePlatform && cap.isNativePlatform()){
-    earnedBadges['think-celestial'] = Date.now();
-    saveBadges();
-    document.getElementById('secretBadgeEarnedDate').textContent =
-      'earned ' + new Date(earnedBadges['think-celestial']).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-    badgeRow.hidden = false;
-  } else {
-    badgeRow.hidden = true; // web build — no badge system at all, see idea 45
-  }
+  earnedBadges['think-celestial'] = Date.now();
+  saveBadges();
+  document.getElementById('secretBadgeEarnedDate').textContent =
+    'earned ' + new Date(earnedBadges['think-celestial']).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  badgeRow.hidden = false;
   overlay.hidden = false;
 }
 function closeSecretRevealModal(){
@@ -5200,7 +5182,7 @@ function checkPendingRead(){
   // defined (see onTicketReadBadgeSync's declaration), and this calls
   // through it instead of referencing the nested function by name.
   if (onTicketReadBadgeSync) onTicketReadBadgeSync();
-  checkForNewBadges(); // reading-count badges (idea 45) — a no-op on web, see that function's own gate
+  checkForNewBadges(); // reading-count badges (idea 45)
   if (awayMs < MIN_AWAY_TO_COUNT_STREAK_MS) return; // read, but not away long enough to plausibly count as real engagement — streak stays untouched
   touchStreak(new Date(departedAt)); // credits the day the talk was actually OPENED, not whatever day this happens to be resolving on — see touchStreak()'s own comment
   renderStreak();
@@ -5446,12 +5428,9 @@ function renderStreak(){
   if (shareBtnEl) shareBtnEl.hidden = streak.count <= 0;
 }
 
-/* ---------------- APP ONLY — Milestones: badges (idea 45, Phase 1) ----------------
-   Gated behind Capacitor.isNativePlatform() throughout — a deliberate
-   product choice (part of the app-only-perks strategy), not a technical
-   necessity, so web users should never see any trace of this: no Settings
-   entry point, no celebration modal, nothing. See initBadgesUI() below for
-   where that gate actually applies.
+/* ---------------- Milestones: badges (idea 45, Phase 1) ----------------
+   Available on every platform — the donation model means nothing is
+   withheld from the web build, badges included.
 
    Tiers, matching the settled plan: streak badges read from
    streak.longest (the permanent high-water mark, not the current streak
@@ -5519,8 +5498,6 @@ function dismissBadgeCelebration(){
    celebration for each. Safe to call often — badges already in
    earnedBadges are skipped, so this is a no-op once everything's earned. */
 function checkForNewBadges(){
-  const cap = window.Capacitor;
-  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return; // app-only — see the file header above
   const streak = loadStreak();
   const readingCount = readKeys.size;
   let earnedSomething = false; // also true on a silent un-earn, so it still gets saved
@@ -8160,15 +8137,11 @@ async function setupDailyReminder(){
    to reschedule until it's on — and re-schedules the existing notification
    immediately on change, same replace-in-place behavior scheduleDailyReminder()
    already relies on elsewhere. */
-/* APP ONLY (idea 45, Phase 1) — unhides the "My Badges" row in Settings on
-   native only, same pattern as initReminderSettingsToggle() just below.
-   Unlike that one, badges don't depend on a specific Capacitor plugin —
-   just isNativePlatform() — since it's local data/UI only, no OS
-   permission or native API involved. */
+/* (idea 45, Phase 1) — unhides the "My Badges" row in Settings. Badges are
+   local data/UI only, no OS permission or native API involved, so this
+   runs the same on web and native. */
 function initBadgesUI(){
-  const cap = window.Capacitor;
   const section = document.getElementById('badgesSettingsSection');
-  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   section.hidden = false;
   // Also catch any badges already earned before this exact code existed
   // (e.g. a streak that already crossed 7 days pre-update) — run once on
