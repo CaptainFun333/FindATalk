@@ -6,6 +6,10 @@
 	<array>
 		<string>group.com.captainfun333.findatalk</string>
 	</array>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 	<!-- Universal Links (idea 40, part 2): pairs with docs/.well-known/
 	     apple-app-site-association on findatalk.com. iOS fetches and
 	     verifies that file at install time; on a match, tapping a
