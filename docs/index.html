@@ -783,6 +783,12 @@
      build even with `.hidden === true`. */
   .badge-row[hidden]{ display:none; }
   .badge-icon{ font-size:22px; line-height:1; flex-shrink:0; }
+  /* Idea 54 — the "Think Celestial!" badge and the reveal pop-up's own
+     glyph both use a plain ☀️ emoji, not a drawn SVG — deliberately a
+     different look from the interactive secretStarBtn cycling icon
+     (SECRET_SUN_ICON et al., stroke-only outline style), which this
+     does NOT touch. These two spots want the richer, filled emoji sun,
+     same as how every other badge here already uses a plain emoji. */
   .badge-row-text strong{
     display:block;
     font-family:'Inter',sans-serif; font-size:14.5px; font-weight:600; color:var(--ink);
@@ -3348,7 +3354,7 @@
        see revealSecret(). Note text is Brad's own words, verbatim. -->
   <div class="modal-overlay" id="secretRevealModalOverlay" hidden>
     <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="secretRevealTitle">
-      <span class="secret-modal-glyph">✨</span>
+      <span class="secret-modal-glyph">☀️</span>
       <h3 id="secretRevealTitle">Wow, you found it!</h3>
       <p class="modal-copy secret-note">
         This app started as “let's randomize some talks so I can listen to something on the drive to work.” Somewhere along the way it turned into something else — a way to let angels deliver the message you needed. And, since you're clearly the type who clicks the mysterious icon a handful of times: thank you for being here.
@@ -3358,7 +3364,7 @@
         — Brad
       </p>
       <div class="badge-row badge-earned secret-badge-row" id="secretBadgeRow" hidden>
-        <span class="badge-icon">🌟</span>
+        <span class="badge-icon">☀️</span>
         <div class="badge-row-text">
           <strong>Think Celestial!</strong>
           <span>Not everyone finds this one</span>
@@ -5565,7 +5571,7 @@ function renderBadgesList(){
   if (earnedBadges['think-celestial']){
     const dateStr = new Date(earnedBadges['think-celestial']).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
     celestialRowHtml = `<div class="badge-row badge-earned">
-      <span class="badge-icon">🌟</span>
+      <span class="badge-icon">☀️</span>
       <div class="badge-row-text"><strong>Think Celestial!</strong><span>Not everyone finds this one</span><span>earned ${dateStr}</span></div>
       <button type="button" class="share-btn-icon badge-share-btn" data-badge-id="think-celestial" aria-label="Share this badge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>

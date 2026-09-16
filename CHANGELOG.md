@@ -20,6 +20,9 @@ this updated.
 - The "Show me around" tour now includes a screen about signing in to sync your favorites, notes, lists, and streak across devices. App-exclusive: it also gets a screen about earning badges for your streak and talks read.
 - When you search by a scripture or hymn, a talk's results now show a "N matching" badge you can tap to see just the citations that actually matched your search — no more digging through a long list of everything the talk cites to find the ones you searched for.
 
+### Changed
+- The hidden "Think Celestial!" badge, and the icon above "Wow, you found it!" in its reveal pop-up, now show a sun instead of a star/sparkle, to match the icon it actually unlocks.
+
 ### Fixed
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.
 - App-exclusive (Android and iOS): the home screen widget could get stuck showing an old day's talk, even after reopening the app — it now redraws right away whenever the app opens or the day changes. Requires a new iOS build to take effect.
