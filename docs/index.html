@@ -7603,25 +7603,38 @@ function createFavoriteButton(pick){
   btn.type = 'button';
   btn.className = 'share-btn-icon favorite-btn-icon';
   btn.innerHTML = STAR_ICON_SVG;
+  btn.dataset.talkKey = talkKey(pick);
   const sync = ()=>{
     const fav = isFavorite(pick);
     btn.classList.toggle('is-favorited', fav);
     btn.setAttribute('aria-label', fav ? `Remove "${pick[0]}" from favorites` : `Add "${pick[0]}" to favorites`);
     btn.setAttribute('aria-pressed', String(fav));
   };
+  btn._syncFavoriteBadge = sync;
   sync();
   btn.addEventListener('click', ()=>{
     toggleFavorite(pick);
-    sync();
     refreshCount();
     if (favoritesZone.style.display === 'block') renderFavoritesPage();
-    // Keep the ticket's own Favorite button in sync too, in case it's
-    // currently showing this same talk (favorited/unfavorited elsewhere —
-    // a list row, or the Recent/Favorites page — shouldn't leave the
-    // ticket's button showing stale state).
-    if (lastPicked && talkKey(lastPicked) === talkKey(pick)) syncFavoriteBtn();
+    refreshFavoriteBadgesFor(pick);
   });
   return btn;
+}
+/* Re-syncs every on-page copy of a talk's favorite star (list rows plus
+   the ticket's own button) after it was starred/unstarred anywhere — same
+   reasoning as refreshCollectionBadgesFor()/refreshNoteBadgesFor() above:
+   a talk can appear in several list rows at once (Show a List, Recently
+   Viewed, Favorites, Talk of the Day, Come Follow Me...), each with its
+   own button built by createFavoriteButton(), so toggling one needs to
+   walk the DOM and re-sync every other copy rather than just the button
+   that was clicked. */
+function refreshFavoriteBadgesFor(talk){
+  if (!talk) return;
+  const key = talkKey(talk);
+  document.querySelectorAll('.favorite-btn-icon').forEach(btn=>{
+    if (btn.dataset.talkKey === key && btn._syncFavoriteBadge) btn._syncFavoriteBadge();
+  });
+  if (lastPicked && talkKey(lastPicked) === key) syncFavoriteBtn();
 }
 
 /* A small icon button that opens the "Add to a List" modal for this

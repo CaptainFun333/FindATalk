@@ -33,6 +33,7 @@ this updated.
 - App-exclusive (iOS): signing in with Google appeared to work, but nothing actually synced to your other devices — a bug in Apple's WebView meant the app never found out sign-in had finished. Requires a new iOS build to take effect.
 - Shared links (badges, streaks, talks) now show the FindATalk name, icon, and a description when they land in Facebook, instead of a bare link — Facebook itself still won't show the pre-filled caption text, that's a Facebook restriction on all link shares, not something FindATalk can change.
 - Sharing a talk now links back to FindATalk instead of straight to Gospel Library — opening the link takes you to the same talk right away, and it carries proper FindATalk attribution (name, icon, and description) wherever it's shared, including Facebook.
+- Unstarring (or starring) a talk's favorite icon on one screen now updates that same star everywhere else it's showing — it used to only update the one you clicked, leaving other screens showing stale, out-of-sync stars for the same talk.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
