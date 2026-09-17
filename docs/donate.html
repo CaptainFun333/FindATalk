@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support FindATalk</title>
+<meta name="description" content="Support FindATalk's development with an optional one-time or yearly gift.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --ink:#1c2c42;
+    --ink-soft:#3d4d64;
+    --paper:#f3efe2;
+    --paper-raised:#faf7ee;
+    --brass:#a9822f;
+    --brass-bright:#c79c3f;
+    --burgundy:#6e2b34;
+    --line:#c9bfa2;
+    --tint:#efe8d3;
+    --chip-border:#d8c3a5;
+    --on-accent:#fdf6ec;
+    --accent-fill:#6e2b34;
+    --accent-fill-hover:#5c232b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      color-scheme: dark;
+      --ink:#ffffff;
+      --ink-soft:#b7bdcf;
+      --paper:#161b26;
+      --paper-raised:#1f2635;
+      --brass:#caa550;
+      --brass-bright:#e0bc6e;
+      --burgundy:#d98a93;
+      --line:#333c4f;
+      --tint:#2a3140;
+      --chip-border:#4a3d2a;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, var(--paper-raised) 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, var(--tint) 0%, transparent 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Source Serif 4', Georgia, serif;
+    line-height:1.6;
+    padding:56px 20px 80px;
+  }
+  .wrap{
+    max-width:480px;
+    margin:0 auto;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:40px 32px 44px;
+    box-shadow:0 18px 40px -20px rgba(28,44,66,0.35);
+  }
+  .kicker{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--brass);
+    margin:0 0 10px;
+  }
+  h1{
+    font-family:'Lora', serif;
+    font-weight:600;
+    font-size:clamp(26px,5vw,32px);
+    margin:0 0 10px;
+  }
+  p.intro{
+    color:var(--ink-soft);
+    font-size:15.5px;
+    margin:0 0 28px;
+  }
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    text-decoration:none;
+    padding:12px 20px;
+    border-radius:3px;
+    cursor:pointer;
+    border:1px solid transparent;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    width:100%;
+  }
+  .btn[hidden]{ display:none; }
+  .btn-primary{ background:var(--accent-fill); color:var(--on-accent); }
+  .btn-primary:hover{ background:var(--accent-fill-hover); }
+  .btn-primary:disabled{ opacity:.5; cursor:default; }
+  .btn-ghost{ background:transparent; border-color:var(--line); color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--brass); color:var(--burgundy); }
+
+  .auth-field-label{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink-soft);
+    margin:14px 0 6px;
+  }
+  .auth-field-label:first-of-type{ margin-top:0; }
+  .auth-field{
+    display:block; width:100%;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:11px 12px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink);
+  }
+  .auth-error{
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.5; color:var(--burgundy);
+    background:var(--tint); border:1px solid var(--chip-border); border-radius:4px;
+    padding:10px 12px; margin:14px 0 0;
+  }
+  .auth-error[hidden]{ display:none; }
+  .auth-link-btn{
+    display:block; width:100%; text-align:center;
+    background:none; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft);
+    padding:10px 4px; text-decoration:underline;
+  }
+  .auth-link-btn:hover{ color:var(--burgundy); }
+  .auth-link-btn[hidden]{ display:none; }
+  .auth-divider{
+    display:flex; align-items:center; gap:10px; margin:18px 0 14px;
+    font-family:'Inter',sans-serif; font-size:11.5px; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.06em;
+  }
+  .auth-divider::before, .auth-divider::after{ content:""; flex:1; height:1px; background:var(--line); }
+  #authAppleBtn, #authGoogleBtn{ margin-top:10px; }
+
+  .account-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-family:'Inter',sans-serif; font-size:13.5px; color:var(--ink-soft);
+    padding-bottom:18px; margin-bottom:22px; border-bottom:1px solid var(--line);
+  }
+  .account-row button{
+    background:none; border:none; cursor:pointer; text-decoration:underline;
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft);
+  }
+  .account-row button:hover{ color:var(--burgundy); }
+
+  .badge-row{ display:flex; align-items:center; gap:12px; margin:0 0 24px; }
+  .badge-row[hidden]{ display:none; }
+  .badge-icon{ font-size:22px; line-height:1; flex-shrink:0; }
+  .badge-row-text strong{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:14.5px; font-weight:600; color:var(--ink);
+  }
+  .badge-row-text span{
+    display:block;
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft); margin-top:2px;
+  }
+  .star-cluster{ position:relative; display:inline-block; flex-shrink:0; }
+  .star-cluster .star-shape{ position:absolute; top:0; left:0; transform:translate(-50%,-50%); line-height:1; }
+
+  .settings-label{
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.04em; margin:0 0 10px;
+  }
+  .segmented{
+    display:flex; border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:14px;
+  }
+  .segmented button{
+    flex:1;
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; color:var(--ink-soft);
+    background:var(--paper-raised); border:none; padding:10px 8px; cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .segmented button + button{ border-left:1px solid var(--line); }
+  .segmented button[aria-pressed="true"]{ background:var(--accent-fill); color:var(--on-accent); }
+  .amount-row{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px; }
+  .amt-chip{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; color:var(--ink);
+    background:var(--paper); border:1px solid var(--line); border-radius:20px;
+    padding:8px 16px; cursor:pointer; transition:background .15s, border-color .15s, color .15s;
+  }
+  .amt-chip:hover{ border-color:var(--brass); }
+  .amt-chip[aria-pressed="true"]{ border-color:var(--brass); background:var(--tint); color:var(--burgundy); }
+  #donateCustomAmountBtn{ margin-bottom:14px; }
+
+  .back{
+    display:block;
+    margin-top:32px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink-soft);
+    text-decoration:none;
+    border-top:1px solid var(--line);
+    padding-top:20px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="kicker">FindATalk</p>
+    <h1>Support FindATalk</h1>
+    <p class="intro">FindATalk is free, on every platform, forever. If it's been useful, an optional gift helps cover hosting and the Apple/Google developer fees that keep it running.</p>
+
+    <!-- Signed-out: sign in first, so every donation is attributable to an
+         account and the supporter badge/status below can actually work.
+         Same auth pattern as the app (docs/index.html's sign-in modal),
+         trimmed to the web-only path — a plain browser page has no native
+         Capacitor bridge to branch on. -->
+    <div id="signedOutSection">
+      <p class="auth-error" id="authErrorMsg" hidden></p>
+      <form id="signInForm">
+        <label class="auth-field-label" for="authEmailInput">Email</label>
+        <input type="email" id="authEmailInput" class="auth-field" autocomplete="email" required>
+        <label class="auth-field-label" for="authPasswordInput">Password</label>
+        <input type="password" id="authPasswordInput" class="auth-field" autocomplete="current-password" required minlength="6">
+        <div style="margin-top:16px;">
+          <button type="submit" class="btn btn-primary" id="authSubmitBtn">Sign In</button>
+        </div>
+      </form>
+      <button type="button" class="auth-link-btn" id="authForgotPasswordBtn">Forgot password?</button>
+      <button type="button" class="auth-link-btn" id="authToggleModeBtn">Don't have an account? Create one</button>
+      <div class="auth-divider"><span>or</span></div>
+      <button type="button" class="btn btn-ghost" id="authAppleBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.437 2.13-1.31 2.97-.996.96-2.13 1.44-3.24 1.35-.033-1.1.45-2.19 1.32-3.03.93-.9 2.13-1.41 3.22-1.29.007.003.01.003.01 0Zm3.24 16.67c-.56 1.28-.83 1.85-1.55 2.98-1 1.58-2.42 3.55-4.17 3.57-1.56.02-1.96-1.02-4.08-1.01-2.12.01-2.56 1.03-4.12 1.01-1.75-.02-3.1-1.8-4.1-3.38C-1.6 17.43-.46 11.6 3.06 8.5c1.62-1.43 3.4-1.5 4.6-.86 1.05.56 1.92.86 2.75.86.78 0 1.83-.34 3.14-.94 1.6-.72 3.55-.5 5.06.86-2.6 1.6-3.86 3.83-3.86 6.7 0 3.3 1.7 5.3 4.5 5.94-.16.4-.33.79-.5 1.13Z"/></svg>
+        Continue with Apple
+      </button>
+      <button type="button" class="btn btn-ghost" id="authGoogleBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M23.52 12.27c0-.85-.07-1.48-.23-2.13H12v3.86h6.6c-.13 1.06-.85 2.66-2.45 3.73l-.02.15 3.56 2.7.25.02c2.26-2.02 3.58-5.02 3.58-8.33Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.05 7.94-2.86l-3.79-2.87c-1.01.7-2.38 1.19-4.15 1.19-3.17 0-5.86-2.04-6.82-4.87l-.14.01-3.7 2.8-.05.13C3.26 21.3 7.31 24 12 24Z"/><path fill="#FBBC05" d="M5.18 14.59A6.9 6.9 0 0 1 4.8 12c0-.9.16-1.77.37-2.59l-.01-.17-3.75-2.83-.12.06A11.9 11.9 0 0 0 0 12c0 1.92.47 3.74 1.29 5.34l3.89-2.75Z"/><path fill="#EA4335" d="M12 4.75c2.26 0 3.78.94 4.65 1.72l3.4-3.24C17.94 1.2 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.66l3.88 2.75C6.14 6.79 8.83 4.75 12 4.75Z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- Signed-in: account row + supporter status (once donations/{uid}
+         loads) + the actual donation picker. -->
+    <div id="signedInSection" hidden>
+      <div class="account-row">
+        <span id="accountEmailText"></span>
+        <button type="button" id="signOutBtn">Sign out</button>
+      </div>
+
+      <div class="badge-row" id="supporterBadgeRow" hidden>
+        <div class="badge-icon" id="supporterBadgeIcon"></div>
+        <div class="badge-row-text">
+          <strong>Supporter</strong>
+          <span id="supporterStatusText"></span>
+        </div>
+      </div>
+
+      <p class="settings-label">Frequency</p>
+      <div class="segmented" role="group" aria-label="Frequency">
+        <button type="button" data-donate-freq="oneTime" aria-pressed="true">One-Time</button>
+        <button type="button" data-donate-freq="annual" aria-pressed="false">Yearly</button>
+      </div>
+
+      <p class="settings-label">Amount</p>
+      <div class="amount-row" role="group" aria-label="Amount">
+        <button type="button" class="amt-chip" data-donate-amount="2" aria-pressed="false">$2</button>
+        <button type="button" class="amt-chip" data-donate-amount="3" aria-pressed="true">$3</button>
+        <button type="button" class="amt-chip" data-donate-amount="5" aria-pressed="false">$5</button>
+        <button type="button" class="amt-chip" data-donate-amount="10" aria-pressed="false">$10</button>
+        <button type="button" class="amt-chip" data-donate-amount="25" aria-pressed="false">$25</button>
+      </div>
+      <button type="button" class="btn btn-ghost" id="donateCustomAmountBtn">Choose your own amount</button>
+      <button type="button" class="btn btn-primary" id="donateContinueBtn">Continue — $3</button>
+    </div>
+
+    <a class="back" href="./">&larr; Back to FindATalk</a>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+    import {
+      getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence,
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
+      signInWithPopup, GoogleAuthProvider, OAuthProvider
+    } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
+    import {
+      getFirestore, doc, onSnapshot
+    } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+
+    // Same project/config as the app (docs/index.html) — this is a public
+    // client config, safe to ship (Firebase's real security boundary is
+    // Firestore rules, not hiding this object).
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK90mmgiOFUQOdOIqMMO5aNyxu_LDB7BI",
+      authDomain: "findatalk-28e26.firebaseapp.com",
+      projectId: "findatalk-28e26",
+      storageBucket: "findatalk-28e26.firebasestorage.app",
+      messagingSenderId: "322287724872",
+      appId: "1:322287724872:web:9db35512b711c360846b7d"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const firestore = getFirestore(app);
+    setPersistence(auth, browserLocalPersistence).catch(()=>{ /* falls back to default persistence */ });
+
+    // Real, live Stripe Payment Links under the correct (non-Ko-fi) Stripe
+    // account, one fixed-price link per tier — see PROJECT_HANDOFF.md's
+    // 2026-09-17 entries for why this page exists separately from the app.
+    const STRIPE_LINKS = {
+      oneTime: {
+        2: 'https://donate.stripe.com/dRm14ocRn2mA2r51h78AE09',
+        3: 'https://donate.stripe.com/5kQ14o18FbXae9Nf7X8AE08',
+        5: 'https://donate.stripe.com/5kQ4gA6sZ0es5Dh7Fv8AE07',
+        10: 'https://donate.stripe.com/14AaEY4kRaT69Tx0d38AE06',
+        25: 'https://donate.stripe.com/28E8wQ04B6CQe9N1h78AE05',
+        custom: 'https://donate.stripe.com/fZucN6g3z0es1n19ND8AE0a'
+      },
+      annual: {
+        2: 'https://donate.stripe.com/aFa14og3z2mAaXB9ND8AE04',
+        3: 'https://donate.stripe.com/eVqbJ2dVrgdqfdR4tj8AE03',
+        5: 'https://donate.stripe.com/aFa00kdVraT68Pt1h78AE02',
+        10: 'https://donate.stripe.com/9B67sM18F4uI0iXbVL8AE01',
+        25: 'https://donate.stripe.com/7sYaEYaJf8KYc1FaRH8AE00'
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const signedOutSection = $('signedOutSection');
+    const signedInSection = $('signedInSection');
+    const authErrorMsg = $('authErrorMsg');
+    const authEmailInput = $('authEmailInput');
+    const authPasswordInput = $('authPasswordInput');
+    const authSubmitBtn = $('authSubmitBtn');
+    const authToggleModeBtn = $('authToggleModeBtn');
+    const authForgotPasswordBtn = $('authForgotPasswordBtn');
+
+    let authMode = 'signin';
+    function renderAuthMode(){
+      authErrorMsg.hidden = true;
+      if (authMode === 'signup'){
+        authSubmitBtn.textContent = 'Create Account';
+        authToggleModeBtn.textContent = 'Already have an account? Sign in';
+        authForgotPasswordBtn.hidden = true;
+      } else {
+        authSubmitBtn.textContent = 'Sign In';
+        authToggleModeBtn.textContent = "Don't have an account? Create one";
+        authForgotPasswordBtn.hidden = false;
+      }
+    }
+    authToggleModeBtn.addEventListener('click', ()=>{
+      authMode = authMode === 'signin' ? 'signup' : 'signin';
+      renderAuthMode();
+    });
+    renderAuthMode();
+
+    function showAuthError(err){
+      const AUTH_ERROR_MESSAGES = {
+        'auth/invalid-email': "That doesn't look like a real email address.",
+        'auth/user-not-found': "No account found with that email.",
+        'auth/wrong-password': "That password doesn't match.",
+        'auth/invalid-credential': "Email or password doesn't match an account.",
+        'auth/email-already-in-use': "An account already exists with that email — try signing in instead.",
+        'auth/weak-password': "Password needs to be at least 6 characters.",
+        'auth/too-many-requests': "Too many attempts — wait a bit and try again.",
+        'auth/popup-closed-by-user': null,
+        'auth/network-request-failed': "Couldn't reach the server — check your connection and try again."
+      };
+      const code = err && err.code;
+      if (code && Object.prototype.hasOwnProperty.call(AUTH_ERROR_MESSAGES, code)){
+        const msg = AUTH_ERROR_MESSAGES[code];
+        if (!msg){ authErrorMsg.hidden = true; return; }
+        authErrorMsg.textContent = msg;
+      } else {
+        authErrorMsg.textContent = (err && err.message) || 'Something went wrong — try again.';
+      }
+      authErrorMsg.hidden = false;
+    }
+
+    $('signInForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      authErrorMsg.hidden = true;
+      const email = authEmailInput.value.trim();
+      const password = authPasswordInput.value;
+      authSubmitBtn.disabled = true;
+      try {
+        const fn = authMode === 'signup' ? createUserWithEmailAndPassword : signInWithEmailAndPassword;
+        await fn(auth, email, password);
+      } catch(err){
+        showAuthError(err);
+      } finally {
+        authSubmitBtn.disabled = false;
+      }
+    });
+    authForgotPasswordBtn.addEventListener('click', async ()=>{
+      const email = authEmailInput.value.trim();
+      if (!email){
+        authErrorMsg.textContent = 'Enter your email above first, then tap this again.';
+        authErrorMsg.hidden = false;
+        return;
+      }
+      authErrorMsg.hidden = true;
+      try {
+        await sendPasswordResetEmail(auth, email);
+        authErrorMsg.textContent = `Password reset email sent to ${email}.`;
+        authErrorMsg.hidden = false;
+      } catch(err){ showAuthError(err); }
+    });
+    $('authAppleBtn').addEventListener('click', async ()=>{
+      authErrorMsg.hidden = true;
+      try {
+        await signInWithPopup(auth, new OAuthProvider('apple.com'));
+      } catch(err){ showAuthError(err); }
+    });
+    $('authGoogleBtn').addEventListener('click', async ()=>{
+      authErrorMsg.hidden = true;
+      try {
+        await signInWithPopup(auth, new GoogleAuthProvider());
+      } catch(err){ showAuthError(err); }
+    });
+    $('signOutBtn').addEventListener('click', ()=> signOut(auth));
+
+    // ---- Supporter status (donations/{uid}, read-only, webhook-written) ----
+    let donationState = null;
+    let donationUnsub = null;
+
+    function isActiveSupporter(){
+      return !!(donationState && donationState.activeUntil && Date.now() < donationState.activeUntil);
+    }
+    function joinYearsSentence(years){
+      const sorted = [...years].sort((a,b)=>a-b);
+      if (sorted.length === 1) return String(sorted[0]);
+      if (sorted.length === 2) return `${sorted[0]} and ${sorted[1]}`;
+      return sorted.slice(0, -1).join(', ') + ', and ' + sorted[sorted.length - 1];
+    }
+    function supporterStarPositions(n){
+      if (n <= 1) return [[50, 50]];
+      if (n === 2) return [[25, 50], [75, 50]];
+      const top = Math.ceil(n / 2), bottom = Math.floor(n / 2);
+      const pts = [], topX = [];
+      for (let i = 0; i < top; i++){
+        const x = (i + 0.5) / top * 100;
+        topX.push(x);
+        pts.push([x, 30]);
+      }
+      if (bottom === top){
+        for (let j = 0; j < bottom; j++) pts.push([topX[j], 70]);
+      } else {
+        for (let j = 0; j < bottom; j++) pts.push([(topX[j] + topX[j + 1]) / 2, 70]);
+      }
+      return pts;
+    }
+    function renderSupporterStarCluster(n){
+      const starPx = 15;
+      const rows = n <= 2 ? 1 : 2;
+      const cols = n <= 2 ? n : Math.max(Math.ceil(n / 2), Math.floor(n / 2));
+      const w = Math.max(cols * starPx * 0.82, starPx * 1.2);
+      const h = rows === 1 ? starPx * 1.2 : starPx * 2.1;
+      const stars = supporterStarPositions(n).map(pt=>
+        `<span class="star-shape" style="left:${(pt[0] / 100 * w).toFixed(1)}px; top:${(pt[1] / 100 * h).toFixed(1)}px; font-size:${starPx}px;">⭐</span>`
+      ).join('');
+      return `<div class="star-cluster" style="width:${w.toFixed(1)}px; height:${h.toFixed(1)}px;">${stars}</div>`;
+    }
+
+    function renderSupporterStatus(){
+      const row = $('supporterBadgeRow');
+      if (!donationState || !Array.isArray(donationState.years) || !donationState.years.length){
+        row.hidden = true;
+        return;
+      }
+      row.hidden = false;
+      $('supporterBadgeIcon').innerHTML = renderSupporterStarCluster(donationState.years.length);
+      if (isActiveSupporter()){
+        const dateStr = new Date(donationState.activeUntil).toLocaleDateString('en-US', {month:'short', year:'numeric'});
+        $('supporterStatusText').textContent = `Supported in ${joinYearsSentence(donationState.years)} — renews ${dateStr}`;
+      } else {
+        $('supporterStatusText').textContent = `Supported in ${joinYearsSentence(donationState.years)} — expired, renew?`;
+      }
+    }
+
+    function startDonationSync(uid){
+      if (donationUnsub) donationUnsub();
+      donationUnsub = onSnapshot(doc(firestore, 'donations', uid), (snap)=>{
+        donationState = snap.exists() ? snap.data() : null;
+        renderSupporterStatus();
+      }, (err)=>{
+        console.error('[donate] donations listener failed', err);
+      });
+    }
+    function stopDonationSync(){
+      if (donationUnsub){ donationUnsub(); donationUnsub = null; }
+      donationState = null;
+      renderSupporterStatus();
+    }
+
+    // ---- Donation picker ----
+    let donateFreq = 'oneTime';
+    let donateAmount = 3;
+    function updateDonateContinueLabel(){
+      $('donateContinueBtn').textContent = `Continue — $${donateAmount}`;
+    }
+    document.querySelectorAll('[data-donate-freq]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        donateFreq = btn.dataset.donateFreq;
+        document.querySelectorAll('[data-donate-freq]').forEach(b=> b.setAttribute('aria-pressed', String(b === btn)));
+        $('donateCustomAmountBtn').hidden = (donateFreq === 'annual');
+        updateDonateContinueLabel();
+      });
+    });
+    document.querySelectorAll('[data-donate-amount]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        donateAmount = Number(btn.dataset.donateAmount);
+        document.querySelectorAll('[data-donate-amount]').forEach(b=> b.setAttribute('aria-pressed', String(b === btn)));
+        updateDonateContinueLabel();
+      });
+    });
+    function openDonateLink(freq, amount){
+      const url = STRIPE_LINKS[freq] && STRIPE_LINKS[freq][amount];
+      if (!url || !auth.currentUser) return;
+      window.open(`${url}?client_reference_id=${encodeURIComponent(auth.currentUser.uid)}`, '_blank', 'noopener');
+    }
+    $('donateContinueBtn').addEventListener('click', ()=> openDonateLink(donateFreq, donateAmount));
+    $('donateCustomAmountBtn').addEventListener('click', ()=> openDonateLink('oneTime', 'custom'));
+
+    // ---- Auth state ----
+    onAuthStateChanged(auth, (user)=>{
+      if (user){
+        signedOutSection.hidden = true;
+        signedInSection.hidden = false;
+        $('accountEmailText').textContent = user.email || '';
+        startDonationSync(user.uid);
+      } else {
+        signedOutSection.hidden = false;
+        signedInSection.hidden = true;
+        stopDonationSync();
+      }
+    });
+  </script>
+</body>
+</html>

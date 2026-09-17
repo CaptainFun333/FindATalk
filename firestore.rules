@@ -1,13 +1,28 @@
 rules_version = '2';
 
-// Local-emulator-only rules file for testing the stripeWebhook function.
-// Not deployed to production Firestore — deploys in this repo only ever
-// target `--only functions`. A real audit of the existing client-side
-// Auth/Firestore sync rules is still outstanding (see PROJECT_HANDOFF.md).
+// This now mirrors the real production rules (previously only set via the
+// Firebase Console, never tracked here — see PROJECT_HANDOFF.md's
+// 2026-09-17 entries). The `donations/{uid}` block is new: read-only for
+// the owning signed-in user, never client-writable — populated only by
+// stripeWebhook via the Admin SDK, which bypasses these rules entirely.
+// `stripeSubscriptions/{id}` (the webhook's own renewal-lookup mapping)
+// intentionally has no rule at all — no client ever needs it, and an
+// unmatched path defaults to deny.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /stats/global {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasOnly(['totalTalksRead'])
+        && request.resource.data.totalTalksRead ==
+           (resource == null ? 0 : resource.data.totalTalksRead) + 1;
+    }
+    match /donations/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
   }
 }

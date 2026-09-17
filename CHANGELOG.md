@@ -20,6 +20,7 @@ this updated.
 - The "Show me around" tour now includes a screen about signing in to sync your favorites, notes, lists, and streak across devices, and a screen about earning badges for your streak and talks read.
 - Badges are no longer app-exclusive — "My Badges" in Settings, badge celebrations, and the hidden "Think Celestial!" badge are all now available on the website too.
 - When you search by a scripture or hymn, a talk's results now show a "N matching" badge you can tap to see just the citations that actually matched your search — no more digging through a long list of everything the talk cites to find the ones you searched for.
+- You can now support FindATalk's development from a donate page on the website (findatalk.com/donate.html) — sign in with your existing account to give a one-time or yearly gift, and see a supporter badge that tracks which years you've given.
 
 ### Changed
 - The hidden "Think Celestial!" badge, and the icon above "Wow, you found it!" in its reveal pop-up, now show a sun instead of a star/sparkle, to match the icon it actually unlocks.
