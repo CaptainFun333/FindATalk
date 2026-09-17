@@ -4104,10 +4104,70 @@ donation writes the right shape; missing `client_reference_id` logs and
 returns 200 without crashing; subscription-mode checkout writes both the
 donation doc and the `stripeSubscriptions` mapping; a renewal event
 correctly finds the mapped uid and extends `activeUntil`; two donations in
-the same calendar year dedupe to one `years` entry instead of two. Not yet
-deployed or switched to live secrets as of this entry — the existing test
-secrets still point at Stripe test mode, and `STRIPE_LINKS` in
-`docs/index.html` are **live** Payment Links, so this needs an explicit
-switch to live-mode secrets plus a live-mode Stripe Dashboard webhook
-destination before real donations actually flow through — a genuine
-"starts recording real money" step, done deliberately, not silently.
+the same calendar year dedupe to one `years` entry instead of two.
+
+## 📌 Correction (2026-09-17, same day): the in-app donate UI never actually existed at any point today — it was built and then deliberately discarded in a parallel session
+
+Everything above about "the existing donation feature in `docs/index.html`"
+was real, but the full story only came out after cross-session coordination
+with a second, concurrently-running Claude Code session (name: "Future
+feature ideas (fork 2) 67 Donation support") that had been working on the
+same repo in parallel, unseen by this session. Timeline, now confirmed:
+
+1. That other session built the full idea-67 client-side implementation in
+   `docs/index.html` earlier today — `STRIPE_LINKS`, `donationState`,
+   the Settings "Support the App" row, three modals (support picker,
+   milestone-donation prompt, New Year prompt), badge/star-cluster
+   rendering, and a `cloudDocRef(uid, collection)` generalization of the
+   existing cloud-sync plumbing to support a second synced doc
+   (`donations/{uid}`) alongside the existing `users/{uid}` sync doc.
+2. It hit an **unresolved runtime bug**: something between the new module
+   and the `nativeFirestore` declaration threw during top-level script
+   execution, leaving `cloudSyncUid`/`nativeFirestore`/`cloudSyncUnsub`/
+   `donationUnsub` undefined. Never root-caused.
+3. The user, separately, decided — informed by the App Store/Play Store
+   compliance research recorded earlier in this same file — that plain
+   external Stripe Payment Links opened from inside the app is **not** the
+   right approach, and told that other session to discard the uncommitted
+   work. It ran `git checkout -- docs/index.html CHANGELOG.md`, which is
+   why none of it was ever in git history and why it vanished from the
+   working tree partway through this session (between the very start of
+   this conversation, when it still showed as an uncommitted "M", and the
+   point later today when this session went looking for it and found
+   nothing).
+
+This session had already independently built the webhook against exactly
+that now-discarded contract (`donations/{uid}`, `client_reference_id`,
+`years`/`activeUntil`/`lastDonationAt`) — coincidentally correct in shape,
+since it was reverse-engineered from the same feature before learning it
+had been scrapped. **Nothing was lost through negligence** — the discard
+was deliberate and directed by the user, it just didn't propagate across
+the session boundary. Full recovery of the exact discarded code (all 8
+pieces: CSS, Settings row, 3 modals, badge rendering, the idea-67 module
+itself, `initBadgesUI` hook, and the cloud-sync generalization with its
+unresolved bug) is preserved in this session's transcript if ever needed
+for reference, but per the decision below it isn't getting rebuilt as-is.
+
+**Decided direction (2026-09-17)**: two tracks, cleanly separated instead of
+one feature trying to serve both:
+1. **In-app tipping**: native IAP (StoreKit + Google Play Billing via
+   Capacitor plugins) — no external links, no store-policy risk. Replaces
+   the idea-67 in-app UI entirely rather than resurrecting it. Not yet
+   built; planning resumes after this entry.
+2. **Web-only donation**: a new page (deliberately **not** `docs/index.html`,
+   to avoid further collisions with the other session's work on that file)
+   powered by today's already-fixed `stripeWebhook` + the 11 Payment Links
+   created under the corrected Stripe account (see the account-switch note
+   below) + the `donations/{uid}` Firestore shape — all of which stay
+   useful for this purpose even though the in-app UI that originally
+   motivated them got scrapped.
+
+**Also happened today, worth its own line**: mid-session, discovered the
+Stripe account in use had been created by Ko-fi rather than being a
+properly-owned account — Stripe itself prompted creating a fresh one.
+Created a new account, recreated all 11 Payment Links there, and reset
+`STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (both test *and* live) to the
+new account's values, then redeployed. The webhook is live and correctly
+configured against the right account as of this entry — it just has no
+consumer yet until either the web donate page or a native-IAP fallback
+gets built.
