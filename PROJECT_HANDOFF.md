@@ -3952,3 +3952,162 @@ signing secret set via `firebase functions:secrets:set`. Remaining work is
 just the previously-listed "deliberately not built yet" items (donate
 button/UI, App Store review research, recurring donations, etc.) — see
 above.
+
+## 📌 Research (2026-09-17): App Store / Play Store rules on the donate link, before building the UI
+
+FindATalk is **not** a registered nonprofit — donations are "keep the lights
+on" developer support (see the 2026-09-14 monetization decision above), not
+charitable fundraising for an approved cause. That distinction matters a lot
+to both stores' actual policies, and neither platform has a clean, low-risk
+path for it.
+
+**Apple**: three separate guideline paths exist, none a perfect fit.
+Guideline 3.1.1 explicitly allows apps to "tip the developer," but frames
+tips as an in-app-purchase mechanism (Apple's cut applies) unless an
+exemption covers external payment. Guideline 3.2.2(iv) allows collecting
+donations *outside* the app (e.g. via Safari) without needing IAP or a
+nonprofit approval — but the text ties that specifically to "charities and
+fundraisers," not developer tips, so it's not a clean fit either. The 2025
+Epic-ruling changes let US-storefront apps include external payment
+links/buttons without Apple's entitlement, but the guideline text still
+scopes that to purchasing "digital content or services" — whether a
+no-content-received donation counts is genuinely ambiguous in Apple's own
+wording, and **the US allowance does not extend to other storefronts**
+(outside the US, external purchase links still need Apple's entitlement
+program). Net: lower risk than Android, but not a guaranteed-safe reading of
+the rules as written.
+
+**Android is the bigger risk**, backed by a concrete precedent, not just
+policy text. Google Play's Payments Policy exempts only "tax exempt
+donations" — payments to "a validated tax-exempt organization (e.g. a
+validated 501(c)(3) or local equivalent)" — from needing Play Billing;
+there's no separate carve-out for a developer's own tip jar. Worse: even a
+real registered nonprofit hit this wall. [AnkiDroid's Open Collective
+donation link](https://github.com/ankidroid/Anki-Android/issues/21656) was
+rejected by Google Play in September 2026 despite the developers holding an
+actual IRS 501(c)(6) determination letter from their fiscal host — Google's
+review incorrectly claimed the org wasn't tax-exempt, threatened store
+removal, and the developers ultimately pulled the donation link from the
+Play build "under protest" rather than fight it. FindATalk has no nonprofit
+status at all, so it's exposed to at least the same risk with a weaker
+position to contest a rejection.
+
+**Working recommendation, not yet implemented**: whenever the donate
+button/UI gets built, open Stripe Checkout in the **system browser**
+(Safari / Chrome Custom Tabs), never an embedded in-app WebView — this is
+the one pattern Apple's own guidelines explicitly endorse for the analogous
+non-nonprofit-fundraising case (3.2.2(iv)'s "via Safari" language), and it's
+the most defensible posture on Android too even though it doesn't
+eliminate the risk the AnkiDroid case demonstrates. Given both platforms'
+actual enforcement has diverged from a literal reading of their own policy
+text in past cases, the cheapest way to actually resolve the remaining
+uncertainty is probably a real submission test (ship a build with the
+system-browser donation link and see how review responds) rather than
+further research into the guideline text itself.
+
+**Superseded same day**: the above was written before fully working through
+the *individual, non-nonprofit developer* case specifically (as opposed to
+the nonprofit path both platforms' guideline text centers on). Since
+FindATalk has no nonprofit status and isn't pursuing one, both platforms'
+policies are actually unambiguous for this specific situation, confirmed via
+a second independent source (Gemini, cross-checked against the primary
+guideline text above — no contradictions found): **a non-nonprofit developer
+must use the platform's own native In-App Purchase system for any in-app
+tip; external payment links for donations are only available to
+verified/approved nonprofits** (Apple via Benevity + a Candid Seal of
+Transparency; Google via a validated tax-exempt determination — and even
+that path is unreliable in practice, see the AnkiDroid case above). A
+"Supporter" badge or any other reward tied to the payment pushes it further
+into standard-purchase territory on both platforms regardless of nonprofit
+status, which is fine since it's going through native IAP anyway.
+
+**Decided approach going forward**: two separate tracks instead of one
+Stripe-for-everything approach.
+1. **In-app tipping (iOS + Android)**: native IAP — consumable tip tiers
+   (e.g. "$1.99 tip," "$5 tip") plus a non-consumable "Supporter" badge
+   purchase. Zero policy ambiguity, zero rejection risk, matches how both
+   platforms' guidelines actually expect this to work for a
+   non-nonprofit. Apple: enroll in the **App Store Small Business
+   Program** (15% rate instead of 30%, for developers under $1M/year in
+   proceeds — should do this regardless of the donation feature, since it
+   also applies to any future paid features).
+2. **Web-only donation (findatalk.com)**: the Stripe/Firebase Cloud
+   Function infrastructure built earlier today stays useful for this —
+   powers a donate button on the website itself, never linked from inside
+   the mobile apps, so it carries no store-policy risk at all (store
+   policies govern the in-app experience, not a separate website).
+
+Native IAP integration (StoreKit on iOS, Google Play Billing on Android, via
+Capacitor plugins) is the next implementation work — not yet started as of
+this entry.
+
+## 📌 Correction (2026-09-17, same day): the "two-track" plan above was based on incomplete exploration — a donation feature already existed
+
+The "web-only donation" recommendation immediately above assumed the
+in-app Settings donate button didn't exist yet. It does — `docs/index.html`
+already had a **complete, working donation feature** before any of today's
+session started: real live `donate.stripe.com` Payment Links
+(`docs/index.html:5674-5689`, tiers $2/$3/$5/$10/$25 one-time and annual),
+a "Support the App" row in the Settings modal
+(`docs/index.html:3296-3303`), and Supporter badge/star-cluster rendering
+(`docs/index.html:5748-5758`) — all fully built client-side, just waiting on
+a webhook that never existed until today. This was missed by an early
+exploration pass in this session (the file is 12,000+ lines; the search
+that reported "no donation-related code found" didn't actually cover
+this region) and only surfaced later when planning native IAP work.
+
+**Practical effect**: the in-app Stripe donation flow was already live in
+the app before today, not a new thing this session added — so the App
+Store/Play Store compliance risk discussed above already existed
+independent of anything built today. The "web-only, never linked from the
+mobile app" framing above doesn't match reality; the existing feature IS
+inside the mobile app's Settings screen already. The native-IAP
+recommendation still stands as the long-term fix, but replacing this
+existing in-app Stripe flow (not just adding a new alternative) is what
+that actually implies once built.
+
+## 📌 Fix (2026-09-17): stripeWebhook rewritten to match the existing donations/{uid} contract
+
+Today's webhook (see the first entry above) wrote to the wrong place with
+the wrong shape — `donations/{eventId}` instead of `donations/{uid}`, and
+fields that didn't match what `docs/index.html`'s already-built donation UI
+actually reads. Rewrote `functions/index.js` to match the contract
+documented in that existing code's own comments
+(`docs/index.html:5692-5709`, `:11049-11052`):
+
+- Firestore path: `donations/{uid}`, `uid` read from
+  `session.client_reference_id` (only present when the donor was signed in —
+  a Payment Link donation from a signed-out user has nothing to attribute,
+  logged and skipped, not an error).
+- Shape: `{years: [...], activeUntil: <ms>, lastDonationAt: <ms>}` —
+  `years` is a deduped, sorted array of calendar years donated (derived from
+  the Stripe event's own `created` timestamp, not `Date.now()`);
+  `activeUntil` is recomputed from scratch each time as
+  `eventTime + 365 days` rather than incremented, which makes redelivery of
+  the same Stripe event naturally idempotent without needing a separate
+  event-dedup mechanism.
+- Annual tier is a Stripe subscription: the *first* payment fires
+  `checkout.session.completed` (has `client_reference_id`, handled same as
+  one-time), but **yearly renewals fire `invoice.paid`** with no
+  `client_reference_id` — only `customer`/`subscription` IDs. Added a new
+  `stripeSubscriptions/{subscriptionId}: {uid}` mapping doc, written at
+  initial subscription checkout, so `invoice.paid` (filtered to
+  `billing_reason === 'subscription_cycle'`, so the *first* invoice isn't
+  double-processed) can look up which uid to extend.
+
+**Verified locally** via the Firebase emulator + hand-crafted signed Stripe
+events (`stripe.webhooks.generateTestHeaderString`, since `stripe trigger`'s
+fixture system couldn't produce the exact field combinations needed —
+notably `invoice:subscription` override conflicts with the default
+`pending_invoice_items_behavior` param on that fixture). Confirmed: one-time
+donation writes the right shape; missing `client_reference_id` logs and
+returns 200 without crashing; subscription-mode checkout writes both the
+donation doc and the `stripeSubscriptions` mapping; a renewal event
+correctly finds the mapped uid and extends `activeUntil`; two donations in
+the same calendar year dedupe to one `years` entry instead of two. Not yet
+deployed or switched to live secrets as of this entry — the existing test
+secrets still point at Stripe test mode, and `STRIPE_LINKS` in
+`docs/index.html` are **live** Payment Links, so this needs an explicit
+switch to live-mode secrets plus a live-mode Stripe Dashboard webhook
+destination before real donations actually flow through — a genuine
+"starts recording real money" step, done deliberately, not silently.
