@@ -3816,3 +3816,139 @@ feature usage, the widget's effect on habit-forming, bugs/friction/
 suggestions, and the donation-preference questions above, plus overall
 rating and recommend-likelihood. Live at:
 https://docs.google.com/forms/d/1bMTWa_I12HEOVqo9J_IXisuli_t7qN628B84eORLB94/edit?pli=1
+
+## 📌 Decision (2026-09-16): donation mechanism — Stripe, via Firebase Cloud Functions
+
+Resolves the "still open" mechanism question from the 2026-09-14 entry
+above, ahead of the tester survey results coming back in: **Stripe**
+(self-hosted Checkout/Payment Links, with a webhook this app owns) was
+chosen over native store IAP and over an external Buy-Me-a-Coffee/Ko-fi-
+style link. Cadence/UX (subtle always-visible tip vs. prompted-at-a-moment
+vs. perk-in-exchange, etc.) is still open and unaffected by this decision —
+this only settles the payment rail.
+
+The webhook is hosted as a **Firebase Cloud Function** on the existing
+`findatalk-28e26` project (the same project already used client-side for
+Auth/Firestore sync in `docs/index.html`), chosen over standing up a
+separate Vercel/Netlify function. This is the **first Cloud Functions setup
+in this repo** — previously Firebase was client-side only. New scaffolding:
+`.firebaserc`, `firebase.json`, and a `functions/` package (plain
+JavaScript, no TypeScript/bundler — nothing else in this repo has build
+tooling, so it wasn't worth introducing for one function).
+
+`functions/index.js` exports a single 2nd-gen HTTPS function
+(`stripeWebhook`) that verifies the Stripe signature and, on
+`checkout.session.completed`, writes a record to a new Firestore collection
+`donations` — keyed by the **Stripe event ID as the document ID** (not an
+auto-ID), so a redelivered webhook event overwrites the same doc instead of
+double-recording a donation (Stripe's delivery guarantee is at-least-once).
+Other event types are acknowledged with 200 and ignored for now;
+`payment_intent.succeeded` / `invoice.paid` are the extension points once
+recurring donations are built.
+
+Two secrets back this: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, set
+via `firebase functions:secrets:set <NAME>` (interactive, never committed).
+`STRIPE_WEBHOOK_SECRET` specifically can't be set until *after* the first
+deploy, once the function's URL is registered as a Stripe Dashboard webhook
+endpoint and Stripe generates the signing secret for it — so the sequence
+is deploy → register URL in Stripe Dashboard → set secret → redeploy, not a
+single pass.
+
+Deliberately **not** built yet, in this same order of what's needed next:
+- The actual donate button / Checkout-session-creation UI in
+  `docs/index.html` — this work only built the receiving end.
+- Research into Apple/Google App Store review rules around an external
+  payment link opened from inside a Capacitor WebView — needs to happen
+  before the UI ships, not after.
+- Recurring/subscription donation handling.
+- A public "total donations" or supporter display.
+- A `firestore.rules` file — none exists in this repo yet at all (the
+  existing client-side Auth/Firestore sync has never had one either, as
+  far as this session found). The new `donations` collection doesn't need
+  one to be safe (it's written only via `firebase-admin`, which bypasses
+  rules, and needs zero client access), but a real audit of what rules the
+  *existing* sync collections should have is still outstanding and wasn't
+  done as part of this change — don't assume Firestore is otherwise locked
+  down.
+
+**First-deploy IAM gotcha** (2026-09-17): `findatalk-28e26` had never deployed
+a Cloud Function before, so the default compute service account
+(`<PROJECT_NUMBER>-compute@developer.gserviceaccount.com`) didn't have any of
+the roles the 2nd-gen Cloud Functions build pipeline needs — on newer GCP
+projects this account no longer gets broad Editor access automatically. Each
+missing role surfaced one at a time across repeated `firebase deploy --only
+functions` attempts, fixed via IAM Console
+(`console.cloud.google.com/iam-admin/iam?project=findatalk-28e26`) rather
+than `gcloud` (not installed locally at the time). Roles that had to be added
+to that service account, in the order they were discovered:
+- `roles/cloudbuild.builds.builder` (Cloud Build Service Account)
+- `roles/logging.logWriter` (Logs Writer)
+- `roles/storage.objectViewer` (Storage Object Viewer — for the
+  `gcf-v2-sources-*` source bucket)
+- `roles/artifactregistry.writer` (Artifact Registry Writer — superset of
+  Reader; needed to both pull and push the build's `gcf-artifacts` cache
+  image)
+
+This was one-time setup for this project; future function deploys (this one
+or new ones) shouldn't hit it again. If a brand-new Firebase/GCP project ever
+needs this from scratch, expect the same sequence and use the exact error
+message's "Grant permission" button (Cloud Build build-log page) or the IAM
+Console directly — each error names the exact missing role.
+
+**Live end-to-end as of 2026-09-17**, confirmed with a real Stripe test-mode
+event landing correctly in production Firestore. Two more one-time gotchas
+came up getting from "deployed" to "actually reachable," beyond the IAM
+roles above:
+
+**The direct Cloud Run URL doesn't work — use the Hosting-proxied URL
+instead.** `findatalk-28e26` sits under a Google Workspace org
+(`smoothop.com`) enforcing a **Domain Restricted Sharing** org policy
+(`constraints/iam.allowedPolicyMemberDomains`), which blocks granting the
+`allUsers` principal (i.e., public/unauthenticated access) to *any* resource
+in the project — including the `stripeWebhook` Cloud Run service directly,
+which Stripe's webhook delivery requires (Stripe can't send Google OIDC
+auth headers). The direct Cloud Function URL
+(`https://stripewebhook-lwpit3dp2a-uc.a.run.app`) will always 401/403 no
+matter what's granted on the function itself, unless the org policy changes.
+
+The fix used: added a **Firebase Hosting rewrite** (`firebase.json`'s
+`hosting.rewrites`, pointing `/stripeWebhook` at the `stripeWebhook`
+function) so Stripe hits **`https://findatalk-28e26.web.app/stripeWebhook`**
+instead. This is the real, working webhook URL — it's what's registered in
+the Stripe Dashboard as the endpoint. (Initial assumption was that Hosting's
+own service agent gets automatic invoker rights without needing public
+access — true for 1st-gen functions, **not** true for 2nd-gen/Cloud Run
+based functions like this one: Hosting's edge still needs the underlying
+service to allow unauthenticated invocation, so this hit the exact same org
+policy wall once via the direct URL and again via Hosting.)
+
+Resolving *that* required a **project-level override of the org policy**
+(not an org-wide change): IAM & Admin → Organization Policies →
+`iam-allowedPolicyMemberDomains`, scoped to `project="findatalk-28e26"`,
+set to "Google-managed default" (which is unenforced) rather than
+inheriting the org's policy. Doing this needed the
+`roles/orgpolicy.policyAdmin` role at the org level, which wasn't present on
+brad@smoothop.com's account by default and had to be self-granted via the
+Console's "Grant access" prompt (this is your own Workspace org, so this was
+a reasonable one-time step — worth reviewing later whether to remove that
+org-level role again now that the override is in place, since it's broader
+than this one task needed). A separate `hosting-public/` directory with a
+placeholder `index.html` exists purely because Firebase Hosting requires a
+public directory to deploy at all — it's not meant to serve real content and
+is unrelated to `docs/` (GitHub Pages, the actual live app, stays completely
+untouched by any of this).
+
+**Firestore write also needed one more IAM role**: beyond the Cloud Build
+pipeline roles above, `322287724872-compute@developer.gserviceaccount.com`
+(the function's runtime identity) also needed `roles/datastore.user` (Cloud
+Datastore User) granted before it could actually write to the `donations`
+collection — without it, the function ran and verified signatures fine but
+threw `PERMISSION_DENIED` on the Firestore write.
+
+What's actually left now: everything in this section is done and verified.
+The Stripe Dashboard destination is registered at
+`https://findatalk-28e26.web.app/stripeWebhook` with a real (non-placeholder)
+signing secret set via `firebase functions:secrets:set`. Remaining work is
+just the previously-listed "deliberately not built yet" items (donate
+button/UI, App Store review research, recurring donations, etc.) — see
+above.
