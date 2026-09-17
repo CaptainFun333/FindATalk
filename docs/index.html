@@ -3378,7 +3378,7 @@
       </div>
       <p class="modal-copy">This permanently erases your favorites, notes, lists, streak, and reading history from this device only — good before handing off, selling, or returning it.</p>
       <p class="modal-copy" id="clearDataSignedInNotice" hidden>You're signed in, so this also signs you out here — staying signed in would just let sync pull everything back down again.</p>
-      <p class="modal-copy"><strong>Nothing else is affected</strong> — <span id="clearDataCloudNotice">your account and its cloud copy stay exactly as they are</span>. Consider exporting a backup first (My Lists → Export Backup) if you're not sure.</p>
+      <p class="modal-copy"><strong>Nothing else is affected</strong> — <span id="clearDataCloudNotice">your account and its cloud copy stay exactly as they are</span>. If you're not sure, export a backup first from the bottom of My Lists.</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="clearDataCancelBtn">Cancel</button>
         <button type="button" class="btn btn-primary danger-confirm" id="clearDataConfirmBtn">Clear This Device</button>
@@ -4120,7 +4120,7 @@ function openClearDataModal(){
   document.getElementById('clearDataSignedInNotice').hidden = !currentUser;
   document.getElementById('clearDataCloudNotice').textContent = currentUser
     ? 'your account and its cloud copy stay exactly as they are'
-    : 'nothing else exists to affect — this device is all there is';
+    : "there's nothing else to touch — you're not signed in";
   clearDataModalOverlay.hidden = false;
 }
 function closeClearDataModal(){ clearDataModalOverlay.hidden = true; }
