@@ -5156,6 +5156,18 @@ let pendingCloudUserSet = false;
 // this file is declared.
 let onClearLocalData = null;
 let onDeleteMyAccount = null;
+// Hotfix (2026-09) — same pattern again: incrementGlobalReadCounter()
+// (idea 68) needs cloudSyncUid, which only exists inside initApp()'s
+// closure, but is called from incrementVisitCount(), a top-level
+// function called from checkPendingRead() — the same function that
+// credits both the read AND the streak. A direct top-level reference to
+// cloudSyncUid there threw a live ReferenceError on every single
+// credited read, aborting the rest of checkPendingRead() before
+// touchStreak() ever ran — silently breaking streak crediting for every
+// real user since idea 68 shipped, not a corner case. Found live while
+// testing idea 69, confirmed present here on main too, fixed the same
+// way.
+let onIncrementGlobalReadCounter = null;
 /* Real-device testing found the read/streak credit still wasn't firing
    even after the App.resume fix (see onForeground()'s own comment) — kept
    as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
@@ -5256,7 +5268,12 @@ function incrementVisitCount(talk){
   const key = talkKey(talk);
   visitCounts[key] = (visitCounts[key] || 0) + 1;
   saveVisitCounts();
-  incrementGlobalReadCounter(); // idea 68 — collecting data now, no UI yet
+  // Hotfix (2026-09) — was a direct call to a top-level
+  // incrementGlobalReadCounter() that read cloudSyncUid (initApp()-only)
+  // and threw live, silently aborting checkPendingRead() before
+  // touchStreak() ever ran — see onIncrementGlobalReadCounter's own
+  // comment, near onClearLocalData, for the real bug this was.
+  if (onIncrementGlobalReadCounter) onIncrementGlobalReadCounter();
 }
 /* Idea 68 — a single shared "how many talks has our whole community read"
    counter, collected starting now even though no display for it exists
@@ -5279,20 +5296,20 @@ function incrementVisitCount(talk){
    increment here should never block or surface an error for the read
    credit itself, and there's nothing useful to retry (the next credited
    read tries again on its own).
-   **Needs a matching Firestore security-rules addition before this can
-   actually write anything — not yet added, console-side, not in this
-   repo** (see PROJECT_HANDOFF.md or ask the assistant that added this for
-   the exact rule text: a stats/global doc, write-restricted to exactly
-   "+1 from whatever it already was," never an arbitrary value). Until
-   that rule exists, every call below fails permission-denied, silently
-   (caught, logged, not surfaced) — real data collection doesn't start
-   until the rule is live. */
-function incrementGlobalReadCounter(){
-  if (!cloudSyncUid || !window.firebaseWeb) return;
-  const ref = window.firebaseWeb.doc(window.firebaseWeb.firestore, 'stats', 'global');
-  window.firebaseWeb.setDoc(ref, {totalTalksRead: window.firebaseWeb.increment(1)}, {merge: true})
-    .catch(err=> console.error('[idea 68] global read counter increment failed', err));
-}
+   **The actual implementation now lives inside initApp()'s closure**
+   (see its assignment into onIncrementGlobalReadCounter there) so it can
+   genuinely see cloudSyncUid, instead of a top-level function reading a
+   variable that was never in scope — this was THE bug silently breaking
+   streak/read crediting for every real user, not just a corner case:
+   incrementVisitCount() is called from checkPendingRead(), the same
+   function that credits both the read AND the streak, so this exception
+   aborted the rest of that function every single time, before
+   touchStreak() ever ran.
+   Needs a matching Firestore security-rules addition before this can
+   actually write anything (a stats/global doc, write-restricted to
+   exactly "+1 from whatever it already was," never an arbitrary value —
+   see PROJECT_HANDOFF.md). Until that rule exists, every call fails
+   permission-denied, caught and logged, not surfaced. */
 function recordOpened(talk){
   if (!talk) return;
   const key = talkKey(talk);
@@ -11116,6 +11133,18 @@ let cloudSyncAuthed = false;
 function cloudDocRef(uid){
   return window.firebaseWeb.doc(window.firebaseWeb.firestore, 'users', uid);
 }
+
+// Hotfix (2026-09) — the real global-read-counter increment, moved here
+// (inside initApp()'s closure) so it can actually see cloudSyncUid; see
+// onIncrementGlobalReadCounter's own top-level comment for the bug this
+// replaces. Assigned into the slot immediately since it doesn't depend
+// on anything else initApp() sets up later.
+onIncrementGlobalReadCounter = function(){
+  if (!cloudSyncUid || !window.firebaseWeb) return;
+  const ref = window.firebaseWeb.doc(window.firebaseWeb.firestore, 'stats', 'global');
+  window.firebaseWeb.setDoc(ref, {totalTalksRead: window.firebaseWeb.increment(1)}, {merge: true})
+    .catch(err=> console.error('[idea 68] global read counter increment failed', err));
+};
 
 async function pushLocalDataToCloud(){
   if (!cloudSyncUid || !window.firebaseWeb) return;
