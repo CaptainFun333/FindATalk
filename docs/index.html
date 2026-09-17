@@ -798,6 +798,11 @@
     font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft); margin-top:2px;
   }
   .badge-locked{ opacity:.55; }
+  /* Native IAP tip jar — Supporter badge's star cluster, same math/markup
+     as docs/donate.html's renderSupporterStarCluster() (both read the same
+     donations/{uid} doc shape, see startDonationSync() in the script). */
+  .star-cluster{ position:relative; display:inline-block; flex-shrink:0; }
+  .star-cluster .star-shape{ position:absolute; top:0; left:0; transform:translate(-50%,-50%); line-height:1; }
   .badge-celebration-modal{ text-align:center; }
   .badge-celebration-modal h3{ margin-top:0; }
   /* Idea 54 — the secret-star reveal modal. Reuses .badge-celebration-modal
@@ -2409,6 +2414,24 @@
   .btn-ghost:hover{ border-color:var(--brass); color:var(--burgundy); }
   .btn-ghost:disabled{ opacity:.4; cursor:default; }
   .btn-ghost:disabled:hover{ border-color:var(--line); color:var(--ink); }
+  /* Idea 69 — Clear Data / Delete Account. Burgundy at rest (not just on
+     hover, unlike a plain .btn-ghost) so these two read as a different,
+     more caution-worthy category at a glance rather than blending into
+     the rest of Settings' plain ghost buttons. */
+  .danger-action{ color:var(--burgundy); border-color:var(--chip-border,var(--line)); }
+  .danger-action:hover{ background:var(--tint,transparent); }
+  /* Idea 69 — note-conflict resolution modal. Same family as .modal-copy,
+     just a labeled pair of read-only text blocks instead of one
+     paragraph. */
+  .note-conflict-label{
+    font-family:'Inter',sans-serif; font-size:11px; font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-soft); margin:14px 0 4px;
+  }
+  .note-conflict-text{
+    font-family:'Inter',sans-serif; font-size:13.5px; line-height:1.5; color:var(--ink);
+    background:var(--paper); border:1px solid var(--line); border-radius:4px;
+    padding:8px 10px; margin:0; white-space:pre-wrap; max-height:120px; overflow-y:auto;
+  }
   /* Idea 61 — the Account section's Sign In/Sign Out buttons, and the
      Sign In modal's own buttons, all span their container edge to edge
      rather than sizing to their label like every other .btn in this
@@ -3197,6 +3220,16 @@
         </div>
         <button type="button" class="btn btn-ghost full-width" id="accountSignInBtn">Sign In / Create Account</button>
         <button type="button" class="btn btn-ghost full-width" id="accountSignOutBtn" hidden>Sign Out</button>
+        <!-- Idea 69 — real data controls. "Clear data" is meaningful
+             whether or not anyone's ever signed in (a fully-local user
+             has just as much real favorites/notes/streak data sitting on
+             this device), so it's always shown, not gated behind
+             accountRowTitle's signed-in state the way Sign Out is.
+             "Delete my account" only makes sense once there's an account
+             to delete — toggled by renderAccountSettingsRow() alongside
+             Sign In/Sign Out. -->
+        <button type="button" class="btn btn-ghost full-width danger-action" id="clearLocalDataBtn">Clear Data from This Device</button>
+        <button type="button" class="btn btn-ghost full-width danger-action" id="deleteAccountBtn" hidden>Delete My Account</button>
       </div>
 
       <div class="settings-section">
@@ -3265,6 +3298,18 @@
         </div>
       </div>
 
+      <!-- Native IAP tip jar (idea 67's real replacement, see
+           PROJECT_HANDOFF.md) — hidden by default, unhidden only on
+           native, same pattern as badgesSettingsSection/
+           reminderSettingsSection above (IAP has no web equivalent at
+           all, unlike badges/reminders which are just native-only
+           features on an otherwise cross-platform app — see
+           initSupportUI()). -->
+      <div class="settings-section" id="supportSettingsSection" hidden>
+        <p class="settings-label">Support</p>
+        <button type="button" class="btn btn-ghost" id="supportAppBtn">Support the App</button>
+      </div>
+
       <div class="settings-section">
         <p class="settings-label">Help</p>
         <button type="button" class="btn btn-ghost" id="showMeAroundBtn">Show me around</button>
@@ -3320,6 +3365,73 @@
     </div>
   </div>
 
+  <!-- Idea 69 — "Clear Data from This Device." Deliberately its own real
+       modal, not a bare confirm(), since this needs to say plainly what
+       gets wiped and (the actual reason this has to sign out too, not an
+       option) that staying signed in would just let cloud sync silently
+       pull everything straight back down again. -->
+  <div class="modal-overlay" id="clearDataModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="clearDataModalTitle">
+      <div class="modal-header">
+        <h3 id="clearDataModalTitle">Clear Data from This Device</h3>
+        <button type="button" class="modal-close" id="clearDataModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy">This permanently erases your favorites, notes, lists, streak, and reading history from this device only — good before handing off, selling, or returning it.</p>
+      <p class="modal-copy" id="clearDataSignedInNotice" hidden>You're signed in, so this also signs you out here — staying signed in would just let sync pull everything back down again.</p>
+      <p class="modal-copy"><strong>Nothing else is affected</strong> — <span id="clearDataCloudNotice">your account and its cloud copy stay exactly as they are</span>. Consider exporting a backup first (My Lists → Export Backup) if you're not sure.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="clearDataCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary danger-confirm" id="clearDataConfirmBtn">Clear This Device</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Idea 69 — "Delete My Account." The bigger, less reversible sibling
+       of the modal above — also wipes this device (same reasoning), plus
+       the account and its cloud data don't exist anywhere afterward. -->
+  <div class="modal-overlay" id="deleteAccountModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteAccountModalTitle">
+      <div class="modal-header">
+        <h3 id="deleteAccountModalTitle">Delete My Account</h3>
+        <button type="button" class="modal-close" id="deleteAccountModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy">This permanently deletes your FindATalk account and everything synced to it — favorites, notes, lists, and streak, gone from the cloud and every device. This can't be undone.</p>
+      <p class="modal-copy">This device is also cleared and signed out as part of the same action.</p>
+      <p class="modal-copy">Consider exporting a backup first (My Lists → Export Backup) if you're not sure.</p>
+      <p class="auth-error" id="deleteAccountErrorMsg" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="deleteAccountCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary danger-confirm" id="deleteAccountConfirmBtn">Delete My Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Idea 69 — note-conflict resolution. Only ever opened for a real
+       conflict: the SAME talk has a different, non-empty note on both
+       sides after a merge (mergeBackupData()'s normal rule — never
+       overwrite an existing note — would otherwise silently keep
+       whichever side happened to be local and drop the other one's real
+       writing). Drains pendingNoteConflicts one at a time, same "queue,
+       resolve one at a time" shape idea 45's badge celebrations already
+       use, so two conflicts found in the same merge don't collide. -->
+  <div class="modal-overlay" id="noteConflictModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="noteConflictModalTitle">
+      <div class="modal-header">
+        <h3 id="noteConflictModalTitle">A Note Has Two Versions</h3>
+      </div>
+      <p class="modal-copy">You wrote a different note for <strong id="noteConflictTalkTitle"></strong> on two devices, before they'd ever synced. Which one should we keep?</p>
+      <p class="note-conflict-label">This device</p>
+      <p class="note-conflict-text" id="noteConflictLocalText"></p>
+      <p class="note-conflict-label">Your other device</p>
+      <p class="note-conflict-text" id="noteConflictIncomingText"></p>
+      <div class="modal-actions" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <button type="button" class="btn btn-ghost full-width" id="noteConflictKeepLocalBtn">Keep This Device's</button>
+        <button type="button" class="btn btn-ghost full-width" id="noteConflictKeepIncomingBtn">Keep the Other One</button>
+        <button type="button" class="btn btn-primary full-width" id="noteConflictKeepBothBtn">Keep Both</button>
+      </div>
+    </div>
+  </div>
+
   <!-- APP ONLY (idea 45, Phase 1) — the full badges list, opened from the
        "My Badges" button in Settings (itself only shown on native). -->
   <div class="modal-overlay" id="badgesModalOverlay" hidden>
@@ -3329,6 +3441,23 @@
         <button type="button" class="modal-close" id="badgesModalClose" aria-label="Close">&times;</button>
       </div>
       <div class="badges-list" id="badgesModalList"></div>
+    </div>
+  </div>
+
+  <!-- Native IAP tip jar — tier picker, opened from #supportAppBtn (only
+       shown on native, see initSupportUI()). Tiers are real markup with
+       static $ labels below, swapped for the store's own localized
+       displayPrice once getProducts() resolves — see
+       renderSupportTierButtons(). -->
+  <div class="modal-overlay" id="supportModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle">
+      <div class="modal-header">
+        <h3 id="supportModalTitle">Support the App</h3>
+        <button type="button" class="modal-close" id="supportModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy">FindATalk is free forever. If it's been useful, a tip helps cover the Apple/Google developer fees that keep it running.</p>
+      <p class="auth-error" id="supportErrorMsg" hidden></p>
+      <div id="supportTierList"></div>
     </div>
   </div>
 
@@ -3455,11 +3584,14 @@
   import {
     getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence,
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
-    signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider
+    signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, deleteUser
   } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
   import {
-    getFirestore, doc, getDoc, setDoc, onSnapshot, increment
+    getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, increment
   } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+  import {
+    getFunctions, httpsCallable
+  } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-functions.js';
 
   // Client config — safe to ship in a public client, same as
   // GoogleService-Info.plist/google-services.json elsewhere in this repo
@@ -3476,6 +3608,7 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const firestore = getFirestore(app);
+  const functionsInstance = getFunctions(app);
   // Firebase Auth's default persistence (IndexedDB) can hang indefinitely
   // inside a Capacitor iOS WKWebView — confirmed live: the network round
   // trip to Google completes and returns valid tokens, but the SDK's own
@@ -3492,8 +3625,9 @@
   window.firebaseWeb = {
     auth, onAuthStateChanged, signOut,
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
-    signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider,
-    firestore, doc, getDoc, setDoc, onSnapshot, increment
+    signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, deleteUser,
+    firestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, increment,
+    functions: functionsInstance, httpsCallable
   };
   // Fires once this module has actually finished initializing, in case
   // anything below ever needs to wait for it rather than just calling in
@@ -3752,6 +3886,7 @@ const accountRowTitle = document.getElementById('accountRowTitle');
 const accountRowSubtitle = document.getElementById('accountRowSubtitle');
 const accountSignInBtn = document.getElementById('accountSignInBtn');
 const accountSignOutBtn = document.getElementById('accountSignOutBtn');
+const deleteAccountBtn = document.getElementById('deleteAccountBtn'); // idea 69
 const authErrorMsg = document.getElementById('authErrorMsg');
 const authEmailInput = document.getElementById('authEmailInput');
 const authPasswordInput = document.getElementById('authPasswordInput');
@@ -3839,11 +3974,13 @@ function renderAccountRow(){
     accountRowSubtitle.textContent = 'Synced across your devices.';
     accountSignInBtn.hidden = true;
     accountSignOutBtn.hidden = false;
+    deleteAccountBtn.hidden = false; // idea 69
   } else {
     accountRowTitle.textContent = 'Not signed in';
     accountRowSubtitle.textContent = 'Sync your favorites, notes, and streak across your devices.';
     accountSignInBtn.hidden = false;
     accountSignOutBtn.hidden = true;
+    deleteAccountBtn.hidden = true; // idea 69 — nothing to delete
   }
 }
 function updateAccountUI(user){
@@ -3972,6 +4109,54 @@ accountSignOutBtn.addEventListener('click', async ()=>{
       await window.firebaseWeb.signOut(window.firebaseWeb.auth);
     }
   } catch(err){ /* not fatal — auth-state listener is the source of truth either way */ }
+});
+
+/* Idea 69 — Clear Data from This Device / Delete My Account. Same open/
+   close shape as the Sign In modal above (plain hidden toggle, no
+   z-index juggling — Settings stays open underneath, same as every
+   other Settings sub-modal already does). */
+const clearDataModalOverlay = document.getElementById('clearDataModalOverlay');
+function openClearDataModal(){
+  document.getElementById('clearDataSignedInNotice').hidden = !currentUser;
+  document.getElementById('clearDataCloudNotice').textContent = currentUser
+    ? 'your account and its cloud copy stay exactly as they are'
+    : 'nothing else exists to affect — this device is all there is';
+  clearDataModalOverlay.hidden = false;
+}
+function closeClearDataModal(){ clearDataModalOverlay.hidden = true; }
+document.getElementById('clearLocalDataBtn').addEventListener('click', openClearDataModal);
+document.getElementById('clearDataModalClose').addEventListener('click', closeClearDataModal);
+document.getElementById('clearDataCancelBtn').addEventListener('click', closeClearDataModal);
+clearDataModalOverlay.addEventListener('click', (e)=>{ if (e.target === clearDataModalOverlay) closeClearDataModal(); });
+document.getElementById('clearDataConfirmBtn').addEventListener('click', async ()=>{
+  if (onClearLocalData) await onClearLocalData(); // see the slot's own comment — the real function is defined inside initApp()'s closure
+  closeClearDataModal();
+});
+
+const deleteAccountModalOverlay = document.getElementById('deleteAccountModalOverlay');
+function openDeleteAccountModal(){
+  document.getElementById('deleteAccountErrorMsg').hidden = true;
+  deleteAccountModalOverlay.hidden = false;
+}
+function closeDeleteAccountModal(){ deleteAccountModalOverlay.hidden = true; }
+deleteAccountBtn.addEventListener('click', openDeleteAccountModal);
+document.getElementById('deleteAccountModalClose').addEventListener('click', closeDeleteAccountModal);
+document.getElementById('deleteAccountCancelBtn').addEventListener('click', closeDeleteAccountModal);
+deleteAccountModalOverlay.addEventListener('click', (e)=>{ if (e.target === deleteAccountModalOverlay) closeDeleteAccountModal(); });
+document.getElementById('deleteAccountConfirmBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('deleteAccountConfirmBtn');
+  btn.disabled = true;
+  const before = btn.textContent;
+  btn.textContent = 'Deleting…';
+  try {
+    if (onDeleteMyAccount) await onDeleteMyAccount(); // see the slot's own comment — the real function is defined inside initApp()'s closure
+    // Only reachable on success — deleteMyAccountFlow() returns early
+    // (leaving the error message shown) if deletion actually failed.
+    if (document.getElementById('deleteAccountErrorMsg').hidden) closeDeleteAccountModal();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = before;
+  }
 });
 
 /* ---- Wire up whichever platform's auth-state listener applies ----
@@ -4961,6 +5146,16 @@ let onLocalDataChanged = null;
 let onCloudUserChanged = null;
 let pendingCloudUser = null;
 let pendingCloudUserSet = false;
+// Idea 69 — same indirection-slot pattern as onLocalDataChanged etc.
+// just above: clearAllLocalDataAndSignOut()/deleteMyAccountFlow() are
+// defined deep inside initApp()'s closure (alongside stopCloudSync(),
+// mergeBackupData(), and everything else cloud-sync related), but their
+// buttons are wired up top-level, well before initApp() runs — a direct
+// call threw a live ReferenceError, caught by testing this end-to-end
+// rather than assumed safe from how every other top-level function in
+// this file is declared.
+let onClearLocalData = null;
+let onDeleteMyAccount = null;
 /* Real-device testing found the read/streak credit still wasn't firing
    even after the App.resume fix (see onForeground()'s own comment) — kept
    as in-memory-only variables, `pendingReadTalk`/`pendingReadDepartedAt`
@@ -5527,6 +5722,55 @@ function checkForNewBadges(){
   }
 }
 
+/* ---- Native IAP tip jar — Supporter status/rendering (idea 67's real
+   replacement, see PROJECT_HANDOFF.md). Top-level, not inside initApp(),
+   specifically because renderBadgesList() below (also top-level) needs to
+   read donationState directly — see startDonationSync()/stopDonationSync()
+   further down (inside initApp(), alongside startCloudSync/stopCloudSync)
+   for where this actually gets populated from donations/{uid}. */
+let donationState = null;
+
+function isActiveSupporter(){
+  return !!(donationState && donationState.activeUntil && Date.now() < donationState.activeUntil);
+}
+function joinYearsSentence(years){
+  const sorted = [...years].sort((a,b)=>a-b);
+  if (sorted.length === 1) return String(sorted[0]);
+  if (sorted.length === 2) return `${sorted[0]} and ${sorted[1]}`;
+  return sorted.slice(0, -1).join(', ') + ', and ' + sorted[sorted.length - 1];
+}
+// Verbatim from docs/donate.html's renderSupporterStarCluster() — kept in
+// sync by hand, no shared module between the two pages (see that file's
+// own comment on why the web page is standalone).
+function supporterStarPositions(n){
+  if (n <= 1) return [[50, 50]];
+  if (n === 2) return [[25, 50], [75, 50]];
+  const top = Math.ceil(n / 2), bottom = Math.floor(n / 2);
+  const pts = [], topX = [];
+  for (let i = 0; i < top; i++){
+    const x = (i + 0.5) / top * 100;
+    topX.push(x);
+    pts.push([x, 30]);
+  }
+  if (bottom === top){
+    for (let j = 0; j < bottom; j++) pts.push([topX[j], 70]);
+  } else {
+    for (let j = 0; j < bottom; j++) pts.push([(topX[j] + topX[j + 1]) / 2, 70]);
+  }
+  return pts;
+}
+function renderSupporterStarCluster(n){
+  const starPx = 15;
+  const rows = n <= 2 ? 1 : 2;
+  const cols = n <= 2 ? n : Math.max(Math.ceil(n / 2), Math.floor(n / 2));
+  const w = Math.max(cols * starPx * 0.82, starPx * 1.2);
+  const h = rows === 1 ? starPx * 1.2 : starPx * 2.1;
+  const stars = supporterStarPositions(n).map(pt=>
+    `<span class="star-shape" style="left:${(pt[0] / 100 * w).toFixed(1)}px; top:${(pt[1] / 100 * h).toFixed(1)}px; font-size:${starPx}px;">⭐</span>`
+  ).join('');
+  return `<div class="star-cluster" style="width:${w.toFixed(1)}px; height:${h.toFixed(1)}px;">${stars}</div>`;
+}
+
 /* Renders the full badges list modal — earned badges show their real
    earn date, unearned ones show as locked with their threshold. */
 function renderBadgesList(){
@@ -5555,7 +5799,24 @@ function renderBadgesList(){
       </button>
     </div>`;
   }
-  listEl.innerHTML = celestialRowHtml + BADGE_DEFS.map(def=>{
+  // Native IAP tip jar — Supporter, driven by donationState (synced from
+  // donations/{uid}, see startDonationSync()), not earnedBadges: it's
+  // neither a local progress threshold nor a one-time local event, it's
+  // whatever the cloud doc says right now, same as docs/donate.html's own
+  // renderSupporterStatus(). Placed above the Think Celestial row since,
+  // unlike that secret, there's nothing to hide about this one existing.
+  let supporterRowHtml = '';
+  if (donationState && Array.isArray(donationState.years) && donationState.years.length){
+    const dateStr = new Date(donationState.activeUntil).toLocaleDateString('en-US', {month:'short', year:'numeric'});
+    const statusText = isActiveSupporter()
+      ? `Supported in ${joinYearsSentence(donationState.years)} — renews ${dateStr}`
+      : `Supported in ${joinYearsSentence(donationState.years)} — expired, renew?`;
+    supporterRowHtml = `<div class="badge-row badge-earned">
+      <div class="badge-icon">${renderSupporterStarCluster(donationState.years.length)}</div>
+      <div class="badge-row-text"><strong>Supporter</strong><span>${statusText}</span></div>
+    </div>`;
+  }
+  listEl.innerHTML = supporterRowHtml + celestialRowHtml + BADGE_DEFS.map(def=>{
     const threshold = typeof def.threshold === 'function' ? def.threshold() : def.threshold;
     const earnedAt = earnedBadges[def.id];
     const progress = def.kind === 'streak' ? streak.longest : readingCount;
@@ -8149,6 +8410,163 @@ function initBadgesUI(){
   checkForNewBadges();
 }
 
+/* ---------------- Native IAP tip jar (idea 67's real replacement) ----------------
+   StoreKit 2 / Play Billing via the IAPBridge plugin — see
+   packages/capacitor-iap-bridge (iOS) and android/app/.../IAPBridgePlugin.java
+   (Android), plus verifyIAPPurchase in functions/index.js. No web
+   equivalent at all (unlike badges/reminders above) — App Store/Play
+   Store policy requires native IAP for any in-app tip, so this is gated
+   off entirely on web, not just its Settings row. See PROJECT_HANDOFF.md
+   for the compliance research behind that. */
+const TIP_TIERS = [
+  {id:'tip_2', amount:2},
+  {id:'tip_3', amount:3},
+  {id:'tip_5', amount:5},
+  {id:'tip_10', amount:10},
+  {id:'tip_25', amount:25}
+];
+
+function iapPlugin(){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return null;
+  return (cap.Plugins && cap.Plugins.IAPBridge) || null;
+}
+
+function renderSupportTierButtons(products){
+  const listEl = document.getElementById('supportTierList');
+  if (!listEl) return;
+  // Static $ labels render immediately (tier buttons shouldn't sit empty
+  // while getProducts() is in flight); swapped for the store's own
+  // localized displayPrice as soon as that resolves.
+  listEl.innerHTML = TIP_TIERS.map(tier=>{
+    const product = products && products.find(p=> p.id === tier.id);
+    const priceLabel = product ? product.displayPrice : `$${tier.amount}`;
+    return `<button type="button" class="btn btn-ghost full-width support-tier-btn" data-product-id="${tier.id}">${priceLabel} Tip</button>`;
+  }).join('');
+}
+
+function setSupportError(msg){
+  const el = document.getElementById('supportErrorMsg');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.hidden = !msg;
+}
+
+async function openSupportModal(){
+  const overlay = document.getElementById('supportModalOverlay');
+  if (!overlay) return;
+  setSupportError('');
+  renderSupportTierButtons(null);
+  overlay.hidden = false;
+  const plugin = iapPlugin();
+  if (!plugin) return;
+  try {
+    const { products } = await plugin.getProducts({ productIds: TIP_TIERS.map(t=> t.id) });
+    renderSupportTierButtons(products);
+  } catch(err){
+    console.error('[IAP] getProducts failed', err);
+    // Static labels are already showing — not fatal, just less precise.
+  }
+}
+function closeSupportModal(){
+  const overlay = document.getElementById('supportModalOverlay');
+  if (overlay) overlay.hidden = true;
+}
+
+/* Sends a completed purchase to verifyIAPPurchase, then only
+   finishes/consumes it with the store once that Cloud Function confirms
+   it recorded the tip — if verification fails (offline, transient error),
+   this deliberately leaves the transaction unfinished so
+   retryUnfinishedTips() can retry it on a later launch instead of the
+   purchase (which the user was already charged for) silently vanishing. */
+async function finalizeTip(productId, result, plugin){
+  const platform = window.Capacitor.getPlatform();
+  const payload = platform === 'ios'
+    ? { platform, productId, jwsRepresentation: result.jwsRepresentation }
+    : { platform, productId, originalJson: result.originalJson, signature: result.signature };
+  try {
+    const verifyPurchase = window.firebaseWeb.httpsCallable(window.firebaseWeb.functions, 'verifyIAPPurchase');
+    await verifyPurchase(payload);
+  } catch(err){
+    console.error('[IAP] verifyIAPPurchase failed', err);
+    setSupportError('Your purchase went through, but we couldn’t confirm it yet — it’ll be retried automatically next time you open the app.');
+    return;
+  }
+  try {
+    if (platform === 'ios') await plugin.finishTransaction({ transactionId: result.transactionId });
+    else await plugin.consumePurchase({ purchaseToken: result.purchaseToken });
+  } catch(err){
+    // Already verified/recorded server-side at this point — a failure to
+    // finish/consume just means retryUnfinishedTips() sees it again next
+    // launch and finishes it then instead. Not a lost tip either way.
+    console.error('[IAP] finish/consume failed', err);
+  }
+  closeSupportModal();
+}
+
+async function purchaseTip(productId){
+  const plugin = iapPlugin();
+  if (!plugin) return;
+  if (!currentUser){
+    setSupportError('Sign in first so your tip can be recorded to your account.');
+    return;
+  }
+  setSupportError('');
+  let result;
+  try {
+    result = await plugin.purchase({ productId });
+  } catch(err){
+    if (err && err.code === 'CANCELLED') return; // user backed out — not an error
+    console.error('[IAP] purchase failed', err);
+    setSupportError('Something went wrong starting that purchase. Please try again.');
+    return;
+  }
+  await finalizeTip(productId, result, plugin);
+}
+
+/* Catches any purchase that completed at the store but never got
+   finished/consumed on this device (app killed mid-flow, a network drop
+   right after verifyIAPPurchase, etc.) — run once per app start. */
+async function retryUnfinishedTips(){
+  const plugin = iapPlugin();
+  if (!plugin) return;
+  try {
+    if (window.Capacitor.getPlatform() === 'ios'){
+      const { transactions } = await plugin.restorePurchases();
+      for (const t of transactions) await finalizeTip(t.productId, t, plugin);
+    } else {
+      const { purchases } = await plugin.queryPurchases();
+      for (const p of purchases) await finalizeTip(p.productId, p, plugin);
+    }
+  } catch(err){
+    console.error('[IAP] retryUnfinishedTips failed', err);
+  }
+}
+
+function initSupportUI(){
+  const plugin = iapPlugin();
+  const section = document.getElementById('supportSettingsSection');
+  if (section) section.hidden = !plugin;
+  if (!plugin) return;
+
+  document.getElementById('supportAppBtn').addEventListener('click', ()=>{
+    closeSettingsModal();
+    openSupportModal();
+  });
+  document.getElementById('supportModalClose').addEventListener('click', closeSupportModal);
+  const overlay = document.getElementById('supportModalOverlay');
+  overlay.addEventListener('click', (e)=>{ if (e.target === overlay) closeSupportModal(); });
+  document.getElementById('supportTierList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-product-id]');
+    if (btn) purchaseTip(btn.dataset.productId);
+  });
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape' && !overlay.hidden) closeSupportModal();
+  });
+
+  retryUnfinishedTips();
+}
+
 async function initReminderSettingsToggle(){
   const cap = window.Capacitor;
   const section = document.getElementById('reminderSettingsSection');
@@ -10614,15 +11032,20 @@ function mergeBackupData(data){
   });
   // `notes` is a later addition than `favorites`/`collections` too — same
   // no-op-on-older-files handling as `read` above. Never overwrites a note
-  // already sitting on this device (a local edit always wins over
-  // whatever an older backup happened to have) — only fills in talks that
-  // don't have a note here yet.
+  // already sitting on this device with different text — idea 69: a real,
+  // different note on both sides for the same talk is a genuine conflict,
+  // queued for a person to resolve rather than silently discarding
+  // whichever side lost. Same text on both sides isn't a conflict at all.
   if (data.notes && typeof data.notes === 'object'){
     Object.keys(data.notes).forEach(key=>{
       const text = data.notes[key];
-      if (typeof text === 'string' && text.trim() && !noteMap[key]){
-        noteMap[key] = text.trim();
+      if (typeof text !== 'string' || !text.trim()) return;
+      const incoming = text.trim();
+      if (!noteMap[key]){
+        noteMap[key] = incoming;
         addedNotes++;
+      } else if (noteMap[key] !== incoming){
+        queueNoteConflict(key, noteMap[key], incoming);
       }
     });
   }
@@ -10745,6 +11168,50 @@ function scheduleCloudPush(){
    backupImportInput 'change' handler further down already runs after a
    manual import, kept in sync with it by hand (no shared helper for "a
    merge just happened" exists yet). */
+/* Idea 69 — note-conflict queue. mergeBackupData() runs from three
+   different contexts (manual import, every cloud push's pre-push pull,
+   and the live cloud listener) — none of them a good place to block on a
+   modal mid-merge — so a real conflict is queued here and drained by
+   maybeShowNextNoteConflict() once the merge that found it is done (see
+   applyCloudMergeAndRefresh() just below, and the manual-import handler
+   further down). Deduped by key rather than allowed to pile up multiple
+   entries for the same talk — the live listener can re-fire with the
+   same still-unresolved incoming note more than once before a person
+   gets to it. */
+let pendingNoteConflicts = [];
+function queueNoteConflict(key, localText, incomingText){
+  const existing = pendingNoteConflicts.find(c=> c.key === key);
+  if (existing){ existing.incomingText = incomingText; return; }
+  pendingNoteConflicts.push({key, localText, incomingText});
+}
+function maybeShowNextNoteConflict(){
+  const overlay = document.getElementById('noteConflictModalOverlay');
+  if (!overlay || !overlay.hidden) return; // already showing one — the next call after it resolves picks up here
+  const next = pendingNoteConflicts[0];
+  if (!next) return;
+  const talk = TALKS_BY_KEY[next.key];
+  document.getElementById('noteConflictTalkTitle').textContent = talk ? talk[0] : 'this talk'; // talks are [title, speaker, year, month, slug] tuples, not objects — same talk[0] access the real Note modal already uses
+  document.getElementById('noteConflictLocalText').textContent = next.localText;
+  document.getElementById('noteConflictIncomingText').textContent = next.incomingText;
+  overlay.hidden = false;
+}
+function resolveNoteConflict(resolution){
+  const next = pendingNoteConflicts.shift();
+  const overlay = document.getElementById('noteConflictModalOverlay');
+  if (!next){ overlay.hidden = true; return; }
+  if (resolution === 'incoming') noteMap[next.key] = next.incomingText;
+  else if (resolution === 'both') noteMap[next.key] = next.localText + '\n\n— From your other device —\n\n' + next.incomingText;
+  // resolution === 'local' → noteMap[next.key] already holds the local
+  // text (mergeBackupData() never touched it), nothing to change.
+  saveNotes();
+  syncNoteBtn();
+  overlay.hidden = true;
+  maybeShowNextNoteConflict(); // show the next one queued, if any
+}
+document.getElementById('noteConflictKeepLocalBtn').addEventListener('click', ()=> resolveNoteConflict('local'));
+document.getElementById('noteConflictKeepIncomingBtn').addEventListener('click', ()=> resolveNoteConflict('incoming'));
+document.getElementById('noteConflictKeepBothBtn').addEventListener('click', ()=> resolveNoteConflict('both'));
+
 function applyCloudMergeAndRefresh(data){
   mergeBackupData(data);
   renderCollectionsIndexPage();
@@ -10769,6 +11236,7 @@ function applyCloudMergeAndRefresh(data){
   syncCollectionBtn();
   syncNoteBtn();
   syncReadBadge();
+  maybeShowNextNoteConflict(); // idea 69 — after the repaint, so it never appears under stale content
 }
 
 function startCloudSync(uid){
@@ -10819,7 +11287,129 @@ function stopCloudSync(){
   lastPushedJSON = null;
 }
 
-onCloudUserChanged = (user)=>{ if (user) startCloudSync(user.uid); else stopCloudSync(); };
+/* Idea 69 — "Clear Data from This Device." Signs out FIRST (which tears
+   down the live onSnapshot listener via the normal auth-state chain) and
+   calls stopCloudSync() directly too, belt-and-suspenders — clearing
+   local data while still signed in would leave a live listener free to
+   fire mid-clear and silently pull everything straight back down again.
+   Scoped to exactly what exportBackupData()/cloud sync already treat as
+   "this person's data" (favorites/read/visitCounts/collections/notes/
+   streak), plus recentKeys and earnedBadges — personal reading history
+   too, even though neither is part of the cloud-synced payload.
+   Deliberately leaves device *preferences* alone (theme, palette,
+   onboarding-seen, the secret star, reminder settings) — those belong to
+   the device, not to a person's reading history, and resetting them
+   would be a surprising side effect of what's meant to be a privacy
+   action, not a full app reset. */
+async function clearAllLocalDataAndSignOut(){
+  if (currentUser){
+    try {
+      if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+        await capForAuth.Plugins.FirebaseAuthentication.signOut();
+      } else if (window.firebaseWeb){
+        await window.firebaseWeb.signOut(window.firebaseWeb.auth);
+      }
+    } catch(err){ console.error('[idea 69] sign-out during clear-data failed — clearing local data anyway', err); }
+  }
+  stopCloudSync();
+  clearPendingRead();
+  recentKeys = []; saveRecent();
+  favoriteKeys = new Set(); saveFavorites();
+  readKeys = new Set(); saveRead();
+  visitCounts = {}; saveVisitCounts();
+  earnedBadges = {}; saveBadges();
+  collections = []; saveCollections();
+  collectionMembers = {}; saveCollectionMembers();
+  noteMap = {}; saveNotes();
+  saveStreak({count: 0, longest: 0, lastDate: null, activeDays: []});
+  // Same refresh list applyCloudMergeAndRefresh() uses, for the same
+  // reason — every screen that could be showing now-stale data.
+  renderCollectionsIndexPage();
+  renderFavoritesPage();
+  renderNotesPage();
+  renderStreak();
+  renderTalkOfTheDay();
+  syncFavoriteBtn();
+  syncCollectionBtn();
+  syncNoteBtn();
+  syncReadBadge();
+}
+onClearLocalData = clearAllLocalDataAndSignOut; // see the slot's own comment for why this indirection exists
+
+/* Idea 69 — "Delete My Account." Same device-clearing as above, plus the
+   account and its one Firestore doc stop existing anywhere. Firebase
+   requires a *recent* sign-in for account deletion (`auth/requires-
+   recent-login`) — rather than build a full re-authentication flow for
+   what should be a rare action, this surfaces that specific error with a
+   plain "sign out and back in, then try again" message, same spirit as
+   every other auth error already shown in the Sign In modal. */
+async function deleteMyAccountFlow(){
+  const errEl = document.getElementById('deleteAccountErrorMsg');
+  errEl.hidden = true;
+  try {
+    if (cloudSyncUid && window.firebaseWeb){
+      try { await window.firebaseWeb.deleteDoc(cloudDocRef(cloudSyncUid)); }
+      catch(err){ console.error('[idea 69] deleting the Firestore doc failed — continuing with account deletion anyway', err); }
+    }
+    if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+      await capForAuth.Plugins.FirebaseAuthentication.deleteUser();
+    } else if (window.firebaseWeb && window.firebaseWeb.auth.currentUser){
+      await window.firebaseWeb.deleteUser(window.firebaseWeb.auth.currentUser);
+    }
+  } catch(err){
+    console.error('[idea 69] account deletion failed', err);
+    errEl.textContent = (err && err.code === 'auth/requires-recent-login')
+      ? 'For your security, please sign out and sign back in, then try deleting your account again.'
+      : 'Something went wrong deleting your account. Please try again.';
+    errEl.hidden = false;
+    return; // don't clear this device's data — the account may still exist
+  }
+  await clearAllLocalDataAndSignOut();
+}
+onDeleteMyAccount = deleteMyAccountFlow; // see the slot's own comment for why this indirection exists
+
+/* ---- Native IAP tip jar — Supporter status sync, read-only from
+   donations/{uid} (idea 67's real replacement, see PROJECT_HANDOFF.md).
+   The SAME collection/shape docs/donate.html's web donate page already
+   syncs — recordDonation() in functions/index.js writes it for both a
+   Stripe donation and a verified native tip, so a signed-in user's tips
+   and web donations count toward one shared Supporter streak. Deliberately
+   its own small one-way listener rather than routed through
+   cloudDocRef()/startCloudSync() above: that machinery exists to merge
+   bidirectional LOCAL app data (favorites, notes, streak) with the cloud;
+   donations/{uid} is Admin-SDK-write-only and purely read here, so it
+   doesn't belong in that merge.
+
+   donationState itself, and the star-cluster rendering that reads it, live
+   top-level near BADGE_DEFS/renderBadgesList() (not here inside initApp())
+   — renderBadgesList() is a top-level function and can't see anything
+   scoped inside initApp()'s own closure, the same reason startCloudSync/
+   stopCloudSync/cloudDocRef above are only ever reached through the
+   top-level onCloudUserChanged slot instead of being called directly. */
+let donationUnsub = null;
+
+function startDonationSync(uid){
+  if (!window.firebaseWeb) return;
+  if (donationUnsub) donationUnsub();
+  donationUnsub = window.firebaseWeb.onSnapshot(
+    window.firebaseWeb.doc(window.firebaseWeb.firestore, 'donations', uid),
+    (snap)=>{
+      donationState = snap.exists() ? snap.data() : null;
+      renderBadgesList(); // no-op via its own listEl guard when the modal isn't in the DOM (web build)
+    },
+    (err)=>{ console.error('[IAP] donations listener failed', err); }
+  );
+}
+function stopDonationSync(){
+  if (donationUnsub){ donationUnsub(); donationUnsub = null; }
+  donationState = null;
+  renderBadgesList();
+}
+
+onCloudUserChanged = (user)=>{
+  if (user){ startCloudSync(user.uid); startDonationSync(user.uid); }
+  else { stopCloudSync(); stopDonationSync(); }
+};
 onLocalDataChanged = scheduleCloudPush;
 // Replays whatever auth state already arrived before this point registered
 // the two slots above — see pendingCloudUser/pendingCloudUserSet's own
@@ -10865,6 +11455,7 @@ backupImportInput.addEventListener('change', ()=>{
     if (favoritesZone.style.display === 'block') renderFavoritesPage();
     if (notesZone.style.display === 'block') renderNotesPage();
     renderStreak();
+    maybeShowNextNoteConflict(); // idea 69
   });
 });
 
@@ -11298,6 +11889,7 @@ watchForStreakRisk();
 setupDailyReminder();
 initReminderSettingsToggle();
 initBadgesUI();
+initSupportUI();
 // Phase 3 (idea 45) — share a milestone. Delegated (renderBadgesList()
 // rebuilds #badgesModalList's innerHTML from a plain string template, so
 // a per-row listener would just get thrown away on every re-render) — one
@@ -11386,8 +11978,16 @@ if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.
 function closeTopmostModal(){
   const overlay = (id)=> document.getElementById(id);
   if (!overlay('badgeCelebrationModalOverlay').hidden){ dismissBadgeCelebration(); return true; }
+  // Idea 69 — note conflict just hides, deliberately no forced choice on
+  // a plain back/Escape/backdrop dismissal (same as every other modal
+  // here) — the conflict itself stays queued and reappears at the next
+  // merge that checks for one, it's never silently dropped.
+  if (!overlay('noteConflictModalOverlay').hidden){ overlay('noteConflictModalOverlay').hidden = true; return true; }
+  if (!overlay('deleteAccountModalOverlay').hidden){ closeDeleteAccountModal(); return true; }
+  if (!overlay('clearDataModalOverlay').hidden){ closeClearDataModal(); return true; }
   if (!overlay('settingsModalOverlay').hidden){ closeSettingsModal(); return true; }
   if (!overlay('badgesModalOverlay').hidden){ closeBadgesModal(); return true; }
+  if (!overlay('supportModalOverlay').hidden){ closeSupportModal(); return true; }
   if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }
   if (!overlay('secretRevealModalOverlay').hidden){ closeSecretRevealModal(); return true; }
   if (!overlay('sharedListModalOverlay').hidden){ closeSharedListModal(); return true; }
