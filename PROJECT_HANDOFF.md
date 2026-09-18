@@ -4323,3 +4323,27 @@ delivers renewals through the same `Transaction.updates` listener
 needed there, but Play Billing's renewal delivery (`purchase.acknowledge`
 timing, whether `queryPurchases` even surfaces a still-active subscription
 the same way as a consumable) hasn't been researched yet.
+
+## 📌 Fix (2026-09-18): dropped the store's own formatted price from the amount chips — iPad and Pixel were visibly disagreeing
+
+Side-by-side iPad Simulator / Pixel emulator screenshots showed the same
+picker rendering two different label styles for the same tiers: iOS
+showed "$2.00"/"$3.00"/etc. (StoreKit's `displayPrice` is always rendered
+with two decimals) while Android showed plain "$2"/"$3" — because
+`applyNativeProductPricing()` swapped each chip's static label for
+whichever platform's `getProducts()` call actually resolved, and the two
+stores format currency differently.
+
+Removed that swap-in entirely rather than trying to normalize both
+platforms' formatted strings to match — the chips now always show the
+plain `$N` tier amount on every platform, matching the web/Stripe picker.
+`openSupportModal()` no longer calls `getProducts()` at all (it existed
+only to fetch pricing for the label swap; `purchase()` on both native
+plugins already re-resolves the product internally before actually
+charging, so nothing was relying on that upfront fetch for correctness).
+
+Also worth noting for whoever looks at those screenshots later: the
+purple-vs-brass color difference between the two devices in that
+comparison is unrelated — just each test device having a different
+Color Palette setting saved locally (Settings → Color Palette), not a
+platform bug.

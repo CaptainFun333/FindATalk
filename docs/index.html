@@ -3489,10 +3489,13 @@
        One shared picker (frequency + amount chips + Continue) for both
        platforms now, styled after docs/donate.html's — see
        renderSupportPicker(). Native (IAPBridge present): Continue calls
-       purchaseTip() with the matching store product id, chip labels swap
-       for the store's own localized displayPrice once getProducts()
-       resolves (applyNativeProductPricing()), "Choose your own amount"
-       stays hidden (no equivalent — IAP has no arbitrary-amount concept),
+       purchaseTip() with the matching store product id. Chip labels are
+       always the plain "$N" tier amount, deliberately never swapped for
+       the store's own formatted displayPrice — Apple's StoreKit always
+       renders that with two decimals ("$3.00") while Android's formatting
+       varies, so the two platforms visibly disagreed; a flat "$N" across
+       both is simpler and was what was actually wanted. "Choose your own
+       amount" stays hidden (no equivalent — IAP has no arbitrary-amount concept),
        and Yearly is disabled until real annual product ids exist (see
        ANNUAL_TIP_TIERS). Web (no IAPBridge): Continue/"Choose your own
        amount" open the same Stripe Payment Links as docs/donate.html —
@@ -8653,19 +8656,6 @@ function renderSupportPicker(){
   document.getElementById('supportContinueBtn').textContent = `Continue — $${supportDonateAmount}`;
 }
 
-// Native only — swaps the chip labels for the store's own localized
-// displayPrice once getProducts() resolves; static "$N" labels show
-// immediately so the chips never sit empty while that's in flight.
-function applyNativeProductPricing(products){
-  if (!products) return;
-  document.querySelectorAll('#supportAmountRow [data-support-amount]').forEach(btn=>{
-    const amount = Number(btn.dataset.supportAmount);
-    const tier = TIP_TIERS.find(t=> t.amount === amount);
-    const product = tier && products.find(p=> p.id === tier.id);
-    if (product) btn.textContent = product.displayPrice;
-  });
-}
-
 function setSupportError(msg){
   const el = document.getElementById('supportErrorMsg');
   if (!el) return;
@@ -8673,7 +8663,7 @@ function setSupportError(msg){
   el.hidden = !msg;
 }
 
-async function openSupportModal(){
+function openSupportModal(){
   const overlay = document.getElementById('supportModalOverlay');
   if (!overlay) return;
   setSupportError('');
@@ -8682,15 +8672,6 @@ async function openSupportModal(){
   supportDonateAmount = 3;
   renderSupportPicker();
   overlay.hidden = false;
-  const plugin = iapPlugin();
-  if (!plugin) return;
-  try {
-    const { products } = await plugin.getProducts({ productIds: TIP_TIERS.map(t=> t.id) });
-    applyNativeProductPricing(products);
-  } catch(err){
-    console.error('[IAP] getProducts failed', err);
-    // Static labels are already showing — not fatal, just less precise.
-  }
 }
 function closeSupportModal(){
   const overlay = document.getElementById('supportModalOverlay');
