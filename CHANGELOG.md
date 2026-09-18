@@ -41,6 +41,7 @@ this updated.
 - App-exclusive (Android and iOS): signing in on the app never actually synced anything to the cloud — favorites, notes, lists, and streak stayed stuck on that one device even though Settings said you were signed in and synced. Fixed; if you signed in before this fix, sign out and back in once to pick it up.
 - App-exclusive (iOS): "Continue with Google" on the sign-in screen was crashing the app outright. Requires a new iOS build to take effect.
 - App-exclusive (Android): fixed an Android build error in the tip jar's purchase code that could block new Android builds from compiling.
+- App-exclusive (iOS): signing in with Apple or Google never actually synced anything to the cloud — favorites, notes, lists, and streak stayed stuck on that one device, and the tip jar's purchase confirmation silently failed too, even though Settings said you were signed in. Both now work correctly. Requires a new build on both iPhone/iPad and Android to take effect.
 - App-exclusive (iOS): signing in with Google appeared to work, but nothing actually synced to your other devices — a bug in Apple's WebView meant the app never found out sign-in had finished. Requires a new iOS build to take effect.
 - App-exclusive (iOS): "Continue with Apple" on the sign-in screen was failing with an error instead of signing you in. Requires a new iOS build to take effect.
 - After signing in, new favorites or notes synced from another device sometimes didn't show up on the Favorites or Notes screen until you navigated away and back — they now appear right away.

@@ -25,6 +25,8 @@
 	"packageClassList": [
 		"FirebaseAppPlugin",
 		"FirebaseAuthenticationPlugin",
+		"FirebaseFirestorePlugin",
+		"FirebaseFunctionsPlugin",
 		"AppPlugin",
 		"FilesystemPlugin",
 		"LocalNotificationsPlugin",

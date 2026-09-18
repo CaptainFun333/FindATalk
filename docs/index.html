@@ -4065,29 +4065,21 @@ function updateAccountUI(user){
   else { pendingCloudUser = user; pendingCloudUserSet = true; }
 }
 
-/* Cloud sync (mergeStreakData/pushLocalDataToCloud/etc., further down)
-   reads and writes Firestore through window.firebaseWeb.firestore, which
-   is bound to the Firebase Web SDK's OWN auth instance
-   (window.firebaseWeb.auth) — a completely separate session from the
-   native @capacitor-firebase/authentication plugin used above on native
-   platforms (native sign-in has to go through the native plugin at all,
-   rather than just calling the web SDK everywhere, because Google refuses
-   to run its OAuth popup flow inside a WebView user-agent). Without this
-   bridge, window.firebaseWeb.auth.currentUser stays null forever on
-   native even while someone is genuinely signed in — every Firestore
-   call then goes out unauthenticated and Firestore's security rules
-   (correctly) reject it as request.auth == null, so cross-device sync
-   silently never works on native at all, no matter how signed-in the
-   Account row in Settings claims to be. Best-effort and non-blocking: a
-   failure here shouldn't stop the native sign-in the user actually
-   asked for and already got (renderAccountRow()/updateAccountUI() go by
-   the native auth state, not this), just leaves cloud sync unauthenticated
-   until the next successful bridge attempt. */
-async function bridgeNativeAuthToWeb(fn){
-  if (!window.firebaseWeb) return;
-  try { await fn(); }
-  catch(err){ console.error('[cloud sync] native auth session did not bridge to the web SDK', err); }
-}
+/* Native platforms read/write Firestore and call Cloud Functions through
+   @capacitor-firebase/firestore and @capacitor-firebase/functions (see
+   cloudGetDoc/cloudSetDoc/etc. and cloudCallFunction, further down) —
+   both talk to Firebase through the NATIVE SDK's own already-authenticated
+   session, the same one @capacitor-firebase/authentication just signed in
+   above. This used to instead go through window.firebaseWeb.firestore
+   (the web SDK, bound to a totally separate window.firebaseWeb.auth
+   session) via a "bridge" that re-signed-in to the web SDK after every
+   native sign-in — removed because Firebase JS SDK's signInWithCredential()
+   never resolves or rejects inside WKWebView (confirmed live; see
+   https://github.com/firebase/firebase-js-sdk/issues/2700 and
+   https://github.com/capawesome-team/capacitor-firebase/issues/221), so on
+   iOS the bridge silently never completed and cross-device sync + IAP
+   purchase verification both failed with no visible error, no matter how
+   signed-in the Account row claimed to be. */
 
 /* ---- Email/Password ---- */
 signInForm.addEventListener('submit', async (e)=>{
@@ -4100,7 +4092,6 @@ signInForm.addEventListener('submit', async (e)=>{
     if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
       const method = authMode === 'signup' ? 'createUserWithEmailAndPassword' : 'signInWithEmailAndPassword';
       await capForAuth.Plugins.FirebaseAuthentication[method]({email, password});
-      bridgeNativeAuthToWeb(()=> window.firebaseWeb[method](window.firebaseWeb.auth, email, password));
     } else if (window.firebaseWeb){
       const fn = authMode === 'signup' ? window.firebaseWeb.createUserWithEmailAndPassword : window.firebaseWeb.signInWithEmailAndPassword;
       await fn(window.firebaseWeb.auth, email, password);
@@ -4139,13 +4130,7 @@ document.getElementById('authAppleBtn').addEventListener('click', async ()=>{
   authErrorMsg.hidden = true;
   try {
     if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
-      const result = await capForAuth.Plugins.FirebaseAuthentication.signInWithApple();
-      const idToken = result && result.credential && result.credential.idToken;
-      if (idToken) bridgeNativeAuthToWeb(()=>{
-        const provider = new window.firebaseWeb.OAuthProvider('apple.com');
-        const cred = provider.credential({idToken, rawNonce: result.credential.nonce});
-        return window.firebaseWeb.signInWithCredential(window.firebaseWeb.auth, cred);
-      });
+      await capForAuth.Plugins.FirebaseAuthentication.signInWithApple();
     } else if (window.firebaseWeb){
       const provider = new window.firebaseWeb.OAuthProvider('apple.com');
       await window.firebaseWeb.signInWithPopup(window.firebaseWeb.auth, provider);
@@ -4159,12 +4144,7 @@ document.getElementById('authGoogleBtn').addEventListener('click', async ()=>{
   authErrorMsg.hidden = true;
   try {
     if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
-      const result = await capForAuth.Plugins.FirebaseAuthentication.signInWithGoogle();
-      const idToken = result && result.credential && result.credential.idToken;
-      if (idToken) bridgeNativeAuthToWeb(()=>{
-        const cred = window.firebaseWeb.GoogleAuthProvider.credential(idToken);
-        return window.firebaseWeb.signInWithCredential(window.firebaseWeb.auth, cred);
-      });
+      await capForAuth.Plugins.FirebaseAuthentication.signInWithGoogle();
     } else if (window.firebaseWeb){
       const provider = new window.firebaseWeb.GoogleAuthProvider();
       await window.firebaseWeb.signInWithPopup(window.firebaseWeb.auth, provider);
@@ -4257,35 +4237,15 @@ document.getElementById('deleteAccountConfirmBtn').addEventListener('click', asy
    see that script's own comment), so this waits for its 'firebaseWebReady'
    event if needed rather than assuming window.firebaseWeb already exists. */
 if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
+  // updateAccountUI() already calls onCloudUserChanged(user) itself (see
+  // its own definition above) — on native that's now sufficient on its
+  // own, since cloud sync and IAP verification read the native auth
+  // session directly (see the comment above bridgeNativeAuthToWeb's old
+  // home, further up) instead of needing a separate web-SDK session to
+  // catch up first.
   capForAuth.Plugins.FirebaseAuthentication.addListener('authStateChange', (change)=>{
     updateAccountUI(change && change.user ? change.user : null);
   });
-  /* Cloud-sync-bridge workaround — see bridgeNativeAuthToWeb's own comment
-     for the full "why" of the bridge itself. This listener exists because
-     of a separate, documented Firebase JS SDK bug specific to WKWebView:
-     signInWithCredential()'s returned promise never resolves OR rejects
-     there — confirmed live, including with Firebase's own recommended
-     browserLocalPersistence and with navigator.locks (which the SDK also
-     depends on) both working fine — even though the underlying sign-in
-     genuinely succeeds server-side and window.firebaseWeb.auth.currentUser
-     does eventually update on its own, just with no promise ever settling
-     to say so. See https://github.com/firebase/firebase-js-sdk/issues/2700
-     and https://github.com/capawesome-team/capacitor-firebase/issues/221.
-     bridgeNativeAuthToWeb() firing this update is therefore NOT something
-     to count on — this listener is how cloud sync actually finds out.
-     It deliberately does NOT call updateAccountUI() (the native listener
-     above already owns the visible Account row on native — this is purely
-     about kicking cloud sync once the bridged web session catches up).
-     onCloudUserChanged/pendingCloudUser mirror updateAccountUI()'s own
-     "might fire before that slot exists yet" handling below. */
-  function wireWebAuthBridgeListener(){
-    window.firebaseWeb.onAuthStateChanged(window.firebaseWeb.auth, (user)=>{
-      if (onCloudUserChanged) onCloudUserChanged(user);
-      else { pendingCloudUser = user; pendingCloudUserSet = true; }
-    });
-  }
-  if (window.firebaseWeb) wireWebAuthBridgeListener();
-  else window.addEventListener('firebaseWebReady', wireWebAuthBridgeListener, {once: true});
 } else {
   function wireWebAuthListener(){
     window.firebaseWeb.onAuthStateChanged(window.firebaseWeb.auth, (user)=>{
@@ -8690,8 +8650,7 @@ async function finalizeTip(productId, result, plugin){
     ? { platform, productId, jwsRepresentation: result.jwsRepresentation }
     : { platform, productId, originalJson: result.originalJson, signature: result.signature };
   try {
-    const verifyPurchase = window.firebaseWeb.httpsCallable(window.firebaseWeb.functions, 'verifyIAPPurchase');
-    await verifyPurchase(payload);
+    await cloudCallFunction('verifyIAPPurchase', payload);
   } catch(err){
     console.error('[IAP] verifyIAPPurchase failed', err);
     setSupportError('Your purchase went through, but we couldn’t confirm it yet — it’ll be retried automatically next time you open the app.');
@@ -11324,19 +11283,85 @@ let cloudSyncUid = null;
 let lastPushedJSON = null; // recognizes "this snapshot is just our own last push echoing back"
 // True only once a startCloudSync() attempt for cloudSyncUid actually got a
 // real answer from Firestore (success OR a clean "doesn't exist yet" —
-// anything that ISN'T the denied/offline catch below). Exists because of
-// idea 61's native/web auth bridge: on iOS specifically, the native auth
-// listener fires (and calls startCloudSync) well before the bridged web
-// Firebase Auth session is actually ready — see bridgeNativeAuthToWeb's own
-// comment — so that first attempt reliably fails with permission-denied.
-// Without this flag, startCloudSync()'s "already syncing this uid" guard
-// would then permanently ignore the LATER, properly-authenticated retry
-// that fires once web auth genuinely catches up, since cloudSyncUid was
-// already set to the same uid by the doomed first attempt.
+// anything that ISN'T the denied/offline catch below). Without this flag,
+// startCloudSync()'s "already syncing this uid" guard would permanently
+// ignore a later retry for the same uid after a transient failure (e.g.
+// offline at sign-in time), since cloudSyncUid was already set by the
+// failed first attempt.
 let cloudSyncAuthed = false;
 
+/* ---- Cross-platform Firestore/Functions access -----------------------
+   Native reads/writes Firestore and calls Cloud Functions through
+   @capacitor-firebase/firestore and @capacitor-firebase/functions, which
+   both use the native SDK's own already-authenticated session (see the
+   comment near where bridgeNativeAuthToWeb used to live, above, for why
+   the web SDK can't be used for this on native). Web keeps using
+   window.firebaseWeb.firestore/functions as before. Every call site below
+   goes through these instead of touching window.firebaseWeb or
+   capForAuth.Plugins.FirebaseFirestore/FirebaseFunctions directly, so the
+   platform branch only has to be written once. */
+function isNativeCloud(){
+  return !!(capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseFirestore);
+}
+async function cloudGetDoc(path){
+  if (isNativeCloud()){
+    const { snapshot } = await capForAuth.Plugins.FirebaseFirestore.getDocument({ reference: path });
+    return { exists: snapshot.data != null, data: snapshot.data };
+  }
+  const snap = await window.firebaseWeb.getDoc(window.firebaseWeb.doc(window.firebaseWeb.firestore, path));
+  return { exists: snap.exists(), data: snap.exists() ? snap.data() : null };
+}
+async function cloudSetDoc(path, data, merge){
+  if (isNativeCloud()) return capForAuth.Plugins.FirebaseFirestore.setDocument({ reference: path, data, merge: !!merge });
+  return window.firebaseWeb.setDoc(window.firebaseWeb.doc(window.firebaseWeb.firestore, path), data, merge ? {merge: true} : undefined);
+}
+async function cloudDeleteDoc(path){
+  if (isNativeCloud()) return capForAuth.Plugins.FirebaseFirestore.deleteDocument({ reference: path });
+  return window.firebaseWeb.deleteDoc(window.firebaseWeb.doc(window.firebaseWeb.firestore, path));
+}
+// Returns a plain unsub function synchronously either way, even though
+// native's own addDocumentSnapshotListener() is itself async — a call
+// arriving before the native callbackId resolves just tears the listener
+// down as soon as it does, rather than making every caller juggle a
+// promise-wrapped unsub.
+function cloudOnSnapshot(path, onNext, onError){
+  if (isNativeCloud()){
+    let callbackId = null, cancelled = false;
+    const applyId = (id)=>{ if (cancelled) capForAuth.Plugins.FirebaseFirestore.removeSnapshotListener({ callbackId: id }); else callbackId = id; };
+    // Calling the plugin directly (rather than through its own npm client
+    // wrapper, which this file doesn't bundle) hits Capacitor's raw
+    // callback-style bridge — confirmed live to return the callback id
+    // synchronously, NOT the Promise<CallbackId> the .d.ts advertises (that
+    // Promise wrapping happens inside the plugin's own JS, which we bypass).
+    // Handled defensively either way rather than assumed, since that's an
+    // implementation detail of the native bridge, not a documented contract.
+    const ret = capForAuth.Plugins.FirebaseFirestore.addDocumentSnapshotListener({ reference: path }, (event, error)=>{
+      if (error){ onError && onError(error); return; }
+      if (!event) return;
+      onNext({ exists: event.snapshot.data != null, data: event.snapshot.data, hasPendingWrites: !!(event.snapshot.metadata && event.snapshot.metadata.hasPendingWrites) });
+    });
+    if (ret && typeof ret.then === 'function') ret.then(applyId).catch(err=> onError && onError(err));
+    else applyId(ret);
+    return ()=>{ cancelled = true; if (callbackId != null) capForAuth.Plugins.FirebaseFirestore.removeSnapshotListener({ callbackId }); };
+  }
+  return window.firebaseWeb.onSnapshot(window.firebaseWeb.doc(window.firebaseWeb.firestore, path), (snap)=>{
+    onNext({ exists: snap.exists(), data: snap.exists() ? snap.data() : null, hasPendingWrites: snap.metadata.hasPendingWrites });
+  }, onError);
+}
+function cloudIncrementValue(operand){
+  return isNativeCloud() ? { __type__: 'increment', operand } : window.firebaseWeb.increment(operand);
+}
+async function cloudCallFunction(name, data){
+  if (isNativeCloud() && capForAuth.Plugins.FirebaseFunctions){
+    const { data: result } = await capForAuth.Plugins.FirebaseFunctions.callByName({ name, data });
+    return result;
+  }
+  const fn = window.firebaseWeb.httpsCallable(window.firebaseWeb.functions, name);
+  return (await fn(data)).data;
+}
+
 function cloudDocRef(uid){
-  return window.firebaseWeb.doc(window.firebaseWeb.firestore, 'users', uid);
+  return 'users/' + uid;
 }
 
 // Hotfix (2026-09) — the real global-read-counter increment, moved here
@@ -11345,14 +11370,13 @@ function cloudDocRef(uid){
 // replaces. Assigned into the slot immediately since it doesn't depend
 // on anything else initApp() sets up later.
 onIncrementGlobalReadCounter = function(){
-  if (!cloudSyncUid || !window.firebaseWeb) return;
-  const ref = window.firebaseWeb.doc(window.firebaseWeb.firestore, 'stats', 'global');
-  window.firebaseWeb.setDoc(ref, {totalTalksRead: window.firebaseWeb.increment(1)}, {merge: true})
+  if (!cloudSyncUid) return;
+  cloudSetDoc('stats/global', { totalTalksRead: cloudIncrementValue(1) }, true)
     .catch(err=> console.error('[idea 68] global read counter increment failed', err));
 };
 
 async function pushLocalDataToCloud(){
-  if (!cloudSyncUid || !window.firebaseWeb) return;
+  if (!cloudSyncUid) return;
   const uid = cloudSyncUid;
   // Pull and merge the latest cloud state before every push, not just the
   // first one after sign-in. setDoc() below replaces the ENTIRE document —
@@ -11362,9 +11386,9 @@ async function pushLocalDataToCloud(){
   // Merging first makes every push additive, matching the union-only design
   // mergeBackupData already uses everywhere else.
   try {
-    const snap = await window.firebaseWeb.getDoc(cloudDocRef(uid));
+    const snap = await cloudGetDoc(cloudDocRef(uid));
     if (uid !== cloudSyncUid) return; // signed out / switched accounts mid-await
-    if (snap.exists()) applyCloudMergeAndRefresh(snap.data());
+    if (snap.exists) applyCloudMergeAndRefresh(snap.data);
   } catch(err){
     console.error('[cloud sync] pre-push pull failed', err);
     // Offline, or a transient Firestore error — push local data as-is
@@ -11374,7 +11398,7 @@ async function pushLocalDataToCloud(){
   const json = JSON.stringify(data);
   if (json === lastPushedJSON) return; // nothing actually changed since the last push
   try {
-    await window.firebaseWeb.setDoc(cloudDocRef(cloudSyncUid), data);
+    await cloudSetDoc(cloudDocRef(cloudSyncUid), data);
     // Only recorded as "pushed" once the write actually lands — setting
     // this beforehand meant a failed write still got treated as done, so
     // scheduleCloudPush()'s "nothing changed since last push" guard would
@@ -11481,12 +11505,12 @@ function startCloudSync(uid){
   lastPushedJSON = null;
   (async ()=>{
     try {
-      const snap = await window.firebaseWeb.getDoc(cloudDocRef(uid));
+      const snap = await cloudGetDoc(cloudDocRef(uid));
       cloudSyncAuthed = true; // reaching here without throwing means Firestore actually accepted this session
-      if (snap.exists()) applyCloudMergeAndRefresh(snap.data());
+      if (snap.exists) applyCloudMergeAndRefresh(snap.data);
     } catch(err){
       // A brand-new account with no cloud doc yet never lands here (getDoc
-      // resolves with exists()===false, it doesn't throw) — only a real
+      // resolves with exists===false, it doesn't throw) — only a real
       // failure (offline, denied Firestore rules, App Check, etc.) does.
       // Logged rather than silently swallowed so a sync that never
       // actually happens is at least visible in DevTools instead of
@@ -11498,12 +11522,12 @@ function startCloudSync(uid){
     if (cloudSyncUid !== uid) return; // signed out again while the above await was in flight
     await pushLocalDataToCloud(); // push the merged (or, for a fresh cloud slot, just-local) result up right away, not on the debounce timer
     if (cloudSyncUid !== uid) return;
-    cloudSyncUnsub = window.firebaseWeb.onSnapshot(cloudDocRef(uid), (snap)=>{
-      if (snap.metadata.hasPendingWrites) return; // this device's own write, echoing back — not a remote change
-      if (!snap.exists()) return;
-      const json = JSON.stringify(snap.data());
+    cloudSyncUnsub = cloudOnSnapshot(cloudDocRef(uid), (snap)=>{
+      if (snap.hasPendingWrites) return; // this device's own write, echoing back — not a remote change
+      if (!snap.exists) return;
+      const json = JSON.stringify(snap.data);
       if (json === lastPushedJSON) return; // matches what we just pushed — nothing new actually arrived
-      applyCloudMergeAndRefresh(snap.data());
+      applyCloudMergeAndRefresh(snap.data);
     }, (err)=>{
       // onSnapshot's error callback — distinct from the try/catch above,
       // and previously entirely unhandled: a denied/broken listener failed
@@ -11582,8 +11606,8 @@ async function deleteMyAccountFlow(){
   const errEl = document.getElementById('deleteAccountErrorMsg');
   errEl.hidden = true;
   try {
-    if (cloudSyncUid && window.firebaseWeb){
-      try { await window.firebaseWeb.deleteDoc(cloudDocRef(cloudSyncUid)); }
+    if (cloudSyncUid){
+      try { await cloudDeleteDoc(cloudDocRef(cloudSyncUid)); }
       catch(err){ console.error('[idea 69] deleting the Firestore doc failed — continuing with account deletion anyway', err); }
     }
     if (capForAuth && capForAuth.isNativePlatform && capForAuth.isNativePlatform() && capForAuth.Plugins && capForAuth.Plugins.FirebaseAuthentication){
@@ -11624,16 +11648,11 @@ onDeleteMyAccount = deleteMyAccountFlow; // see the slot's own comment for why t
 let donationUnsub = null;
 
 function startDonationSync(uid){
-  if (!window.firebaseWeb) return;
   if (donationUnsub) donationUnsub();
-  donationUnsub = window.firebaseWeb.onSnapshot(
-    window.firebaseWeb.doc(window.firebaseWeb.firestore, 'donations', uid),
-    (snap)=>{
-      donationState = snap.exists() ? snap.data() : null;
-      renderBadgesList(); // no-op via its own listEl guard when the modal isn't in the DOM (web build)
-    },
-    (err)=>{ console.error('[IAP] donations listener failed', err); }
-  );
+  donationUnsub = cloudOnSnapshot('donations/' + uid, (snap)=>{
+    donationState = snap.exists ? snap.data : null;
+    renderBadgesList(); // no-op via its own listEl guard when the modal isn't in the DOM (web build)
+  }, (err)=>{ console.error('[IAP] donations listener failed', err); });
 }
 function stopDonationSync(){
   if (donationUnsub){ donationUnsub(); donationUnsub = null; }
