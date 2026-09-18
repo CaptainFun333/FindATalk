@@ -5639,14 +5639,29 @@ function touchStreak(creditDate){
    widget its own path to zeroing out — see the comments there. Doesn't
    touch `lastDate`/`longest`/`activeDays`; only `count` (the CONSECUTIVE
    number) is actually invalidated by a gap. */
+// Shared by settleStreak() below and mergeStreakData() (further down,
+// inside initApp()'s closure — top-level functions are visible there).
+// A streak whose last active day isn't today or yesterday is broken, no
+// matter how long its trailing run of consecutive days was. Kept as its
+// own predicate rather than inlined in each caller so both agree on
+// exactly the same definition of "stale" — they used to disagree (see
+// mergeStreakData's own comment), which was the actual cause of an
+// infinite cloud-sync loop: recomputeStreakFromActiveDays() computed a
+// non-zero count for a long-expired streak (it only counts the
+// consecutive run ending at the last recorded day, blind to whether that
+// day was recent), while this function unconditionally zeroed that same
+// count back out — so a merge would restore the non-zero count, then the
+// very next render would zero it again, forever.
+function isStreakStale(streak, now){
+  if (!streak || streak.count <= 0 || !streak.lastDate) return false;
+  const today = localDateSeed(now);
+  if (streak.lastDate === today) return false;
+  const yesterday = localDateSeed(new Date(now.getTime() - 24*60*60*1000));
+  return streak.lastDate !== yesterday;
+}
 function settleStreak(){
   const streak = loadStreak();
-  if (streak.count <= 0 || !streak.lastDate) return streak;
-  const now = new Date();
-  const today = localDateSeed(now);
-  if (streak.lastDate === today) return streak;
-  const yesterday = localDateSeed(new Date(now.getTime() - 24*60*60*1000));
-  if (streak.lastDate === yesterday) return streak;
+  if (!isStreakStale(streak, new Date())) return streak;
   streak.count = 0;
   saveStreak(streak);
   return streak;
@@ -11167,10 +11182,35 @@ function mergeStreakData(incoming){
     new Date()
   );
   const merged = recomputeStreakFromActiveDays(activeDays, Math.max(local.longest|0, incoming.longest|0));
+  // recomputeStreakFromActiveDays() only counts the consecutive run ending
+  // at the last recorded active day — it doesn't know or care whether that
+  // day was recent, so a long-expired streak still comes back with a
+  // non-zero count here. Settle it the same way settleStreak() would, so
+  // this merge produces the exact value the next render would otherwise
+  // "correct" it to anyway (see isStreakStale's own comment for why this
+  // agreement matters, not just for display consistency).
+  if (isStreakStale(merged, new Date())) merged.count = 0;
+  // Bails out before saveStreak() (which always schedules a cloud push)
+  // when the merge produced exactly what was already local — without
+  // this, every cloud pull re-saves the streak unconditionally, which
+  // re-schedules a push, whose own pre-push pull merges again and
+  // re-saves again: a self-sustaining loop that never terminates once a
+  // device is signed in. Confirmed live: with this and mergeBackupData's
+  // matching guards missing, sync spun forever re-pushing/re-pulling the
+  // same data (StreakBridge.setStreak + Firestore set/getDocument, non-
+  // stop), saturating the WebView's JS thread badly enough that taps
+  // elsewhere in the app (e.g. Settings' "Support the App" button)
+  // appeared to silently do nothing.
+  if (JSON.stringify(merged) === JSON.stringify(local)) return;
   saveStreak(merged);
 }
 function mergeBackupData(data){
   let addedFavorites = 0, addedLists = 0, mergedLists = 0, addedNotes = 0;
+  // Tracked alongside the counters above so each save*() call below (every
+  // one of which schedules a cloud push) only fires when this merge
+  // actually changed that bucket — see mergeStreakData's own comment for
+  // why an unconditional save here creates an infinite pull/push loop.
+  let addedRead = false, visitCountsChanged = false, listsChanged = false;
   (data.favorites || []).forEach(key=>{
     if (typeof key === 'string' && !favoriteKeys.has(key)){ favoriteKeys.add(key); addedFavorites++; }
   });
@@ -11178,7 +11218,7 @@ function mergeBackupData(data){
   // backup files simply won't have it, so this just no-ops for them
   // rather than requiring it like importBackupFile requires the rest.
   (data.read || []).forEach(key=>{
-    if (typeof key === 'string') readKeys.add(key);
+    if (typeof key === 'string' && !readKeys.has(key)){ readKeys.add(key); addedRead = true; }
   });
   // `visitCounts` (idea 55) is later still — same no-op-on-older-files
   // handling. Takes the max of the two sides per key, not a sum — re-
@@ -11188,8 +11228,9 @@ function mergeBackupData(data){
   if (data.visitCounts && typeof data.visitCounts === 'object'){
     Object.keys(data.visitCounts).forEach(key=>{
       const val = data.visitCounts[key];
-      if (typeof val === 'number' && val > 0){
-        visitCounts[key] = Math.max(visitCounts[key] || 0, val);
+      if (typeof val === 'number' && val > (visitCounts[key] || 0)){
+        visitCounts[key] = val;
+        visitCountsChanged = true;
       }
     });
   }
@@ -11203,11 +11244,12 @@ function mergeBackupData(data){
       collections.push({id: col.id, name: col.name, updatedAt: typeof col.updatedAt === 'number' ? col.updatedAt : Date.now()});
       collectionMembers[col.id] = [...incomingMembers];
       addedLists++;
+      listsChanged = true;
     } else {
       const existing = collectionMembers[col.id] || (collectionMembers[col.id] = []);
       let addedAny = false;
       incomingMembers.forEach(key=>{ if (!existing.includes(key)){ existing.push(key); addedAny = true; } });
-      if (addedAny) touchCollection(col.id);
+      if (addedAny){ touchCollection(col.id); listsChanged = true; }
       mergedLists++;
     }
   });
@@ -11231,12 +11273,11 @@ function mergeBackupData(data){
     });
   }
   mergeStreakData(data.streak);
-  saveFavorites();
-  saveRead();
-  saveVisitCounts();
-  saveCollections();
-  saveCollectionMembers();
-  saveNotes();
+  if (addedFavorites > 0) saveFavorites();
+  if (addedRead) saveRead();
+  if (visitCountsChanged) saveVisitCounts();
+  if (listsChanged){ saveCollections(); saveCollectionMembers(); }
+  if (addedNotes > 0) saveNotes();
   return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
 /* ---------------------------------------------------------------
