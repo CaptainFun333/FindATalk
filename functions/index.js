@@ -144,7 +144,7 @@ exports.stripeWebhook = onRequest(
 // has to include both platforms' ids together, not just one set.
 const TIP_PRODUCT_IDS = [
   '2OneTime26', '3OneTime26', '5OneTime26', '10OneTime26', '25OneTime26', // iOS
-  '2DollarOneTime26', '3DollarOneTime26', '5DollarOneTime26', '10DollarOneTime26', '25DollarOneTime26' // Android
+  '2onetime26', '3onetime26', '5onetime26', '10onetime26', '25onetime26' // Android — Play Console requires lowercase ids
 ];
 
 const IOS_BUNDLE_ID = 'com.captainfun333.findatalk';

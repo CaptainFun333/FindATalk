@@ -8526,20 +8526,18 @@ function initBadgesUI(){
    Stripe Payment Links docs/donate.html already uses, inline in the same
    modal instead of sending people to a separate page. Both paths write to
    the same donations/{uid} doc either way — see startDonationSync(). */
-// Per-platform, not one shared list: the original 5 App Store Connect
-// ids (below, Android's column) were discovered live (2026-09-18) to be
-// Non-Consumable — would let someone tip a given tier only once, ever —
-// so the iOS side was deleted and recreated as Consumable, which forced
-// new, differently-named ids (App Store Connect ids are unrenameable and
-// can't be changed back to a deleted one). Play Console has no
-// Consumable/Non-Consumable distinction at creation (an app decides
+// Per-platform, not one shared list — the two stores never ended up with
+// matching ids. The original App Store Connect ids (2DollarOneTime26 etc.)
+// were discovered live (2026-09-18) to be Non-Consumable — would let
+// someone tip a given tier only once, ever — so the iOS side was deleted
+// and recreated as Consumable, forcing new, differently-cased ids (App
+// Store Connect ids are unrenameable and can't be reused after deletion).
+// Android's original ids were never actually broken (Play Console has no
+// Consumable/Non-Consumable distinction at creation — an app decides
 // whether to consume a purchase via its own consumeAsync() call, not a
-// store-side setting), so Android's original ids were never actually
-// broken and are untouched here. Play Console also refused to let new
-// ids be created at all until a build referencing them is uploaded — so
-// once Android gets its own matching rename, this needs updating again;
-// until then the two platforms genuinely use different real ids for the
-// "same" $2/$3/$5/$10/$25 tiers.
+// store-side setting), but Play Console requires product ids to be all
+// lowercase, so they were recreated too (2026-09-18) purely to match
+// iOS's naming — same reason, different constraint.
 const TIP_TIERS = {
   ios: [
     {id:'2OneTime26', amount:2},
@@ -8549,11 +8547,11 @@ const TIP_TIERS = {
     {id:'25OneTime26', amount:25}
   ],
   android: [
-    {id:'2DollarOneTime26', amount:2},
-    {id:'3DollarOneTime26', amount:3},
-    {id:'5DollarOneTime26', amount:5},
-    {id:'10DollarOneTime26', amount:10},
-    {id:'25DollarOneTime26', amount:25}
+    {id:'2onetime26', amount:2},
+    {id:'3onetime26', amount:3},
+    {id:'5onetime26', amount:5},
+    {id:'10onetime26', amount:10},
+    {id:'25onetime26', amount:25}
   ]
 };
 
