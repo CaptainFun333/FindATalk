@@ -111,7 +111,7 @@ public class IAPBridgePlugin extends Plugin implements PurchasesUpdatedListener 
                 return;
             }
             JSArray out = new JSArray();
-            for (ProductDetails details : result.getProductDetailsList()) {
+            for (ProductDetails details : result) {
                 JSObject obj = new JSObject();
                 obj.put("id", details.getProductId());
                 obj.put("displayName", details.getName());
@@ -145,11 +145,11 @@ public class IAPBridgePlugin extends Plugin implements PurchasesUpdatedListener 
 
         connect(() -> billingClient.queryProductDetailsAsync(params, (billingResult, result) -> {
             if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK
-                || result.getProductDetailsList().isEmpty()) {
+                || result.isEmpty()) {
                 call.reject("Unknown product: " + productId);
                 return;
             }
-            ProductDetails details = result.getProductDetailsList().get(0);
+            ProductDetails details = result.get(0);
             BillingFlowParams flowParams = BillingFlowParams.newBuilder()
                 .setProductDetailsParamsList(List.of(
                     BillingFlowParams.ProductDetailsParams.newBuilder()
