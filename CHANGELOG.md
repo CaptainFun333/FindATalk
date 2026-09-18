@@ -28,6 +28,7 @@ this updated.
 ### Changed
 - The hidden "Think Celestial!" badge, and the icon above "Wow, you found it!" in its reveal pop-up, now show a sun instead of a star/sparkle, to match the icon it actually unlocks.
 - Moved Sign Out, Clear Data, and Delete My Account to the very bottom of Settings, in their own row — Sign In stays at the top until you're actually signed in.
+- Signing out now also clears your favorites, notes, lists, streak, and reading history from that device (your account and its cloud copy are untouched, and everything comes right back the next time you sign in) — so a device you've signed out of doesn't keep showing your data to whoever picks it up next. "Clear Data from This Device" now only appears when you're not signed in, since Sign Out covers the same ground once you are.
 
 ### Fixed
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.
@@ -46,6 +47,7 @@ this updated.
 - Shared links (badges, streaks, talks) now show the FindATalk name, icon, and a description when they land in Facebook, instead of a bare link — Facebook itself still won't show the pre-filled caption text, that's a Facebook restriction on all link shares, not something FindATalk can change.
 - Sharing a talk now links back to FindATalk instead of straight to Gospel Library — opening the link takes you to the same talk right away, and it carries proper FindATalk attribution (name, icon, and description) wherever it's shared, including Facebook.
 - Unstarring (or starring) a talk's favorite icon on one screen now updates that same star everywhere else it's showing — it used to only update the one you clicked, leaving other screens showing stale, out-of-sync stars for the same talk.
+- Signing in on a new device with an existing streak or reading history no longer re-shows the "you earned a badge!" celebration for badges you already have — those now count as already seen.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
