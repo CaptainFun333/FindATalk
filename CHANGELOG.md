@@ -21,12 +21,13 @@ this updated.
 - Badges are no longer app-exclusive — "My Badges" in Settings, badge celebrations, and the hidden "Think Celestial!" badge are all now available on the website too.
 - When you search by a scripture or hymn, a talk's results now show a "N matching" badge you can tap to see just the citations that actually matched your search — no more digging through a long list of everything the talk cites to find the ones you searched for.
 - You can now support FindATalk's development from a donate page on the website (findatalk.com/donate.html) — sign in with your existing account to give a one-time or yearly gift, and see a supporter badge that tracks which years you've given.
-- App-exclusive: a new "Support the App" option in Settings lets you leave a one-time tip ($2–$25) through Apple's or Google's own in-app purchase system — no need to leave the app or use a browser. Sign in first so it's remembered; tips count toward the same Supporter badge as a web donation. Requires a new build on each platform, plus the tip products to be set up in the App Store/Play Store, to actually go live.
+- A new "Support the App" option in Settings lets you give a gift without leaving the app or the website. On iPhone/Android it's a one-time tip ($2–$25) through Apple's or Google's own in-app purchase system (requires a new build on each platform, plus the tip products to be set up in the App Store/Play Store, to actually go live); on the website it's the same one-time or yearly picker as the donate page, right in Settings. Sign in first so it's remembered — every path counts toward the same Supporter badge.
 - Two new options in Settings: "Clear Data from This Device" (erases your favorites, notes, lists, streak, and reading history from just this device — good before handing off, selling, or returning it) and, once signed in, "Delete My Account" (permanently deletes your account and everything synced to it, everywhere). Both offer to back up first.
 - If the same talk ends up with a different note on two devices that hadn't synced yet, you're now asked which one to keep — yours, the other one, or both combined — instead of one silently overwriting the other.
 
 ### Changed
 - The hidden "Think Celestial!" badge, and the icon above "Wow, you found it!" in its reveal pop-up, now show a sun instead of a star/sparkle, to match the icon it actually unlocks.
+- Moved Sign Out, Clear Data, and Delete My Account to the very bottom of Settings, in their own row — Sign In stays at the top until you're actually signed in.
 
 ### Fixed
 - App-exclusive: fixed the home screen widget not always matching your Color Palette choice.

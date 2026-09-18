@@ -712,6 +712,17 @@
   }
   .segmented button[aria-pressed="true"]:hover{ color:var(--on-accent); }
   .segmented button:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:-2px; }
+  /* Web-only Support-the-App picker (see initSupportUI()) — same amount-chip
+     styling as docs/donate.html's, since it's the same Stripe-tier picker
+     just relocated into this modal instead of a separate page. */
+  .amount-row{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px; }
+  .amt-chip{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; color:var(--ink);
+    background:var(--paper); border:1px solid var(--line); border-radius:20px;
+    padding:8px 16px; cursor:pointer; transition:background .15s, border-color .15s, color .15s;
+  }
+  .amt-chip:hover{ border-color:var(--brass); }
+  .amt-chip[aria-pressed="true"]{ border-color:var(--brass); background:var(--tint); color:var(--burgundy); }
   /* Color Palette segmented control — same .segmented base as Appearance,
      plus a small fixed-color dot per option so people can see the hue
      before picking it. The dot's own color is a literal per-palette hex
@@ -2420,6 +2431,17 @@
      the rest of Settings' plain ghost buttons. */
   .danger-action{ color:var(--burgundy); border-color:var(--chip-border,var(--line)); }
   .danger-action:hover{ background:var(--tint,transparent); }
+  /* Idea 69, relocated — Sign Out / Clear Data / Delete Account as a row
+     instead of a stacked column, at the bottom of Settings. Not equal-
+     width columns: the three labels are genuinely different lengths
+     ("Sign Out" vs. "Clear Data from This Device"), so forcing them into
+     equal flex-basis thirds would either squish the longest one or waste
+     space around the shortest — instead each button keeps its own
+     natural .btn sizing and the row wraps onto a second line on a narrow
+     phone (same "wrap, don't clip" call already made for My Lists row
+     names, idea 58) rather than shrinking text to force one line. */
+  .settings-danger-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .settings-danger-row .btn{ flex:0 0 auto; }
   /* Idea 69 — note-conflict resolution modal. Same family as .modal-copy,
      just a labeled pair of read-only text blocks instead of one
      paragraph. */
@@ -3207,9 +3229,9 @@
            as every idea-61 mock-up promised. Two states, toggled by
            renderAccountSettingsRow() (see the auth section further down
            in the script) — signed out (this markup's default) shows the
-           Sign In button; signed in swaps the text and shows a Sign Out
-           button instead. No sync status line yet — that's Firestore
-           sync, still ahead per idea 61's Stage 2 plan, not built here. -->
+           Sign In button; signed in swaps the text instead (the Sign Out
+           button itself lives in the bottom "Account & Data" section
+           below, not here — see that section's own comment for why). -->
       <div class="settings-section">
         <p class="settings-label">Account</p>
         <div class="settings-row">
@@ -3219,17 +3241,6 @@
           </div>
         </div>
         <button type="button" class="btn btn-ghost full-width" id="accountSignInBtn">Sign In / Create Account</button>
-        <button type="button" class="btn btn-ghost full-width" id="accountSignOutBtn" hidden>Sign Out</button>
-        <!-- Idea 69 — real data controls. "Clear data" is meaningful
-             whether or not anyone's ever signed in (a fully-local user
-             has just as much real favorites/notes/streak data sitting on
-             this device), so it's always shown, not gated behind
-             accountRowTitle's signed-in state the way Sign Out is.
-             "Delete my account" only makes sense once there's an account
-             to delete — toggled by renderAccountSettingsRow() alongside
-             Sign In/Sign Out. -->
-        <button type="button" class="btn btn-ghost full-width danger-action" id="clearLocalDataBtn">Clear Data from This Device</button>
-        <button type="button" class="btn btn-ghost full-width danger-action" id="deleteAccountBtn" hidden>Delete My Account</button>
       </div>
 
       <div class="settings-section">
@@ -3298,14 +3309,12 @@
         </div>
       </div>
 
-      <!-- Native IAP tip jar (idea 67's real replacement, see
-           PROJECT_HANDOFF.md) — hidden by default, unhidden only on
-           native, same pattern as badgesSettingsSection/
-           reminderSettingsSection above (IAP has no web equivalent at
-           all, unlike badges/reminders which are just native-only
-           features on an otherwise cross-platform app — see
-           initSupportUI()). -->
-      <div class="settings-section" id="supportSettingsSection" hidden>
+      <!-- Support the App (idea 67's real replacement, see
+           PROJECT_HANDOFF.md) — shown on every platform now. Native opens
+           the IAPBridge tip-tier picker; web opens the same Stripe
+           frequency/amount picker docs/donate.html uses, inline in this
+           modal instead of a separate page — see openSupportModal(). -->
+      <div class="settings-section" id="supportSettingsSection">
         <p class="settings-label">Support</p>
         <button type="button" class="btn btn-ghost" id="supportAppBtn">Support the App</button>
       </div>
@@ -3313,6 +3322,30 @@
       <div class="settings-section">
         <p class="settings-label">Help</p>
         <button type="button" class="btn btn-ghost" id="showMeAroundBtn">Show me around</button>
+      </div>
+
+      <!-- Idea 69, relocated per user request — Sign Out / Clear Data /
+           Delete Account moved from the top Account section down to the
+           very bottom of Settings (last section in the modal) and laid
+           out as a row of 3 instead of a stacked column, so they read as
+           the deliberate, separate "careful actions" group they are
+           rather than sitting right under Sign In where a fast tap could
+           hit the wrong one. Sign In itself stays at the top (see the
+           Account section above) until sign-in is actually complete —
+           only once signed in does Sign Out appear here alongside the
+           other two. Same toggling logic as before
+           (renderAccountRow()) — only the DOM position and layout
+           changed, not the show/hide behavior. Sign Out stays plain
+           .btn-ghost (reversible, not destructive); Clear Data/Delete
+           keep .danger-action (burgundy) so severity still reads at a
+           glance even sitting in a row together. -->
+      <div class="settings-section">
+        <p class="settings-label">Account &amp; Data</p>
+        <div class="settings-danger-row">
+          <button type="button" class="btn btn-ghost" id="accountSignOutBtn" hidden>Sign Out</button>
+          <button type="button" class="btn btn-ghost danger-action" id="clearLocalDataBtn">Clear Data from This Device</button>
+          <button type="button" class="btn btn-ghost danger-action" id="deleteAccountBtn" hidden>Delete My Account</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3444,20 +3477,48 @@
     </div>
   </div>
 
-  <!-- Native IAP tip jar — tier picker, opened from #supportAppBtn (only
-       shown on native, see initSupportUI()). Tiers are real markup with
-       static $ labels below, swapped for the store's own localized
-       displayPrice once getProducts() resolves — see
-       renderSupportTierButtons(). -->
+  <!-- Support the App — opened from #supportAppBtn, see initSupportUI().
+       One shared picker (frequency + amount chips + Continue) for both
+       platforms now, styled after docs/donate.html's — see
+       renderSupportPicker(). Native (IAPBridge present): Continue calls
+       purchaseTip() with the matching store product id, chip labels swap
+       for the store's own localized displayPrice once getProducts()
+       resolves (applyNativeProductPricing()), "Choose your own amount"
+       stays hidden (no equivalent — IAP has no arbitrary-amount concept),
+       and Yearly is disabled until real annual product ids exist (see
+       ANNUAL_TIP_TIERS). Web (no IAPBridge): Continue/"Choose your own
+       amount" open the same Stripe Payment Links as docs/donate.html —
+       see openSupportDonateLink(). -->
   <div class="modal-overlay" id="supportModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle">
       <div class="modal-header">
         <h3 id="supportModalTitle">Support the App</h3>
         <button type="button" class="modal-close" id="supportModalClose" aria-label="Close">&times;</button>
       </div>
-      <p class="modal-copy">FindATalk is free forever. If it's been useful, a tip helps cover the Apple/Google developer fees that keep it running.</p>
+      <p class="modal-copy">FindATalk is free forever. If it's been useful, a donation helps to keep it running.</p>
       <p class="auth-error" id="supportErrorMsg" hidden></p>
-      <div id="supportTierList"></div>
+      <div class="badge-row" id="supportModalBadgeRow" hidden>
+        <div class="badge-icon" id="supportModalBadgeIcon"></div>
+        <div class="badge-row-text"><strong>Supporter</strong><span id="supportModalBadgeText"></span></div>
+      </div>
+      <div id="supportPicker">
+        <p class="settings-label">Frequency</p>
+        <div class="segmented" role="group" aria-label="Frequency">
+          <button type="button" data-support-freq="oneTime" aria-pressed="true">One-Time</button>
+          <button type="button" data-support-freq="annual" aria-pressed="false">Yearly</button>
+        </div>
+        <p class="settings-label">Amount</p>
+        <button type="button" class="btn btn-ghost full-width" id="supportCustomAmountBtn">Choose your own amount</button>
+        <div class="amount-row" role="group" aria-label="Amount" id="supportAmountRow">
+          <button type="button" class="amt-chip" data-support-amount="2" aria-pressed="false">$2</button>
+          <button type="button" class="amt-chip" data-support-amount="3" aria-pressed="true">$3</button>
+          <button type="button" class="amt-chip" data-support-amount="5" aria-pressed="false">$5</button>
+          <button type="button" class="amt-chip" data-support-amount="10" aria-pressed="false">$10</button>
+          <button type="button" class="amt-chip" data-support-amount="25" aria-pressed="false">$25</button>
+        </div>
+        <p class="settings-sub" id="supportAnnualNativeNote" hidden>Annual tips aren't available in the app yet — check the donate page on the website.</p>
+        <button type="button" class="btn btn-primary full-width" id="supportContinueBtn">Continue — $3</button>
+      </div>
     </div>
   </div>
 
@@ -8427,21 +8488,58 @@ function initBadgesUI(){
   checkForNewBadges();
 }
 
-/* ---------------- Native IAP tip jar (idea 67's real replacement) ----------------
-   StoreKit 2 / Play Billing via the IAPBridge plugin — see
+/* ---------------- Support the App (idea 67's real replacement) ----------------
+   Native (StoreKit 2 / Play Billing via the IAPBridge plugin — see
    packages/capacitor-iap-bridge (iOS) and android/app/.../IAPBridgePlugin.java
-   (Android), plus verifyIAPPurchase in functions/index.js. No web
-   equivalent at all (unlike badges/reminders above) — App Store/Play
-   Store policy requires native IAP for any in-app tip, so this is gated
-   off entirely on web, not just its Settings row. See PROJECT_HANDOFF.md
-   for the compliance research behind that. */
+   (Android), plus verifyIAPPurchase in functions/index.js): App Store/Play
+   Store policy requires native IAP for any in-app tip, so a store build
+   never uses external payment links — see PROJECT_HANDOFF.md for the
+   compliance research behind that.
+   Web (no IAPBridge, i.e. a plain browser tab — not a store build's
+   WebView): that policy doesn't apply at all, so this reuses the exact
+   Stripe Payment Links docs/donate.html already uses, inline in the same
+   modal instead of sending people to a separate page. Both paths write to
+   the same donations/{uid} doc either way — see startDonationSync(). */
 const TIP_TIERS = [
-  {id:'tip_2', amount:2},
-  {id:'tip_3', amount:3},
-  {id:'tip_5', amount:5},
-  {id:'tip_10', amount:10},
-  {id:'tip_25', amount:25}
+  {id:'2DollarOneTime26', amount:2},
+  {id:'3DollarOneTime26', amount:3},
+  {id:'5DollarOneTime26', amount:5},
+  {id:'10DollarOneTime26', amount:10},
+  {id:'25DollarOneTime26', amount:25}
 ];
+
+// Annual-subscription tip products already exist in both App Store
+// Connect and Play Console (see PROJECT_HANDOFF.md) but their real,
+// unrenameable product ids were never recorded anywhere in this repo —
+// left null (rather than guessed) until they're supplied. Annual stays
+// selectable on native so the picker still matches the web layout, but
+// Continue is disabled with an explanatory note (see renderSupportPicker())
+// until this is filled in with the same {id, amount} shape as TIP_TIERS.
+const ANNUAL_TIP_TIERS = null;
+
+// Same live Stripe Payment Links as docs/donate.html — kept in sync by
+// hand since this is plain static markup on both sides, not a shared
+// module (see PROJECT_HANDOFF.md's 2026-09-17 entries on why this page
+// pair exists). Web-only: never reachable when IAPBridge is present.
+const STRIPE_LINKS = {
+  oneTime: {
+    2: 'https://donate.stripe.com/dRm14ocRn2mA2r51h78AE09',
+    3: 'https://donate.stripe.com/5kQ14o18FbXae9Nf7X8AE08',
+    5: 'https://donate.stripe.com/5kQ4gA6sZ0es5Dh7Fv8AE07',
+    10: 'https://donate.stripe.com/14AaEY4kRaT69Tx0d38AE06',
+    25: 'https://donate.stripe.com/28E8wQ04B6CQe9N1h78AE05',
+    custom: 'https://donate.stripe.com/fZucN6g3z0es1n19ND8AE0a'
+  },
+  annual: {
+    2: 'https://donate.stripe.com/aFa14og3z2mAaXB9ND8AE04',
+    3: 'https://donate.stripe.com/eVqbJ2dVrgdqfdR4tj8AE03',
+    5: 'https://donate.stripe.com/aFa00kdVraT68Pt1h78AE02',
+    10: 'https://donate.stripe.com/9B67sM18F4uI0iXbVL8AE01',
+    25: 'https://donate.stripe.com/7sYaEYaJf8KYc1FaRH8AE00'
+  }
+};
+let supportDonateFreq = 'oneTime';
+let supportDonateAmount = 3;
 
 function iapPlugin(){
   const cap = window.Capacitor;
@@ -8449,17 +8547,75 @@ function iapPlugin(){
   return (cap.Plugins && cap.Plugins.IAPBridge) || null;
 }
 
-function renderSupportTierButtons(products){
-  const listEl = document.getElementById('supportTierList');
-  if (!listEl) return;
-  // Static $ labels render immediately (tier buttons shouldn't sit empty
-  // while getProducts() is in flight); swapped for the store's own
-  // localized displayPrice as soon as that resolves.
-  listEl.innerHTML = TIP_TIERS.map(tier=>{
-    const product = products && products.find(p=> p.id === tier.id);
-    const priceLabel = product ? product.displayPrice : `$${tier.amount}`;
-    return `<button type="button" class="btn btn-ghost full-width support-tier-btn" data-product-id="${tier.id}">${priceLabel} Tip</button>`;
-  }).join('');
+// Looks up the store product id for the currently selected native tier —
+// null when annual (ids not filled in yet, see ANNUAL_TIP_TIERS above).
+function nativeProductIdFor(freq, amount){
+  const tiers = freq === 'annual' ? ANNUAL_TIP_TIERS : TIP_TIERS;
+  const tier = tiers && tiers.find(t=> t.amount === amount);
+  return tier ? tier.id : null;
+}
+
+// Web-only path — mirrors docs/donate.html's openDonateLink(). Requires
+// sign-in (like the native path requires it) so client_reference_id lets
+// the Stripe webhook attribute the donation to this account.
+function openSupportDonateLink(freq, amount){
+  if (!currentUser){
+    setSupportError('Sign in first so your gift can be recorded to your account.');
+    return;
+  }
+  const url = STRIPE_LINKS[freq] && STRIPE_LINKS[freq][amount];
+  if (!url) return;
+  window.open(`${url}?client_reference_id=${encodeURIComponent(currentUser.uid)}`, '_blank', 'noopener');
+}
+
+function renderSupportModalBadge(){
+  const row = document.getElementById('supportModalBadgeRow');
+  if (!row) return;
+  if (!donationState || !Array.isArray(donationState.years) || donationState.years.length === 0){
+    row.hidden = true;
+    return;
+  }
+  document.getElementById('supportModalBadgeIcon').innerHTML = renderSupporterStarCluster(donationState.years.length);
+  const dateStr = donationState.activeUntil
+    ? new Date(donationState.activeUntil).toLocaleDateString(undefined, { month:'short', day:'numeric' })
+    : '';
+  document.getElementById('supportModalBadgeText').textContent = isActiveSupporter()
+    ? `Supported in ${joinYearsSentence(donationState.years)} — renews ${dateStr}`
+    : `Supported in ${joinYearsSentence(donationState.years)} — expired, renew?`;
+  row.hidden = false;
+}
+
+// Drives the one shared picker for both platforms. "Choose your own
+// amount" only ever applies to the web/Stripe path (one-time only, no
+// native equivalent — IAP purchases are always a fixed-price product), so
+// it stays hidden whenever native or Yearly is active.
+function renderSupportPicker(){
+  document.querySelectorAll('#supportPicker [data-support-freq]').forEach(btn=>{
+    btn.setAttribute('aria-pressed', String(btn.dataset.supportFreq === supportDonateFreq));
+  });
+  document.querySelectorAll('#supportPicker [data-support-amount]').forEach(btn=>{
+    btn.setAttribute('aria-pressed', String(Number(btn.dataset.supportAmount) === supportDonateAmount));
+  });
+  const plugin = iapPlugin();
+  const nativeAnnualUnavailable = !!plugin && supportDonateFreq === 'annual' && !ANNUAL_TIP_TIERS;
+  document.getElementById('supportCustomAmountBtn').hidden = !!plugin || supportDonateFreq === 'annual';
+  document.getElementById('supportAmountRow').hidden = nativeAnnualUnavailable;
+  document.getElementById('supportAnnualNativeNote').hidden = !nativeAnnualUnavailable;
+  document.getElementById('supportContinueBtn').hidden = nativeAnnualUnavailable;
+  document.getElementById('supportContinueBtn').textContent = `Continue — $${supportDonateAmount}`;
+}
+
+// Native only — swaps the chip labels for the store's own localized
+// displayPrice once getProducts() resolves; static "$N" labels show
+// immediately so the chips never sit empty while that's in flight.
+function applyNativeProductPricing(products){
+  if (!products) return;
+  document.querySelectorAll('#supportAmountRow [data-support-amount]').forEach(btn=>{
+    const amount = Number(btn.dataset.supportAmount);
+    const tier = TIP_TIERS.find(t=> t.amount === amount);
+    const product = tier && products.find(p=> p.id === tier.id);
+    if (product) btn.textContent = product.displayPrice;
+  });
 }
 
 function setSupportError(msg){
@@ -8473,13 +8629,16 @@ async function openSupportModal(){
   const overlay = document.getElementById('supportModalOverlay');
   if (!overlay) return;
   setSupportError('');
-  renderSupportTierButtons(null);
+  renderSupportModalBadge();
+  supportDonateFreq = 'oneTime';
+  supportDonateAmount = 3;
+  renderSupportPicker();
   overlay.hidden = false;
   const plugin = iapPlugin();
   if (!plugin) return;
   try {
     const { products } = await plugin.getProducts({ productIds: TIP_TIERS.map(t=> t.id) });
-    renderSupportTierButtons(products);
+    applyNativeProductPricing(products);
   } catch(err){
     console.error('[IAP] getProducts failed', err);
     // Static labels are already showing — not fatal, just less precise.
@@ -8562,9 +8721,6 @@ async function retryUnfinishedTips(){
 
 function initSupportUI(){
   const plugin = iapPlugin();
-  const section = document.getElementById('supportSettingsSection');
-  if (section) section.hidden = !plugin;
-  if (!plugin) return;
 
   document.getElementById('supportAppBtn').addEventListener('click', ()=>{
     closeSettingsModal();
@@ -8573,15 +8729,35 @@ function initSupportUI(){
   document.getElementById('supportModalClose').addEventListener('click', closeSupportModal);
   const overlay = document.getElementById('supportModalOverlay');
   overlay.addEventListener('click', (e)=>{ if (e.target === overlay) closeSupportModal(); });
-  document.getElementById('supportTierList').addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-product-id]');
-    if (btn) purchaseTip(btn.dataset.productId);
-  });
   document.addEventListener('keydown', (e)=>{
     if (e.key === 'Escape' && !overlay.hidden) closeSupportModal();
   });
 
-  retryUnfinishedTips();
+  document.querySelectorAll('#supportPicker [data-support-freq]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      supportDonateFreq = btn.dataset.supportFreq;
+      renderSupportPicker();
+    });
+  });
+  document.querySelectorAll('#supportPicker [data-support-amount]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      supportDonateAmount = Number(btn.dataset.supportAmount);
+      renderSupportPicker();
+    });
+  });
+  document.getElementById('supportCustomAmountBtn').addEventListener('click', ()=>{
+    openSupportDonateLink('oneTime', 'custom');
+  });
+  document.getElementById('supportContinueBtn').addEventListener('click', ()=>{
+    if (plugin){
+      const productId = nativeProductIdFor(supportDonateFreq, supportDonateAmount);
+      if (productId) purchaseTip(productId);
+      return;
+    }
+    openSupportDonateLink(supportDonateFreq, supportDonateAmount);
+  });
+
+  if (plugin) retryUnfinishedTips();
 }
 
 async function initReminderSettingsToggle(){

@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetRefreshPlugin.class);
+        registerPlugin(IAPBridgePlugin.class);
         super.onCreate(savedInstanceState);
         // Cold start already opens fresh on Home with no stale state to
         // reset, so this is a harmless no-op here — kept for symmetry with

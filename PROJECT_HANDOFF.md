@@ -4171,3 +4171,155 @@ new account's values, then redeployed. The webhook is live and correctly
 configured against the right account as of this entry — it just has no
 consumer yet until either the web donate page or a native-IAP fallback
 gets built.
+
+## 📌 Done (2026-09-17, later same day): the native IAP bridge rebuilt — it had never actually reached `main`
+
+The 2026-09-17 entries above (and this repo's memory) described the native
+tip jar as fully built, product ids and all. That was tracking a WIP commit
+(`b0ee97d`, "native IAP tip jar work in progress") that only ever existed
+on the old `account-data-controls` branch — it was never merged, and
+`main` only ever had the JS/UI half (`docs/index.html`'s "Support the App"
+button, modal, `purchaseTip`/`finalizeTip`), pointing at an
+`IAPBridge` Capacitor plugin and a `verifyIAPPurchase` Cloud Function that
+didn't exist anywhere in the actual codebase. Found and fixed this session
+by checking the real state of `android/app/src`, `packages/`, and
+`functions/index.js` against what the memory/handoff notes claimed —
+worth remembering that this file and memory can drift from what's
+actually committed when work happens on a branch that gets abandoned or
+squashed differently than expected.
+
+Rebuilt from the WIP commit's own (correct, well-reasoned) design rather
+than from scratch, since it already matched the contract the shipped UI
+expects exactly:
+- `packages/capacitor-iap-bridge` — new local Capacitor plugin wrapping
+  StoreKit 2 (`getProducts`/`purchase`/`finishTransaction`/
+  `restorePurchases`), registered via a `file:` dependency in root
+  `package.json` so `npx cap sync ios` manages its Package.swift wiring
+  automatically (same pattern as `capacitor-streak-bridge`).
+- `android/app/src/main/java/.../IAPBridgePlugin.java` — hand-registered
+  in `MainActivity.java` (no separate Android Capacitor-package module
+  exists in this repo yet), wrapping Play Billing Library
+  (`com.android.billingclient:billing:7.1.1`, added to
+  `variables.gradle`/`build.gradle`). Same four-ish methods, Android-shaped
+  (`consumePurchase`/`queryPurchases` instead of `finishTransaction`/
+  `restorePurchases`, since Play Billing's consumable model differs from
+  StoreKit 2's).
+- `functions/index.js`'s new `verifyIAPPurchase` callable — verifies a
+  purchase's signature **offline** on both platforms (no App Store Connect
+  API key or Google Cloud service account needed): Apple via
+  `@apple/app-store-server-library` + a bundled root cert
+  (`functions/certs/AppleRootCA-G3.cer`), Android via Node's built-in
+  `crypto` (SHA1withRSA against the `PLAY_RSA_PUBLIC_KEY` secret, Play
+  Console's own recommended local-verification approach). Once verified,
+  it calls the same `recordDonation()` the Stripe webhook already uses —
+  a tip and a web donation both land in `donations/{uid}` and count
+  toward one shared Supporter streak.
+- Fixed a real bug while restoring this: `docs/index.html`'s `TIP_TIERS`
+  still had placeholder ids (`tip_2`, `tip_3`, …) instead of the real,
+  unrenameable App Store Connect product ids
+  (`2DollarOneTime26`, `3DollarOneTime26`, `5DollarOneTime26`,
+  `10DollarOneTime26`, `25DollarOneTime26`) — `verifyIAPPurchase`'s
+  `TIP_PRODUCT_IDS` allowlist would have rejected every purchase the old
+  ids tried to make. Fixed to match.
+- Also restored `ios/App/App/Configuration.storekit` (local StoreKit
+  Testing config, 5 consumable products matching the real product ids —
+  lets the tip jar be exercised in the Simulator with zero App Store
+  Connect round-trip) and a shared Xcode scheme
+  (`ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme`) that
+  points the Simulator's LaunchAction at that config file.
+- `npm install` (root + `functions/`) and `npx cap sync ios`/`android` all
+  run and clean as of this entry — `ios/App/CapApp-SPM/Package.swift` now
+  lists `capacitor-iap-bridge`, `ios/App/App/capacitor.config.json` lists
+  `IAPBridgePlugin`.
+
+**Still not done / needs a human**:
+- `PLAY_RSA_PUBLIC_KEY` Firebase secret was never set (needs the Base64
+  RSA key from Play Console → Monetization setup) — `verifyIAPPurchase`
+  will fail for Android purchases until `firebase functions:secrets:set
+  PLAY_RSA_PUBLIC_KEY` is run with the real value.
+  `functions/index.js` hasn't been deployed with this new export yet
+  either — needs `firebase deploy --only functions`.
+- No real device/Xcode build has exercised this yet — Simulator-only via
+  `Configuration.storekit` at this point. Xcode needs to actually resolve
+  the new local Swift package once opened (should be automatic on next
+  build, but hasn't been verified in Xcode itself this session).
+- Android: **still deliberately not building a new APK** for this per the
+  standing instruction — the plugin code and Gradle wiring are in place,
+  but nothing has compiled it yet.
+- The matching 5 annual-subscription IAP products (created in both
+  consoles per earlier entries) are still intentionally not wired into
+  `verifyIAPPurchase` or the UI — one-time tips only, by design, for now.
+
+## 📌 Decision (2026-09-17, later still): "Support the App" also works on the plain web build now, inline in Settings
+
+While reviewing the native tip jar in the browser (a plain `localhost`
+static server, not a Capacitor WebView), the user found the whole
+`supportSettingsSection` row missing — correct per the code at the time
+(`initSupportUI()` hid it whenever `iapPlugin()` returned `null`, i.e.
+whenever `window.Capacitor.isNativePlatform()` was false), but not what
+was wanted. The App Store/Play Store native-IAP requirement upstream of
+that gating only applies to a store build's WebView — a plain browser tab
+was never actually constrained by it, so hiding the row there was more
+conservative than necessary.
+
+Decided: reuse `docs/donate.html`'s exact Stripe frequency/amount picker
+(`STRIPE_LINKS`, the `.segmented`/`.amt-chip` picker, `openDonateLink`'s
+logic) inline inside the same `#supportModalOverlay` the native flow uses,
+rather than sending web users to a separate page. `openSupportModal()` now
+branches on `iapPlugin()`: present → native tier list (unchanged); absent
+→ `#supportWebPicker` (frequency toggle, amount chips, custom-amount and
+Continue buttons that open a Stripe Payment Link with
+`client_reference_id=<uid>` in a new tab, same as the donate page). Both
+paths share one `#supportModalBadgeRow` showing existing Supporter status
+via the already-cross-platform `donationState`/`renderSupporterStarCluster()`.
+
+`STRIPE_LINKS` is duplicated verbatim between `docs/index.html` and
+`docs/donate.html` (no shared module between the two static pages) — if a
+Payment Link ever gets recreated (e.g. another Stripe account switch like
+2026-09-17's Ko-fi one), **update both files**, or the two donate surfaces
+will silently drift out of sync.
+
+`docs/donate.html` itself is unchanged and still live as its own
+standalone page — this doesn't replace it, just adds a second, faster
+entry point that doesn't require leaving the app shell.
+
+## 📌 Decision (2026-09-17, later still): one shared picker for native and web, "Choose your own amount" reordered, copy simplified
+
+After seeing the web picker live, the user asked for two things: (1) the
+modal's copy simplified from "a tip helps cover the Apple/Google developer
+fees that keep it running" to "a donation helps to keep it running", and
+(2) native (iOS/Android) restyled to match the web picker's look —
+Frequency toggle + amount chips + Continue — instead of the old plain
+list of full-width "$2 Tip"/"$3 Tip"/… buttons, **including** the Yearly
+toggle (explicitly chosen over a one-time-only restyle when asked).
+
+Refactored `#supportModalOverlay` in `docs/index.html` to one shared
+`#supportPicker` for both platforms (replacing the separate
+`#supportTierList` native list and `#supportWebPicker` web picker from the
+prior entry) — see `renderSupportPicker()`, `openSupportModal()`, and the
+`initSupportUI()` Continue handler, which branches on `iapPlugin()` to
+either call `purchaseTip()` with a real store product id or
+`openSupportDonateLink()` (Stripe). Also reordered "Choose your own
+amount" to sit **above** the amount chips instead of below (explicit ask)
+— it only ever applies to the web/Stripe one-time path, so it stays
+hidden whenever native or Yearly is selected, same as before.
+
+**Blocked on real data, not fabricated**: the 5 annual-subscription IAP
+product ids (App Store Connect + Play Console) were never recorded
+anywhere in this repo despite the products supposedly already existing in
+both consoles per earlier entries — asked the user for them rather than
+guessing, since a wrong unrenameable product id would silently break every
+annual purchase attempt. Until supplied, `ANNUAL_TIP_TIERS` in
+`docs/index.html` is `null` and the native Yearly path shows "Annual tips
+aren't available in the app yet — check the donate page on the website"
+with Continue hidden, rather than attempting a purchase with a guessed id.
+Once the real ids arrive: set `ANNUAL_TIP_TIERS` to the same `{id, amount}`
+shape as `TIP_TIERS`, and `verifyIAPPurchase` in `functions/index.js` will
+also need an equivalent annual-aware productId allowlist (currently only
+checks against the 5 one-time `TIP_PRODUCT_IDS`) plus subscription-renewal
+handling analogous to the Stripe webhook's `invoice.paid` path — StoreKit 2
+delivers renewals through the same `Transaction.updates` listener
+`IAPBridgePlugin.swift` already has, so no new native code should be
+needed there, but Play Billing's renewal delivery (`purchase.acknowledge`
+timing, whether `queryPurchases` even surfaces a still-active subscription
+the same way as a consumable) hasn't been researched yet.

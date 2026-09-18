@@ -1,0 +1,20 @@
+{
+  "name": "capacitor-iap-bridge",
+  "version": "0.0.1",
+  "description": "Local, app-only Capacitor plugin: wraps StoreKit 2 for the native in-app tip jar. Not published — used only via the file: dependency in this repo's root package.json so `npx cap sync` can discover it and manage its native registration automatically instead of that being hand-maintained. The Android half of the tip jar is a separate, hand-registered plugin directly in android/app/ (see IAPBridgePlugin.java there) rather than a package like this one, since this repo has no existing Capacitor-package-style Android module and no Kotlin toolchain yet — see PROJECT_HANDOFF.md.",
+  "author": "",
+  "license": "UNLICENSED",
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

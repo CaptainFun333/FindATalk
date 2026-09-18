@@ -30,6 +30,7 @@
 		"LocalNotificationsPlugin",
 		"PreferencesPlugin",
 		"SharePlugin",
+		"IAPBridgePlugin",
 		"StreakBridgePlugin"
 	]
 }

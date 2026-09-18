@@ -1,0 +1,96 @@
+{
+  "identifier" : "6F5A1E20-6B9C-4B3A-9C7E-1D4F7A2E9C10",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "2.00",
+      "familyShareable" : false,
+      "internalID" : "A1E2F3B4-0001-4C1A-9B2D-3E4F5A6B7C8D",
+      "localizations" : [
+        {
+          "description" : "A small tip to help keep FindATalk running.",
+          "displayName" : "$2 Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "2DollarOneTime26",
+      "referenceName" : "Tip $2",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.00",
+      "familyShareable" : false,
+      "internalID" : "A1E2F3B4-0002-4C1A-9B2D-3E4F5A6B7C8D",
+      "localizations" : [
+        {
+          "description" : "A small tip to help keep FindATalk running.",
+          "displayName" : "$3 Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "3DollarOneTime26",
+      "referenceName" : "Tip $3",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "5.00",
+      "familyShareable" : false,
+      "internalID" : "A1E2F3B4-0003-4C1A-9B2D-3E4F5A6B7C8D",
+      "localizations" : [
+        {
+          "description" : "A small tip to help keep FindATalk running.",
+          "displayName" : "$5 Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "5DollarOneTime26",
+      "referenceName" : "Tip $5",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "10.00",
+      "familyShareable" : false,
+      "internalID" : "A1E2F3B4-0004-4C1A-9B2D-3E4F5A6B7C8D",
+      "localizations" : [
+        {
+          "description" : "A generous tip to help keep FindATalk running.",
+          "displayName" : "$10 Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "10DollarOneTime26",
+      "referenceName" : "Tip $10",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "25.00",
+      "familyShareable" : false,
+      "internalID" : "A1E2F3B4-0005-4C1A-9B2D-3E4F5A6B7C8D",
+      "localizations" : [
+        {
+          "description" : "A generous tip to help keep FindATalk running.",
+          "displayName" : "$25 Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "25DollarOneTime26",
+      "referenceName" : "Tip $25",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
