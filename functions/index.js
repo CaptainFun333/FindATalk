@@ -139,7 +139,13 @@ exports.stripeWebhook = onRequest(
 // Only the 5 one-time tips; the matching 5 annual-subscription products
 // also created there are not yet wired up (different StoreKit/Play Billing
 // verification path — see PROJECT_HANDOFF.md).
-const TIP_PRODUCT_IDS = ['2DollarOneTime26', '3DollarOneTime26', '5DollarOneTime26', '10DollarOneTime26', '25DollarOneTime26'];
+// iOS and Android use DIFFERENT real ids for the "same" 5 tiers (see
+// TIP_TIERS's own comment in docs/index.html for why) — this allowlist
+// has to include both platforms' ids together, not just one set.
+const TIP_PRODUCT_IDS = [
+  '2OneTime26', '3OneTime26', '5OneTime26', '10OneTime26', '25OneTime26', // iOS
+  '2DollarOneTime26', '3DollarOneTime26', '5DollarOneTime26', '10DollarOneTime26', '25DollarOneTime26' // Android
+];
 
 const IOS_BUNDLE_ID = 'com.captainfun333.findatalk';
 // App Store Connect -> App Information -> Apple ID (the numeric id, not
