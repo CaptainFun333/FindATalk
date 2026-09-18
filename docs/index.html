@@ -5796,6 +5796,28 @@ function dismissBadgeCelebration(){
    newly-crossed tier (append-only, keyed by real earn time), and queues a
    celebration for each. Safe to call often — badges already in
    earnedBadges are skipped, so this is a no-op once everything's earned. */
+/* Called right after a cloud merge (sign-in on a new device, or a live
+   snapshot pulling in another device's progress) — backfills earnedBadges
+   for any threshold the merged data already clears, with no celebration
+   queued. Merged progress reflects things the person already did
+   elsewhere, not something that just happened on this device, so it
+   shouldn't pop the "you just earned this!" modal the next time
+   checkForNewBadges() runs (e.g. from the next talk they read here). */
+function silentlyBackfillBadgesFromMerge(){
+  const streak = loadStreak();
+  const readingCount = readKeys.size;
+  let changed = false;
+  BADGE_DEFS.forEach(def=>{
+    if (earnedBadges[def.id]) return;
+    const threshold = typeof def.threshold === 'function' ? def.threshold() : def.threshold;
+    const progress = def.kind === 'streak' ? streak.longest : readingCount;
+    if (progress >= threshold){
+      earnedBadges[def.id] = Date.now();
+      changed = true;
+    }
+  });
+  if (changed) saveBadges();
+}
 function checkForNewBadges(){
   const streak = loadStreak();
   const readingCount = readKeys.size;
@@ -11445,6 +11467,7 @@ document.getElementById('noteConflictKeepBothBtn').addEventListener('click', ()=
 
 function applyCloudMergeAndRefresh(data){
   mergeBackupData(data);
+  silentlyBackfillBadgesFromMerge(); // idea 45 fix — a new device's own earnedBadges starts empty, so without this the next read/streak update treats every threshold this merge just cleared as freshly earned and re-celebrates it
   renderCollectionsIndexPage();
   // Always repaint, not just when the zone happens to be the one currently
   // shown — mergeBackupData already updated favoriteKeys/noteMap regardless
