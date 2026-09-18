@@ -4347,3 +4347,105 @@ purple-vs-brass color difference between the two devices in that
 comparison is unrelated — just each test device having a different
 Color Palette setting saved locally (Settings → Color Palette), not a
 platform bug.
+
+## 📌 Fix (2026-09-18): iOS cloud sync and tip-jar verification never actually worked after Sign in with Apple/Google — replaced the web-SDK auth bridge with native Firestore/Functions plugins
+
+Pre-1.7 build QA on the iPad Simulator surfaced this live: after a
+genuine, successful "Continue with Apple" sign-in, Favorites showed
+zero — not stale, actually empty — and adding a new favorite never
+reached the cloud either. `window.firebaseWeb.auth.currentUser` was
+confirmed `null` in Safari's Web Inspector even though
+`capForAuth.Plugins.FirebaseAuthentication.getCurrentUser()` showed a
+real signed-in native user, with the Errors console tab completely
+empty (no thrown/caught error at all).
+
+Root cause: cloud sync (`pushLocalDataToCloud`/`startCloudSync`/
+`applyCloudMergeAndRefresh`) and the native tip jar's `verifyIAPPurchase`
+call both read/wrote through `window.firebaseWeb.firestore`/`.functions`
+— the Firebase JS SDK, bound to its own separate `window.firebaseWeb.auth`
+session, NOT the native `@capacitor-firebase/authentication` session
+sign-in actually used on native. A `bridgeNativeAuthToWeb()` helper
+existed specifically to re-sign-in to the web SDK right after every
+native sign-in, to populate that session. That bridge relied on
+`signInWithCredential()`'s returned promise for Apple/Google (email/
+password used the web SDK's own sign-in methods directly, same issue).
+Firebase JS SDK has a confirmed, still-open bug where
+`signInWithCredential()` never resolves *or* rejects inside WKWebView
+(https://github.com/firebase/firebase-js-sdk/issues/2700,
+https://github.com/capawesome-team/capacitor-firebase/issues/221) — so
+on iOS the bridge's promise just hung forever, its `catch()` never ran
+(explaining the empty Errors tab), and the fallback
+`wireWebAuthBridgeListener()` (a separate `onAuthStateChanged` listener
+meant to catch the update independently) never fired either in this
+case. Net effect: `window.firebaseWeb.auth.currentUser` stayed `null`
+forever after an Apple/Google sign-in on iOS, so every Firestore call
+went out unauthenticated and was silently rejected by security rules,
+and every `verifyIAPPurchase` call (needs `request.auth.uid` server-side)
+would have failed the same way — the native tip jar was fully broken on
+iOS for anyone who didn't use email/password, not just cloud sync.
+(Email/password sign-in also used the bridge for parity/consistency,
+though its underlying `signInWithEmailAndPassword`/
+`createUserWithEmailAndPassword` calls don't have the same
+never-resolves bug — this wasn't separately confirmed broken.)
+
+Android was never affected by this specific bug (its WebView doesn't
+have the same `signInWithCredential()` issue) — cross-device sync
+between Android and the website was already confirmed working before
+this fix.
+
+Fix: installed `@capacitor-firebase/firestore` and
+`@capacitor-firebase/functions` (added to `package.json`, wired via
+`npx cap sync` — both auto-registered on Android/iOS with no
+`MainActivity.java`/manual registration needed, unlike the hand-rolled
+`IAPBridgePlugin`). Added a small cross-platform abstraction inside
+`initApp()`'s closure in `docs/index.html` —
+`cloudGetDoc`/`cloudSetDoc`/`cloudDeleteDoc`/`cloudOnSnapshot`/
+`cloudIncrementValue`/`cloudCallFunction` — that routes to the native
+plugins on native (talking to Firestore/Functions through the native
+SDK's own already-authenticated session, no bridge needed at all) and
+to the existing `window.firebaseWeb.*` calls on web. Every Firestore/
+`httpsCallable` call site (`pushLocalDataToCloud`, `startCloudSync`,
+`onIncrementGlobalReadCounter`'s global counter, `deleteMyAccountFlow`'s
+doc deletion, `startDonationSync`'s Supporter-badge listener,
+`finalizeTip`'s purchase verification) now goes through these instead of
+touching `window.firebaseWeb` directly. `bridgeNativeAuthToWeb()` and
+`wireWebAuthBridgeListener()` were removed entirely — native's
+`updateAccountUI()` already calls `onCloudUserChanged(user)` directly
+off the native auth listener (with the real native uid), which is now
+sufficient on its own since cloud sync no longer needs a second,
+web-SDK-authenticated session to catch up first.
+
+One implementation gotcha worth flagging for next time: calling
+`capForAuth.Plugins.FirebaseFirestore.addDocumentSnapshotListener(...)`
+directly (rather than through the npm package's own bundled client,
+which this file doesn't import — no bundler, `docs/index.html` is
+served as-is) hits Capacitor's raw callback-style native bridge, which
+returns the callback id **synchronously**, not wrapped in a `Promise`
+the way the package's `.d.ts` advertises (that `Promise` wrapping only
+exists inside the package's own `async` wrapper method, which isn't
+reached when calling the raw registered plugin proxy directly).
+`cloudOnSnapshot()` handles this defensively — checks whether the
+return value is thenable before deciding how to capture the callback id
+— rather than assuming either behavior. `getDocument`/`setDocument`/
+`deleteDocument`/`callByName` are unaffected (they don't take a
+callback argument, so they go through the promise-returning native
+bridge path normally).
+
+Verified end to end, not just compiled: rebuilt and reinstalled the
+Android debug APK on the emulator (`adb logcat` showed clean
+`FirebaseFirestore` plugin calls, no errors) and rebuilt+relaunched on
+the iPad Simulator — Favorites went from showing 0 to correctly showing
+the same 30 favorites already pushed from Android/the website,
+confirming the pull direction works; the push direction shares the
+exact same `cloudSetDoc` code path already exercised (and logged
+error-free) during that same sync cycle. `verifyIAPPurchase`'s new path
+through `@capacitor-firebase/functions` was not separately verified
+with a real/sandbox purchase — same reasoning (structurally identical
+promise-returning native call, no callback-argument quirk to worry
+about) but worth a real sandbox tip purchase test before relying on it
+in production.
+
+`PLAY_RSA_PUBLIC_KEY` Firebase secret (blocking Android tip
+verification, see this file's IAP entries above) was set and
+`verifyIAPPurchase` redeployed in the same session as this fix, so that
+blocker is now also cleared.
