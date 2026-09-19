@@ -10,7 +10,10 @@ this updated.
 
 ## [Unreleased]
 
-### Nothing yet.
+### Fixed
+- Un-starring a favorite on one device no longer gets added back the next time your favorites sync from another device or the cloud.
+- Removing a talk from one of your lists, or deleting a whole list, no longer gets undone the next time your lists sync from another device or the cloud.
+- Clearing a note now sticks — it no longer comes back the next time your notes sync from another device or the cloud.
 
 ## [1.7] — 2026-09-18
 

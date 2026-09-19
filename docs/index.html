@@ -5110,11 +5110,20 @@ function cfmMatchesForWeek(index){
 ------------------------------------------------------------------*/
 const RECENT_KEY = 'findATalkRecent';
 const FAVORITES_KEY = 'findATalkFavorites';
+// Last-toggled-at timestamp (ms) per talkKey, updated on every star/unstar —
+// not just "currently favorited" state. Lets mergeBackupData() below tell a
+// real removal apart from "this device just hasn't seen the favorite yet"
+// when merging cloud/backup data, instead of the old union-only merge that
+// could never represent "un-favorited" and so kept re-adding stars a device
+// had explicitly removed. See mergeBackupData()'s favorites block for how
+// this is used.
+const FAVORITES_META_KEY = 'findATalkFavoriteMeta';
 const READ_KEY = 'findATalkRead';
 const VISIT_COUNTS_KEY = 'findATalkVisitCounts';
 const RECENT_MAX = 50;
 let recentKeys = [];
 let favoriteKeys = new Set();
+let favoriteUpdatedAt = {};
 let readKeys = new Set();
 let visitCounts = {};
 
@@ -5273,6 +5282,10 @@ function loadRecentAndFavorites(){
     if (raw) favoriteKeys = new Set(JSON.parse(raw));
   } catch(err){ favoriteKeys = new Set(); }
   try {
+    const raw = localStorage.getItem(FAVORITES_META_KEY);
+    if (raw) favoriteUpdatedAt = JSON.parse(raw);
+  } catch(err){ favoriteUpdatedAt = {}; }
+  try {
     const raw = localStorage.getItem(READ_KEY);
     if (raw) readKeys = new Set(JSON.parse(raw));
   } catch(err){ readKeys = new Set(); }
@@ -5289,6 +5302,8 @@ function saveRecent(){
 }
 function saveFavorites(){
   try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favoriteKeys])); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(FAVORITES_META_KEY, JSON.stringify(favoriteUpdatedAt)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2) — push to cloud if signed in
 }
@@ -6150,6 +6165,7 @@ function isFavorite(talk){ return favoriteKeys.has(talkKey(talk)); }
 function toggleFavorite(talk){
   const key = talkKey(talk);
   if (favoriteKeys.has(key)) favoriteKeys.delete(key); else favoriteKeys.add(key);
+  favoriteUpdatedAt[key] = Date.now(); // records the removal too, not just the add — see FAVORITES_META_KEY's comment
   saveFavorites();
 }
 
@@ -6160,14 +6176,33 @@ function toggleFavorite(talk){
    into it: Favorites stays exactly as it already worked (one star, one
    page), and collections are however many named lists someone wants,
    each holding whichever talks they've added to it.
-   - `collections`: [{id, name}], in creation order.
+   - `collections`: [{id, name, updatedAt}], in creation order.
    - `collectionMembers`: {id: [talkKey, talkKey, ...]}.
    Both persisted separately in localStorage, same pattern as recents/
-   favorites (load once at startup, save after every mutation). */
+   favorites (load once at startup, save after every mutation).
+   Three more maps exist purely for cross-device sync (mergeBackupData()
+   further down), mirroring favoriteUpdatedAt's role for favorites:
+   - `collectionUpdatedAt`: {id: lastActivityAt} — bumped on ANY mutation
+     to that list (create/rename/add/remove member), deliberately separate
+     from `updatedAt` on the collection object itself, which only tracks
+     "most recently added to" for the My Lists sort (see touchCollection()
+     below) and must keep that narrower meaning.
+   - `collectionMemberUpdatedAt`: {id: {talkKey: lastToggledAt}} — same
+     role as favoriteUpdatedAt, but per list.
+   - `deletedCollections`: {id: deletedAt} — a tombstone for a whole list
+     that's been deleted, so mergeBackupData() can tell "this device
+     deleted the list" apart from "this device just never had it" and stop
+     a stale copy from resurrecting it. */
 const COLLECTIONS_KEY = 'findATalkCollections';
 const COLLECTION_MEMBERS_KEY = 'findATalkCollectionMembers';
+const COLLECTION_ACTIVITY_META_KEY = 'findATalkCollectionActivityMeta';
+const COLLECTION_MEMBER_META_KEY = 'findATalkCollectionMemberMeta';
+const DELETED_COLLECTIONS_KEY = 'findATalkDeletedCollections';
 let collections = [];
 let collectionMembers = {};
+let collectionUpdatedAt = {};
+let collectionMemberUpdatedAt = {};
+let deletedCollections = {};
 
 function loadCollections(){
   try {
@@ -6178,16 +6213,34 @@ function loadCollections(){
     const raw = localStorage.getItem(COLLECTION_MEMBERS_KEY);
     if (raw) collectionMembers = JSON.parse(raw);
   } catch(err){ collectionMembers = {}; }
+  try {
+    const raw = localStorage.getItem(COLLECTION_ACTIVITY_META_KEY);
+    if (raw) collectionUpdatedAt = JSON.parse(raw);
+  } catch(err){ collectionUpdatedAt = {}; }
+  try {
+    const raw = localStorage.getItem(COLLECTION_MEMBER_META_KEY);
+    if (raw) collectionMemberUpdatedAt = JSON.parse(raw);
+  } catch(err){ collectionMemberUpdatedAt = {}; }
+  try {
+    const raw = localStorage.getItem(DELETED_COLLECTIONS_KEY);
+    if (raw) deletedCollections = JSON.parse(raw);
+  } catch(err){ deletedCollections = {}; }
 }
 loadCollections();
 
 function saveCollections(){
   try { localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections)); }
   catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(COLLECTION_ACTIVITY_META_KEY, JSON.stringify(collectionUpdatedAt)); }
+  catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(DELETED_COLLECTIONS_KEY, JSON.stringify(deletedCollections)); }
+  catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2) — this function is top-level (before initApp()), same as saveFavorites() etc., not nested alongside scheduleCloudPush() as first assumed — goes through the indirection slot too
 }
 function saveCollectionMembers(){
   try { localStorage.setItem(COLLECTION_MEMBERS_KEY, JSON.stringify(collectionMembers)); }
+  catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(COLLECTION_MEMBER_META_KEY, JSON.stringify(collectionMemberUpdatedAt)); }
   catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
@@ -6195,6 +6248,7 @@ function createCollection(name){
   const id = 'col_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   collections.push({id, name, updatedAt: Date.now()});
   collectionMembers[id] = [];
+  collectionUpdatedAt[id] = Date.now();
   saveCollections();
   saveCollectionMembers();
   return id;
@@ -6202,6 +6256,9 @@ function createCollection(name){
 function deleteCollection(id){
   collections = collections.filter(c=> c.id !== id);
   delete collectionMembers[id];
+  delete collectionUpdatedAt[id];
+  delete collectionMemberUpdatedAt[id];
+  deletedCollections[id] = Date.now(); // tombstone — see the comment above COLLECTIONS_KEY
   saveCollections();
   saveCollectionMembers();
 }
@@ -6213,6 +6270,7 @@ function renameCollection(id, newName){
   const col = collections.find(c=> c.id === id);
   if (!col) return;
   col.name = newName;
+  collectionUpdatedAt[id] = Date.now();
   saveCollections();
 }
 function isInCollection(id, talk){
@@ -6237,12 +6295,19 @@ function addTalkToCollection(id, talk){
   const key = talkKey(talk);
   const arr = collectionMembers[id] || (collectionMembers[id] = []);
   if (!arr.includes(key)){ arr.push(key); touchCollection(id); }
+  (collectionMemberUpdatedAt[id] || (collectionMemberUpdatedAt[id] = {}))[key] = Date.now();
+  collectionUpdatedAt[id] = Date.now();
 }
 function removeTalkFromCollection(id, talk){
   const key = talkKey(talk);
   const arr = collectionMembers[id] || (collectionMembers[id] = []);
   const idx = arr.indexOf(key);
   if (idx !== -1) arr.splice(idx, 1);
+  // Timestamped same as an add, even though touchCollection() (the UI's
+  // "Recently Updated" sort) deliberately stays add-only — see its own
+  // comment. This one is purely for mergeBackupData()'s LWW sync merge.
+  (collectionMemberUpdatedAt[id] || (collectionMemberUpdatedAt[id] = {}))[key] = Date.now();
+  collectionUpdatedAt[id] = Date.now();
 }
 function toggleCollectionMember(id, talk){
   if (isInCollection(id, talk)) removeTalkFromCollection(id, talk); else addTalkToCollection(id, talk);
@@ -6276,7 +6341,15 @@ function removeTalksFromCollection(id, talks){
    alongside favorites/read/collections/streak — see the Backup
    export/import section further down. ------------------------------- */
 const NOTES_KEY = 'findATalkNotes';
+// Last-set-or-cleared-at timestamp (ms) per talkKey, same role as
+// favoriteUpdatedAt above — lets mergeBackupData() tell a real deletion
+// (clearing a note back to empty) apart from "this device hasn't seen the
+// note yet," and lets a genuinely newer edit on either side win outright
+// instead of always queuing a conflict (queueNoteConflict() below is now
+// only reached when neither side has a timestamp to compare).
+const NOTES_META_KEY = 'findATalkNoteMeta';
 let noteMap = {};
+let noteUpdatedAt = {};
 function loadNotes(){
   try {
     const raw = localStorage.getItem(NOTES_KEY);
@@ -6285,10 +6358,19 @@ function loadNotes(){
       noteMap = (parsed && typeof parsed === 'object') ? parsed : {};
     }
   } catch(err){ noteMap = {}; }
+  try {
+    const raw = localStorage.getItem(NOTES_META_KEY);
+    if (raw){
+      const parsed = JSON.parse(raw);
+      noteUpdatedAt = (parsed && typeof parsed === 'object') ? parsed : {};
+    }
+  } catch(err){ noteUpdatedAt = {}; }
 }
 loadNotes();
 function saveNotes(){
   try { localStorage.setItem(NOTES_KEY, JSON.stringify(noteMap)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(NOTES_META_KEY, JSON.stringify(noteUpdatedAt)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2) — same correction as saveCollections()/saveCollectionMembers() above
 }
@@ -6337,6 +6419,7 @@ function setNote(talk, text){
   const trimmed = (text || '').trim();
   delete noteMap[key];
   if (trimmed) noteMap[key] = trimmed;
+  noteUpdatedAt[key] = Date.now(); // records a clear, not just a set — see NOTES_META_KEY's comment
   saveNotes();
 }
 
@@ -11049,11 +11132,14 @@ collectionsIndexNewInput.addEventListener('keydown', (e)=>{
    purpose: it's viewing history, not something worth backing up. The
    streak (see STREAK_KEY above) IS included, unlike recentKeys — it's
    the one piece of "history" someone would actually be upset to lose.
-   Import always MERGES rather than replacing — union of favorite keys,
-   and for collections a union keyed by collection id so re-importing the
-   same file twice (or restoring on a device that already has some of
-   these lists) is safe and never loses or duplicates anything. The
-   streak merges by taking whichever side has the more recent lastDate as
+   Import always MERGES rather than replacing — favorites merge by
+   last-write-wins per key (see favoriteUpdatedAt/FAVORITES_META_KEY and
+   mergeBackupData()'s favorites block below), so a favorite explicitly
+   removed on one side stays removed instead of a plain union re-adding it
+   forever; collections merge as a union keyed by collection id so
+   re-importing the same file twice (or restoring on a device that already
+   has some of these lists) is safe and never loses or duplicates anything.
+   The streak merges by taking whichever side has the more recent lastDate as
    the current count (so restoring onto a fresh install picks up the
    backup's streak, but re-importing an old backup can never roll back an
    already-more-current streak on this device), and the longer of the two
@@ -11064,11 +11150,16 @@ function exportBackupData(){
     version: 1,
     exportedAt: new Date().toISOString(),
     favorites: [...favoriteKeys],
+    favoriteUpdatedAt: {...favoriteUpdatedAt},
     read: [...readKeys],
     visitCounts: {...visitCounts}, // idea 55 — authored, non-recomputable, same category as read/favorites
     collections,
     collectionMembers,
+    collectionUpdatedAt: {...collectionUpdatedAt},
+    collectionMemberUpdatedAt: JSON.parse(JSON.stringify(collectionMemberUpdatedAt)),
+    deletedCollections: {...deletedCollections},
     notes: noteMap,
+    noteUpdatedAt: {...noteUpdatedAt},
     streak: loadStreak()
   };
 }
@@ -11225,16 +11316,67 @@ function mergeStreakData(incoming){
   if (JSON.stringify(merged) === JSON.stringify(local)) return;
   saveStreak(merged);
 }
+/* Shared by every "membership set that can be explicitly removed from, not
+   just added to" merge below (favorites, and each collection's own member
+   list) — last-write-wins per key using a companion {key: updatedAt} meta
+   map, instead of the plain union the rest of mergeBackupData() still uses
+   for buckets nothing ever removes from. `localSet`/`localMeta` are
+   mutated in place (a Set and a plain object respectively); returns how
+   many keys actually changed membership and how many of those were
+   additions (the latter only used for legacy addedFavorites/addedLists UI
+   counters). incomingAt/localAt of 0 means "never explicitly toggled since
+   this timestamp existed" (an old backup file predating the meta map, or a
+   key nobody's touched on either side) — treated as untimestamped and
+   falls back to the old additive-only behavior so restoring a legacy
+   backup still works, and so a local removal that predates this feature
+   isn't outranked either. */
+function mergeTimestampedSet(localSet, localMeta, incomingArray, incomingMeta){
+  const incomingSet = new Set((Array.isArray(incomingArray) ? incomingArray : []).filter(key=> typeof key === 'string'));
+  const meta = (incomingMeta && typeof incomingMeta === 'object') ? incomingMeta : {};
+  const keysToCheck = new Set([...localSet, ...incomingSet, ...Object.keys(localMeta), ...Object.keys(meta)]);
+  let changed = 0, added = 0;
+  keysToCheck.forEach(key=>{
+    const incomingAt = typeof meta[key] === 'number' ? meta[key] : 0;
+    const localAt = typeof localMeta[key] === 'number' ? localMeta[key] : 0;
+    const localHas = localSet.has(key);
+    const incomingHas = incomingSet.has(key);
+    if (localHas === incomingHas){
+      if (incomingAt > localAt) localMeta[key] = incomingAt; // states agree — just adopt the newer timestamp
+      return;
+    }
+    if (incomingAt > localAt){
+      // A real, later change on the other side — adopt it, add or remove.
+      if (incomingHas) localSet.add(key); else localSet.delete(key);
+      localMeta[key] = incomingAt;
+      changed++;
+      if (incomingHas) added++;
+    } else if (incomingAt === 0 && localAt === 0 && incomingHas && !localHas){
+      // Neither side has ever timestamped this key — legacy-backup
+      // fallback, same as the old union-only behavior.
+      localSet.add(key);
+      changed++;
+      added++;
+    }
+    // else: local change is the same age or newer (including an
+    // untimestamped local removal outranking an untimestamped incoming
+    // add) — keep the local state as-is.
+  });
+  return {changed, added};
+}
 function mergeBackupData(data){
   let addedFavorites = 0, addedLists = 0, mergedLists = 0, addedNotes = 0;
   // Tracked alongside the counters above so each save*() call below (every
   // one of which schedules a cloud push) only fires when this merge
   // actually changed that bucket — see mergeStreakData's own comment for
   // why an unconditional save here creates an infinite pull/push loop.
-  let addedRead = false, visitCountsChanged = false, listsChanged = false;
-  (data.favorites || []).forEach(key=>{
-    if (typeof key === 'string' && !favoriteKeys.has(key)){ favoriteKeys.add(key); addedFavorites++; }
-  });
+  let addedRead = false, visitCountsChanged = false, listsChanged = false, favoritesChanged = false;
+  // Favorites merge — see FAVORITES_META_KEY's comment for why this needs
+  // to be timestamp-aware rather than the plain union every other bucket
+  // in here still uses.
+  {
+    const result = mergeTimestampedSet(favoriteKeys, favoriteUpdatedAt, data.favorites, data.favoriteUpdatedAt);
+    if (result.changed){ favoritesChanged = true; addedFavorites += result.added; }
+  }
   // `read` is a later addition than `favorites`/`collections` — older
   // backup files simply won't have it, so this just no-ops for them
   // rather than requiring it like importBackupFile requires the rest.
@@ -11255,50 +11397,118 @@ function mergeBackupData(data){
       }
     });
   }
-  (data.collections || []).forEach(col=>{
-    if (!col || typeof col.id !== 'string' || typeof col.name !== 'string') return;
-    const incomingMembers = (data.collectionMembers && data.collectionMembers[col.id]) || [];
-    if (!collections.some(c=> c.id === col.id)){
-      // Older backups predate `updatedAt` — fall back to "now" rather than
-      // leaving it undefined, so the My Lists "Recently Updated" sort
-      // still has something to compare against.
-      collections.push({id: col.id, name: col.name, updatedAt: typeof col.updatedAt === 'number' ? col.updatedAt : Date.now()});
-      collectionMembers[col.id] = [...incomingMembers];
-      addedLists++;
-      listsChanged = true;
-    } else {
+  // Collections merge — whole-list deletion and per-member removal are
+  // both now sync-aware (see the comment above COLLECTIONS_KEY), unlike
+  // the old version of this block which only ever added lists/members.
+  {
+    const incomingDeletedCollections = (data.deletedCollections && typeof data.deletedCollections === 'object') ? data.deletedCollections : {};
+    const incomingCollectionMeta = (data.collectionUpdatedAt && typeof data.collectionUpdatedAt === 'object') ? data.collectionUpdatedAt : {};
+    const incomingMemberMeta = (data.collectionMemberUpdatedAt && typeof data.collectionMemberUpdatedAt === 'object') ? data.collectionMemberUpdatedAt : {};
+    (data.collections || []).forEach(col=>{
+      if (!col || typeof col.id !== 'string' || typeof col.name !== 'string') return;
+      const incomingMembers = (data.collectionMembers && data.collectionMembers[col.id]) || [];
+      const incomingActivityAt = typeof incomingCollectionMeta[col.id] === 'number' ? incomingCollectionMeta[col.id]
+        : (typeof col.updatedAt === 'number' ? col.updatedAt : 0); // older backups predate collectionUpdatedAt — col.updatedAt is the next best signal
+      const existingCol = collections.find(c=> c.id === col.id);
+      if (!existingCol){
+        const localDeletedAt = typeof deletedCollections[col.id] === 'number' ? deletedCollections[col.id] : 0;
+        // This device deleted this list — only resurrect it if the other
+        // side shows real activity on it (an add, rename, or member
+        // change) strictly after that deletion; otherwise the tombstone
+        // wins and the stale incoming copy is ignored, same rationale as
+        // favorites not getting re-added by an untimestamped stale pull.
+        if (localDeletedAt > 0 && incomingActivityAt <= localDeletedAt) return;
+        collections.push({id: col.id, name: col.name, updatedAt: typeof col.updatedAt === 'number' ? col.updatedAt : Date.now()});
+        collectionMembers[col.id] = [...incomingMembers];
+        collectionUpdatedAt[col.id] = incomingActivityAt || Date.now();
+        collectionMemberUpdatedAt[col.id] = {...(incomingMemberMeta[col.id] || {})};
+        delete deletedCollections[col.id];
+        addedLists++;
+        listsChanged = true;
+        return;
+      }
+      const localActivityAt = typeof collectionUpdatedAt[col.id] === 'number' ? collectionUpdatedAt[col.id] : 0;
+      const incomingDeletedAt = typeof incomingDeletedCollections[col.id] === 'number' ? incomingDeletedCollections[col.id] : 0;
+      if (incomingDeletedAt > localActivityAt){
+        // Another device deleted this list after anything we know happened
+        // to it locally — propagate the deletion here too.
+        collections = collections.filter(c=> c.id !== col.id);
+        delete collectionMembers[col.id];
+        delete collectionUpdatedAt[col.id];
+        delete collectionMemberUpdatedAt[col.id];
+        deletedCollections[col.id] = incomingDeletedAt;
+        listsChanged = true;
+        return;
+      }
       const existing = collectionMembers[col.id] || (collectionMembers[col.id] = []);
-      let addedAny = false;
-      incomingMembers.forEach(key=>{ if (!existing.includes(key)){ existing.push(key); addedAny = true; } });
-      if (addedAny){ touchCollection(col.id); listsChanged = true; }
+      const localMemberMeta = collectionMemberUpdatedAt[col.id] || (collectionMemberUpdatedAt[col.id] = {});
+      const memberSet = new Set(existing);
+      const result = mergeTimestampedSet(memberSet, localMemberMeta, incomingMembers, incomingMemberMeta[col.id]);
+      if (result.changed){
+        collectionMembers[col.id] = [...memberSet];
+        if (result.added) touchCollection(col.id); // preserve "Recently Updated"'s own add-only semantics — see touchCollection()'s comment
+        listsChanged = true;
+      }
       mergedLists++;
-    }
-  });
-  // `notes` is a later addition than `favorites`/`collections` too — same
-  // no-op-on-older-files handling as `read` above. Never overwrites a note
-  // already sitting on this device with different text — idea 69: a real,
-  // different note on both sides for the same talk is a genuine conflict,
-  // queued for a person to resolve rather than silently discarding
-  // whichever side lost. Same text on both sides isn't a conflict at all.
-  if (data.notes && typeof data.notes === 'object'){
-    Object.keys(data.notes).forEach(key=>{
-      const text = data.notes[key];
-      if (typeof text !== 'string' || !text.trim()) return;
-      const incoming = text.trim();
-      if (!noteMap[key]){
-        noteMap[key] = incoming;
-        addedNotes++;
-      } else if (noteMap[key] !== incoming){
-        queueNoteConflict(key, noteMap[key], incoming);
+    });
+    // Record tombstones for lists this device never had at all, so a
+    // stale third copy showing up later can't resurrect something that's
+    // already known (from another device's own report) to be deleted.
+    Object.keys(incomingDeletedCollections).forEach(id=>{
+      const at = incomingDeletedCollections[id];
+      if (typeof at === 'number' && at > (deletedCollections[id] || 0) && !collections.some(c=> c.id === id)){
+        deletedCollections[id] = at;
       }
     });
   }
+  // Notes merge — timestamp-aware, same rationale as favorites (see
+  // NOTES_META_KEY's comment): a note cleared on this device (or another)
+  // used to come back on the next merge because the old logic could only
+  // ever fill in a note, never clear one. When both sides have a real
+  // timestamp for a key, whichever edit is newer just wins outright — a
+  // conflict is only queued (idea 69) in the legacy case where neither
+  // side has one to compare, the same ambiguous situation the conflict
+  // modal always existed for.
+  {
+    const incomingNotes = (data.notes && typeof data.notes === 'object') ? data.notes : {};
+    const incomingNoteMeta = (data.noteUpdatedAt && typeof data.noteUpdatedAt === 'object') ? data.noteUpdatedAt : {};
+    const noteKeysToCheck = new Set([...Object.keys(noteMap), ...Object.keys(incomingNotes), ...Object.keys(noteUpdatedAt), ...Object.keys(incomingNoteMeta)]);
+    let notesChanged = false;
+    noteKeysToCheck.forEach(key=>{
+      const incomingAt = typeof incomingNoteMeta[key] === 'number' ? incomingNoteMeta[key] : 0;
+      const localAt = typeof noteUpdatedAt[key] === 'number' ? noteUpdatedAt[key] : 0;
+      const localText = typeof noteMap[key] === 'string' ? noteMap[key] : '';
+      const incomingText = typeof incomingNotes[key] === 'string' ? incomingNotes[key].trim() : '';
+      if (localText === incomingText){
+        if (incomingAt > localAt) noteUpdatedAt[key] = incomingAt;
+        return;
+      }
+      if (incomingAt > localAt){
+        if (incomingText) noteMap[key] = incomingText; else delete noteMap[key];
+        noteUpdatedAt[key] = incomingAt;
+        notesChanged = true;
+        if (incomingText && !localText) addedNotes++;
+      } else if (incomingAt === 0 && localAt === 0){
+        // Legacy fallback, same as the old union-only behavior.
+        if (!localText && incomingText){
+          noteMap[key] = incomingText;
+          addedNotes++;
+          notesChanged = true;
+        } else if (localText && incomingText){
+          queueNoteConflict(key, localText, incomingText);
+        }
+        // else: incoming is an untimestamped "no note" against a local
+        // note that predates this feature — keep the local note.
+      }
+      // else: local change is the same age or newer — keep it as-is.
+    });
+    if (notesChanged) saveNotes();
+  }
   mergeStreakData(data.streak);
-  if (addedFavorites > 0) saveFavorites();
+  if (favoritesChanged) saveFavorites();
   if (addedRead) saveRead();
   if (visitCountsChanged) saveVisitCounts();
   if (listsChanged){ saveCollections(); saveCollectionMembers(); }
-  if (addedNotes > 0) saveNotes();
   return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
 /* ---------------------------------------------------------------
@@ -11333,12 +11543,17 @@ function mergeBackupData(data){
      left exactly as-is — signing out was never meant to erase a device's
      own copy, only to stop it talking to the cloud slot.
    Known limitation, inherited from mergeBackupData()'s own union-only
-   design: deleting a list/note on one device doesn't yet propagate as a
-   deletion to another device that already pulled it — merging only ever
-   adds. Acceptable for a first real-sync milestone (favorites/streak/
+   design for lists/notes/read/visitCounts: deleting a list/note on one
+   device doesn't yet propagate as a deletion to another device that
+   already pulled it — merging only ever adds. Favorites are the exception
+   (see favoriteUpdatedAt/FAVORITES_META_KEY and mergeBackupData()'s
+   favorites block): each toggle is timestamped, so un-starring on one
+   device now correctly propagates and stays un-starred, last-write-wins
+   per key, instead of getting re-added by the next stale merge. Acceptable
+   for the rest of the buckets as a first real-sync milestone (streak/
    notes/lists all still end up consistent and non-destructive across
    devices); real tombstone-based deletion sync would be its own
-   follow-up if this turns out to matter in practice. */
+   follow-up if this turns out to matter in practice for those too. */
 let cloudSyncUnsub = null;
 let cloudPushTimer = null;
 let cloudSyncUid = null;
@@ -11635,13 +11850,18 @@ async function clearAllLocalDataAndSignOut(){
   stopCloudSync();
   clearPendingRead();
   recentKeys = []; saveRecent();
-  favoriteKeys = new Set(); saveFavorites();
+  favoriteKeys = new Set(); favoriteUpdatedAt = {}; saveFavorites();
   readKeys = new Set(); saveRead();
   visitCounts = {}; saveVisitCounts();
   earnedBadges = {}; saveBadges();
-  collections = []; saveCollections();
-  collectionMembers = {}; saveCollectionMembers();
-  noteMap = {}; saveNotes();
+  // Clears the sync meta maps too, not just the data — leftover tombstones/
+  // timestamps here would otherwise survive the clear and could wrongly
+  // outrank a legitimate re-pull from the cloud the next time this device
+  // signs back in (e.g. a stale deletedCollections entry blocking a list
+  // that's still very much alive in the cloud from ever coming back down).
+  collections = []; collectionUpdatedAt = {}; deletedCollections = {}; saveCollections();
+  collectionMembers = {}; collectionMemberUpdatedAt = {}; saveCollectionMembers();
+  noteMap = {}; noteUpdatedAt = {}; saveNotes();
   saveStreak({count: 0, longest: 0, lastDate: null, activeDays: []});
   // Same refresh list applyCloudMergeAndRefresh() uses, for the same
   // reason — every screen that could be showing now-stale data.
