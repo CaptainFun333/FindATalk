@@ -11370,37 +11370,58 @@ function mergeBackupData(data){
   // actually changed that bucket — see mergeStreakData's own comment for
   // why an unconditional save here creates an infinite pull/push loop.
   let addedRead = false, visitCountsChanged = false, listsChanged = false, favoritesChanged = false;
+  // Streak merge runs FIRST and in its own try/catch, ahead of every other
+  // bucket below — it's the one thing here someone would actually be
+  // upset to lose, so it shouldn't depend on favorites/collections/notes
+  // merging without throwing first. See the fault-isolation comment further
+  // down for why every section here is now wrapped the same way.
+  try { mergeStreakData(data.streak); }
+  catch(err){ console.error('[cloud sync] streak merge failed', err); }
+  // Each section below (this one and everything through notes) is
+  // independently fault-isolated: a malformed field in just one bucket
+  // (stray test data, an old/odd-shaped backup, a bug in one merge path)
+  // used to throw and silently abort every section after it in this same
+  // function. Streak is now merged first, above, specifically so it can
+  // never be a casualty of that — but favorites/collections/notes still
+  // deserve the same isolation from each other. Confirmed live: a real
+  // 25-day streak got zeroed on both a phone and the web after a native
+  // sign-in sync, and the only way to notice was pulling the raw Firestore
+  // document by hand.
   // Favorites merge — see FAVORITES_META_KEY's comment for why this needs
   // to be timestamp-aware rather than the plain union every other bucket
   // in here still uses.
-  {
+  try {
     const result = mergeTimestampedSet(favoriteKeys, favoriteUpdatedAt, data.favorites, data.favoriteUpdatedAt);
     if (result.changed){ favoritesChanged = true; addedFavorites += result.added; }
-  }
+  } catch(err){ console.error('[cloud sync] favorites merge failed — other sections still ran', err); }
   // `read` is a later addition than `favorites`/`collections` — older
   // backup files simply won't have it, so this just no-ops for them
   // rather than requiring it like importBackupFile requires the rest.
-  (data.read || []).forEach(key=>{
-    if (typeof key === 'string' && !readKeys.has(key)){ readKeys.add(key); addedRead = true; }
-  });
+  try {
+    (data.read || []).forEach(key=>{
+      if (typeof key === 'string' && !readKeys.has(key)){ readKeys.add(key); addedRead = true; }
+    });
+  } catch(err){ console.error('[cloud sync] read merge failed — other sections still ran', err); }
   // `visitCounts` (idea 55) is later still — same no-op-on-older-files
   // handling. Takes the max of the two sides per key, not a sum — re-
   // importing the same backup twice (or restoring onto a device that
   // already has some counts) must stay safe, same "never double-counts"
   // guarantee every other merge here already has.
-  if (data.visitCounts && typeof data.visitCounts === 'object'){
-    Object.keys(data.visitCounts).forEach(key=>{
-      const val = data.visitCounts[key];
-      if (typeof val === 'number' && val > (visitCounts[key] || 0)){
-        visitCounts[key] = val;
-        visitCountsChanged = true;
-      }
-    });
-  }
+  try {
+    if (data.visitCounts && typeof data.visitCounts === 'object'){
+      Object.keys(data.visitCounts).forEach(key=>{
+        const val = data.visitCounts[key];
+        if (typeof val === 'number' && val > (visitCounts[key] || 0)){
+          visitCounts[key] = val;
+          visitCountsChanged = true;
+        }
+      });
+    }
+  } catch(err){ console.error('[cloud sync] visitCounts merge failed — other sections still ran', err); }
   // Collections merge — whole-list deletion and per-member removal are
   // both now sync-aware (see the comment above COLLECTIONS_KEY), unlike
   // the old version of this block which only ever added lists/members.
-  {
+  try {
     const incomingDeletedCollections = (data.deletedCollections && typeof data.deletedCollections === 'object') ? data.deletedCollections : {};
     const incomingCollectionMeta = (data.collectionUpdatedAt && typeof data.collectionUpdatedAt === 'object') ? data.collectionUpdatedAt : {};
     const incomingMemberMeta = (data.collectionMemberUpdatedAt && typeof data.collectionMemberUpdatedAt === 'object') ? data.collectionMemberUpdatedAt : {};
@@ -11460,7 +11481,7 @@ function mergeBackupData(data){
         deletedCollections[id] = at;
       }
     });
-  }
+  } catch(err){ console.error('[cloud sync] collections merge failed — other sections still ran', err); }
   // Notes merge — timestamp-aware, same rationale as favorites (see
   // NOTES_META_KEY's comment): a note cleared on this device (or another)
   // used to come back on the next merge because the old logic could only
@@ -11469,7 +11490,7 @@ function mergeBackupData(data){
   // conflict is only queued (idea 69) in the legacy case where neither
   // side has one to compare, the same ambiguous situation the conflict
   // modal always existed for.
-  {
+  try {
     const incomingNotes = (data.notes && typeof data.notes === 'object') ? data.notes : {};
     const incomingNoteMeta = (data.noteUpdatedAt && typeof data.noteUpdatedAt === 'object') ? data.noteUpdatedAt : {};
     const noteKeysToCheck = new Set([...Object.keys(noteMap), ...Object.keys(incomingNotes), ...Object.keys(noteUpdatedAt), ...Object.keys(incomingNoteMeta)]);
@@ -11503,8 +11524,7 @@ function mergeBackupData(data){
       // else: local change is the same age or newer — keep it as-is.
     });
     if (notesChanged) saveNotes();
-  }
-  mergeStreakData(data.streak);
+  } catch(err){ console.error('[cloud sync] notes merge failed — other sections still ran', err); }
   if (favoritesChanged) saveFavorites();
   if (addedRead) saveRead();
   if (visitCountsChanged) saveVisitCounts();

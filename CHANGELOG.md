@@ -14,6 +14,7 @@ this updated.
 - Un-starring a favorite on one device no longer gets added back the next time your favorites sync from another device or the cloud.
 - Removing a talk from one of your lists, or deleting a whole list, no longer gets undone the next time your lists sync from another device or the cloud.
 - Clearing a note now sticks — it no longer comes back the next time your notes sync from another device or the cloud.
+- Signing in could, in rare cases, wipe out a real streak instead of combining it with what was already saved to your account — a problem in one part of the sync could stop your streak from syncing at all. Fixed so your streak is now merged first and independently from everything else, so it's protected even if something else in that sync hiccups.
 
 ## [1.7] — 2026-09-18
 
@@ -61,6 +62,7 @@ this updated.
 - Sharing a talk now links back to FindATalk instead of straight to Gospel Library — opening the link takes you to the same talk right away, and it carries proper FindATalk attribution (name, icon, and description) wherever it's shared, including Facebook.
 - Unstarring (or starring) a talk's favorite icon on one screen now updates that same star everywhere else it's showing — it used to only update the one you clicked, leaving other screens showing stale, out-of-sync stars for the same talk.
 - Signing in on a new device with an existing streak or reading history no longer re-shows the "you earned a badge!" celebration for badges you already have — those now count as already seen.
+- App-exclusive (Android): "Continue with Google" could fail with "Account reauth failed," even with a correct account and no way to work around it — caused by an outdated pre-release Google sign-in library. Requires a new Android build to take effect.
 
 ### Changed
 - On My Lists, a list's name now gets its own full-width line instead of squeezing next to the rename/share/delete icons — long list names show a lot more before getting cut off.
