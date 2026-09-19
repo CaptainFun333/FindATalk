@@ -15,6 +15,8 @@ this updated.
 - Removing a talk from one of your lists, or deleting a whole list, no longer gets undone the next time your lists sync from another device or the cloud.
 - Clearing a note now sticks — it no longer comes back the next time your notes sync from another device or the cloud.
 - Signing in could, in rare cases, wipe out a real streak instead of combining it with what was already saved to your account — a problem in one part of the sync could stop your streak from syncing at all. Fixed so your streak is now merged first and independently from everything else, so it's protected even if something else in that sync hiccups.
+- The gold "streak" pill that lights up once you've studied today was too bright, making its text hard to read — darkened it for better contrast.
+- Typing in the title/summary or scripture/hymn search boxes could feel laggy, especially on Android — search now waits for a brief pause in typing before refreshing results, so typing itself never gets held up.
 
 ## [1.7] — 2026-09-18
 

@@ -913,7 +913,15 @@
      B (a checkmark on the flame) + C (a warm fill on the whole pill),
      combined per the mock-up. */
   .streak-badge.is-lit{
-    background:linear-gradient(135deg, var(--brass), var(--brass-bright));
+    /* A flat 40% black wash under the brass gradient — the raw gradient
+       alone is too light for --on-accent (cream) text to read clearly
+       against it, especially in dark mode where --brass runs lighter
+       still. The wash darkens every palette's own hue proportionally
+       (gold, teal, etc.) rather than hardcoding a color, so it stays
+       correct without per-palette edits. */
+    background:
+      linear-gradient(135deg, rgba(0,0,0,.4), rgba(0,0,0,.4)),
+      linear-gradient(135deg, var(--brass), var(--brass-bright));
     border-color:var(--brass-bright);
     color:var(--on-accent);
   }
@@ -7539,6 +7547,21 @@ readStatusButtons.forEach(btn=>{
   });
 });
 
+/* refreshCount() re-filters the entire talks dataset synchronously — cheap
+   enough for a button click, but firing it on every single keystroke of a
+   text search made typing itself feel laggy (each keystroke's paint had to
+   wait on that full filter pass first). Debouncing just the expensive call
+   keeps typing instant while still updating results shortly after someone
+   pauses; the input's own value/visual state (below) is never delayed. */
+function debounce(fn, ms){
+  let timer = null;
+  return (...args)=>{
+    clearTimeout(timer);
+    timer = setTimeout(()=> fn(...args), ms);
+  };
+}
+const debouncedRefreshCount = debounce(refreshCount, 200);
+
 /* ---------------- keyword search (title + kicker) ---------------- */
 const querySearchEl = document.getElementById('querySearch');
 const queryClearBtn = document.getElementById('queryClear');
@@ -7546,14 +7569,14 @@ const queryAliasHintEl = document.getElementById('queryAliasHint');
 querySearchEl.addEventListener('input', ()=>{
   filterState.query = querySearchEl.value;
   queryClearBtn.hidden = !querySearchEl.value;
-  refreshCount();
+  debouncedRefreshCount();
 });
 queryClearBtn.addEventListener('click', ()=>{
   filterState.query = '';
   querySearchEl.value = '';
   queryClearBtn.hidden = true;
   querySearchEl.focus();
-  refreshCount();
+  refreshCount(); // clearing is a discrete action, not a keystroke — no need to debounce it
 });
 
 /* ---------------- Scripture + Hymn citation search ----------------
@@ -7568,14 +7591,14 @@ const citeQueryClearBtn = document.getElementById('citeQueryClear');
 citeQuerySearchEl.addEventListener('input', ()=>{
   filterState.citeQuery = citeQuerySearchEl.value;
   citeQueryClearBtn.hidden = !citeQuerySearchEl.value;
-  refreshCount();
+  debouncedRefreshCount();
 });
 citeQueryClearBtn.addEventListener('click', ()=>{
   filterState.citeQuery = '';
   citeQuerySearchEl.value = '';
   citeQueryClearBtn.hidden = true;
   citeQuerySearchEl.focus();
-  refreshCount();
+  refreshCount(); // clearing is a discrete action, not a keystroke — no need to debounce it
 });
 
 refreshCount();
