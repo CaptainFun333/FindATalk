@@ -4789,6 +4789,14 @@ function talkOtherTalkCitations(talk){
       ref: resolved ? resolved[0] : text,
       href: resolved ? talkUrl(resolved) : `https://www.churchofjesuschrist.org${href}`,
     };
+    // Carried through so clicking "Open the talk"/the plain link below can
+    // credit an actual read — see buildCitationsBlock()'s "Other Talks"
+    // branch and openCiteDestModal()'s open-button handler. Only ever set
+    // here (Other Talks is the one citation type that points at another
+    // real entry in TALKS); independent of whether talkHref below resolves,
+    // so a plain-link citation (no in-talk paragraph anchor found) still
+    // credits the read same as the destination-choice modal does.
+    if (resolved) entry.resolvedTalk = resolved;
     const talkHref = citationTypeTalkHref(talk, 'talk', pos);
     if (talkHref) entry.talkHref = talkHref;
     return entry;
@@ -9188,6 +9196,17 @@ function buildCitationsBlock(talk, {compact=false}={}){
         el.href = cite.href;
         el.target = '_blank';
         el.rel = 'noopener';
+        // Same crediting as the destination-choice modal's open button
+        // (see openCiteDestModal()) — this is the plain-link path taken
+        // when there's no in-talk paragraph anchor to offer a choice
+        // between, not a reason to skip crediting a real talk being read.
+        if (g.label === 'Other Talks' && cite.resolvedTalk){
+          el.addEventListener('click', ()=>{
+            recordOpened(cite.resolvedTalk);
+            refreshCount();
+            if (recentZone.style.display === 'block') renderRecentPage();
+          });
+        }
       }
       el.textContent = cite.ref;
       el.className = compact ? (cite.href ? '' : 'row-cite-plain') : (cite.href ? 'cite-chip' : 'cite-chip is-plain');
@@ -12335,7 +12354,23 @@ const CITE_DEST_OPEN_LABELS = {
 function openCiteDestModal(cite, kind='Scriptures'){
   citeDestModalTitle.textContent = cite.ref;
   citeDestOpenBtn.textContent = CITE_DEST_OPEN_LABELS[kind] || 'Open it';
-  citeDestOpenBtn.onclick = ()=>{ window.open(cite.href, '_blank', 'noopener'); closeCiteDestModal(); };
+  citeDestOpenBtn.onclick = ()=>{
+    window.open(cite.href, '_blank', 'noopener');
+    // "Other Talks" is the one citation type that can point at a real talk
+    // in this app's own dataset (see talkOtherTalkCitations()'s
+    // resolvedTalk) — crediting it here, same recordOpened() every other
+    // "open a talk" entry point already uses, means reading a talk via a
+    // Come, Follow Me citation counts the same as opening it directly,
+    // still gated by the same real-engagement check everything else goes
+    // through (see the "read/streak-credit integrity gate" comment above
+    // readKeys) rather than crediting instantly on click.
+    if (kind === 'Other Talks' && cite.resolvedTalk){
+      recordOpened(cite.resolvedTalk);
+      refreshCount();
+      if (recentZone.style.display === 'block') renderRecentPage();
+    }
+    closeCiteDestModal();
+  };
   citeDestTalkBtn.onclick = ()=>{ window.open(cite.talkHref, '_blank', 'noopener'); closeCiteDestModal(); };
   citeDestModalOverlay.hidden = false;
 }

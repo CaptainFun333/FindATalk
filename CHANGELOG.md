@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Fixed
-Nothing yet.
+- Reading a talk by following an "Other Talks" citation link (common when studying from Come, Follow Me) now counts toward your read history and streak, same as opening it any other way — it used to give no credit at all.
 
 ## [1.7.1] — 2026-09-19
 
