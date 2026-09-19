@@ -11375,8 +11375,15 @@ function mergeTimestampedSet(localSet, localMeta, incomingArray, incomingMeta){
       if (incomingHas) added++;
     } else if (incomingAt === 0 && localAt === 0 && incomingHas && !localHas){
       // Neither side has ever timestamped this key — legacy-backup
-      // fallback, same as the old union-only behavior.
+      // fallback, same as the old union-only behavior. Stamping it with
+      // now (rather than leaving it at 0) matters: an untimestamped key
+      // stays permanently vulnerable to this same branch re-adding it
+      // after a future removal, since a real removal's fresh timestamp
+      // would otherwise be compared against yet another 0 — this way,
+      // once a key passes through here, it behaves like any other
+      // explicitly-toggled key from then on.
       localSet.add(key);
+      localMeta[key] = Date.now();
       changed++;
       added++;
     }
@@ -11533,9 +11540,13 @@ function mergeBackupData(data){
         notesChanged = true;
         if (incomingText && !localText) addedNotes++;
       } else if (incomingAt === 0 && localAt === 0){
-        // Legacy fallback, same as the old union-only behavior.
+        // Legacy fallback, same as the old union-only behavior. Stamped
+        // with now (see mergeTimestampedSet's matching comment) so this
+        // key isn't left permanently untimestamped and vulnerable to the
+        // same fallback re-adding a clear note re-applies after this.
         if (!localText && incomingText){
           noteMap[key] = incomingText;
+          noteUpdatedAt[key] = Date.now();
           addedNotes++;
           notesChanged = true;
         } else if (localText && incomingText){
@@ -11699,12 +11710,27 @@ async function pushLocalDataToCloud(){
   if (!cloudSyncUid) return;
   const uid = cloudSyncUid;
   // Pull and merge the latest cloud state before every push, not just the
-  // first one after sign-in. setDoc() below replaces the ENTIRE document —
-  // without this, a push built from a stale local snapshot can race another
-  // device's own push (e.g. it favorited something after our last pull) and
-  // silently wipe out that addition, since this isn't a field-level write.
-  // Merging first makes every push additive, matching the union-only design
-  // mergeBackupData already uses everywhere else.
+  // first one after sign-in — protects against a push built from a stale
+  // local snapshot racing another device's own push (e.g. it favorited
+  // something after our last pull). Merging first makes every push
+  // additive, matching the union-only design mergeBackupData already uses
+  // everywhere else.
+  //
+  // That mitigation only helps for fields THIS client's own code actually
+  // knows to merge, though — it can't protect a field it's never heard of.
+  // The write below now passes merge:true for exactly that reason: without
+  // it, setDoc() replaces the WHOLE document, so a device running any
+  // older build (a stale already-open tab that predates a newer field, a
+  // phone that hasn't updated yet) would silently erase that field for
+  // every device the moment it pushed anything at all — confirmed live: an
+  // un-starred favorite reappeared because the cloud doc's entire
+  // favoriteUpdatedAt map (and collectionUpdatedAt/noteUpdatedAt/
+  // deletedCollections alongside it) had been wiped out this way, so the
+  // next merge had no timestamp to compare against and fell back to
+  // "add it, nobody knows better." merge:true only touches the top-level
+  // keys actually present in this payload, leaving anything this build
+  // doesn't know about untouched on the server — new fields become
+  // additively safe across mixed versions instead of a ticking time bomb.
   try {
     const snap = await cloudGetDoc(cloudDocRef(uid));
     if (uid !== cloudSyncUid) return; // signed out / switched accounts mid-await
@@ -11718,7 +11744,7 @@ async function pushLocalDataToCloud(){
   const json = JSON.stringify(data);
   if (json === lastPushedJSON) return; // nothing actually changed since the last push
   try {
-    await cloudSetDoc(cloudDocRef(cloudSyncUid), data);
+    await cloudSetDoc(cloudDocRef(cloudSyncUid), data, true);
     // Only recorded as "pushed" once the write actually lands — setting
     // this beforehand meant a failed write still got treated as done, so
     // scheduleCloudPush()'s "nothing changed since last push" guard would

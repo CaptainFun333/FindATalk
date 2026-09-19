@@ -17,6 +17,7 @@ this updated.
 - Signing in could, in rare cases, wipe out a real streak instead of combining it with what was already saved to your account — a problem in one part of the sync could stop your streak from syncing at all. Fixed so your streak is now merged first and independently from everything else, so it's protected even if something else in that sync hiccups.
 - The gold "streak" pill that lights up once you've studied today was too bright, making its text hard to read — darkened it for better contrast.
 - Typing in the title/summary or scripture/hymn search boxes could feel laggy, especially on Android — search now waits for a brief pause in typing before refreshing results, so typing itself never gets held up.
+- A device running an older version of the app could silently erase newer sync data for everyone (favorites, lists, and notes could revert or reappear) just by syncing itself. Cloud syncing is now more careful about only touching what it actually knows about, instead of overwriting everything else on every sync.
 
 ## [1.7] — 2026-09-18
 
