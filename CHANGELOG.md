@@ -11,6 +11,11 @@ this updated.
 ## [Unreleased]
 
 ### Fixed
+Nothing yet.
+
+## [1.7.1] — 2026-09-19
+
+### Fixed
 - Un-starring a favorite on one device no longer gets added back the next time your favorites sync from another device or the cloud.
 - Removing a talk from one of your lists, or deleting a whole list, no longer gets undone the next time your lists sync from another device or the cloud.
 - Clearing a note now sticks — it no longer comes back the next time your notes sync from another device or the cloud.
@@ -31,7 +36,7 @@ this updated.
 
 ### Changed
 - Moved "Export Backup" / "Import Backup" from the bottom of My Lists to the bottom of Settings, alongside Sign Out and Clear Data.
-- Shortened the Daily Reminder, Reminder Time, and Weekly Come, Follow Me Reminder subtitles in Settings so they fit on one line on a phone.
+- Reworded the Daily Reminder, Reminder Time, and Weekly Come, Follow Me Reminder rows in Settings as short questions ("Talk of the Day", "What time?", "Come, Follow Me") so they fit on one line on a phone.
 - Shortened the "Search your notes" placeholder text so it no longer gets cut off on a phone.
 
 ## [1.7] — 2026-09-18

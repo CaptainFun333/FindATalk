@@ -89,4 +89,14 @@
          PUBLIC_STORAGE_ABOVE_ANDROID_10 permission alias). -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+    <!-- Android 11+ package-visibility rules can otherwise hide Google Play
+         services' Credential Manager provider from this app, which was one
+         of the things investigated alongside the Google Sign-In fix in
+         variables.gradle (androidxCredentialsVersion etc.) — play-services-
+         auth's own manifest usually merges the needed visibility in already,
+         but this was confirmed missing and costs nothing to add explicitly. -->
+    <queries>
+        <package android:name="com.google.android.gms" />
+    </queries>
 </manifest>

@@ -14,4 +14,28 @@ ext {
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
     playBillingVersion = '8.3.0'
+    // Fixes Google Sign-In on Android failing with "GetCredentialResponse
+    // error returned from framework" / "[16] Account reauth failed" on a
+    // Pixel 9, across every Google account tried — an OAuth/consent-screen
+    // config problem was ruled out first (all confirmed correct in Google
+    // Cloud Console). Root cause: com.google.firebase:firebase-auth itself
+    // transitively pins androidx.credentials/credentials-play-services-auth
+    // to a pre-release RC build (1.2.0-rc01) even in its latest release
+    // (24.2.0's own POM still lists it) — RC-quality Credential Manager
+    // client code is brittle against on-device Google Play services updates
+    // that ship independently of the app. These ext values alone don't
+    // reach that: @capacitor-firebase/authentication's own build.gradle
+    // only consumes them for its OWN compileOnly declarations
+    // (rgcfaIncludeGoogle defaults false), while the version that actually
+    // ships transitively via firebase-auth needed the global
+    // `resolutionStrategy.force` in the root build.gradle's `allprojects`
+    // block to actually override. playServicesAuthVersion is deliberately
+    // capped at 21.6.0, not the latest (22.0.0+): that release removed the
+    // legacy `com.google.android.gms.auth.api.signin.GoogleSignIn`/
+    // `GoogleSignInClient` classes the plugin's Java handlers still
+    // reference directly, which fails the build.
+    playServicesAuthVersion = '21.6.0'
+    androidxCredentialsVersion = '1.6.0'
+    androidxCredentialsPlayServicesAuthVersion = '1.6.0'
+    librariesIdentityGoogleidVersion = '1.2.1'
 }

@@ -22,6 +22,28 @@ allprojects {
         google()
         mavenCentral()
     }
+    // com.google.firebase:firebase-auth pins androidx.credentials/
+    // credentials-play-services-auth/googleid to its own old RC-era
+    // versions transitively (confirmed: even firebase-auth 24.2.0's POM
+    // still lists androidx.credentials 1.2.0-rc01) — overriding the
+    // *Version ext properties in variables.gradle alone doesn't reach this,
+    // since capacitor-firebase-authentication's own build.gradle only uses
+    // those for its OWN compileOnly declarations (rgcfaIncludeGoogle is
+    // false), while the version that actually ships is whatever
+    // firebase-auth itself transitively requires on the runtime classpath.
+    // Forcing here overrides that for every configuration in every module,
+    // which is the standard fix for this well-known Firebase Auth/
+    // Credential Manager version-pinning issue — see the fix for Google
+    // Sign-In's "Account reauth failed"/"GetCredentialResponse error"
+    // failure this was tracked down for.
+    configurations.all {
+        resolutionStrategy {
+            force "com.google.android.gms:play-services-auth:${rootProject.ext.playServicesAuthVersion}"
+            force "androidx.credentials:credentials:${rootProject.ext.androidxCredentialsVersion}"
+            force "androidx.credentials:credentials-play-services-auth:${rootProject.ext.androidxCredentialsPlayServicesAuthVersion}"
+            force "com.google.android.libraries.identity.googleid:googleid:${rootProject.ext.librariesIdentityGoogleidVersion}"
+        }
+    }
 }
 
 task clean(type: Delete) {
