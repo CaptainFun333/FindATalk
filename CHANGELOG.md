@@ -18,6 +18,7 @@ this updated.
 - The gold "streak" pill that lights up once you've studied today was too bright, making its text hard to read — darkened it for better contrast.
 - Typing in the title/summary or scripture/hymn search boxes could feel laggy, especially on Android — search now waits for a brief pause in typing before refreshing results, so typing itself never gets held up.
 - A device running an older version of the app could silently erase newer sync data for everyone (favorites, lists, and notes could revert or reappear) just by syncing itself. Cloud syncing is now more careful about only touching what it actually knows about, instead of overwriting everything else on every sync.
+- "Clear Data from This Device" could leave the hidden "Think Celestial!" secret in a stuck state — the device remembered you'd already found it, but the badge for finding it was gone, with no way to earn it back. Clearing data now resets both together, so the secret can always be found (and earned) again.
 
 ## [1.7] — 2026-09-18
 

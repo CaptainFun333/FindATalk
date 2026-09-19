@@ -11900,12 +11900,16 @@ function stopCloudSync(){
    Scoped to exactly what exportBackupData()/cloud sync already treat as
    "this person's data" (favorites/read/visitCounts/collections/notes/
    streak), plus recentKeys and earnedBadges — personal reading history
-   too, even though neither is part of the cloud-synced payload.
-   Deliberately leaves device *preferences* alone (theme, palette,
-   onboarding-seen, the secret star, reminder settings) — those belong to
-   the device, not to a person's reading history, and resetting them
-   would be a surprising side effect of what's meant to be a privacy
-   action, not a full app reset. */
+   too, even though neither is part of the cloud-synced payload. The
+   secret star's "already found" flag travels with earnedBadges now (see
+   the block below) rather than being left alone — the two used to be
+   able to drift apart, permanently orphaning the "Think Celestial!"
+   badge with no way to re-earn it (found-flag survived, badge didn't).
+   Deliberately leaves device *preferences* alone otherwise (theme,
+   palette, onboarding-seen, reminder settings) — those belong to the
+   device, not to a person's reading history, and resetting them would be
+   a surprising side effect of what's meant to be a privacy action, not a
+   full app reset. */
 async function clearAllLocalDataAndSignOut(){
   if (currentUser){
     try {
@@ -11923,6 +11927,17 @@ async function clearAllLocalDataAndSignOut(){
   readKeys = new Set(); saveRead();
   visitCounts = {}; saveVisitCounts();
   earnedBadges = {}; saveBadges();
+  // The hidden "Think Celestial!" secret used to be left as a permanent
+  // device preference here (see this function's own top comment) — but
+  // that meant clearing data wiped the earnedBadges record while leaving
+  // "already found" set, so the click sequence that grants the badge could
+  // never fire again: isSecretFound() gates it off as a no-op, permanently
+  // orphaning a badge nothing can re-earn. It should be found again per
+  // device, like everything else here — so both pieces reset together.
+  try { localStorage.removeItem(SECRET_FOUND_KEY); localStorage.removeItem(SECRET_CLICKS_KEY); } catch(err){ /* not fatal */ }
+  secretPhaseIndex = 0;
+  renderSecretIcon();
+  { const paletteBtn = document.getElementById('celestialPaletteChoice'); if (paletteBtn) paletteBtn.hidden = true; }
   // Clears the sync meta maps too, not just the data — leftover tombstones/
   // timestamps here would otherwise survive the clear and could wrongly
   // outrank a legitimate re-pull from the cloud the next time this device
