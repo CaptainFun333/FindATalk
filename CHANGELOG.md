@@ -24,7 +24,7 @@ Nothing yet.
 - The gold "streak" pill that lights up once you've studied today was too bright, making its text hard to read — darkened it for better contrast.
 - Typing in the title/summary or scripture/hymn search boxes could feel laggy, especially on Android — search now waits for a brief pause in typing before refreshing results, so typing itself never gets held up.
 - A device running an older version of the app could silently erase newer sync data for everyone (favorites, lists, and notes could revert or reappear) just by syncing itself. Cloud syncing is now more careful about only touching what it actually knows about, instead of overwriting everything else on every sync.
-- "Clear Data from This Device" could leave the hidden "Think Celestial!" secret in a stuck state — the device remembered you'd already found it, but the badge for finding it was gone, with no way to earn it back. Clearing data now resets both together, so the secret can always be found (and earned) again.
+- "Clear Data from This Device" could leave a hidden secret in a stuck state — the device remembered you'd already found it, but the badge for finding it was gone, with no way to earn it back. Clearing data now resets both together, so the secret can always be found (and earned) again.
 - The "N matching" pill on scripture/hymn search results could stay visually lit after you tapped it closed again, even though the matches had already folded back up — fixed.
 - Tapping "Next 10" or "Previous 10" at the bottom of a results list now scrolls you back to the top of the list, instead of leaving you scrolled down at the bottom looking at nothing new.
 - "Next" on a drawn talk no longer goes dim once you've stepped back to a previous one — it now draws a new random talk whenever there isn't already a talk to step forward to, so it's always usable.
@@ -50,7 +50,7 @@ Nothing yet.
 - A new Account section in Settings lets you sign in or create an account (email/password, Sign in with Apple, or Sign in with Google). Once signed in, your favorites, notes, lists, and streak now sync automatically across every device you're signed in on.
 - The streak badge now lights up gold with a checkmark once you've already studied today — so it's clear at a glance whether today still needs a talk or you're already set.
 - The "Show me around" tour now includes a screen about signing in to sync your favorites, notes, lists, and streak across devices, and a screen about earning badges for your streak and talks read.
-- Badges are no longer app-exclusive — "My Badges" in Settings, badge celebrations, and the hidden "Think Celestial!" badge are all now available on the website too.
+- Badges are no longer app-exclusive — "My Badges" in Settings, badge celebrations, and hidden badges are all now available on the website too.
 - When you search by a scripture or hymn, a talk's results now show a "N matching" badge you can tap to see just the citations that actually matched your search — no more digging through a long list of everything the talk cites to find the ones you searched for.
 - You can now support FindATalk's development from a donate page on the website (findatalk.com/donate.html) — sign in with your existing account to give a one-time or yearly gift, and see a supporter badge that tracks which years you've given.
 - A new "Support the App" option in Settings lets you give a gift without leaving the app or the website. On iPhone/Android it's a one-time tip ($2–$25) through Apple's or Google's own in-app purchase system (requires a new build on each platform, plus the tip products to be set up in the App Store/Play Store, to actually go live); on the website it's the same one-time or yearly picker as the donate page, right in Settings. Sign in first so it's remembered — every path counts toward the same Supporter badge.
@@ -58,7 +58,7 @@ Nothing yet.
 - If the same talk ends up with a different note on two devices that hadn't synced yet, you're now asked which one to keep — yours, the other one, or both combined — instead of one silently overwriting the other.
 
 ### Changed
-- The hidden "Think Celestial!" badge, and the icon above "Wow, you found it!" in its reveal pop-up, now show a sun instead of a star/sparkle, to match the icon it actually unlocks.
+- A hidden badge's icon now better matches what it actually unlocks.
 - Moved Sign Out, Clear Data, and Delete My Account to the very bottom of Settings, in their own row — Sign In stays at the top until you're actually signed in.
 - Signing out now also clears your favorites, notes, lists, streak, and reading history from that device (your account and its cloud copy are untouched, and everything comes right back the next time you sign in) — so a device you've signed out of doesn't keep showing your data to whoever picks it up next. "Clear Data from This Device" now only appears when you're not signed in, since Sign Out covers the same ground once you are.
 
