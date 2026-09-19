@@ -19,6 +19,20 @@ this updated.
 - Typing in the title/summary or scripture/hymn search boxes could feel laggy, especially on Android — search now waits for a brief pause in typing before refreshing results, so typing itself never gets held up.
 - A device running an older version of the app could silently erase newer sync data for everyone (favorites, lists, and notes could revert or reappear) just by syncing itself. Cloud syncing is now more careful about only touching what it actually knows about, instead of overwriting everything else on every sync.
 - "Clear Data from This Device" could leave the hidden "Think Celestial!" secret in a stuck state — the device remembered you'd already found it, but the badge for finding it was gone, with no way to earn it back. Clearing data now resets both together, so the secret can always be found (and earned) again.
+- The "N matching" pill on scripture/hymn search results could stay visually lit after you tapped it closed again, even though the matches had already folded back up — fixed.
+- Tapping "Next 10" or "Previous 10" at the bottom of a results list now scrolls you back to the top of the list, instead of leaving you scrolled down at the bottom looking at nothing new.
+- "Next" on a drawn talk no longer goes dim once you've stepped back to a previous one — it now draws a new random talk whenever there isn't already a talk to step forward to, so it's always usable.
+- Tightened the "N real, verified talks..." blurb at the very bottom of the page into a single line that lists the conference count instead.
+
+### Added
+- A "Thank You" message now appears the moment a new donation lands, letting you know you've earned a Supporter star and that you'll earn another with next year's gift.
+- The Supporter badge can now be shared, just like every other badge — it links to the donate page so others can join in.
+- "Export Backup" now also appears right in the Sign Out / Clear Data confirmation, so you can back up in the same moment you're asked whether you're sure.
+
+### Changed
+- Moved "Export Backup" / "Import Backup" from the bottom of My Lists to the bottom of Settings, alongside Sign Out and Clear Data.
+- Shortened the Daily Reminder, Reminder Time, and Weekly Come, Follow Me Reminder subtitles in Settings so they fit on one line on a phone.
+- Shortened the "Search your notes" placeholder text so it no longer gets cut off on a phone.
 
 ## [1.7] — 2026-09-18
 

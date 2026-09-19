@@ -1454,7 +1454,14 @@
     font-family:'Inter',sans-serif; font-size:12px; font-weight:600;
     cursor:pointer; -webkit-appearance:none; appearance:none;
   }
-  button.cite-count-badge:hover{ border-color:var(--brass); }
+  /* hover:hover excludes touchscreens — otherwise a tap leaves this
+     "stuck" in its hover border color (iOS Safari simulates :hover on tap
+     and never clears it until something else is tapped), which reads as
+     the pill staying lit even after aria-expanded/the panel have already
+     collapsed back to closed. */
+  @media (hover: hover){
+    button.cite-count-badge:hover{ border-color:var(--brass); }
+  }
   button.cite-count-badge[aria-expanded="true"]{
     background:var(--chip-bg); border-color:var(--brass);
   }
@@ -2625,7 +2632,7 @@
         </div>
         <div class="ticket-actions-row">
           <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Previous</button>
-          <button class="btn btn-ghost" id="forwardBtn" type="button" disabled>Next →</button>
+          <button class="btn btn-ghost" id="forwardBtn" type="button">Next →</button>
         </div>
         <!-- Same icon-circle style as every list row and the Talk of the
              Day card (.share-btn-icon + its favorite/collection/note
@@ -2895,7 +2902,7 @@
     <div class="search-field" id="notesSearchField">
       <label id="notesQueryLabel" for="notesQuery">Search your notes</label>
       <div class="search-input-wrap">
-        <input type="text" id="notesQuery" class="search-input" placeholder="Search what you wrote, or the talk's title/speaker/calling/topic…" autocomplete="off" aria-labelledby="notesQueryLabel">
+        <input type="text" id="notesQuery" class="search-input" placeholder="Search your notes or the talk's info…" autocomplete="off" aria-labelledby="notesQueryLabel">
         <button type="button" id="notesQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
       </div>
     </div>
@@ -2934,12 +2941,6 @@
     </div>
     <div class="collections-index-list" id="collectionsIndexList"></div>
     <div class="list-empty" id="collectionsIndexEmpty">You haven't created any lists yet — name one above to get started.</div>
-    <div class="collections-backup-row">
-      <button type="button" id="backupExportBtn">Export Backup</button>
-      <button type="button" id="backupImportBtn">Import Backup</button>
-      <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
-    </div>
-    <p class="backup-hint">Favorites, notes, and every list here live only on this device. Export a backup file before switching phones, reinstalling the app, or clearing your browser data — importing one adds to what's already here, it never removes anything.</p>
   </div>
 
   <div id="collectionZone" style="display:none">
@@ -3285,7 +3286,7 @@
         <div class="settings-row">
           <div class="settings-row-text">
             <strong>Daily Reminder</strong>
-            <span>One nudge a day with your talk ready to read.</span>
+            <span>A daily talk of the day nudge</span>
           </div>
           <label class="switch">
             <input type="checkbox" id="reminderToggle">
@@ -3295,7 +3296,7 @@
         <div class="settings-row" id="reminderTimeRow">
           <div class="settings-row-text">
             <strong>Reminder Time</strong>
-            <span>When the nudge shows up each day.</span>
+            <span>When your daily nudge arrives</span>
           </div>
           <input type="time" id="reminderTimeInput" aria-label="Reminder time">
         </div>
@@ -3308,7 +3309,7 @@
         <div class="settings-row">
           <div class="settings-row-text">
             <strong>Weekly Come Follow Me Reminder</strong>
-            <span>One nudge a week pointing to this week's matching talks.</span>
+            <span>A weekly nudge for this week's study</span>
           </div>
           <label class="switch">
             <input type="checkbox" id="weeklyCfmReminderToggle">
@@ -3363,6 +3364,15 @@
           <button type="button" class="btn btn-ghost danger-action" id="clearLocalDataBtn">Clear Data from This Device</button>
           <button type="button" class="btn btn-ghost danger-action" id="deleteAccountBtn" hidden>Delete My Account</button>
         </div>
+      </div>
+      <div class="settings-section">
+        <p class="settings-label">Backup</p>
+        <div class="collections-backup-row">
+          <button type="button" id="backupExportBtn">Export Backup</button>
+          <button type="button" id="backupImportBtn">Import Backup</button>
+          <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
+        </div>
+        <p class="backup-hint">Favorites, notes, and lists live only on this device unless you're signed in.</p>
       </div>
     </div>
   </div>
@@ -3427,8 +3437,9 @@
         <button type="button" class="modal-close" id="clearDataModalClose" aria-label="Close">&times;</button>
       </div>
       <p class="modal-copy" id="clearDataMainCopy">This wipes your favorites, notes, lists, streak, and reading history off this device — nowhere else. Handy if you're passing this device along, selling it, or sending it back.</p>
-      <p class="modal-copy"><span id="clearDataCloudNotice">Your account and its cloud copy are untouched</span>. Not sure? Grab a backup first — you'll find Export Backup at the bottom of My Lists.</p>
+      <p class="modal-copy"><span id="clearDataCloudNotice">Your account and its cloud copy are untouched</span>. <span id="clearDataBackupHint">Grab a backup first — click Export Backup before signing out.</span></p>
       <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="clearDataExportBtn">Export Backup</button>
         <button type="button" class="btn btn-ghost" id="clearDataCancelBtn">Cancel</button>
         <button type="button" class="btn btn-primary danger-confirm" id="clearDataConfirmBtn">Clear This Device</button>
       </div>
@@ -3446,7 +3457,7 @@
       </div>
       <p class="modal-copy">This permanently deletes your FindATalk account and everything synced to it — favorites, notes, lists, and streak, gone from the cloud and every device. This can't be undone.</p>
       <p class="modal-copy">This device is also cleared and signed out as part of the same action.</p>
-      <p class="modal-copy">Consider exporting a backup first (My Lists → Export Backup) if you're not sure.</p>
+      <p class="modal-copy">Consider exporting a backup first (Settings → Export Backup) if you're not sure.</p>
       <p class="auth-error" id="deleteAccountErrorMsg" hidden></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="deleteAccountCancelBtn">Cancel</button>
@@ -3628,10 +3639,7 @@
   </div>
 
   <footer>
-    <strong id="totalCount"></strong> real, verified talks from every General Conference,<br>
-    April 1971–April 2026 (111 conferences, no gaps).<br>
-    Topics, sessions &amp; citations are all pulled from<br>
-    the Church's own official records — never guessed.<br>
+    From <strong id="confCount"></strong> General Conferences — April 1971–present.<br>
     For the complete library, visit:<br>
     <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>.<br>
     FindATalk is a fan-made tool, not produced by the Church.
@@ -4198,6 +4206,9 @@ function openClearDataModal(){
   document.getElementById('clearDataCloudNotice').textContent = currentUser
     ? 'Your account and its cloud copy are untouched'
     : "There's nothing else to touch — you're not signed in";
+  document.getElementById('clearDataBackupHint').textContent = currentUser
+    ? 'Grab a backup first — click Export Backup before signing out.'
+    : 'Grab a backup first — click Export Backup before continuing.';
   clearDataModalOverlay.hidden = false;
 }
 function closeClearDataModal(){ clearDataModalOverlay.hidden = true; }
@@ -4205,6 +4216,12 @@ accountSignOutBtn.addEventListener('click', openClearDataModal);
 clearLocalDataBtn.addEventListener('click', openClearDataModal);
 document.getElementById('clearDataModalClose').addEventListener('click', closeClearDataModal);
 document.getElementById('clearDataCancelBtn').addEventListener('click', closeClearDataModal);
+// getElementById rather than the backupExportBtn variable — that const is
+// declared inside initApp()'s closure (see its own declaration further
+// down), which doesn't exist yet up here; a direct reference would be the
+// same real ReferenceError idea 45's badge-share listener already ran
+// into, so this reaches the button the same closure-safe way that fix did.
+document.getElementById('clearDataExportBtn').addEventListener('click', ()=> document.getElementById('backupExportBtn').click());
 clearDataModalOverlay.addEventListener('click', (e)=>{ if (e.target === clearDataModalOverlay) closeClearDataModal(); });
 document.getElementById('clearDataConfirmBtn').addEventListener('click', async ()=>{
   if (onClearLocalData) await onClearLocalData(); // see the slot's own comment — the real function is defined inside initApp()'s closure
@@ -5783,7 +5800,7 @@ function showNextBadgeCelebration(){
   if (!overlay) return; // web build — no modal in the DOM to show
   if (!badgeCelebrationQueue.length){ overlay.hidden = true; return; }
   const badge = badgeCelebrationQueue[0];
-  document.getElementById('badgeCelebrationTitle').textContent = `🎉 ${badge.label}`;
+  document.getElementById('badgeCelebrationTitle').textContent = `${badge.emoji || '🎉'} ${badge.label}`;
   document.getElementById('badgeCelebrationDesc').textContent = badge.desc;
   overlay.hidden = false;
 }
@@ -5941,6 +5958,9 @@ function renderBadgesList(){
     supporterRowHtml = `<div class="badge-row badge-earned">
       <div class="badge-icon">${renderSupporterStarCluster(donationState.years.length)}</div>
       <div class="badge-row-text"><strong>Supporter</strong><span>${statusText}</span></div>
+      <button type="button" class="share-btn-icon badge-share-btn" data-badge-id="supporter" aria-label="Share this badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+      </button>
     </div>`;
   }
   listEl.innerHTML = supporterRowHtml + celestialRowHtml + BADGE_DEFS.map(def=>{
@@ -7013,7 +7033,11 @@ const allRoles = ROLE_ORDER.filter(r=>Object.values(ROLE_LOOKUP).includes(r));
 // once real per-talk data starts populating SESSION_LOOKUP.
 const allSessions = SESSION_ORDER.filter(s=>TALKS.some(t=>talkSession(t)===s));
 
-document.getElementById('totalCount').textContent = TALKS.length;
+// Footer's conference count (idea 56) — computed from allConfs (distinct
+// conferences actually in the data), not hardcoded, so it never needs a
+// manual bump as new conferences ship, same reasoning as the footer's
+// "present" end date just above it in the markup.
+document.getElementById('confCount').textContent = allConfs.length;
 
 // Looks a talk back up by its talkKey() — used to render the Recently
 // Viewed / Favorites pages from the key lists in localStorage.
@@ -7723,9 +7747,12 @@ function syncReadBadge(){
 }
 onTicketReadBadgeSync = syncReadBadge; // registers with checkPendingRead() — see that top-level slot's own comment
 
+// "Next →" is never disabled — see its own click handler below for why:
+// it always has something real to do, whether that's redoing a step back
+// (pickFuture) or drawing a fresh talk. "← Previous" still disables
+// normally once there's nothing behind you to go back to.
 function updateBackBtn(){
   backBtn.disabled = pickHistory.length === 0;
-  forwardBtn.disabled = pickFuture.length === 0;
 }
 
 function draw(){
@@ -7820,7 +7847,14 @@ drawBtn2.addEventListener('click', draw);
 const backBtn = document.getElementById('backBtn');
 backBtn.addEventListener('click', goBack);
 const forwardBtn = document.getElementById('forwardBtn');
-forwardBtn.addEventListener('click', goForward);
+// Redo the talk just backed away from if there is one (pickFuture),
+// otherwise behave exactly like "Find a Talk" and draw a fresh one — so
+// "Next →" always has something real to do and is never greyed out,
+// unlike "← Previous" which stays disabled until there's real history.
+forwardBtn.addEventListener('click', ()=>{
+  if (pickFuture.length) goForward();
+  else draw();
+});
 
 /* ---------------- list of up to LIST_SIZE matching talks ---------------- */
 // LIST_SIZE is fixed at the original count "Show a List" always used.
@@ -9068,10 +9102,12 @@ listPrevBtn.addEventListener('click', ()=>{
   if (listPage === 0) return;
   listPage--;
   showList();
+  listHeader.scrollIntoView({block:'start'});
 });
 listNextBtn.addEventListener('click', ()=>{
   listPage++;
   showList();
+  listHeader.scrollIntoView({block:'start'});
 });
 
 /* ---------------- share (native share sheet, falls back to copy-link) ---------------- */
@@ -9411,6 +9447,11 @@ function flashShareButton(btnEl, message){
 // comment for why it's only ever embedded in the text, never passed to
 // performShare as a separate field).
 const FINDATALK_URL = 'https://findatalk.com';
+// Same live domain, pointed at the donate page specifically — used by the
+// Supporter badge's own share text, which invites someone else to give
+// rather than just announcing a badge (see badge-share-btn's click
+// handler), so it needs the donate page, not the app's front door.
+const DONATE_URL = 'https://findatalk.com/donate.html';
 
 /* Phase 3 (idea 45) — generic plain-text share, for things that aren't a
    single talk (streak, a milestone, a whole list) so don't have their own
@@ -10289,10 +10330,12 @@ cfmListPrevBtn.addEventListener('click', ()=>{
   if (cfmListPage === 0) return;
   cfmListPage--;
   cfmRefreshResults();
+  cfmItemsEl.scrollIntoView({block:'start'});
 });
 cfmListNextBtn.addEventListener('click', ()=>{
   cfmListPage++;
   cfmRefreshResults();
+  cfmItemsEl.scrollIntoView({block:'start'});
 });
 
 /* ---- putting it together: filter panel + sort + pagination + rows ----
@@ -12012,16 +12055,36 @@ onDeleteMyAccount = deleteMyAccountFlow; // see the slot's own comment for why t
    stopCloudSync/cloudDocRef above are only ever reached through the
    top-level onCloudUserChanged slot instead of being called directly. */
 let donationUnsub = null;
+// Baseline supporter-years count for detecting a genuinely NEW donation via
+// a live snapshot update, as opposed to just loading existing state (on
+// sign-in, or this listener's own first callback on attach, which fires
+// immediately with whatever's already there). null until that first
+// callback sets it — only a LATER callback with a higher count than this
+// baseline means a donation just landed, worth celebrating.
+let donationYearsSeen = null;
 
 function startDonationSync(uid){
   if (donationUnsub) donationUnsub();
+  donationYearsSeen = null;
   donationUnsub = cloudOnSnapshot('donations/' + uid, (snap)=>{
-    donationState = snap.exists ? snap.data : null;
+    const nextState = snap.exists ? snap.data : null;
+    const nextYears = nextState && Array.isArray(nextState.years) ? nextState.years.length : 0;
+    if (donationYearsSeen !== null && nextYears > donationYearsSeen){
+      badgeCelebrationQueue.push({
+        emoji: '⭐',
+        label: "You're a Supporter!",
+        desc: "Thank you for helping keep FindATalk free and ad-free. You've earned a star, and you'll receive another each year you donate."
+      });
+      showNextBadgeCelebration();
+    }
+    donationYearsSeen = nextYears;
+    donationState = nextState;
     renderBadgesList(); // no-op via its own listEl guard when the modal isn't in the DOM (web build)
   }, (err)=>{ console.error('[IAP] donations listener failed', err); });
 }
 function stopDonationSync(){
   if (donationUnsub){ donationUnsub(); donationUnsub = null; }
+  donationYearsSeen = null;
   donationState = null;
   renderBadgesList();
 }
@@ -12523,6 +12586,16 @@ initSupportUI();
 document.getElementById('badgesModalList').addEventListener('click', (e)=>{
   const btn = e.target.closest('.badge-share-btn');
   if (!btn) return;
+  // Supporter, like Think Celestial! below, isn't in BADGE_DEFS (it's
+  // driven by donationState, not a progress threshold) — special-cased
+  // with its own share text pointing at the donate page, rather than the
+  // generic "I just earned..." + FINDATALK_URL every BADGE_DEFS badge
+  // shares, since the point here is inviting someone else to give, not
+  // just announcing a badge.
+  if (btn.dataset.badgeId === 'supporter'){
+    shareText(`⭐ Just supported FindATalk — the free, ad-free app for studying General Conference talks. If it's been useful to you too: ${DONATE_URL}`, btn);
+    return;
+  }
   // Idea 54's "Think Celestial!" badge isn't in BADGE_DEFS (it's earned
   // by an event — finding the secret star — not a progress threshold, so
   // it doesn't fit that array's shape) — special-cased here rather than
