@@ -39,12 +39,30 @@ Store:
 
 ## Release process summary
 
-- **Web-only fixes** (`docs/`): commit + push to `main` → GitHub Pages
-  redeploys automatically → users get it on next app relaunch (background
-  refresh, not mid-session). No store submission needed.
+`capacitor.config.json` has no `server.url` — the native apps bundle a
+**local copy** of `docs/` (`webDir: "docs"`), not a live page. There is no
+general "no store submission needed" case for `docs/index.html` changes;
+what actually reaches native users without a new build depends on which
+file changed:
+
+- **`docs/data.json` only** (talk data): genuinely live — `index.html`'s
+  `loadData()` fetches the current copy from `REMOTE_DATA_URL`
+  (`https://findatalk.com/data.json`) in the background and swaps it in
+  once it lands. No new build needed on either platform.
+- **`docs/index.html` itself** (JS/HTML/CSS — logic, markup, styling,
+  new features): the website (findatalk.com) gets it immediately, since
+  browsers load it live via GitHub Pages. The native apps do **not** —
+  they keep running whatever `index.html` was bundled into their last
+  build until a new one ships. Any change here needs new iOS/Android
+  builds before existing installs see it, even though it's a "web-only"
+  file living under `docs/`.
 - **Native fixes** (`android/`, `ios/`): requires a version bump
   (`versionCode`/`versionName` in `android/app/build.gradle`), a new signed
   build (`./gradlew bundleRelease` for Android), and manual upload through
   Play Console / App Store Connect (credentials/2FA — user does this step).
+
+When logging a changelog entry for an `index.html` change, don't assume it
+ships for free — call out that it needs a new native build, the same way
+existing entries already do for native-only fixes.
 
 See `PROJECT_HANDOFF.md` for full architecture/history detail.

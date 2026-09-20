@@ -3563,6 +3563,35 @@
     </div>
   </div>
 
+  <!-- Idea 67 — the "active interruption" side of the Support the App
+       plan (the quiet #supportAppBtn/openSupportModal() above is the
+       passive door; this is the other one): a reading-count milestone ask
+       (10 talks, then every 30 after) and a Jan 1 New Year ask, both
+       opened from openSupportAsk() (see maybeShowSupportMilestoneAsk()/
+       maybeShowNewYearSupportAsk() in the script). Reuses
+       .badge-celebration-modal's chrome (glyph/h3/.modal-copy) like
+       secretRevealModalOverlay above, but — unlike every other
+       celebration modal here — this one is a genuine ask with two real
+       choices, not a one-button acknowledgment, so it gets a second,
+       lower-emphasis dismiss alongside the usual .btn-primary (same
+       .secret-modal-later treatment as the secret reveal's "Maybe
+       later"). #supportAskBadgeRow only shows for the New Year/lapsed-
+       supporter variant, which reuses the same star-cluster rendering as
+       the real Support modal above it. -->
+  <div class="modal-overlay" id="supportAskModalOverlay" hidden>
+    <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="supportAskTitle">
+      <span class="secret-modal-glyph" id="supportAskGlyph"></span>
+      <h3 id="supportAskTitle"></h3>
+      <p class="modal-copy" id="supportAskDesc"></p>
+      <div class="badge-row secret-badge-row" id="supportAskBadgeRow" hidden>
+        <div class="badge-icon" id="supportAskBadgeIcon"></div>
+        <div class="badge-row-text"><strong>Supporter</strong><span id="supportAskBadgeText"></span></div>
+      </div>
+      <button type="button" class="btn btn-primary" id="supportAskContinueBtn">Support the App</button>
+      <button type="button" class="secret-modal-later" id="supportAskDismissBtn">Not now</button>
+    </div>
+  </div>
+
   <!-- Idea 54 — the secret star's reveal. Opened once from
        revealSecret() (see the script), never again — not a queued/
        repeatable celebration like badgeCelebrationModalOverlay above.
@@ -4447,6 +4476,26 @@ document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !badgeCelebrationModalOverlay.hidden) dismissBadgeCelebration();
 });
 
+/* Idea 67 — support-ask modal wiring. Opened only from
+   openSupportAsk() (see maybeShowSupportMilestoneAsk()/
+   maybeShowNewYearSupportAsk() further down), never by a direct user
+   click — same "opened programmatically, dismissed by the user" shape
+   as badgeCelebrationModalOverlay just above. The primary button hands
+   off to the real checkout (openSupportModal()) rather than donating
+   inline here — this modal's only job is the ask itself. */
+const supportAskModalOverlay = document.getElementById('supportAskModalOverlay');
+document.getElementById('supportAskContinueBtn').addEventListener('click', ()=>{
+  closeSupportAsk();
+  if (onOpenSupportModal) onOpenSupportModal();
+});
+document.getElementById('supportAskDismissBtn').addEventListener('click', closeSupportAsk);
+supportAskModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === supportAskModalOverlay) closeSupportAsk();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !supportAskModalOverlay.hidden) closeSupportAsk();
+});
+
 /* ---------------------------------------------------------------
    Idea 54 — the secret star. Click the divider's star
    SECRET_CLICK_THRESHOLD times (5, matching the reveal note's own
@@ -5247,6 +5296,14 @@ let pendingCloudUserSet = false;
 // this file is declared.
 let onClearLocalData = null;
 let onDeleteMyAccount = null;
+// Idea 67 — same indirection-slot pattern again, same real bug caught
+// live (not just reasoned about): openSupportModal() is defined inside
+// initApp()'s closure (alongside initSupportUI(), which assigns this
+// slot), but #supportAskContinueBtn's click handler is wired up
+// top-level next to the rest of the support-ask modal's wiring, well
+// before initApp() ever runs. A direct call threw
+// "openSupportModal is not defined" when actually clicked.
+let onOpenSupportModal = null;
 // Hotfix (2026-09) — same pattern again: incrementGlobalReadCounter()
 // (idea 68) needs cloudSyncUid, which only exists inside initApp()'s
 // closure, but is called from incrementVisitCount(), a top-level
@@ -5805,7 +5862,11 @@ let badgeCelebrationQueue = [];
 function showNextBadgeCelebration(){
   const overlay = document.getElementById('badgeCelebrationModalOverlay');
   if (!overlay) return; // web build — no modal in the DOM to show
-  if (!badgeCelebrationQueue.length){ overlay.hidden = true; return; }
+  if (!badgeCelebrationQueue.length){
+    overlay.hidden = true;
+    maybeShowSupportMilestoneAsk(); // idea 67 — only once badge celebrations (if any) have fully drained, so the two overlays never stack
+    return;
+  }
   const badge = badgeCelebrationQueue[0];
   document.getElementById('badgeCelebrationTitle').textContent = `${badge.emoji || '🎉'} ${badge.label}`;
   document.getElementById('badgeCelebrationDesc').textContent = badge.desc;
@@ -5869,7 +5930,15 @@ function checkForNewBadges(){
   });
   if (earnedSomething){
     saveBadges();
-    showNextBadgeCelebration();
+    showNextBadgeCelebration(); // its own empty-queue branch chains into maybeShowSupportMilestoneAsk() once dismissed
+  } else {
+    // idea 67 — no new badge this time, so showNextBadgeCelebration() (and
+    // its chained milestone check) never runs on its own; check directly.
+    // A reading-badge tier and a support-milestone tier landing on the
+    // SAME call (e.g. both fire at 10) is instead handled by the branch
+    // above, since maybeShowSupportMilestoneAsk() itself re-checks
+    // readKeys.size fresh rather than trusting a value passed in.
+    maybeShowSupportMilestoneAsk();
   }
 }
 
@@ -5890,6 +5959,125 @@ function joinYearsSentence(years){
   if (sorted.length === 2) return `${sorted[0]} and ${sorted[1]}`;
   return sorted.slice(0, -1).join(', ') + ', and ' + sorted[sorted.length - 1];
 }
+
+/* ---- Idea 67 — the "active interruption" side of the plan: a
+   reading-count milestone ask and a Jan 1 New Year ask. Both are real
+   asks (two real choices), unlike every other celebration modal in this
+   file, so they get their own #supportAskModalOverlay (see openSupportAsk()
+   below) rather than reusing badgeCelebrationModalOverlay's single-button
+   shape. Both funnel into the same real checkout (openSupportModal()) —
+   this pair's only job is deciding WHEN to ask, never how to collect. */
+
+// Fires once reading count first reaches 10, then every 30 after (40, 70,
+// 100…) — the exact tiers agreed in the design notes. Not a fixed list:
+// readKeys.size only ever grows, so this is checked fresh against the
+// current count rather than tracked as "already asked at N."
+function isSupportMilestoneCount(n){
+  return n === 10 || (n > 10 && (n - 10) % 30 === 0);
+}
+const SUPPORT_MILESTONE_LAST_ASK_KEY = 'findATalkSupportMilestoneLastAsk';
+const SUPPORT_MILESTONE_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // "capped at once a month" — a binge reader crossing several tiers in one sitting only gets asked once
+// True while either celebration-family overlay is already open — both
+// maybeShowSupportMilestoneAsk() and maybeShowNewYearSupportAsk() defer
+// rather than stack a second overlay on top of one already showing.
+function celebrationSurfaceBusy(){
+  const badge = document.getElementById('badgeCelebrationModalOverlay');
+  const ask = document.getElementById('supportAskModalOverlay');
+  return !!((badge && !badge.hidden) || (ask && !ask.hidden));
+}
+// Called from showNextBadgeCelebration() once its own queue has fully
+// drained (see that function above) — never directly from
+// checkPendingRead(), specifically so a reading-badge celebration
+// (BADGE_DEFS' reading-10 tier fires the same moment this can) always
+// finishes first instead of the two overlays racing.
+function maybeShowSupportMilestoneAsk(){
+  if (celebrationSurfaceBusy()) return;
+  if (isActiveSupporter()) return; // muted for 365 days after any donation, per the design notes
+  const count = readKeys.size;
+  if (!isSupportMilestoneCount(count)) return;
+  let lastAsk = 0;
+  try { lastAsk = Number(localStorage.getItem(SUPPORT_MILESTONE_LAST_ASK_KEY)) || 0; } catch(err){ /* ignore */ }
+  if (Date.now() - lastAsk < SUPPORT_MILESTONE_COOLDOWN_MS) return;
+  try { localStorage.setItem(SUPPORT_MILESTONE_LAST_ASK_KEY, String(Date.now())); } catch(err){ /* ignore */ }
+  openSupportAsk({
+    glyph: '📖',
+    title: `${count} Talks Read!`,
+    desc: count === 10
+      ? "You've read 10 talks with FindATalk. If it's helped you, a small gift keeps it free for everyone."
+      : `${count} talks and counting. FindATalk stays free thanks to people like you — consider chipping in.`,
+    dismissLabel: 'Not now'
+  });
+}
+
+// Fires once per calendar year, only in January, so it isn't tied to
+// actually being open exactly on Jan 1 — checked on cold start and every
+// return to the foreground (see watchForSupportPrompts() near the other
+// onForeground() watchers). Two variants, per the design notes: someone
+// who has given before but isn't currently active (their real given-years
+// list, inviting them to add the new year) vs. someone who never has
+// (explains the mechanic, since they've likely never seen it). A
+// currently-active supporter gets neither — their own renewal already
+// fires a real celebration when it actually happens (see
+// startDonationSync() further down), so a calendar-driven ask here would
+// just be a redundant, worse-timed version of that.
+const SUPPORT_NEWYEAR_LAST_SHOWN_KEY = 'findATalkSupportNewYearShownYear';
+function maybeShowNewYearSupportAsk(){
+  const now = new Date();
+  if (now.getMonth() !== 0) return; // January only
+  const year = now.getFullYear();
+  let lastShown = null;
+  try {
+    const raw = localStorage.getItem(SUPPORT_NEWYEAR_LAST_SHOWN_KEY);
+    lastShown = raw ? Number(raw) : null;
+  } catch(err){ lastShown = null; }
+  if (lastShown === year) return; // already shown this year
+  if (celebrationSurfaceBusy()) return; // try again next foreground event rather than skip the year entirely
+  if (isActiveSupporter()) return;
+  const givenYears = (donationState && Array.isArray(donationState.years)) ? donationState.years : [];
+  try { localStorage.setItem(SUPPORT_NEWYEAR_LAST_SHOWN_KEY, String(year)); } catch(err){ /* ignore */ }
+  if (givenYears.length){
+    openSupportAsk({
+      glyph: '🎉',
+      title: 'Happy New Year!',
+      desc: `You've supported FindATalk in ${joinYearsSentence(givenYears)}. Want to add ${year} to your badge?`,
+      dismissLabel: 'Not this year',
+      badgeYears: givenYears
+    });
+  } else {
+    openSupportAsk({
+      glyph: '🎉',
+      title: 'Happy New Year!',
+      desc: `Thank you for using FindATalk. Supporters earn a badge that grows with every year they give — want to start yours with a ${year} gift?`,
+      dismissLabel: 'Not right now'
+    });
+  }
+}
+function watchForSupportPrompts(){
+  onForeground(maybeShowNewYearSupportAsk);
+}
+
+function openSupportAsk({glyph, title, desc, dismissLabel, badgeYears}){
+  const overlay = document.getElementById('supportAskModalOverlay');
+  if (!overlay) return; // web build without this markup — no-op, matching every other overlay lookup in this file
+  document.getElementById('supportAskGlyph').textContent = glyph;
+  document.getElementById('supportAskTitle').textContent = title;
+  document.getElementById('supportAskDesc').textContent = desc;
+  document.getElementById('supportAskDismissBtn').textContent = dismissLabel;
+  const badgeRow = document.getElementById('supportAskBadgeRow');
+  if (badgeYears && badgeYears.length){
+    document.getElementById('supportAskBadgeIcon').innerHTML = renderSupporterStarCluster(badgeYears.length);
+    document.getElementById('supportAskBadgeText').textContent = `Donated in ${joinYearsSentence(badgeYears)}`;
+    badgeRow.hidden = false;
+  } else {
+    badgeRow.hidden = true;
+  }
+  overlay.hidden = false;
+}
+function closeSupportAsk(){
+  const overlay = document.getElementById('supportAskModalOverlay');
+  if (overlay) overlay.hidden = true;
+}
+
 // Verbatim from docs/donate.html's renderSupporterStarCluster() — kept in
 // sync by hand, no shared module between the two pages (see that file's
 // own comment on why the web page is standalone).
@@ -8892,6 +9080,7 @@ async function retryUnfinishedTips(){
 
 function initSupportUI(){
   const plugin = iapPlugin();
+  onOpenSupportModal = openSupportModal; // idea 67 — see the slot's own comment for why this indirection exists
 
   document.getElementById('supportAppBtn').addEventListener('click', ()=>{
     closeSettingsModal();
@@ -12098,6 +12287,14 @@ function startDonationSync(uid){
     donationYearsSeen = nextYears;
     donationState = nextState;
     renderBadgesList(); // no-op via its own listEl guard when the modal isn't in the DOM (web build)
+    // idea 67 — deliberately here, not in the app's cold-start init
+    // sequence: donationState only exists once this (async) snapshot has
+    // actually loaded, so checking earlier would always see it as null
+    // and wrongly treat a real lapsed supporter as "never donated" —
+    // permanently, since maybeShowNewYearSupportAsk() marks the year as
+    // shown the moment it runs. Its own January/once-a-year/busy-overlay
+    // guards make it safe to call on every snapshot, not just the first.
+    maybeShowNewYearSupportAsk();
   }, (err)=>{ console.error('[IAP] donations listener failed', err); });
 }
 function stopDonationSync(){
@@ -12105,6 +12302,11 @@ function stopDonationSync(){
   donationYearsSeen = null;
   donationState = null;
   renderBadgesList();
+  // idea 67 — signed-out/local-only is a known, final state (unlike
+  // startDonationSync() above, nothing further will load), and null
+  // donationState correctly means "never donated" for this bucket, so
+  // it's safe to check immediately rather than waiting on anything async.
+  maybeShowNewYearSupportAsk();
 }
 
 onCloudUserChanged = (user)=>{
@@ -12603,6 +12805,14 @@ renderStreak();
 watchForDayRollover();
 watchForPendingRead();
 watchForStreakRisk();
+// idea 67 — Jan 1 New Year ask. Deliberately no direct call here at cold
+// start (unlike watchForDayRollover()'s renderTalkOfTheDay()/renderStreak()
+// pattern just above): donationState isn't known yet this early — see
+// startDonationSync()/stopDonationSync()'s own calls to
+// maybeShowNewYearSupportAsk(), which are the real "we now know this
+// user's donation status" moments this actually needs to wait for.
+// watchForSupportPrompts() only covers a LATER return to the foreground.
+watchForSupportPrompts();
 setupDailyReminder();
 initReminderSettingsToggle();
 initBadgesUI();
@@ -12715,6 +12925,7 @@ function closeTopmostModal(){
   if (!overlay('settingsModalOverlay').hidden){ closeSettingsModal(); return true; }
   if (!overlay('badgesModalOverlay').hidden){ closeBadgesModal(); return true; }
   if (!overlay('supportModalOverlay').hidden){ closeSupportModal(); return true; }
+  if (!overlay('supportAskModalOverlay').hidden){ closeSupportAsk(); return true; }
   if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }
   if (!overlay('secretRevealModalOverlay').hidden){ closeSecretRevealModal(); return true; }
   if (!overlay('sharedListModalOverlay').hidden){ closeSharedListModal(); return true; }

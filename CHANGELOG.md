@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- FindATalk now occasionally invites you to support the app: once after your 10th talk read (and every 30 after that, at most once a month), and once every New Year if you've supported before or never have. If you've given a gift recently, you won't be asked. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
+
 ### Fixed
 Nothing yet.
 
