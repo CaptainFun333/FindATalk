@@ -65,4 +65,33 @@ When logging a changelog entry for an `index.html` change, don't assume it
 ships for free — call out that it needs a new native build, the same way
 existing entries already do for native-only fixes.
 
+## Decisions log process (applies in every conversation/session)
+
+This repo also keeps `DECISIONS.md` at the root — a short, one-or-two-line-
+per-entry log of *why* a non-obvious call was made (a feature held back on
+purpose, a design tradeoff, a rejected approach), separate from
+`CHANGELOG.md` (user-facing "what changed") and `PROJECT_HANDOFF.md`
+(full architecture/history detail).
+
+**Any time this conversation or any other makes or confirms a decision that
+isn't self-explanatory from the code — holding a finished feature back,
+choosing one approach over another for a stated reason, cancelling or
+pausing a planned piece of work — add a bullet to `DECISIONS.md`, newest
+entry at the bottom, before considering the task done.** Format:
+`- **YYYY-MM-DD** — one or two sentences, including the *why*.` Commit it
+in the same commit as the change it describes, same as the changelog rule
+above. Routine bug fixes and straightforward feature adds don't need an
+entry here — only ones where the reasoning would otherwise be lost.
+
+## Project ledger page
+
+`docs/ledger.html` is a live-updating page (findatalk.com/ledger.html) that
+reads `CHANGELOG.md`, `DECISIONS.md`, and recent commits directly from
+GitHub client-side (`raw.githubusercontent.com` + the GitHub REST API) — it
+needs no build step and no Action. Keeping `CHANGELOG.md` and
+`DECISIONS.md` up to date (per the two processes above) is what keeps this
+page current; the page itself should only need edits when its static
+"Style Guide" tab goes stale against `docs/index.html`'s actual palettes/
+type/shape tokens.
+
 See `PROJECT_HANDOFF.md` for full architecture/history detail.

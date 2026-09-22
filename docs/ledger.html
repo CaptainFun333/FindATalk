@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FindATalk — Project Ledger</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1c2c42; --ink-soft: #3d4d64;
+    --paper: #f3efe2; --paper-raised: #faf7ee;
+    --accent-a: #a9822f; --accent-b: #6e2b34; --accent-fill: #6e2b34;
+    --on-accent: #fdf6ec;
+    --line: #c9bfa2; --tint: #efe8d3;
+    --chip-border: #d8c3a5; --chip-bg: #f7efe0;
+    --radius: 4px; --radius-lg: 20px; --radius-pill: 999px;
+    --shadow: 0 8px 24px rgba(28,44,66,0.12);
+    --font-display: 'Source Serif 4', Georgia, serif;
+    --font-serif: 'Lora', serif;
+    --font-sans: 'Inter', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ffffff; --ink-soft: #b7bdcf;
+      --paper: #161b26; --paper-raised: #1f2635;
+      --accent-a: #caa550; --accent-b: #d98a93; --accent-fill: #6e2b34;
+      --on-accent: #fdf6ec;
+      --line: #333c4f; --tint: #2a3140;
+      --chip-border: #4a3d2a; --chip-bg: #241f14;
+      --shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.6;
+    padding: 32px 16px 80px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { margin-bottom: 32px; }
+  .eyebrow {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-a);
+    margin: 0 0 8px;
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 600; font-size: 30px;
+    margin: 0 0 8px; letter-spacing: -0.01em;
+  }
+  .tagline { color: var(--ink-soft); margin: 0 0 4px; max-width: 56ch; }
+  .meta-line { color: var(--ink-soft); font-size: 12.5px; margin-top: 12px; }
+  .meta-line a { color: var(--accent-b); }
+  nav.tabs {
+    display: flex; gap: 4px; margin: 28px 0 20px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); padding-bottom: 0;
+  }
+  nav.tabs button {
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 600;
+    background: none; border: none; color: var(--ink-soft);
+    padding: 10px 14px; cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  nav.tabs button.active { color: var(--accent-b); border-bottom-color: var(--accent-b); }
+  section.panel { display: none; }
+  section.panel.active { display: block; }
+
+  .card {
+    background: var(--paper-raised); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  h2 {
+    font-family: var(--font-serif); font-weight: 600; font-size: 18px;
+    margin: 28px 0 12px;
+  }
+  h2:first-child { margin-top: 0; }
+  .version-heading {
+    display: flex; align-items: baseline; gap: 10px; margin: 24px 0 8px;
+  }
+  .version-heading .v {
+    font-family: var(--font-serif); font-weight: 700; font-size: 17px;
+  }
+  .version-heading .d { color: var(--ink-soft); font-size: 12.5px; }
+  .version-heading .badge {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; background: var(--tint); color: var(--accent-a);
+    border: 1px solid var(--chip-border); border-radius: var(--radius-pill);
+    padding: 2px 8px;
+  }
+  .kind-label {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-soft); margin: 14px 0 6px;
+  }
+  ul.entries { margin: 0 0 4px; padding-left: 20px; }
+  ul.entries li { margin-bottom: 6px; }
+  .decision {
+    border-left: 3px solid var(--accent-a); padding: 4px 0 4px 14px;
+    margin-bottom: 16px;
+  }
+  .decision .date {
+    font-weight: 600; color: var(--accent-a); font-size: 12.5px;
+    display: block; margin-bottom: 2px;
+  }
+  .commit {
+    display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .commit:last-child { border-bottom: none; }
+  .commit .hash {
+    font-family: monospace; color: var(--ink-soft); flex-shrink: 0;
+  }
+  .commit .msg a { color: var(--ink); text-decoration: none; }
+  .commit .msg a:hover { color: var(--accent-b); }
+  .commit .when { color: var(--ink-soft); font-size: 11.5px; }
+
+  .palette-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0 20px; }
+  .palette-table th, .palette-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--line); }
+  code { background: var(--tint); border-radius: 3px; padding: 1px 5px; font-size: 12px; }
+  .loading, .error { color: var(--ink-soft); font-style: italic; padding: 12px 0; }
+  .error { color: var(--accent-b); }
+  a.src-link { color: var(--accent-b); }
+  footer { margin-top: 48px; color: var(--ink-soft); font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Project Ledger</p>
+    <h1>FindATalk</h1>
+    <p class="tagline">Changelog, key decisions, and style guide in one place — pulled live from this repo, so it's always current with whatever's on <code>main</code>.</p>
+    <p class="meta-line" id="meta-line">Loading latest activity…</p>
+  </header>
+
+  <nav class="tabs">
+    <button data-panel="activity" class="active">Activity</button>
+    <button data-panel="changelog">Changelog</button>
+    <button data-panel="decisions">Decisions</button>
+    <button data-panel="style">Style Guide</button>
+  </nav>
+
+  <section class="panel active" id="panel-activity">
+    <h2>Recent commits</h2>
+    <div class="card" id="commits-list"><p class="loading">Fetching recent commits from GitHub…</p></div>
+  </section>
+
+  <section class="panel" id="panel-changelog">
+    <h2>Changelog</h2>
+    <div id="changelog-body"><p class="loading">Fetching CHANGELOG.md…</p></div>
+  </section>
+
+  <section class="panel" id="panel-decisions">
+    <h2>Key decisions</h2>
+    <div id="decisions-body"><p class="loading">Fetching DECISIONS.md…</p></div>
+  </section>
+
+  <section class="panel" id="panel-style">
+    <h2>Style guide</h2>
+    <p>FindATalk's visual language: a well-kept parlor bookshelf, not a tech dashboard — warm paper tones, a brass-and-burgundy accent pair, serif type doing the heavy lifting. Transcribed from the shipping stylesheet at <code>docs/index.html</code>.</p>
+
+    <p class="kind-label">Palettes</p>
+    <p>Two independent settings — <strong>Appearance</strong> (Light/Dark/System) and <strong>Palette</strong> (Brass/Rose/Slate/Sage, plus a hidden sixth, Celestial) — combine into ten live themes. Brass is the default and reference palette; the others are deliberate variations on it, not separate brands.</p>
+    <table class="palette-table">
+      <thead><tr><th>Palette</th><th>Light paper</th><th>Light accent-a</th><th>Light accent-b</th><th>Dark paper</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Brass</strong> (default)</td><td><span class="swatch" style="background:#f3efe2"></span>#f3efe2</td><td><span class="swatch" style="background:#a9822f"></span>#a9822f</td><td><span class="swatch" style="background:#6e2b34"></span>#6e2b34</td><td><span class="swatch" style="background:#161b26"></span>#161b26</td></tr>
+        <tr><td><strong>Rose</strong></td><td><span class="swatch" style="background:#f7e2df"></span>#f7e2df</td><td><span class="swatch" style="background:#2c6b5f"></span>#2c6b5f</td><td><span class="swatch" style="background:#a3792f"></span>#a3792f</td><td><span class="swatch" style="background:#1e1519"></span>#1e1519</td></tr>
+        <tr><td><strong>Slate</strong></td><td><span class="swatch" style="background:#eceff3"></span>#eceff3</td><td><span class="swatch" style="background:#7a5c30"></span>#7a5c30</td><td><span class="swatch" style="background:#6a3b5c"></span>#6a3b5c</td><td><span class="swatch" style="background:#131a22"></span>#131a22</td></tr>
+        <tr><td><strong>Sage</strong></td><td><span class="swatch" style="background:#f2f0e4"></span>#f2f0e4</td><td><span class="swatch" style="background:#5b5a95"></span>#5b5a95</td><td><span class="swatch" style="background:#8c4a2f"></span>#8c4a2f</td><td><span class="swatch" style="background:#171e18"></span>#171e18</td></tr>
+        <tr><td><strong>Celestial</strong> (secret)</td><td><span class="swatch" style="background:#f1eefc"></span>#f1eefc</td><td><span class="swatch" style="background:#b4903a"></span>#b4903a</td><td><span class="swatch" style="background:#4a3f8f"></span>#4a3f8f</td><td><span class="swatch" style="background:#0d0b1f"></span>#0d0b1f</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--ink-soft)"><strong>accent-a</strong> is the palette's "odd color out" (eyebrows, focus rings) — deliberately outside the hue family <code>ink</code>/<code>ink-soft</code> already occupy, so it never blends into secondary text. <strong>accent-b</strong> (links, text accents) lightens in dark mode to stay legible. <strong>accent-fill</strong> (button backgrounds) stays dark/deep in both themes on purpose — reusing accent-b there would make dark-mode buttons pale and hard to read. <code>ink</code> is pure white in every dark theme; only <code>ink-soft</code> carries the palette's hue in the dark.</p>
+
+    <p class="kind-label">Typography</p>
+    <p>Three families, each with a fixed job:</p>
+    <ul class="entries">
+      <li><strong>Source Serif 4</strong> — reading surfaces: talk text, page titles. The "book" of the app.</li>
+      <li><strong>Lora</strong> — card/modal headings, and the search input itself (the one control set in serif, not Inter — search is a reading action, not a form field).</li>
+      <li><strong>Inter</strong> — everything else: buttons, labels, list rows, chips. Uppercase eyebrow labels are always Inter, 600 weight, uppercase, 0.08–0.14em letter-spacing.</li>
+    </ul>
+
+    <p class="kind-label">Shape &amp; elevation</p>
+    <ul class="entries">
+      <li>Default radius <code>4px</code> — buttons, inputs, cards. Reach for it first.</li>
+      <li>Fully-rounded pills (<code>999px</code>) mark filter chips and status badges; <code>50%</code> is reserved for circular elements.</li>
+      <li>One soft shadow style only, tinted with the palette's own <code>ink</code> at low alpha (never pure black) — no second "card shadow." Use a border instead when a surface needs separation but not lift.</li>
+    </ul>
+    <p style="font-size:12.5px;color:var(--ink-soft)">Full token values (all ten themes, gradients, chips, hairlines) live in the design-system artifact this page was built from. Ask Claude for the link if you need to hand it to someone else.</p>
+  </section>
+
+  <footer>
+    Pulled live from <a class="src-link" href="https://github.com/CaptainFun333/FindATalk" target="_blank" rel="noopener">github.com/CaptainFun333/FindATalk</a> on every page load. Edit <code>CHANGELOG.md</code> / <code>DECISIONS.md</code> and push — this page updates itself, no rebuild needed.
+  </footer>
+</div>
+
+<script>
+const REPO = "CaptainFun333/FindATalk";
+const BRANCH = "main";
+const RAW = (path) => `https://raw.githubusercontent.com/${REPO}/${BRANCH}/${path}?_=${Date.now()}`;
+
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('section.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+  });
+});
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Minimal inline-markdown: **bold**, `code`, [text](url)
+function inline(s) {
+  s = escapeHtml(s);
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return s;
+}
+
+function renderChangelog(md) {
+  const lines = md.split('\n');
+  let html = '';
+  let inList = false;
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^## \[/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const m = line.match(/^## \[([^\]]+)\]\s*(?:—|-)?\s*(.*)$/);
+      const version = m ? m[1] : line.replace(/^##\s*/, '');
+      const date = m ? m[2] : '';
+      const badge = /unreleased/i.test(version) ? '<span class="badge">Unreleased</span>' : '';
+      html += `<div class="version-heading"><span class="v">${escapeHtml(version)}</span><span class="d">${escapeHtml(date)}</span>${badge}</div>`;
+    } else if (/^### /.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<div class="kind-label">${escapeHtml(line.replace(/^###\s*/, ''))}</div>`;
+    } else if (/^-\s+/.test(line)) {
+      if (!inList) { html += '<ul class="entries">'; inList = true; }
+      html += `<li>${inline(line.replace(/^-\s+/, ''))}</li>`;
+    } else if (line === '' ) {
+      // skip
+    } else if (/^#\s/.test(line) || line.startsWith('All notable') || line.startsWith('[Keep a Changelog]') || line.startsWith('`Unreleased`') || line.startsWith('this updated')) {
+      // skip title/intro prose, shown in page header instead
+    }
+  }
+  if (inList) html += '</ul>';
+  return html || '<p class="error">No entries found.</p>';
+}
+
+function renderDecisions(md) {
+  const lines = md.split('\n').filter(l => /^-\s+\*\*/.test(l.trim()));
+  if (!lines.length) return '<p class="error">No decisions found.</p>';
+  let html = '';
+  for (const raw of lines) {
+    const line = raw.trim().replace(/^-\s+/, '');
+    const m = line.match(/^\*\*([^*]+)\*\*\s*(?:—|-)\s*(.*)$/);
+    if (m) {
+      html += `<div class="decision"><span class="date">${escapeHtml(m[1])}</span>${inline(m[2])}</div>`;
+    } else {
+      html += `<div class="decision">${inline(line)}</div>`;
+    }
+  }
+  return html;
+}
+
+function timeAgo(iso) {
+  const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+  const units = [[31536000,'y'],[2592000,'mo'],[86400,'d'],[3600,'h'],[60,'m']];
+  for (const [secs, label] of units) {
+    if (s >= secs) return Math.floor(s / secs) + label + ' ago';
+  }
+  return 'just now';
+}
+
+async function loadChangelog() {
+  try {
+    const res = await fetch(RAW('CHANGELOG.md'));
+    if (!res.ok) throw new Error(res.status);
+    document.getElementById('changelog-body').innerHTML = renderChangelog(await res.text());
+  } catch (e) {
+    document.getElementById('changelog-body').innerHTML = '<p class="error">Could not load CHANGELOG.md right now.</p>';
+  }
+}
+
+async function loadDecisions() {
+  try {
+    const res = await fetch(RAW('DECISIONS.md'));
+    if (!res.ok) throw new Error(res.status);
+    document.getElementById('decisions-body').innerHTML = renderDecisions(await res.text());
+  } catch (e) {
+    document.getElementById('decisions-body').innerHTML = '<p class="error">Could not load DECISIONS.md right now.</p>';
+  }
+}
+
+async function loadCommits() {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/commits?sha=${BRANCH}&per_page=20`);
+    if (!res.ok) throw new Error(res.status);
+    const commits = await res.json();
+    const el = document.getElementById('commits-list');
+    el.innerHTML = commits.map(c => {
+      const msg = c.commit.message.split('\n')[0];
+      const sha = c.sha.slice(0, 7);
+      const date = c.commit.author ? c.commit.author.date : c.commit.committer.date;
+      return `<div class="commit"><span class="hash">${sha}</span><span class="msg"><a href="${c.html_url}" target="_blank" rel="noopener">${escapeHtml(msg)}</a><br><span class="when">${timeAgo(date)}</span></span></div>`;
+    }).join('');
+    if (commits[0]) {
+      const d = commits[0].commit.author ? commits[0].commit.author.date : commits[0].commit.committer.date;
+      document.getElementById('meta-line').innerHTML = `Latest commit: <a href="${commits[0].html_url}" target="_blank" rel="noopener">${escapeHtml(commits[0].commit.message.split('\n')[0])}</a> — ${timeAgo(d)}`;
+    }
+  } catch (e) {
+    document.getElementById('commits-list').innerHTML = '<p class="error">Could not load commit activity right now (GitHub API may be rate-limited — try again shortly).</p>';
+    document.getElementById('meta-line').textContent = '';
+  }
+}
+
+loadCommits();
+loadChangelog();
+loadDecisions();
+</script>
+</body>
+</html>
