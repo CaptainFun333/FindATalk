@@ -138,6 +138,7 @@
     <button data-panel="activity" class="active">Activity</button>
     <button data-panel="changelog">Changelog</button>
     <button data-panel="decisions">Decisions</button>
+    <button data-panel="ideas">Ideas</button>
     <button data-panel="style">Style Guide</button>
   </nav>
 
@@ -156,12 +157,18 @@
     <div id="decisions-body"><p class="loading">Fetching DECISIONS.md…</p></div>
   </section>
 
+  <section class="panel" id="panel-ideas">
+    <h2>Feature ideas</h2>
+    <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">The running brainstorm list — a working list, not a roadmap or a promise of what ships next.</p>
+    <div id="ideas-body"><p class="loading">Fetching IDEAS.md…</p></div>
+  </section>
+
   <section class="panel" id="panel-style">
     <h2>Style guide</h2>
     <p>FindATalk's visual language: a well-kept parlor bookshelf, not a tech dashboard — warm paper tones, a brass-and-burgundy accent pair, serif type doing the heavy lifting. Transcribed from the shipping stylesheet at <code>docs/index.html</code>.</p>
 
     <p class="kind-label">Palettes</p>
-    <p>Two independent settings — <strong>Appearance</strong> (Light/Dark/System) and <strong>Palette</strong> (Brass/Rose/Slate/Sage, plus a hidden sixth, Celestial) — combine into ten live themes. Brass is the default and reference palette; the others are deliberate variations on it, not separate brands.</p>
+    <p>Two independent settings — <strong>Appearance</strong> (Light/Dark/System) and <strong>Palette</strong> (Brass/Rose/Slate/Sage, plus a hidden extra unlocked by an in-app discovery) — combine into several live themes. Brass is the default and reference palette; the others are deliberate variations on it, not separate brands. The hidden palette is deliberately left out of the table below — no spoilers here.</p>
     <table class="palette-table">
       <thead><tr><th>Palette</th><th>Light paper</th><th>Light accent-a</th><th>Light accent-b</th><th>Dark paper</th></tr></thead>
       <tbody>
@@ -169,7 +176,6 @@
         <tr><td><strong>Rose</strong></td><td><span class="swatch" style="background:#f7e2df"></span>#f7e2df</td><td><span class="swatch" style="background:#2c6b5f"></span>#2c6b5f</td><td><span class="swatch" style="background:#a3792f"></span>#a3792f</td><td><span class="swatch" style="background:#1e1519"></span>#1e1519</td></tr>
         <tr><td><strong>Slate</strong></td><td><span class="swatch" style="background:#eceff3"></span>#eceff3</td><td><span class="swatch" style="background:#7a5c30"></span>#7a5c30</td><td><span class="swatch" style="background:#6a3b5c"></span>#6a3b5c</td><td><span class="swatch" style="background:#131a22"></span>#131a22</td></tr>
         <tr><td><strong>Sage</strong></td><td><span class="swatch" style="background:#f2f0e4"></span>#f2f0e4</td><td><span class="swatch" style="background:#5b5a95"></span>#5b5a95</td><td><span class="swatch" style="background:#8c4a2f"></span>#8c4a2f</td><td><span class="swatch" style="background:#171e18"></span>#171e18</td></tr>
-        <tr><td><strong>Celestial</strong> (secret)</td><td><span class="swatch" style="background:#f1eefc"></span>#f1eefc</td><td><span class="swatch" style="background:#b4903a"></span>#b4903a</td><td><span class="swatch" style="background:#4a3f8f"></span>#4a3f8f</td><td><span class="swatch" style="background:#0d0b1f"></span>#0d0b1f</td></tr>
       </tbody>
     </table>
     <p style="font-size:13px;color:var(--ink-soft)"><strong>accent-a</strong> is the palette's "odd color out" (eyebrows, focus rings) — deliberately outside the hue family <code>ink</code>/<code>ink-soft</code> already occupy, so it never blends into secondary text. <strong>accent-b</strong> (links, text accents) lightens in dark mode to stay legible. <strong>accent-fill</strong> (button backgrounds) stays dark/deep in both themes on purpose — reusing accent-b there would make dark-mode buttons pale and hard to read. <code>ink</code> is pure white in every dark theme; only <code>ink-soft</code> carries the palette's hue in the dark.</p>
@@ -214,11 +220,12 @@ function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Minimal inline-markdown: **bold**, `code`, [text](url)
+// Minimal inline-markdown: **bold**, ~~strike~~, `code`, [text](url)
 function inline(s) {
   s = escapeHtml(s);
   s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/~~([^~]+)~~/g, '<s>$1</s>');
   s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
   return s;
 }
@@ -273,6 +280,26 @@ function renderDecisions(md) {
   return html;
 }
 
+function renderIdeas(md) {
+  const lines = md.split('\n').filter(l => /^\d+\.\s/.test(l.trim()) || /^##\s+/.test(l.trim()));
+  if (!lines.length) return '<p class="error">No ideas found.</p>';
+  let html = '';
+  let inList = false;
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (/^##\s+/.test(trimmed)) {
+      if (inList) { html += '</ol>'; inList = false; }
+      html += `<div class="kind-label" style="margin-top:20px">${escapeHtml(trimmed.replace(/^##\s*/, ''))}</div>`;
+      continue;
+    }
+    if (!inList) { html += '<ol class="entries">'; inList = true; }
+    const m = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    html += `<li value="${m[1]}">${inline(m[2])}</li>`;
+  }
+  if (inList) html += '</ol>';
+  return html;
+}
+
 function timeAgo(iso) {
   const s = Math.floor((Date.now() - new Date(iso)) / 1000);
   const units = [[31536000,'y'],[2592000,'mo'],[86400,'d'],[3600,'h'],[60,'m']];
@@ -302,6 +329,16 @@ async function loadDecisions() {
   }
 }
 
+async function loadIdeas() {
+  try {
+    const res = await fetch(RAW('IDEAS.md'));
+    if (!res.ok) throw new Error(res.status);
+    document.getElementById('ideas-body').innerHTML = renderIdeas(await res.text());
+  } catch (e) {
+    document.getElementById('ideas-body').innerHTML = '<p class="error">Could not load IDEAS.md right now.</p>';
+  }
+}
+
 async function loadCommits() {
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/commits?sha=${BRANCH}&per_page=20`);
@@ -327,6 +364,7 @@ async function loadCommits() {
 loadCommits();
 loadChangelog();
 loadDecisions();
+loadIdeas();
 </script>
 </body>
 </html>
