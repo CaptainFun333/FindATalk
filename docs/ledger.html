@@ -253,11 +253,16 @@ function renderChangelog(md) {
 }
 
 function renderDecisions(md) {
-  const lines = md.split('\n').filter(l => /^-\s+\*\*/.test(l.trim()));
+  const lines = md.split('\n').filter(l => /^-\s+\*\*/.test(l.trim()) || /^##\s+/.test(l.trim()));
   if (!lines.length) return '<p class="error">No decisions found.</p>';
   let html = '';
   for (const raw of lines) {
-    const line = raw.trim().replace(/^-\s+/, '');
+    const trimmed = raw.trim();
+    if (/^##\s+/.test(trimmed)) {
+      html += `<div class="kind-label" style="margin-top:20px">${escapeHtml(trimmed.replace(/^##\s*/, ''))}</div>`;
+      continue;
+    }
+    const line = trimmed.replace(/^-\s+/, '');
     const m = line.match(/^\*\*([^*]+)\*\*\s*(?:—|-)\s*(.*)$/);
     if (m) {
       html += `<div class="decision"><span class="date">${escapeHtml(m[1])}</span>${inline(m[2])}</div>`;

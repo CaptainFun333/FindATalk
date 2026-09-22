@@ -1,42 +1,29 @@
 # Decisions
 
-A short, running log of the *why* behind choices that aren't obvious from the
-code or the changelog — one or two lines each, newest first. This is not a
-changelog (see `CHANGELOG.md` for user-facing changes) and not the full
-architecture history (see `PROJECT_HANDOFF.md`) — it's the middle layer:
-enough context that a future session (or future you) doesn't re-litigate a
-call that was already made on purpose.
+A short log of the *why* behind choices that aren't obvious from the code or
+the changelog. This is not a changelog (see `CHANGELOG.md` for user-facing
+changes) and not the full architecture history (see `PROJECT_HANDOFF.md`) —
+it's the middle layer: enough context that a future session (or future you)
+doesn't re-litigate a call that was already made on purpose.
 
-See `CLAUDE.md` for when to add to this file.
+Grouped by how much it matters — business/strategic calls first, then
+feature-scope tradeoffs, then minor/cosmetic tuning — newest first within
+each group. See `CLAUDE.md` for when to add to this file; add a new entry
+under whichever group it belongs in, not just at the top.
 
 ---
 
-- **2026-09-22** — The "don't lose your streak" nudge notification is now
-  cancelled the instant a talk is opened, instead of after a short
-  read-confirmation delay — Android can suspend JS timers the moment the
-  app backgrounds, so a delay-based cancel wasn't reliable. Accepted
-  tradeoff: a stray accidental tap can suppress that night's reminder;
-  judged cheaper than the false-alarm problem it replaces.
-- **2026-09-22** — Recently Viewed history and earned badges are
-  deliberately excluded from cloud sync and backup, confirmed as a
-  preference rather than a gap to close — re-earning a badge on each new
-  device is wanted, not something to fix.
-- **2026-09-19** — Donation-ask prompts (reading-count milestones + New
-  Year nudge) were built and committed, but held locally rather than pushed
-  to `main`, until a version past 1.7.1 ships — so the asks don't land on
-  users mid-cycle of an already-shipped version's bug fixes.
-- **2026-09-18** — The hidden badge/palette unlocked by the star easter egg
-  is deliberately never named in changelog, store listing, or email copy —
-  keeping it vague is the point; naming it would spoil the discovery. Tip
-  jar product icon colors follow the same rule: mapped only to the four
-  public palettes (Brass, Rose, Slate, Sage), deliberately excluding
-  Celestial so the secret palette's color doesn't leak outside the app.
-- **2026-09-18** — The Android APK build for the native IAP tip jar is
-  being held back deliberately until other in-progress work is ready to
-  ship in the same build, so the app isn't submitted piecemeal.
-- **2026-09-18** — iOS 1.7 was fully pre-flighted and version-bumped, but
-  the actual App Store submission and IAP review request were deliberately
-  left for a later, deliberate step rather than auto-submitted.
+## Strategic / business
+
+- **2026-09-14** — Monetization model is "free forever" with optional
+  donations, not a paywall or subscription — a native IAP tip jar was
+  added as one more way to give, not a gate on features. This reverses an
+  earlier same-session plan to relaunch Android as a separate paid app,
+  rejected because Google Play doesn't allow converting an already-free
+  listing to paid, it would have restarted the 14-day closed-testing
+  period, and it would have fragmented the install base across two
+  listings. Kept here for context in case a paid model is ever
+  reconsidered.
 - **2026-09-17** — Idea 67's original donation plan (external Stripe
   Payment Links opened from Settings) was built, then abandoned mid-build
   once App Store/Play Store review research suggested it likely wouldn't
@@ -50,9 +37,32 @@ See `CLAUDE.md` for when to add to this file.
   materially different handling (renewal/status tracking, a different
   verification path, a separate Play Billing product type) rather than
   being a drop-in extension of the one-time flow.
-- **2026-09-16** — The secret star easter egg's discovery threshold was
-  lowered from 12 clicks to 5 — tuned so it still reads as a deliberate
-  discovery rather than something an accidental double-tap could trigger.
+- **2026-09-19** — Donation-ask prompts (reading-count milestones + New
+  Year nudge) were built and committed, but held locally rather than pushed
+  to `main`, until a version past 1.7.1 ships — so the asks don't land on
+  users mid-cycle of an already-shipped version's bug fixes.
+- **2026-09-18** — iOS 1.7 was fully pre-flighted and version-bumped, but
+  the actual App Store submission and IAP review request were deliberately
+  left for a later, deliberate step rather than auto-submitted.
+- **2026-09-18** — The Android APK build for the native IAP tip jar is
+  being held back deliberately until other in-progress work is ready to
+  ship in the same build, so the app isn't submitted piecemeal.
+- **Earlier** — Domain migration: Phase 1 (web app live on FindATalk.com)
+  shipped; Phase 2 (transferring the registrar itself to Bluehost) was
+  cancelled — staying on GoDaddy for the registrar going forward.
+
+## Feature scope & UX tradeoffs
+
+- **2026-09-22** — The "don't lose your streak" nudge notification is now
+  cancelled the instant a talk is opened, instead of after a short
+  read-confirmation delay — Android can suspend JS timers the moment the
+  app backgrounds, so a delay-based cancel wasn't reliable. Accepted
+  tradeoff: a stray accidental tap can suppress that night's reminder;
+  judged cheaper than the false-alarm problem it replaces.
+- **2026-09-22** — Recently Viewed history and earned badges are
+  deliberately excluded from cloud sync and backup, confirmed as a
+  preference rather than a gap to close — re-earning a badge on each new
+  device is wanted, not something to fix.
 - **2026-09-16** — Badge celebration modals no longer replay for badges
   already earned when signing into a new device with existing cloud data —
   new devices now silently backfill already-met thresholds instead of
@@ -74,20 +84,6 @@ See `CLAUDE.md` for when to add to this file.
   widget-only checkmark would nudge people to open the app just to check,
   which is an engagement-driving withholding pattern nothing else in the
   app uses.
-- **2026-09-15** — Google Sign-In's consent screen showing the raw
-  Firebase-generated domain (`findatalk-28e26.firebaseapp.com`) instead of
-  "FindATalk" was deliberately not fixed — the real fix needs a custom
-  Firebase Auth domain (DNS + config changes) and was judged low priority.
-  Logged as a future idea rather than acted on.
-- **2026-09-14** — Monetization model is "free forever" with optional
-  donations, not a paywall or subscription — a native IAP tip jar was
-  added as one more way to give, not a gate on features. This reverses an
-  earlier same-session plan to relaunch Android as a separate paid app,
-  rejected because Google Play doesn't allow converting an already-free
-  listing to paid, it would have restarted the 14-day closed-testing
-  period, and it would have fragmented the install base across two
-  listings. Kept here for context in case a paid model is ever
-  reconsidered.
 - **2026-09-09** — The "Most Read" sort deliberately reads from the
   unbounded `visitCounts` map rather than the capped `recentKeys` list, so
   a talk read many times but not opened recently still surfaces — a scope
@@ -107,6 +103,20 @@ See `CLAUDE.md` for when to add to this file.
   off as a separate, still-open idea — noting that a future move to
   real `history.pushState`/`popstate`-based navigation could solve both
   platforms at once instead of two one-off fixes.
-- **Earlier** — Domain migration: Phase 1 (web app live on FindATalk.com)
-  shipped; Phase 2 (transferring the registrar itself to Bluehost) was
-  cancelled — staying on GoDaddy for the registrar going forward.
+
+## Minor / cosmetic / secrecy
+
+- **2026-09-18** — The hidden badge/palette unlocked by the star easter egg
+  is deliberately never named in changelog, store listing, or email copy —
+  keeping it vague is the point; naming it would spoil the discovery. Tip
+  jar product icon colors follow the same rule: mapped only to the four
+  public palettes (Brass, Rose, Slate, Sage), deliberately excluding
+  Celestial so the secret palette's color doesn't leak outside the app.
+- **2026-09-16** — The secret star easter egg's discovery threshold was
+  lowered from 12 clicks to 5 — tuned so it still reads as a deliberate
+  discovery rather than something an accidental double-tap could trigger.
+- **2026-09-15** — Google Sign-In's consent screen showing the raw
+  Firebase-generated domain (`findatalk-28e26.firebaseapp.com`) instead of
+  "FindATalk" was deliberately not fixed — the real fix needs a custom
+  Firebase Auth domain (DNS + config changes) and was judged low priority.
+  Logged as a future idea rather than acted on.
