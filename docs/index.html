@@ -5481,6 +5481,10 @@ function recordOpened(talk){
   pendingReadTalk = talk;
   pendingReadDepartedAt = Date.now();
   savePendingRead(); // persisted, not just in-memory — see the comment above PENDING_READ_KEY for why
+  // Stop tonight's "don't lose your streak" nudge right now, not only once
+  // the read is later confirmed — see cancelStreakRiskNotification()'s own
+  // comment for why this can't wait for anything past this exact click.
+  cancelStreakRiskNotification();
 }
 
 /* Called on every visibilitychange -> 'visible' (see watchForPendingRead()
@@ -6274,6 +6278,22 @@ async function notifyNewConference(){
    today or has no active streak to protect. Always the same fixed id, so
    each call safely replaces (or removes) whatever was there before rather
    than accumulating duplicates. */
+// Shared with recordOpened() below — clicking through to actually open a
+// talk (any talk — the ticket, a list row, or an "Other Talks" citation)
+// is real enough intent to stop tonight's nag, even though the read/streak
+// credit itself won't land until the existing integrity gate clears later.
+// Deliberately NOT gated on the same real-engagement delay that credit
+// itself waits for: LocalNotifications can't evaluate anything at delivery
+// time, and a live in-page timer can't be trusted to survive the person
+// actually backgrounding the app to go read — the exact scenario this
+// exists to fix — so this can only ever act at the one moment guaranteed
+// to run even for someone who taps and never comes back: the click itself.
+async function cancelStreakRiskNotification(){
+  const LocalNotifications = await getGrantedLocalNotifications();
+  if (!LocalNotifications) return;
+  try { await LocalNotifications.cancel({ notifications: [{ id: STREAK_RISK_NOTIF_ID }] }); }
+  catch(err){ /* not fatal */ }
+}
 async function updateStreakRiskNotification(){
   const LocalNotifications = await getGrantedLocalNotifications();
   if (!LocalNotifications) return;

@@ -14,7 +14,7 @@ this updated.
 - FindATalk now occasionally invites you to support the app: once after your 10th talk read (and every 30 after that, at most once a month), and once every New Year if you've supported before or never have. If you've given a gift recently, you won't be asked. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 
 ### Fixed
-Nothing yet.
+- Opening a talk and reading it elsewhere (without returning to the app that day) no longer triggers a "Don't lose your streak" notification that evening — it now clears the moment you open a talk, since your read is already on its way to being credited even though it hasn't posted yet.
 
 ## [1.7.1] — 2026-09-19
 
