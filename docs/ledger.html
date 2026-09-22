@@ -135,14 +135,20 @@
   </header>
 
   <nav class="tabs">
-    <button data-panel="activity" class="active">Activity</button>
+    <button data-panel="ideas" class="active">Ideas</button>
+    <button data-panel="activity">Activity</button>
     <button data-panel="changelog">Changelog</button>
     <button data-panel="decisions">Decisions</button>
-    <button data-panel="ideas">Ideas</button>
     <button data-panel="style">Style Guide</button>
   </nav>
 
-  <section class="panel active" id="panel-activity">
+  <section class="panel active" id="panel-ideas">
+    <h2>Feature ideas</h2>
+    <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">The running brainstorm list — a working list, not a roadmap or a promise of what ships next.</p>
+    <div id="ideas-body"><p class="loading">Fetching IDEAS.md…</p></div>
+  </section>
+
+  <section class="panel" id="panel-activity">
     <h2>Recent commits</h2>
     <div class="card" id="commits-list"><p class="loading">Fetching recent commits from GitHub…</p></div>
   </section>
@@ -155,12 +161,6 @@
   <section class="panel" id="panel-decisions">
     <h2>Key decisions</h2>
     <div id="decisions-body"><p class="loading">Fetching DECISIONS.md…</p></div>
-  </section>
-
-  <section class="panel" id="panel-ideas">
-    <h2>Feature ideas</h2>
-    <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">The running brainstorm list — a working list, not a roadmap or a promise of what ships next.</p>
-    <div id="ideas-body"><p class="loading">Fetching IDEAS.md…</p></div>
   </section>
 
   <section class="panel" id="panel-style">
