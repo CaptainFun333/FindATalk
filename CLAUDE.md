@@ -83,6 +83,30 @@ in the same commit as the change it describes, same as the changelog rule
 above. Routine bug fixes and straightforward feature adds don't need an
 entry here — only ones where the reasoning would otherwise be lost.
 
+## Engineering notes process (applies in every conversation/session)
+
+This repo also keeps `ENGINEERING_NOTES.md` at the root — purely for
+future Claude sessions, not for Brad and never for users. It's where
+non-obvious technical discoveries go: a bug whose real cause was
+surprising, a platform requirement that isn't documented anywhere
+official (Play Console, App Store Connect, a library's undocumented
+floor version), a race condition or gotcha that cost real debugging time
+to find.
+
+**Any time this conversation or any other tracks down a root cause that
+wasn't where you'd expect, or discovers a platform/library requirement
+that isn't obvious from official docs, add a short entry to
+`ENGINEERING_NOTES.md`** under the relevant heading (or a new one),
+before considering the task done. Write it for a Claude session with zero
+memory of this conversation — state the surprising fact and the fix, not
+a narration of how it was found. Commit it in the same commit as the fix
+it documents. Routine bugs with an obvious cause don't need an entry —
+only ones where the lesson would otherwise be lost.
+
+**Never move or copy this file into `docs/`** — that folder is served
+live at findatalk.com; `ENGINEERING_NOTES.md` must stay off the public
+site. It is not linked from `docs/ledger.html` for the same reason.
+
 ## Project ledger page
 
 `docs/ledger.html` is a live-updating page (findatalk.com/ledger.html) that
