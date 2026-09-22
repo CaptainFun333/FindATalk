@@ -3141,6 +3141,48 @@
     </div>
   </div>
 
+  <!-- Talk of the Day History / Jump to a Week sit BEFORE Add to a List,
+       the citation destination popup, and My Note below — every
+       .modal-overlay shares the same z-index (see that rule's own
+       comment), so stacking is decided purely by DOM order, later wins.
+       A talk shown inside either calendar (picked day / jumped-to week)
+       can open any of those three from its own action row, and needs to
+       land on TOP of the calendar still open behind it, not underneath
+       it — real bug found where "Add to a List" from a picked TOTD day
+       was rendering invisibly behind the calendar modal. -->
+  <div class="modal-overlay" id="totdCalendarModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="totdCalendarModalTitle">
+      <div class="modal-header">
+        <h3 id="totdCalendarModalTitle">Talk of the Day History</h3>
+        <button type="button" class="modal-close" id="totdCalendarModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="totd-calendar-nav">
+        <button type="button" class="totd-calendar-nav-btn" id="totdCalPrevBtn" aria-label="Previous month">&lsaquo;</button>
+        <span class="totd-calendar-month-label" id="totdCalMonthLabel"></span>
+        <button type="button" class="totd-calendar-nav-btn" id="totdCalNextBtn" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="totd-calendar-grid" id="totdCalGrid"></div>
+      <p class="modal-copy totd-calendar-hint" id="totdCalHint">Pick any highlighted day to see that day's Talk of the Day.</p>
+      <div id="totdCalResult"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cfmCalendarModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cfmCalendarModalTitle">
+      <div class="modal-header">
+        <h3 id="cfmCalendarModalTitle">Jump to a Week</h3>
+        <button type="button" class="modal-close" id="cfmCalendarModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="totd-calendar-nav">
+        <button type="button" class="totd-calendar-nav-btn" id="cfmCalPrevBtn" aria-label="Previous month">&lsaquo;</button>
+        <span class="totd-calendar-month-label" id="cfmCalMonthLabel"></span>
+        <button type="button" class="totd-calendar-nav-btn" id="cfmCalNextBtn" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="totd-calendar-grid" id="cfmCalGrid"></div>
+      <p class="modal-copy totd-calendar-hint">Pick any day to jump straight to that week's reading.</p>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="collectionModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="collectionModalTitle">
       <div class="modal-header">
@@ -3177,39 +3219,6 @@
         <button type="button" class="btn btn-ghost" id="noteModalCancelBtn">Cancel</button>
         <button type="button" class="btn btn-primary" id="noteModalSaveBtn">Save Note</button>
       </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="totdCalendarModalOverlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="totdCalendarModalTitle">
-      <div class="modal-header">
-        <h3 id="totdCalendarModalTitle">Talk of the Day History</h3>
-        <button type="button" class="modal-close" id="totdCalendarModalClose" aria-label="Close">&times;</button>
-      </div>
-      <div class="totd-calendar-nav">
-        <button type="button" class="totd-calendar-nav-btn" id="totdCalPrevBtn" aria-label="Previous month">&lsaquo;</button>
-        <span class="totd-calendar-month-label" id="totdCalMonthLabel"></span>
-        <button type="button" class="totd-calendar-nav-btn" id="totdCalNextBtn" aria-label="Next month">&rsaquo;</button>
-      </div>
-      <div class="totd-calendar-grid" id="totdCalGrid"></div>
-      <p class="modal-copy totd-calendar-hint" id="totdCalHint">Pick any highlighted day to see that day's Talk of the Day.</p>
-      <div id="totdCalResult"></div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="cfmCalendarModalOverlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cfmCalendarModalTitle">
-      <div class="modal-header">
-        <h3 id="cfmCalendarModalTitle">Jump to a Week</h3>
-        <button type="button" class="modal-close" id="cfmCalendarModalClose" aria-label="Close">&times;</button>
-      </div>
-      <div class="totd-calendar-nav">
-        <button type="button" class="totd-calendar-nav-btn" id="cfmCalPrevBtn" aria-label="Previous month">&lsaquo;</button>
-        <span class="totd-calendar-month-label" id="cfmCalMonthLabel"></span>
-        <button type="button" class="totd-calendar-nav-btn" id="cfmCalNextBtn" aria-label="Next month">&rsaquo;</button>
-      </div>
-      <div class="totd-calendar-grid" id="cfmCalGrid"></div>
-      <p class="modal-copy totd-calendar-hint">Pick any day to jump straight to that week's reading.</p>
     </div>
   </div>
 
