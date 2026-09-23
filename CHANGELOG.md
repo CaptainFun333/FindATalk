@@ -24,6 +24,7 @@ this updated.
 ### Fixed
 - Opening a talk and reading it elsewhere (without returning to the app that day) no longer triggers a "Don't lose your streak" notification that evening — it now clears the moment you open a talk, since your read is already on its way to being credited even though it hasn't posted yet.
 - Adding a talk to a list (or a few other actions) from a day you picked in Talk of the Day History now shows the dialog properly in front of the calendar — it used to open invisibly behind it.
+- "New list name…" and Create in the Add to a List popup now always stay visible at the bottom instead of scrolling out of view once you have a lot of lists — same fix keeps Cancel/Save/Share reachable in My Note and Share This Talk even if you drag their message box taller. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 
 ## [1.7.1] — 2026-09-19
 
