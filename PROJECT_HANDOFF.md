@@ -4487,3 +4487,17 @@ readings: 12 accounts, 7 `donations` docs but only 2 with a `years` entry
 (worth understanding — likely test/legacy docs), and the live
 `totalTalksRead` counter (22) far below signed-in accounts' synced history
 (317) because the counter only counts reads since it launched.
+
+## 2026-09-23 — Cloud Functions moved to Node.js 22
+
+Node 20 was deprecated (decommission 2026-10-30). Changed `engines.node`
+in `functions/package.json` and `runtime` in `firebase.json` to 22; no
+dependency changes needed (firebase-functions 5.1.1, firebase-admin 12.7,
+stripe 17.7, @apple/app-store-server-library 3.1 all support it). Deployed
+all four functions with `firebase deploy --only functions` and smoke-tested
+in production: `ledgerStatsRefresh` 200, `stripeWebhook` rejects a forged
+signature with 400 (secrets load, verification runs), `verifyIAPPurchase`
+returns its own `UNAUTHENTICATED` error, no errors in logs. **Not
+verified:** a real end-to-end Stripe event or Apple/Google tip purchase on
+the new runtime — worth watching the next real donation or a sandbox tip.
+

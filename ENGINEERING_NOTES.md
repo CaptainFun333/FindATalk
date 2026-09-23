@@ -396,9 +396,12 @@ served live at findatalk.com; this one should never be public.
   functions:<name>,...` redeploys just the named functions; a bare
   `--only functions` redeploys every function in the codebase, including
   `stripeWebhook` and `verifyIAPPurchase`.
-- **Node.js 20 is deprecated and is decommissioned 2026-10-30** — after
-  that date nothing can be deployed until `functions/package.json` and
-  `firebase.json` move to a newer runtime (Node 22).
+- **Functions run on Node.js 22** (upgraded 2026-09-23; Node 20 was being
+  decommissioned 2026-10-30, after which nothing can be deployed on it).
+  The runtime lives in two places that must agree: `engines.node` in
+  `functions/package.json` and `functions[].runtime` in `firebase.json`.
+  Check the Node deprecation schedule roughly once a year — the first
+  warning appears in `firebase deploy` output months ahead.
 - **New public HTTP endpoints must go through a Hosting rewrite** (see
   `firebase.json`, e.g. `/ledgerStatsRefresh`), served from
   `https://findatalk-28e26.web.app/...` — see the org-policy notes in
