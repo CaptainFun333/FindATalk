@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Fixed
-Nothing yet.
+- On Android, the app content could sit under the status bar or navigation bar on some phones (especially with gesture navigation), which could hide the top or bottom of the screen behind those bars. (Android only, requires a new build to take effect.)
 
 ## [1.7.2] — 2026-09-22
 

@@ -181,6 +181,20 @@ served live at findatalk.com; this one should never be public.
   what the Open Graph tags or share-sheet text say — this is a platform
   restriction on all link shares, not something fixable from this app's
   side. Don't spend time trying to work around it again.
+- **Targeting SDK 35+ (Android 15+) makes the OS draw edge-to-edge
+  unconditionally — there is no manifest flag or theme attribute to opt
+  out**, and Capacitor's `BridgeActivity` (still true as of `@capacitor/
+  android` 8.5.0) does nothing to compensate; it neither enables
+  edge-to-edge deliberately nor pads the WebView for it. Left alone, the
+  WebView's content draws under the status/nav bars on affected devices
+  (Play Console flags this as "Edge-to-edge may not display for all
+  users" under App warnings). Fixed by attaching a
+  `ViewCompat.setOnApplyWindowInsetsListener` to `getBridge().getWebView()`
+  in `MainActivity.onCreate()` that pads the WebView by
+  `WindowInsetsCompat.Type.systemBars()` — simpler and more reliable here
+  than trying to thread `env(safe-area-inset-*)` through Android's WebView,
+  which (unlike iOS's WKWebView) doesn't consistently report those insets
+  to CSS without native help.
 
 ## In-app purchases (StoreKit / Play Billing)
 
