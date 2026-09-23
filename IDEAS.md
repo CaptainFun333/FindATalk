@@ -10,8 +10,7 @@ promise of what ships next. Grouped by status, most active first:
 ## In progress
 
 44. Siri/Google Assistant shortcuts — in progress (iOS done; Android/Google Assistant side still open, more constrained)
-67. Donation/support prompt — in progress (Settings button, checkout, native IAP, and milestone ask built; year-end ask being reworked to a Christmas theme)
-68. Global "impact" counter — in progress (data collection built; display UI still open)
+68. Global "impact" counter — in progress (data collection built and writing to the shared counter; no display UI yet)
 
 ## Open
 
@@ -28,8 +27,6 @@ promise of what ships next. Grouped by status, most active first:
 57. **Live/collaborative list sharing** — open, exploratory
 64. **Larger-text/accessibility view** — open
 66. **Custom Firebase Auth domain branding** — open, low priority
-70. **Streak "salvage" for one missed day** — open (design partly decided, not built)
-71. **Share a talk as a generated image card** — open (design settled, not yet built)
 
 ## Done
 
@@ -78,7 +75,15 @@ promise of what ships next. Grouped by status, most active first:
 62. ~~Show when today's streak is done~~ — ✅ done
 63. ~~Show only matching citations in search results~~ — ✅ done
 65. ~~Rename Home's "Find Another"/"Show a List" buttons~~ — ✅ done
+67. ~~Donation/support prompt~~ — ✅ done (checkout, native IAP, reading-milestone ask, and a Dec 18–31 Christmas ask shipped in 1.7.2)
 69. ~~Data controls for accounts (conflicts, clearing data)~~ — ✅ done
+70. ~~Streak "salvage" for one missed day~~ — ✅ done (read 2 talks, once a week, plus a reminder that day — 1.7.2)
+71. ~~Share a talk as a generated image card~~ — ✅ done (talk, badge, Supporter, and streak cards plus an editable message preview — 1.7.2)
+72. ~~Make the number of talks read visible~~ — ✅ done (delivered inside "Your FindATalk")
+73. ~~"Your FindATalk" stats window~~ — ✅ done (six numbers; the Home streak pill opens it)
+74. ~~Total counts on Favorites/My Lists~~ — ✅ done (My Lists only; Favorites already shows a count)
+75. ~~Split Settings — trophy button for Badges/Stats/Support~~ — ✅ done
+76. ~~Rating prompt after 25 talks~~ — ✅ done (app only; store rating sheet after a pre-ask, 90-day gap, 3-ask cap; needs a new build)
 
 ## Disregarded
 
@@ -95,8 +100,8 @@ promise of what ships next. Grouped by status, most active first:
 
 ---
 
-**In progress:** 44, 67, 68
-**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66, 70, 71
-**Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 69
+**In progress:** 44, 68
+**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66
+**Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76
 **Disregarded:** 1, 2, 26, 50
 **Obsolete:** 39, 42, 43

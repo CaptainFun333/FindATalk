@@ -219,3 +219,4 @@ under whichever group it belongs in, not just at the top.
   themselves, not a sum of each list's own talk count — a talk can belong
   to more than one list, so summing would double-count it and show a
   number that doesn't correspond to anything real.
+- **2026-09-23** — Idea 76's rating ask can't know whether someone already rated: neither Apple's nor Google's review API reveals that (or even whether the sheet appeared). So "stop asking once rated" is approximated locally — tapping Rate stops asks for good, Not now starts a 90-day cooldown, and there's a lifetime cap of 3 asks (matching Apple's own 3-per-year limit). The ask is shown to everyone, not only happy users, since Google discourages gating it and Apple forbids custom star forms. It skips any day another popup already showed; support asks and badge celebrations don't check that flag, so they win the day.

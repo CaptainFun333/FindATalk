@@ -1,0 +1,25 @@
+{
+  "api": {
+    "name": "InAppReviewPlugin",
+    "slug": "inappreviewplugin",
+    "docs": "",
+    "tags": [],
+    "methods": [
+      {
+        "name": "requestReview",
+        "signature": "() => Promise<void>",
+        "parameters": [],
+        "returns": "Promise<void>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "requestreview"
+      }
+    ],
+    "properties": []
+  },
+  "interfaces": [],
+  "enums": [],
+  "typeAliases": [],
+  "pluginConfigs": []
+}

@@ -196,6 +196,14 @@ served live at findatalk.com; this one should never be public.
   which (unlike iOS's WKWebView) doesn't consistently report those insets
   to CSS without native help.
 
+- **`@capacitor-community/in-app-review` 8.0.0 doesn't build on this project's Android Gradle Plugin 9.** Its
+  `android/build.gradle` calls `getDefaultProguardFile('proguard-android.txt')`, which AGP 9 rejects ("no longer
+  supported") while evaluating the project — so `./gradlew :app:assembleDebug` fails before compiling anything. Every
+  other Capacitor plugin here already uses `proguard-android-optimize.txt`. Fix: the plugin is vendored at
+  `packages/capacitor-in-app-review/` (MIT, license kept) with that one line changed, and root `package.json` points at it
+  via `file:`. Don't switch back to the registry copy or run `npm update` on it without checking that line first — and
+  a web-only test can't catch this; only a real Gradle build does.
+
 ## In-app purchases (StoreKit / Play Billing)
 
 - **"App Apple ID" (the numeric App Store Connect identifier, e.g.

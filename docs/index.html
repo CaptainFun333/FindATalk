@@ -3916,6 +3916,21 @@
     </div>
   </div>
 
+  <!-- Idea 76 — rating pre-ask. Opened programmatically by
+       maybeShowRatingAsk() (native only), never by a direct click. Same
+       .badge-celebration-modal chrome as the support ask above. The
+       primary button hands off to the store's own rating sheet — this
+       modal is only the polite pre-ask. -->
+  <div class="modal-overlay" id="ratingAskModalOverlay" hidden>
+    <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="ratingAskTitle">
+      <span class="secret-modal-glyph">&#127775;</span>
+      <h3 id="ratingAskTitle">Enjoying FindATalk?</h3>
+      <p class="modal-copy">A quick rating helps other people find it. It only takes a moment.</p>
+      <button type="button" class="btn btn-primary" id="ratingAskRateBtn">Rate FindATalk</button>
+      <button type="button" class="secret-modal-later" id="ratingAskDismissBtn">Not now</button>
+    </div>
+  </div>
+
   <!-- Idea 54 — the secret star's reveal. Opened once from
        revealSecret() (see the script), never again — not a queued/
        repeatable celebration like badgeCelebrationModalOverlay above.
@@ -4836,6 +4851,7 @@ function openOnboardingModal(){
   onboardingScreenIndex = 0;
   renderOnboardingScreen();
   onboardingModalOverlay.hidden = false;
+  notePopupShownToday(); // idea 76
 }
 function closeOnboardingModal(){
   onboardingModalOverlay.hidden = true;
@@ -4976,6 +4992,29 @@ supportAskModalOverlay.addEventListener('click', (e)=>{
 });
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !supportAskModalOverlay.hidden) closeSupportAsk();
+});
+
+/* Idea 76 — rating pre-ask wiring. Rate = stop asking for good, then hand
+   off to the store's own sheet (which may or may not actually appear —
+   the store owns that decision). Every other dismissal (Not now, backdrop,
+   Escape) just closes; the ask was already counted when it opened. */
+const ratingAskModalOverlay = document.getElementById('ratingAskModalOverlay');
+document.getElementById('ratingAskRateBtn').addEventListener('click', async ()=>{
+  const state = loadRatingAsk();
+  state.rated = true;
+  saveRatingAsk(state);
+  closeRatingAsk();
+  const plugin = ratingPlugin();
+  if (plugin){
+    try { await plugin.requestReview(); } catch(err){ /* store declined or unavailable — nothing to recover */ }
+  }
+});
+document.getElementById('ratingAskDismissBtn').addEventListener('click', closeRatingAsk);
+ratingAskModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === ratingAskModalOverlay) closeRatingAsk();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !ratingAskModalOverlay.hidden) closeRatingAsk();
 });
 
 /* ---------------------------------------------------------------
@@ -6064,6 +6103,20 @@ function localDateSeed(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+/* Idea 76 — "a popup already showed today." Every attention-grabbing popup
+   (badge celebration, support ask, streak-salvage offer, note conflict,
+   onboarding) records the day it opened here; only the rating ask reads
+   it back, so a rating request never lands on a day something else
+   already interrupted the person. Support asks and celebrations
+   deliberately do NOT check it — they win the day over the rating ask. */
+const POPUP_SHOWN_DAY_KEY = 'findATalkPopupShownDay';
+function notePopupShownToday(){
+  try { localStorage.setItem(POPUP_SHOWN_DAY_KEY, localDateSeed()); } catch(err){ /* ignore */ }
+}
+function popupShownToday(){
+  try { return localStorage.getItem(POPUP_SHOWN_DAY_KEY) === localDateSeed(); } catch(err){ return false; }
+}
+
 /* ---------------- Daily streak ----------------
    Two related but separate stats, both counted from "was a talk actually
    OPENED" (the ticket's "Open This Talk" link, or a title link in Show a
@@ -6447,6 +6500,7 @@ function showNextBadgeCelebration(){
   document.getElementById('badgeCelebrationTitle').textContent = `${badge.emoji || '🎉'} ${badge.label}`;
   document.getElementById('badgeCelebrationDesc').textContent = badge.desc;
   overlay.hidden = false;
+  notePopupShownToday(); // idea 76
 }
 function dismissBadgeCelebration(){
   badgeCelebrationQueue.shift();
@@ -6516,6 +6570,7 @@ function checkForNewBadges(){
     // above, since maybeShowSupportMilestoneAsk() itself re-checks
     // readKeys.size fresh rather than trusting a value passed in.
     maybeShowSupportMilestoneAsk();
+    maybeShowRatingAsk(); // idea 76 — after the support check, so a support ask that just opened (and set the popup-today flag) wins the day
   }
 }
 
@@ -6560,7 +6615,56 @@ const SUPPORT_MILESTONE_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // "capped at on
 function celebrationSurfaceBusy(){
   const badge = document.getElementById('badgeCelebrationModalOverlay');
   const ask = document.getElementById('supportAskModalOverlay');
-  return !!((badge && !badge.hidden) || (ask && !ask.hidden));
+  const rating = document.getElementById('ratingAskModalOverlay');
+  return !!((badge && !badge.hidden) || (ask && !ask.hidden) || (rating && !rating.hidden));
+}
+
+/* Idea 76 — rating pre-ask. Native only: the store's own rating sheet
+   (Apple SKStoreReviewController / Google Play In-App Review, via the
+   InAppReview plugin) is the only thing that can collect a rating, and
+   neither store tells us whether someone has already rated or even
+   whether the sheet appeared. So "stop asking once rated" is approximated
+   locally: tapping Rate stops asks for good (we assume it went through),
+   Not now starts a long cooldown, and there's a lifetime cap of 3 asks
+   (matches Apple's own 3-per-365-days limit). Fires only on a credited
+   read with no other popup involved (see checkForNewBadges()), and never
+   on a day any other popup already showed (popupShownToday()). Support
+   asks and badge celebrations never check this — they win the day. */
+const RATING_ASK_KEY = 'findATalkRatingAsk';
+const RATING_MIN_READS = 25;
+const RATING_COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000;
+const RATING_MAX_ASKS = 3;
+function loadRatingAsk(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(RATING_ASK_KEY) || 'null');
+    if (raw && typeof raw === 'object') return { count: raw.count|0, last: Number(raw.last)||0, rated: !!raw.rated };
+  } catch(err){ /* fall through */ }
+  return { count: 0, last: 0, rated: false };
+}
+function saveRatingAsk(state){
+  try { localStorage.setItem(RATING_ASK_KEY, JSON.stringify(state)); } catch(err){ /* ignore */ }
+}
+function ratingPlugin(){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return null;
+  return (cap.Plugins && cap.Plugins.InAppReview) || null;
+}
+function maybeShowRatingAsk(){
+  if (!ratingPlugin()) return;
+  const overlay = document.getElementById('ratingAskModalOverlay');
+  if (!overlay) return;
+  if (readKeys.size < RATING_MIN_READS) return;
+  if (celebrationSurfaceBusy() || popupShownToday()) return;
+  const state = loadRatingAsk();
+  if (state.rated || state.count >= RATING_MAX_ASKS) return;
+  if (state.last && Date.now() - state.last < RATING_COOLDOWN_MS) return;
+  saveRatingAsk({ count: state.count + 1, last: Date.now(), rated: false });
+  overlay.hidden = false;
+  notePopupShownToday();
+}
+function closeRatingAsk(){
+  const overlay = document.getElementById('ratingAskModalOverlay');
+  if (overlay) overlay.hidden = true;
 }
 // Called from showNextBadgeCelebration() once its own queue has fully
 // drained (see that function above) — never directly from
@@ -6664,6 +6768,7 @@ function openSupportAsk({glyph, title, desc, dismissLabel, badgeYears}){
     badgeRow.hidden = true;
   }
   overlay.hidden = false;
+  notePopupShownToday(); // idea 76
 }
 function closeSupportAsk(){
   const overlay = document.getElementById('supportAskModalOverlay');
@@ -7010,6 +7115,7 @@ function openStreakSalvageModal(){
   const overlay = document.getElementById('streakSalvageModalOverlay');
   if (!overlay) return; // web build without this markup — no-op, matching every other overlay lookup in this file
   overlay.hidden = false;
+  notePopupShownToday(); // idea 76
 }
 function closeStreakSalvageModal(){
   const overlay = document.getElementById('streakSalvageModalOverlay');
@@ -13206,6 +13312,7 @@ function maybeShowNextNoteConflict(){
   document.getElementById('noteConflictLocalText').textContent = next.localText;
   document.getElementById('noteConflictIncomingText').textContent = next.incomingText;
   overlay.hidden = false;
+  notePopupShownToday(); // idea 76
 }
 function resolveNoteConflict(resolution){
   const next = pendingNoteConflicts.shift();
@@ -14103,6 +14210,7 @@ function closeTopmostModal(){
   if (!overlay('badgesModalOverlay').hidden){ closeBadgesModal(); return true; }
   if (!overlay('supportModalOverlay').hidden){ closeSupportModal(); return true; }
   if (!overlay('supportAskModalOverlay').hidden){ closeSupportAsk(); return true; }
+  if (!overlay('ratingAskModalOverlay').hidden){ closeRatingAsk(); return true; }
   if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }
   if (!overlay('secretRevealModalOverlay').hidden){ closeSecretRevealModal(); return true; }
   if (!overlay('sharedListModalOverlay').hidden){ closeSharedListModal(); return true; }

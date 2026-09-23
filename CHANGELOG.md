@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- After you've read 25 talks, the app may occasionally ask if you'd like to rate FindATalk on the App Store or Google Play — never more than once every 90 days, never more than 3 times in total, never again once you tap Rate, and never on a day another popup has already shown. (App only; requires a new build on both iPhone/iPad and Android to take effect.)
+
 ### Fixed
 - On Android, the app content could sit under the status bar or navigation bar on some phones (especially with gesture navigation), which could hide the top or bottom of the screen behind those bars. (Android only, requires a new build to take effect.)
 - Share cards had text crowding together: the talk card's quote could run into its topic heading, and badge, Supporter and streak cards put the title too close to the icon. Spacing is now consistent. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)

@@ -6,6 +6,7 @@
   "scripts": {},
   "license": "UNLICENSED",
   "dependencies": {
+    "@capacitor-community/in-app-review": "file:packages/capacitor-in-app-review",
     "@capacitor-firebase/app": "^8.5.1",
     "@capacitor-firebase/authentication": "^8.5.1",
     "@capacitor-firebase/firestore": "^8.5.2",
