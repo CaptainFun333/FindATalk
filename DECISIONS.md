@@ -53,6 +53,29 @@ under whichever group it belongs in, not just at the top.
 
 ## Feature scope & UX tradeoffs
 
+- **2026-09-22** — My Stats' standalone modal was retired the same day it
+  shipped: once its content sat one tap behind the new "Your FindATalk"
+  panel (below), almost every number it revealed was already visible at
+  the panel's own root, making the extra tap-through pure friction. All
+  six numbers now render directly in the trophy panel instead. This also
+  surfaced a real duplicate: the panel's "My Badges" button and My Stats'
+  own "N badges earned — View My Badges" link both opened the identical
+  modal from the same screen — resolved by keeping only the informative
+  summary link and dropping the bare button. Reads & Rereads was demoted
+  from its own big-number cell to a `.stats-context-row` paired directly
+  with Most-Read Talk, under a shared "Reading Activity" label — both are
+  about *what/how much* was read, distinct from the toggle cells above
+  (*how many different* talks, *how consistently*).
+- **2026-09-22** — Split Settings: My Badges, My Stats, and Support the
+  App moved to a new "Your FindATalk" panel behind a new top-left button,
+  leaving Account/Appearance/Notifications/Help/Account & Data/Backup in
+  Settings. Settings had grown to 9-10 sections and mixed two different
+  kinds of content — set-once preferences vs. things worth revisiting —
+  so the split follows that real seam. Only the new button gets visual
+  weight (filled accent-fill circle); the Settings gear stays exactly as
+  subtle as before, per explicit direction not to make Settings itself
+  more prominent. (My Stats was later folded directly into this same
+  panel the same day — see the entry above.)
 - **2026-09-22** — The support-ask that used to fire once every January
   ("Happy New Year!") now fires December 18–31 instead ("Merry
   Christmas!") — the read is that people are more generous around

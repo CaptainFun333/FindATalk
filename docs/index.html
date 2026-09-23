@@ -629,6 +629,42 @@
   }
   .settings-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
 
+  /* Idea 75 — the trophy-case button (Badges/Stats/Support), mirrored to
+     the opposite top corner from #settingsBtn: same size/position logic
+     (absolute within .wrap, top:0, safe-area already handled by body's
+     padding), just left instead of right. Deliberately filled with
+     accent-fill/on-accent instead of #settingsBtn's subtle outline —
+     the whole point of this button, per direct request, is to read as
+     more prominent than Settings, not just as "a second gear." Settings
+     itself is intentionally left untouched. */
+  .trophy-btn{
+    position:absolute;
+    top:0; left:0;
+    width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--accent-fill);
+    border:none;
+    border-radius:50%;
+    color:var(--on-accent);
+    cursor:pointer;
+    box-shadow:0 6px 16px -4px rgba(0,0,0,.35);
+    transition:background .15s;
+  }
+  .trophy-btn:hover{ background:var(--accent-fill-hover); }
+  .trophy-btn svg{ width:17px; height:17px; }
+  /* A cheap, real affordance, not decoration: lit only when a badge has
+     been earned since the trophy panel was last opened (see
+     updateTrophyDot() — compares earnedBadges' current count against
+     TROPHY_SEEN_BADGE_COUNT_KEY). aria-hidden since the button's own
+     aria-label already names the destination; a screen reader announcing
+     a bare dot would just be noise. */
+  .trophy-btn-dot{
+    position:absolute; top:-2px; right:-2px;
+    width:11px; height:11px; border-radius:50%;
+    background:var(--brass); border:2px solid var(--paper);
+  }
+  .trophy-btn-dot[hidden]{ display:none; }
+
   /* ---------- pre-migration safety banner (see HTML comment above
      #migrationBanner for full context; remove alongside that block once
      the domain migration is complete) ---------- */
@@ -825,6 +861,29 @@
     font-family:'Inter',sans-serif; font-size:10.5px; font-weight:600; letter-spacing:.03em;
     color:var(--ink-soft); margin:0; line-height:1.3;
   }
+  /* Idea 75 — the trophy preview's two cells are real <button>s (see
+     renderTrophyPreview()); .stat-cell's own div-oriented rules above
+     still apply, this just undoes UA button chrome (border/background/
+     font already come from .stat-cell) and adds the interactive states a
+     plain stat-only .stat-cell never needed. */
+  .stat-cell-toggle{
+    font:inherit; appearance:none; -webkit-appearance:none; width:100%; cursor:pointer;
+    transition:background-color .2s, border-color .2s;
+  }
+  .stat-cell-toggle:hover{ border-color:var(--brass); }
+  .stat-cell-toggle:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  /* Idea 75 follow-up — persistent tint while showing the "alternate"
+     number (Talks Remaining / Longest Streak), not just a one-off flash:
+     answers "which of the two am I looking at right now" at a glance if
+     you look away and back, not only at the instant you tap. The .2s
+     transition above still gives a soft flash-in the moment you toggle,
+     so this covers both the flash and the invert ideas in one mechanism
+     rather than needing separate animation keyframes. */
+  .stat-cell-toggle.is-alt{ background:var(--tint); border-color:var(--brass); }
+  @media (prefers-reduced-motion: reduce){
+    .stat-cell-toggle{ transition:none; }
+  }
+  .stat-cell-swap{ color:var(--ink-soft); font-size:10px; }
   .stats-row-label{
     font-family:'Inter',sans-serif; font-size:10px; font-weight:700; letter-spacing:.06em;
     text-transform:uppercase; color:var(--brass); margin:0 0 8px;
@@ -844,6 +903,9 @@
     font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; color:var(--ink);
   }
   .stats-badges-link .chev{ color:var(--ink-soft); font-size:12.5px; font-weight:400; }
+  /* Idea 75 — the trophy panel's preview strip reuses .stat-grid/.stat-cell
+     verbatim (idea 73's own classes just above), so this isn't a second,
+     slightly-different stat-card style to maintain. */
   /* Idea 73 — the streak pill becomes a tappable entry into My Stats, so
      it needs a visible tap affordance it never needed as plain status
      text. aria-hidden since the pill's own text already is the
@@ -2026,6 +2088,14 @@
     display:flex; gap:8px;
     margin-top:16px; padding-top:16px;
     border-top:1px solid var(--line);
+    /* Same sticky-bottom pin as .modal-actions above — real bug found
+       where someone with many lists had to scroll all the way down past
+       the whole checklist just to find "New list name…"/Create, which
+       this keeps reachable at the modal's edge instead. */
+    position:sticky; bottom:-24px;
+    margin-bottom:-24px; padding-bottom:24px;
+    background:var(--paper-raised);
+    z-index:1;
   }
   .modal-new-collection input{
     flex:1; min-width:0;
@@ -2109,6 +2179,19 @@
   }
   .modal-actions{
     display:flex; justify-content:flex-end; gap:10px;
+    /* Mirrors .modal-header's own sticky-top trick above — pins this row
+       to the modal's own bottom edge once its content scrolls (a long
+       list, or a manually-resized .note-textarea in My Note/Share This
+       Talk), so Cancel/Save/Share is never left scrolled out of view
+       below the fold. margin-bottom/padding-bottom cancel and restore
+       .modal's own bottom padding, same reasoning as the header's
+       top-padding cancel; z-index keeps it above whatever scrolls
+       beneath it. A no-op visually on every modal that never actually
+       scrolls — sticky only does anything once there's overflow. */
+    position:sticky; bottom:-24px;
+    margin-bottom:-24px; padding-bottom:24px;
+    background:var(--paper-raised);
+    z-index:1;
   }
   .modal-actions .reset-link{ margin-right:auto; align-self:center; }
 
@@ -2547,12 +2630,6 @@
      names, idea 58) rather than shrinking text to force one line. */
   .settings-danger-row{ display:flex; flex-wrap:wrap; gap:8px; }
   .settings-danger-row .btn{ flex:0 0 auto; }
-  /* Idea 73 — My Badges / My Stats. Same wrap-don't-clip row mechanics as
-     .settings-danger-row above, but its own neutral class: reusing the
-     danger-named one here would be a misleading label for two plain,
-     non-destructive buttons. */
-  .settings-btn-row{ display:flex; flex-wrap:wrap; gap:8px; }
-  .settings-btn-row .btn{ flex:0 0 auto; }
   /* Idea 69 — note-conflict resolution modal. Same family as .modal-copy,
      just a labeled pair of read-only text blocks instead of one
      paragraph. */
@@ -2631,6 +2708,18 @@
        Appearance (Light/Dark/System) and the Daily Reminder toggle. -->
   <button type="button" class="settings-btn" id="settingsBtn" aria-label="Settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L14.9 3h-3.8l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h3.8l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z"/></svg>
+  </button>
+
+  <!-- Idea 75 — mirrors #settingsBtn's own placement/size logic to the
+       opposite corner (see .trophy-btn's CSS), same "direct child of
+       .wrap so it survives zone-innerHTML swaps" reasoning. Opens the
+       new "Your FindATalk" panel (My Badges, My Stats, Support the App —
+       moved out of Settings, see #trophyModalOverlay below), deliberately
+       filled/accent-colored rather than Settings' subtle outline, since
+       increasing prominence here (not on Settings) was the explicit ask. -->
+  <button type="button" class="trophy-btn" id="trophyBtn" aria-label="Your FindATalk — badges, stats, and support">
+    <span class="trophy-btn-dot" id="trophyBtnDot" aria-hidden="true" hidden></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a1 1 0 0 0-1 1c0 3 2 4 4 4.3M17 5h3a1 1 0 0 1 1 1c0 3-2 4-4 4.3"/></svg>
   </button>
 
   <!-- Post-migration safety banner (FindATalk.com domain migration is now
@@ -3419,16 +3508,6 @@
         </div>
       </div>
 
-      <!-- APP ONLY (idea 45) — hidden by default, unhidden only on native,
-           same pattern as #reminderSettingsSection just below. -->
-      <div class="settings-section" id="badgesSettingsSection" hidden>
-        <p class="settings-label">Achievements</p>
-        <div class="settings-btn-row">
-          <button type="button" class="btn btn-ghost" id="viewBadgesBtn">My Badges</button>
-          <button type="button" class="btn btn-ghost" id="viewStatsBtn">My Stats</button>
-        </div>
-      </div>
-
       <div class="settings-section" id="reminderSettingsSection" hidden>
         <p class="settings-label">Notifications</p>
         <div class="settings-row">
@@ -3463,16 +3542,6 @@
             <span class="switch-track"></span>
           </label>
         </div>
-      </div>
-
-      <!-- Support the App (idea 67's real replacement, see
-           PROJECT_HANDOFF.md) — shown on every platform now. Native opens
-           the IAPBridge tip-tier picker; web opens the same Stripe
-           frequency/amount picker docs/donate.html uses, inline in this
-           modal instead of a separate page — see openSupportModal(). -->
-      <div class="settings-section" id="supportSettingsSection">
-        <p class="settings-label">Support</p>
-        <button type="button" class="btn btn-ghost" id="supportAppBtn">Support the App</button>
       </div>
 
       <div class="settings-section">
@@ -3639,47 +3708,37 @@
     </div>
   </div>
 
-  <!-- APP ONLY (idea 45, Phase 1) — the full badges list, opened from the
-       "My Badges" button in Settings (itself only shown on native). -->
-  <div class="modal-overlay" id="badgesModalOverlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="badgesModalTitle">
+  <!-- Idea 75, folded together with idea 73 (2026-09-22) — "Your
+       FindATalk": the trophy-case panel opened from #trophyBtn now shows
+       My Stats' full six-number content directly at its root, not behind
+       a second "My Stats" button/modal one level down — that extra click
+       stopped earning its keep once almost everything it revealed was
+       already visible right here. Support the App stays. My Badges is a
+       single entry point (the badge-count summary row below, not also a
+       separate "My Badges" button — the two used to point at the exact
+       same modal from the same panel, a real duplicate once merged). -->
+  <div class="modal-overlay" id="trophyModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="trophyModalTitle">
       <div class="modal-header">
-        <h3 id="badgesModalTitle">My Badges</h3>
-        <button type="button" class="modal-close" id="badgesModalClose" aria-label="Close">&times;</button>
+        <h3 id="trophyModalTitle">Your FindATalk</h3>
+        <button type="button" class="modal-close" id="trophyModalClose" aria-label="Close">&times;</button>
       </div>
-      <div class="badges-list" id="badgesModalList"></div>
-    </div>
-  </div>
 
-  <!-- Idea 73 — My Stats, opened from either the "My Stats" Settings
-       button or the Home streak pill itself. Six numbers, deliberately
-       no more: unique reads, total reads (rereads included), current
-       streak, longest streak, days active, most-read talk — plus a
-       single link into the real My Badges modal rather than a second,
-       separately-maintained badge list. -->
-  <div class="modal-overlay" id="statsModalOverlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="statsModalTitle">
-      <div class="modal-header">
-        <h3 id="statsModalTitle">My Stats</h3>
-        <button type="button" class="modal-close" id="statsModalClose" aria-label="Close">&times;</button>
-      </div>
+      <!-- Idea 75 — each cell toggles between two related numbers on tap
+           (Unique Talks Read <-> Talks Remaining; Day Streak <-> Longest
+           Streak), see renderTrophyPreview(). Real <button>s, not styled
+           <div>s, so Enter/Space/click all work natively — no manual
+           role="button"/keydown wiring needed, unlike the streak pill's
+           own <div>-based workaround. -->
       <div class="stat-grid">
-        <div class="stat-cell">
-          <p class="stat-value" id="statUniqueReads">0</p>
-          <p class="stat-label">Unique Talks Read</p>
-        </div>
-        <div class="stat-cell">
-          <p class="stat-value" id="statTotalReads">0</p>
-          <p class="stat-label">Reads &amp; Rereads</p>
-        </div>
-        <div class="stat-cell">
-          <p class="stat-value" id="statCurrentStreak">0</p>
-          <p class="stat-label">Current Streak (Days)</p>
-        </div>
-        <div class="stat-cell">
-          <p class="stat-value" id="statLongestStreak">0</p>
-          <p class="stat-label">Longest Streak</p>
-        </div>
+        <button type="button" class="stat-cell stat-cell-toggle" id="trophyPreviewReadsCell">
+          <p class="stat-value" id="trophyPreviewReads">0</p>
+          <p class="stat-label"><span id="trophyPreviewReadsLabel">Unique Talks Read</span> <span class="stat-cell-swap" aria-hidden="true">&#8646;</span></p>
+        </button>
+        <button type="button" class="stat-cell stat-cell-toggle" id="trophyPreviewStreakCell">
+          <p class="stat-value" id="trophyPreviewStreak">0</p>
+          <p class="stat-label"><span id="trophyPreviewStreakLabel">Day Streak</span> <span class="stat-cell-swap" aria-hidden="true">&#8646;</span></p>
+        </button>
       </div>
 
       <p class="stats-row-label">Days Active</p>
@@ -3688,16 +3747,61 @@
         <div class="badge-row-text"><strong id="statDaysActive">0 of the last 365 days</strong><span>Since this time last year</span></div>
       </div>
 
-      <p class="stats-row-label" id="statsMostReadLabel" hidden>Most-Read Talk</p>
+      <!-- Idea 75 follow-up, per user request — Reads & Rereads demoted
+           from its own big-number stat-grid cell (idea 73's original
+           layout) down here, paired with Most-Read Talk under one label:
+           both are about *how much*/*what* you've actually read, as
+           distinct from the toggle cells above (which are about *how
+           many different* talks and *how consistently*). Same
+           .stats-context-row treatment as Most-Read Talk, not a stat-grid
+           cell, so the two visually read as a pair. The count now lives
+           in the bold headline text itself ("3 Reads & Rereads") rather
+           than a separate big number + a long second line — keeps the
+           subtext short enough to never wrap, whatever the count is. -->
+      <p class="stats-row-label">Reading Activity</p>
+      <div class="stats-context-row">
+        <span class="badge-icon">&#128200;</span>
+        <div class="badge-row-text"><strong id="statTotalReadsLine">0 Reads &amp; Rereads</strong><span>Every time you've opened a talk</span></div>
+      </div>
       <div class="stats-context-row" id="statsMostReadRow" hidden>
         <span class="badge-icon">&#128214;</span>
         <div class="badge-row-text"><strong id="statsMostReadTitle"></strong><span id="statsMostReadMeta"></span></div>
       </div>
 
+      <!-- "Read ×N" — the exact same badge text idea 55 already uses next
+           to a talk's own Read checkmark (readBadgeHtml()), reused here
+           instead of inventing separate prose ("read 1 time"). -->
       <button type="button" class="stats-badges-link" id="statsBadgesLink">
-        <span id="statsBadgeCount">0 badges earned</span>
+        <span id="statsBadgeCount">&#127941; 0 badges earned</span>
         <span class="chev">View My Badges &rsaquo;</span>
       </button>
+
+      <!-- Support the App (idea 67's real replacement, see
+           PROJECT_HANDOFF.md) — shown on every platform now. Native opens
+           the IAPBridge tip-tier picker; web opens the same Stripe
+           frequency/amount picker docs/donate.html uses, inline in this
+           modal instead of a separate page — see openSupportModal().
+           Section label is "Give Back," not "Support" — a "Support"
+           label directly above a "Support the App" button read as
+           redundant once both were visible in the same panel; the button
+           itself keeps its established real name unchanged. -->
+      <div class="settings-section" id="supportSettingsSection" style="margin-top:20px;">
+        <p class="settings-label">Give Back</p>
+        <button type="button" class="btn btn-ghost" id="supportAppBtn">&#10084;&#65039; Support the App</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP ONLY (idea 45, Phase 1) — the full badges list, opened from the
+       badge-count summary row at the bottom of the trophy-case panel
+       (idea 75, formerly Settings). -->
+  <div class="modal-overlay" id="badgesModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="badgesModalTitle">
+      <div class="modal-header">
+        <h3 id="badgesModalTitle">My Badges</h3>
+        <button type="button" class="modal-close" id="badgesModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="badges-list" id="badgesModalList"></div>
     </div>
   </div>
 
@@ -4185,6 +4289,110 @@ document.addEventListener('keydown', (e)=>{
 });
 
 /* ---------------------------------------------------------------
+   Idea 75, folded with idea 73 (2026-09-22) — "Your FindATalk"
+   trophy-case panel: My Badges/Support the App, plus My Stats' full
+   six-number content directly at the panel's root rather than behind a
+   separate "My Stats" modal one level down — that extra click stopped
+   earning its keep once almost everything it revealed was already
+   visible right here. Same open/close pattern as every other modal.
+   readKeys/visitCounts/loadStreak()/earnedBadges are all top-level, same
+   as renderBadgesList()/mostReadTalk() elsewhere in this file — safe to
+   reference before their own declarations further down, since this only
+   ever runs later, on an actual open/click, not at parse time.
+------------------------------------------------------------------*/
+const trophyModalOverlay = document.getElementById('trophyModalOverlay');
+const trophyBtnDot = document.getElementById('trophyBtnDot');
+const TROPHY_SEEN_BADGE_COUNT_KEY = 'findATalkTrophySeenBadgeCount';
+// Cheap, real affordance — lit only when a badge's been earned since the
+// panel was last opened, never just for existing. Checked at startup (so
+// a badge earned last session while the app was closed still shows the
+// dot on next launch) and after every checkForNewBadges() call.
+function updateTrophyDot(){
+  let seen = 0;
+  try { seen = Number(localStorage.getItem(TROPHY_SEEN_BADGE_COUNT_KEY)) || 0; } catch(err){ /* ignore */ }
+  trophyBtnDot.hidden = Object.keys(earnedBadges).length <= seen;
+}
+// Each preview cell toggles between two related numbers on tap — reset
+// to the default (not the last-viewed toggle state) every time the panel
+// re-opens, same "quick peek, not a remembered preference" treatment as
+// the rest of this panel.
+let trophyShowRemaining = false;
+let trophyShowLongest = false;
+function renderTrophyPreview(){
+  const streak = loadStreak();
+  document.getElementById('trophyPreviewReads').textContent =
+    trophyShowRemaining ? Math.max(TALKS.length - readKeys.size, 0) : readKeys.size;
+  document.getElementById('trophyPreviewReadsLabel').textContent =
+    trophyShowRemaining ? 'Talks Remaining' : 'Unique Talks Read';
+  document.getElementById('trophyPreviewStreak').textContent =
+    trophyShowLongest ? streak.longest : streak.count;
+  document.getElementById('trophyPreviewStreakLabel').textContent =
+    trophyShowLongest ? 'Longest Streak' : 'Day Streak';
+  document.getElementById('trophyPreviewReadsCell').classList.toggle('is-alt', trophyShowRemaining);
+  document.getElementById('trophyPreviewStreakCell').classList.toggle('is-alt', trophyShowLongest);
+
+  // Idea 73's remaining four numbers, folded in here per idea 75 — same
+  // fields, same source data, just rendered directly into the trophy
+  // panel instead of a separate modal underneath it.
+  document.getElementById('statDaysActive').textContent =
+    `${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} days`;
+  const totalReads = Object.values(visitCounts).reduce((sum, n)=> sum + n, 0);
+  document.getElementById('statTotalReadsLine').textContent =
+    `${totalReads} Read${totalReads === 1 ? '' : 's'} & Rereads`;
+
+  const mr = mostReadTalk();
+  const mrRow = document.getElementById('statsMostReadRow');
+  // Talks are positional tuples ([title, speaker, year, month, slug]),
+  // not objects — talk[0]/talk[1], same lesson idea 69's note-conflict
+  // modal already hit live over this exact assumption.
+  mrRow.hidden = !mr;
+  if (mr){
+    document.getElementById('statsMostReadTitle').textContent = mr.talk[0];
+    // "Read ×N" — the exact same badge text idea 55 already uses next to
+    // a talk's own Read checkmark (readBadgeHtml()), reused here instead
+    // of separate invented prose ("read 1 time").
+    document.getElementById('statsMostReadMeta').textContent =
+      `${mr.talk[1]} — Read ×${mr.count}`;
+  }
+
+  const badgeCount = Object.keys(earnedBadges).length;
+  document.getElementById('statsBadgeCount').textContent =
+    `\u{1F3C5} ${badgeCount} badge${badgeCount === 1 ? '' : 's'} earned`;
+}
+document.getElementById('trophyPreviewReadsCell').addEventListener('click', ()=>{
+  trophyShowRemaining = !trophyShowRemaining;
+  renderTrophyPreview();
+});
+document.getElementById('trophyPreviewStreakCell').addEventListener('click', ()=>{
+  trophyShowLongest = !trophyShowLongest;
+  renderTrophyPreview();
+});
+function openTrophyModal(){
+  trophyShowRemaining = false;
+  trophyShowLongest = false;
+  renderTrophyPreview();
+  trophyModalOverlay.hidden = false;
+  // Opening the panel counts as "seen" — same moment the dot's promise
+  // (something new since you last looked) is fulfilled.
+  try { localStorage.setItem(TROPHY_SEEN_BADGE_COUNT_KEY, String(Object.keys(earnedBadges).length)); } catch(err){ /* ignore */ }
+  updateTrophyDot();
+}
+function closeTrophyModal(){
+  trophyModalOverlay.hidden = true;
+}
+document.getElementById('trophyBtn').addEventListener('click', openTrophyModal);
+document.getElementById('trophyModalClose').addEventListener('click', closeTrophyModal);
+trophyModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === trophyModalOverlay) closeTrophyModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !trophyModalOverlay.hidden) closeTrophyModal();
+});
+// NOT calling updateTrophyDot() here — earnedBadges (declared further
+// down the file) isn't loaded yet at this point in top-level script
+// execution. initBadgesUI() calls it instead, safely after loadBadges().
+
+/* ---------------------------------------------------------------
    Idea 61 (Stage 2) — sign in / create account / sign out. Three real
    auth methods (Apple, Google, Email/Password), each with a native path
    and a web path, following the same "native does X, web falls back to
@@ -4651,11 +4859,11 @@ document.getElementById('showMeAroundBtn').addEventListener('click', ()=>{
   openOnboardingModal();
 });
 
-/* APP ONLY (idea 45, Phase 1) — badges list modal wiring. The trigger
-   button (#viewBadgesBtn) lives in a section that's hidden by default in
-   HTML and only unhidden on native — see initBadgesUI() further down —
-   so this listener is harmless to attach unconditionally on web too, it
-   just never gets triggered there since the button stays hidden. */
+/* APP ONLY (idea 45, Phase 1) — badges list modal wiring. Opened from the
+   badge-count summary row at the bottom of the trophy-case panel
+   (#statsBadgesLink, wired further down) — no separate "My Badges"
+   button anymore, see idea 75's 2026-09-22 follow-up for why that would
+   now be a duplicate entry point to the exact same modal. */
 const badgesModalOverlay = document.getElementById('badgesModalOverlay');
 function openBadgesModal(){
   renderBadgesList();
@@ -4664,10 +4872,6 @@ function openBadgesModal(){
 function closeBadgesModal(){
   badgesModalOverlay.hidden = true;
 }
-document.getElementById('viewBadgesBtn').addEventListener('click', ()=>{
-  closeSettingsModal();
-  openBadgesModal();
-});
 document.getElementById('badgesModalClose').addEventListener('click', closeBadgesModal);
 badgesModalOverlay.addEventListener('click', (e)=>{
   if (e.target === badgesModalOverlay) closeBadgesModal();
@@ -4676,20 +4880,13 @@ document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !badgesModalOverlay.hidden) closeBadgesModal();
 });
 
-/* Idea 73 — My Stats. Two entry points (the Settings button and the Home
-   streak pill itself) open the identical modal, both wired below. All
-   the data this reads (readKeys, visitCounts, loadStreak(), TALKS_BY_KEY,
-   earnedBadges) is top-level, same as renderBadgesList() just above —
-   safe to reference before its own declaration further down the file,
-   since this only runs later, on an actual click, not at parse time. */
-const statsModalOverlay = document.getElementById('statsModalOverlay');
 // Sourced from visitCounts, not readKeys — same reasoning as idea 55's
 // own "Most Read" sort: readKeys only ever marks a talk read once, so it
 // can't tell which one someone actually returned to most.
 // Deliberately TALKS.find(), not the O(1) TALKS_BY_KEY map — that index
 // is built inside initApp()'s own closure (see its declaration's
 // comment), not visible to this top-level function; a linear scan over
-// TALKS here only ever runs once, on an actual modal open, not in a hot
+// TALKS here only ever runs once, on an actual panel open, not in a hot
 // loop, so the O(n) cost is a non-issue in practice.
 function mostReadTalk(){
   let bestTalk = null, bestCount = 0;
@@ -4701,62 +4898,20 @@ function mostReadTalk(){
   }
   return bestTalk ? { talk: bestTalk, count: bestCount } : null;
 }
-function renderStatsModal(){
-  const streak = loadStreak();
-  const totalReads = Object.values(visitCounts).reduce((sum, n)=> sum + n, 0);
-  document.getElementById('statUniqueReads').textContent = readKeys.size;
-  document.getElementById('statTotalReads').textContent = totalReads;
-  document.getElementById('statCurrentStreak').textContent = streak.count;
-  document.getElementById('statLongestStreak').textContent = streak.longest;
-  document.getElementById('statDaysActive').textContent =
-    `${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} days`;
-
-  const mr = mostReadTalk();
-  const mrLabel = document.getElementById('statsMostReadLabel');
-  const mrRow = document.getElementById('statsMostReadRow');
-  // Talks are positional tuples ([title, speaker, year, month, slug]),
-  // not objects — talk[0]/talk[1], same lesson idea 69's note-conflict
-  // modal already hit live over this exact assumption.
-  mrLabel.hidden = mrRow.hidden = !mr;
-  if (mr){
-    document.getElementById('statsMostReadTitle').textContent = mr.talk[0];
-    document.getElementById('statsMostReadMeta').textContent =
-      `${mr.talk[1]} — read ${mr.count} time${mr.count === 1 ? '' : 's'}`;
-  }
-
-  const badgeCount = Object.keys(earnedBadges).length;
-  document.getElementById('statsBadgeCount').textContent =
-    `${badgeCount} badge${badgeCount === 1 ? '' : 's'} earned`;
-}
-function openStatsModal(){
-  renderStatsModal();
-  statsModalOverlay.hidden = false;
-}
-function closeStatsModal(){
-  statsModalOverlay.hidden = true;
-}
-document.getElementById('viewStatsBtn').addEventListener('click', ()=>{
-  closeSettingsModal();
-  openStatsModal();
-});
+// The Home streak pill opens the same "Your FindATalk" panel everything
+// else does now (used to open a separate, standalone My Stats modal
+// before idea 75's 2026-09-22 follow-up folded that content in here).
 const streakBadgeEl = document.getElementById('streakBadge');
-streakBadgeEl.addEventListener('click', openStatsModal);
+streakBadgeEl.addEventListener('click', openTrophyModal);
 // role="button" on a <div> gets no native Enter/Space activation — has
 // to be wired by hand, same as any other non-<button> click target.
 streakBadgeEl.addEventListener('keydown', (e)=>{
-  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openStatsModal(); }
-});
-document.getElementById('statsModalClose').addEventListener('click', closeStatsModal);
-statsModalOverlay.addEventListener('click', (e)=>{
-  if (e.target === statsModalOverlay) closeStatsModal();
-});
-document.addEventListener('keydown', (e)=>{
-  if (e.key === 'Escape' && !statsModalOverlay.hidden) closeStatsModal();
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openTrophyModal(); }
 });
 // Links out to the real My Badges modal rather than duplicating its list
 // here — one authoritative badge display, not two that could drift.
 document.getElementById('statsBadgesLink').addEventListener('click', ()=>{
-  closeStatsModal();
+  closeTrophyModal();
   openBadgesModal();
 });
 
@@ -6205,9 +6360,10 @@ function renderStreak(){
   } else {
     el.innerHTML = `${flameHtml} ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
   }
-  // Idea 73 — the pill opens My Stats regardless of which branch above
-  // fired; even a brand-new/paused streak can have real unique/total
-  // read numbers worth seeing, so this isn't gated to streak.count > 0.
+  // Idea 73/75 — the pill opens the "Your FindATalk" panel regardless of
+  // which branch above fired; even a brand-new/paused streak can have
+  // real unique/total read numbers worth seeing, so this isn't gated to
+  // streak.count > 0.
   // aria-hidden since the pill's own text already is its accessible name.
   el.innerHTML += ' <span class="streak-chevron" aria-hidden="true">›</span>';
   // Phase 3 (idea 45) — nothing worth sharing until there's a real streak.
@@ -6336,6 +6492,7 @@ function checkForNewBadges(){
   });
   if (earnedSomething){
     saveBadges();
+    updateTrophyDot(); // idea 75 — lights the trophy button live, not just at next launch
     showNextBadgeCelebration(); // its own empty-queue branch chains into maybeShowSupportMilestoneAsk() once dismissed
   } else {
     // idea 67 — no new badge this time, so showNextBadgeCelebration() (and
@@ -9343,16 +9500,17 @@ async function setupDailyReminder(){
    to reschedule until it's on — and re-schedules the existing notification
    immediately on change, same replace-in-place behavior scheduleDailyReminder()
    already relies on elsewhere. */
-/* (idea 45, Phase 1) — unhides the "My Badges" row in Settings. Badges are
-   local data/UI only, no OS permission or native API involved, so this
-   runs the same on web and native. */
+/* (idea 45, Phase 1) — the Achievements section (in the trophy-case panel
+   as of idea 75) is always visible in markup now, so there's no section
+   to unhide here anymore. Badges are local data/UI only, no OS permission
+   or native API involved, so they've always run the same on web and
+   native — this function's only real job now is catching any badges
+   already earned before this exact code existed (e.g. a streak that
+   already crossed 7 days pre-update) — run once on startup so nobody's
+   missed milestone silently stays unearned forever. */
 function initBadgesUI(){
-  const section = document.getElementById('badgesSettingsSection');
-  section.hidden = false;
-  // Also catch any badges already earned before this exact code existed
-  // (e.g. a streak that already crossed 7 days pre-update) — run once on
-  // startup so nobody's missed milestone silently stays unearned forever.
   checkForNewBadges();
+  updateTrophyDot();
 }
 
 /* ---------------- Support the App (idea 67's real replacement) ----------------
@@ -9589,7 +9747,7 @@ function initSupportUI(){
   onOpenSupportModal = openSupportModal; // idea 67 — see the slot's own comment for why this indirection exists
 
   document.getElementById('supportAppBtn').addEventListener('click', ()=>{
-    closeSettingsModal();
+    closeTrophyModal();
     openSupportModal();
   });
   document.getElementById('supportModalClose').addEventListener('click', closeSupportModal);
@@ -13894,7 +14052,7 @@ if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.
     }
   }).catch(()=>{}); // not available on web/unsupported platform — nothing to do
 }
-/* Idea 59 — finds whichever of the app's 13 separate modal/popup
+/* Idea 59 — finds whichever of the app's 19 separate modal/popup
    overlays is currently open (at most one ever is, in practice) and
    closes it through its own real close function — same dismiss path as
    tapping its Cancel/X button, clicking the overlay backdrop, or (where
@@ -13918,8 +14076,8 @@ function closeTopmostModal(){
   if (!overlay('deleteAccountModalOverlay').hidden){ closeDeleteAccountModal(); return true; }
   if (!overlay('clearDataModalOverlay').hidden){ closeClearDataModal(); return true; }
   if (!overlay('settingsModalOverlay').hidden){ closeSettingsModal(); return true; }
+  if (!overlay('trophyModalOverlay').hidden){ closeTrophyModal(); return true; }
   if (!overlay('badgesModalOverlay').hidden){ closeBadgesModal(); return true; }
-  if (!overlay('statsModalOverlay').hidden){ closeStatsModal(); return true; }
   if (!overlay('supportModalOverlay').hidden){ closeSupportModal(); return true; }
   if (!overlay('supportAskModalOverlay').hidden){ closeSupportAsk(); return true; }
   if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }
