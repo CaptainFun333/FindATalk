@@ -4343,7 +4343,14 @@ function renderTrophyPreview(){
   // panel instead of a separate modal underneath it.
   document.getElementById('statDaysActive').textContent =
     `${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} days`;
-  const totalReads = Object.values(visitCounts).reduce((sum, n)=> sum + n, 0);
+  // Talks read before visit counting existed (or restored from a backup
+  // without counts) sit in readKeys with no visitCounts entry — count each
+  // read talk at least once so the total can never dip below Unique Talks Read.
+  let totalReads = 0;
+  for (const key in visitCounts){
+    if (!readKeys.has(key)) totalReads += visitCounts[key];
+  }
+  readKeys.forEach(key=>{ totalReads += Math.max(visitCounts[key] || 0, 1); });
   document.getElementById('statTotalReadsLine').textContent =
     `${totalReads} Read${totalReads === 1 ? '' : 's'} & Rereads`;
 
