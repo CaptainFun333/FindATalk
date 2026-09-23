@@ -10,6 +10,11 @@ this updated.
 
 ## [Unreleased]
 
+### Fixed
+Nothing yet.
+
+## [1.7.2] — 2026-09-22
+
 ### Added
 - Missed a day and about to lose your streak? Read 2 talks the day you notice and your streak keeps going instead of resetting — you'll see a heads-up the first time this happens, and (on the app) a reminder later that day if you haven't read yet. Limited to once a week, and only when you've missed exactly one day. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - FindATalk now occasionally invites you to support the app: once after your 10th talk read (and every 30 after that, at most once a month), and once each year between December 18th and New Year's Eve if you've supported before or never have. If you've given a gift recently, you won't be asked. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
