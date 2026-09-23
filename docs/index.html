@@ -10528,8 +10528,7 @@ async function buildTalkShareCardBlob(pick, opts){
   const titleBoxH = 54*s;
   const metaH = 70*s;
   const footerH = 40*s;
-  const quoteBoxTop = y + 10*s;
-  const quoteBoxH = Math.max(40*s, H - padBottom - footerH - metaH - quoteBoxTop);
+  const titleGap = 14*s, quoteMetaGap = 12*s;
 
   const titleFit = fitCanvasText(ctx, title.toUpperCase(), {
     fontFamily:'Inter, sans-serif', weight:700, maxPx:12.5*s, minPx:9*s,
@@ -10539,7 +10538,9 @@ async function buildTalkShareCardBlob(pick, opts){
   ctx.fillStyle = palette.inkSoft;
   ctx.font = `700 ${titleFit.size}px Inter, sans-serif`;
   titleFit.lines.forEach((line, i)=> ctx.fillText(line, padSide, y + titleFit.size*(i + 0.85)));
-  y += titleFit.lines.length * titleFit.size * 1.35 + 10*s;
+  y += titleFit.lines.length * titleFit.size * 1.35 + titleGap;
+  const quoteBoxTop = y;
+  const quoteBoxH = Math.max(40*s, H - padBottom - footerH - metaH - quoteMetaGap - quoteBoxTop);
 
   const quoteFit = fitCanvasText(ctx, quoteText, {
     fontFamily:'Lora, serif', weight:500, style:'italic', maxPx:19*s, minPx:13*s,
@@ -10600,20 +10601,24 @@ async function buildAchievementShareCardBlob({ title, desc, dateLine, centerpiec
   const cx = W/2;
 
   ctx.textAlign = 'center';
-  centerpiece(ctx, cx, centerTop, s);
+  const cpBottom = centerpiece(ctx, cx, centerTop, s);
 
-  let ty = centerTop + 62*s;
-  ctx.font = `italic 600 ${19*s}px Lora, serif`;
-  ctx.fillStyle = palette.ink;
-  ctx.fillText(ellipsizeCanvasText(ctx, title, W - padSide*2), cx, ty);
-
-  ty += 24*s;
+  let ty = cpBottom;
+  if (title){
+    ty += 30*s;
+    ctx.font = `italic 600 ${19*s}px Lora, serif`;
+    ctx.fillStyle = palette.ink;
+    ctx.fillText(ellipsizeCanvasText(ctx, title, W - padSide*2), cx, ty);
+    ty += 26*s;
+  } else {
+    ty += 26*s;
+  }
   ctx.font = `${12.5*s}px Inter, sans-serif`;
   ctx.fillStyle = palette.inkSoft;
   ctx.fillText(ellipsizeCanvasText(ctx, desc, W - padSide*2), cx, ty);
 
   if (dateLine){
-    ty += 18*s;
+    ty += 22*s;
     ctx.font = `${10.5*s}px Inter, sans-serif`;
     ctx.fillStyle = palette.inkSoft;
     ctx.fillText(dateLine, cx, ty);
@@ -10630,6 +10635,7 @@ function buildBadgeShareCardBlob({ icon, title, desc, earnedAt }){
     centerpiece(ctx, cx, topY, s){
       ctx.font = `${40*s}px sans-serif`;
       ctx.fillText(icon, cx, topY + 40*s);
+      return topY + 40*s + 8*s; // emoji glyphs hang below the baseline
     }
   });
 }
@@ -10652,6 +10658,8 @@ function buildSupporterShareCardBlob({ years, statusLine }){
         const rowY = topY + 20*s + row * starPx * 1.1;
         ctx.fillText('⭐', x, rowY);
       }
+      const rows = n <= 2 ? 1 : 2;
+      return topY + 20*s + (rows - 1) * starPx * 1.1 + 6*s;
     }
   });
 }
@@ -10668,6 +10676,7 @@ function buildStreakShareCardBlob({ count, activeDays, windowDays }){
       ctx.font = `700 ${11*s}px Inter, sans-serif`;
       ctx.fillStyle = readCardPalette().accentA;
       ctx.fillText('DAY STREAK', cx, topY + 36*s + 54*s + 18*s);
+      return topY + 36*s + 54*s + 18*s + 4*s;
     }
   });
 }

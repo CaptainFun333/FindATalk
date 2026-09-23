@@ -12,6 +12,7 @@ this updated.
 
 ### Fixed
 - On Android, the app content could sit under the status bar or navigation bar on some phones (especially with gesture navigation), which could hide the top or bottom of the screen behind those bars. (Android only, requires a new build to take effect.)
+- Share cards had text crowding together: the talk card's quote could run into its topic heading, and badge, Supporter and streak cards put the title too close to the icon. Spacing is now consistent. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - The "Reads & Rereads" total in Your FindATalk could show fewer than your Unique Talks Read (for example, talks read before rereads were tracked weren't counted). Every talk you've read now counts at least once, plus any rereads. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 
 ## [1.7.2] — 2026-09-22
