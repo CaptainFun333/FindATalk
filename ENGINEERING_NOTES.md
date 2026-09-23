@@ -208,6 +208,27 @@ served live at findatalk.com; this one should never be public.
   wrong and can break features that have nothing to do with what you're
   adding. See "closure-scoping trap" below.
 
+## Sharing a generated file (Capacitor Share vs. Web Share API)
+
+- **Capacitor's native `Share` plugin has no `files` array parameter at
+  all** — unlike the Web Share API, it only ever takes a `url` pointing at
+  a real on-device file path. To attach a generated image (or any other
+  file) to a native share, write it to disk first via the `Filesystem`
+  plugin (`writeFile({..., directory:'CACHE'})`, base64-encoded), then pass
+  the returned `uri` as `Share.share({url})` — the same pattern
+  `saveBackupToFile()` already used for exporting the JSON backup, just
+  for an image instead of a document. `navigator.share({files:[File]})`
+  is a completely different, unrelated API shape that only applies on the
+  plain-web path (`navigator.share`), gated behind
+  `navigator.canShare({files})` since not every browser with
+  `navigator.share` also supports file attachments.
+- **A canvas `Blob` cannot be handed to either share path directly.** For
+  Capacitor's `Filesystem.writeFile`, it needs to become a base64 string
+  first (`FileReader.readAsDataURL`, strip the `data:...;base64,` prefix).
+  For the Web Share API, it needs to become a `File` object
+  (`new File([blob], filename, {type})`) — `Blob` alone doesn't satisfy
+  `navigator.canShare({files})`.
+
 ## App architecture / code-organization gotchas
 
 - **Closure-scoping trap:** several long-standing helpers (e.g.

@@ -2101,6 +2101,40 @@
   }
   .note-textarea:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:1px; }
 
+  /* ---------- idea 71 — share compose modal ---------- */
+  .modal-eyebrow{
+    display:flex; align-items:center; gap:6px;
+    font-family:'Inter',sans-serif; font-size:11px; font-weight:600; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--brass); margin:0 0 8px;
+  }
+  .modal-eyebrow[hidden]{ display:none; } /* same [hidden]-specificity fix .modal-overlay[hidden] already needed */
+  .modal-eyebrow svg{ width:13px; height:13px; flex-shrink:0; }
+  .compose-preview{
+    display:flex; align-items:center; gap:12px;
+    background:var(--paper); border:1px solid var(--line); border-radius:6px;
+    padding:10px; margin-bottom:16px;
+  }
+  .compose-preview-thumb{
+    width:56px; height:56px; border-radius:4px; flex-shrink:0;
+    object-fit:cover; background:var(--ink);
+  }
+  .compose-preview-text{ font-family:'Inter',sans-serif; font-size:12.5px; line-height:1.4; color:var(--ink-soft); }
+  .compose-preview-text strong{ display:block; color:var(--ink); font-size:13px; margin-bottom:1px; }
+  /* Locked link row — always appended to the final shared text at Share
+     time, but not part of the editable textarea, so an edit can never
+     break or delete the link (idea 71, per direct user request). */
+  .link-row{
+    display:flex; align-items:center; gap:8px;
+    margin-top:10px; padding:9px 11px;
+    background:var(--tint); border:1px solid var(--line); border-radius:4px;
+  }
+  .link-row .lock{ font-size:12px; color:var(--ink-soft); flex-shrink:0; }
+  .link-row .link-text{
+    font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:11.5px; color:var(--ink-soft);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; min-width:0;
+  }
+  .link-row .link-note{ font-family:'Inter',sans-serif; font-size:10.5px; color:var(--ink-soft); flex-shrink:0; }
+
   /* ---------- Talk of the Day: calendar trigger + history modal ---------- */
   .totd-header-row{
     display:flex; align-items:center; justify-content:space-between;
@@ -3222,6 +3256,45 @@
     </div>
   </div>
 
+  <!-- idea 71 — share compose modal. Opened by shareTalk() before
+       performShare() ever runs, pre-filled with a suggested message; the
+       link is a locked row below the textarea (never part of the editable
+       text), and the thumbnail previews the generated share-card image. -->
+  <div class="modal-overlay" id="shareComposeModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareComposeModalTitle">
+      <div class="modal-header">
+        <h3 id="shareComposeModalTitle">Share This Talk</h3>
+        <button type="button" class="modal-close" id="shareComposeModalClose" aria-label="Close">&times;</button>
+      </div>
+      <!-- Placed AFTER .modal-header, not before — .modal-header uses a
+           sticky/negative-margin trick to sit flush at the modal's own
+           top edge, which visually covers anything placed before it in
+           the DOM. -->
+      <div class="modal-eyebrow" id="shareComposeEyebrow" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+        Talk of the Day
+      </div>
+      <div class="compose-preview">
+        <img class="compose-preview-thumb" id="shareComposeThumb" alt="">
+        <div class="compose-preview-text">
+          <strong id="shareComposePreviewTitle"></strong>
+          <span id="shareComposePreviewSubtitle"></span>
+        </div>
+      </div>
+      <p class="modal-copy">Use this message, or edit it first.</p>
+      <textarea class="note-textarea" id="shareComposeTextarea" aria-label="Your share message"></textarea>
+      <div class="link-row">
+        <span class="lock" aria-hidden="true">&#128274;</span>
+        <span class="link-text" id="shareComposeLinkText"></span>
+        <span class="link-note">always included</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="shareComposeCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="shareComposeShareBtn">Share</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="notifPermModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifPermModalTitle">
       <div class="modal-header">
@@ -3569,6 +3642,21 @@
       <h3 id="badgeCelebrationTitle"></h3>
       <p class="modal-copy" id="badgeCelebrationDesc"></p>
       <button type="button" class="btn btn-primary" id="badgeCelebrationOkBtn">Nice!</button>
+    </div>
+  </div>
+
+  <!-- Idea 70 — streak salvage offer. Shown at most once per eligible day
+       (see maybeShowStreakSalvageOffer() in the script) — purely
+       informational, same single-button .badge-celebration-modal chrome
+       as the badge celebration above. The actual salvage isn't something
+       tapped here; it applies automatically the moment a second talk gets
+       credited today. -->
+  <div class="modal-overlay" id="streakSalvageModalOverlay" hidden>
+    <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="streakSalvageTitle">
+      <span class="secret-modal-glyph">🔥</span>
+      <h3 id="streakSalvageTitle">Missed a Day?</h3>
+      <p class="modal-copy">Missed yesterday? Read 2 talks today and we'll keep your streak going.</p>
+      <button type="button" class="btn btn-primary" id="streakSalvageOkBtn">Got it</button>
     </div>
   </div>
 
@@ -4483,6 +4571,22 @@ badgeCelebrationModalOverlay.addEventListener('click', (e)=>{
 });
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !badgeCelebrationModalOverlay.hidden) dismissBadgeCelebration();
+});
+
+/* Idea 70 — streak salvage modal wiring. Opened only from
+   maybeShowStreakSalvageOffer() (see the streak block up top), never by a
+   direct user click — same "opened programmatically, dismissed by the
+   user" shape as the badge celebration modal just above. Purely
+   informational (single acknowledge button) — the actual salvage itself
+   applies automatically via applyStreakSalvageIfEligible() the moment a
+   second talk gets credited today, not from anything clicked in here. */
+const streakSalvageModalOverlay = document.getElementById('streakSalvageModalOverlay');
+document.getElementById('streakSalvageOkBtn').addEventListener('click', closeStreakSalvageModal);
+streakSalvageModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === streakSalvageModalOverlay) closeStreakSalvageModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !streakSalvageModalOverlay.hidden) closeStreakSalvageModal();
 });
 
 /* Idea 67 — support-ask modal wiring. Opened only from
@@ -5563,7 +5667,17 @@ function checkPendingRead(){
   if (onTicketReadBadgeSync) onTicketReadBadgeSync();
   checkForNewBadges(); // reading-count badges (idea 45)
   if (awayMs < MIN_AWAY_TO_COUNT_STREAK_MS) return; // read, but not away long enough to plausibly count as real engagement — streak stays untouched
+  // Idea 70 — captured BEFORE touchStreak() runs: if `lastDate` is already
+  // today, a read already got credited earlier today and this is the
+  // SECOND one — the exact moment a streak salvage (if one was snapshotted
+  // for today, see maybeSnapshotStreakSalvage()) actually applies. touchStreak()
+  // itself only ever acts on the FIRST credited read of a given day (see its
+  // own `lastDate !== today` guard), so this has to be checked separately,
+  // not inferred from touchStreak()'s return value.
+  const creditDay = localDateSeed(new Date(departedAt));
+  const alreadyCreditedToday = loadStreak().lastDate === creditDay;
   touchStreak(new Date(departedAt)); // credits the day the talk was actually OPENED, not whatever day this happens to be resolving on — see touchStreak()'s own comment
+  applyStreakSalvageIfEligible(creditDay, alreadyCreditedToday);
   renderStreak();
   checkForNewBadges(); // streak badges (idea 45) — called again since streak.longest may have just changed too
   updateStreakRiskNotification(); // Phase 2 (idea 45) — cancels today's at-risk nudge now that it's been credited; a no-op on web/no-permission
@@ -5776,12 +5890,86 @@ function isStreakStale(streak, now){
   const yesterday = localDateSeed(new Date(now.getTime() - 24*60*60*1000));
   return streak.lastDate !== yesterday;
 }
+/* Idea 70 — streak "salvage." Missing exactly one day doesn't have to be a
+   hard reset: read a second talk on the day the gap is discovered and the
+   streak continues instead of restarting at 1. Two real constraints this
+   design works around, both from real code, not assumed:
+   - touchStreak() has a deliberate guard against crediting backward, so
+     this can't just "credit yesterday" — it has to let today's normal
+     reset happen, then explicitly re-bump the count on a SECOND credited
+     read the same day (see applyStreakSalvageIfEligible() near
+     checkPendingRead() below).
+   - settleStreak() zeroes `count` the moment a gap is found, and that's
+     the only place that still has the PRE-zero count/longest to save —
+     once it's gone, there's nothing to restore. So the eligibility
+     snapshot has to happen here, before the zero, not anywhere reactive.
+   Deliberately does NOT touch `activeDays` (idea 62's "N of the last 365
+   active" stat, also unioned across devices by idea 61's merge) — only
+   `count`/`longest` get salvaged, so that stat stays an honest record of
+   which days the app was actually opened on. */
+const STREAK_SALVAGE_KEY = 'findATalkStreakSalvage';
+const STREAK_SALVAGE_LAST_USED_KEY = 'findATalkStreakSalvageLastUsed';
+const STREAK_SALVAGE_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // capped at once a week, so this stays a genuine save, not a looser "daily"
+function loadStreakSalvage(){
+  try {
+    const raw = localStorage.getItem(STREAK_SALVAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(err){ /* ignore */ }
+  return null;
+}
+function saveStreakSalvage(record){
+  try {
+    if (record) localStorage.setItem(STREAK_SALVAGE_KEY, JSON.stringify(record));
+    else localStorage.removeItem(STREAK_SALVAGE_KEY);
+  } catch(err){ /* ignore */ }
+}
+/* Called from settleStreak() below, BEFORE it zeroes `count` — only ever
+   offers a salvage for a gap of EXACTLY one missed day (never two+, per
+   the design notes), only once per real calendar day (won't overwrite an
+   existing snapshot for the same day on a later re-render), and only if
+   the weekly cooldown has actually elapsed since the last real save. */
+function maybeSnapshotStreakSalvage(streak, now){
+  const today = localDateSeed(now);
+  const existing = loadStreakSalvage();
+  if (existing && existing.date === today) return; // already snapshotted today
+  const twoDaysAgo = localDateSeed(new Date(now.getTime() - 2*24*60*60*1000));
+  if (streak.lastDate !== twoDaysAgo) return; // not exactly a one-day gap
+  let lastUsed = 0;
+  try { lastUsed = Number(localStorage.getItem(STREAK_SALVAGE_LAST_USED_KEY)) || 0; } catch(err){ lastUsed = 0; }
+  if (now.getTime() - lastUsed < STREAK_SALVAGE_COOLDOWN_MS) return;
+  saveStreakSalvage({ date: today, priorCount: streak.count, priorLongest: streak.longest, shown: false, usedAt: null });
+}
 function settleStreak(){
   const streak = loadStreak();
   if (!isStreakStale(streak, new Date())) return streak;
+  maybeSnapshotStreakSalvage(streak, new Date());
   streak.count = 0;
   saveStreak(streak);
   return streak;
+}
+/* Idea 70 — the other half of the salvage: called from checkPendingRead()
+   right after touchStreak() runs. Only ever acts when `alreadyCreditedToday`
+   is true (this credited read is the SECOND one today, not the first —
+   touchStreak() already did its normal first-read-of-the-day thing, which
+   on a gap day means it just reset `count` to 1) AND there's a real,
+   unused, still-valid-for-today snapshot from maybeSnapshotStreakSalvage()
+   above. Re-derives `streak.longest` from the salvaged count rather than
+   trusting the snapshot's own `priorLongest` blindly, in case something
+   else nudged `longest` in between (defensive, cheap, no real downside). */
+function applyStreakSalvageIfEligible(creditDay, alreadyCreditedToday){
+  if (!alreadyCreditedToday) return; // needs a second credited read the same day
+  const record = loadStreakSalvage();
+  if (!record || record.date !== creditDay || record.usedAt) return;
+  const streak = loadStreak();
+  if (streak.lastDate !== creditDay) return; // sanity guard — should always be true here
+  streak.count = record.priorCount + 1;
+  streak.longest = Math.max(streak.longest, streak.count);
+  saveStreak(streak);
+  record.usedAt = Date.now();
+  saveStreakSalvage(record);
+  try { localStorage.setItem(STREAK_SALVAGE_LAST_USED_KEY, String(Date.now())); } catch(err){ /* ignore */ }
+  closeStreakSalvageModal(); // in case it was still open
+  cancelStreakSalvageNotification(); // the reactive nudge has done its job — nothing left to remind about today
 }
 /* Idea 62 — same checkmark glyph as CHECK_ICON_SVG (the "Read" badge, the
    TotD calendar's read badge, etc.), but declared as its own top-level
@@ -6227,6 +6415,7 @@ function renderBadgesList(){
 const NEW_CONFERENCE_NOTIF_ID = 2;
 const STREAK_RISK_NOTIF_ID = 3;
 const WEEKLY_CFM_REMINDER_ID = 4;
+const STREAK_SALVAGE_NOTIF_ID = 5;
 const MILESTONE_NOTIF_ID_BASE = 100; // + BADGE_DEFS index, so up to 10 distinct milestone ids without colliding with anything above
 const WEEKLY_CFM_ENABLED_KEY = 'findATalkWeeklyCfmReminderEnabled';
 
@@ -6381,6 +6570,74 @@ function onForeground(callback){
 
 function watchForStreakRisk(){
   onForeground(updateStreakRiskNotification);
+}
+
+/* Idea 70 — the reactive half of the streak-salvage design: a one-off
+   notification, its own id separate from DAILY_REMINDER_ID, scheduled
+   ONLY at the moment a salvage is actually snapshotted for today (see
+   maybeSnapshotStreakSalvage()) — never a blind daily recurring trigger.
+   Deliberately NOT touching scheduleDailyReminder()/DAILY_REMINDER_ID:
+   that's a single OS-level recurring trigger with static text, fired
+   whether or not the app has been opened recently, so making its copy
+   conditional on streak state would need a cancel+re-schedule every time
+   a miss is detected, with no guarantee the app gets foregrounded again
+   before the next 8am fire — risking it firing with stale copy, or
+   promising a save that's no longer available by the time it's read. A
+   second, purpose-built one-off notification can't go stale the same way
+   (see the design notes). Same nextQuietHoursTime(9, 20) window every
+   other reactive notification in this file already uses. */
+async function scheduleStreakSalvageNotification(){
+  const LocalNotifications = await getGrantedLocalNotifications();
+  if (!LocalNotifications) return;
+  try {
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: STREAK_SALVAGE_NOTIF_ID,
+        title: 'FindATalk',
+        body: 'Missed yesterday? Read 2 talks today to save your streak.',
+        schedule: { at: nextQuietHoursTime(9, 20), allowWhileIdle: true }
+      }]
+    });
+  } catch(err){ /* not fatal */ }
+}
+async function cancelStreakSalvageNotification(){
+  const LocalNotifications = await getGrantedLocalNotifications();
+  if (!LocalNotifications) return;
+  try { await LocalNotifications.cancel({ notifications: [{ id: STREAK_SALVAGE_NOTIF_ID }] }); }
+  catch(err){ /* not fatal */ }
+}
+/* Shown at most once per eligible day (the `shown` flag on the snapshot
+   record prevents re-popping on every later foreground event the same
+   day), reusing the plain single-button .badge-celebration-modal chrome
+   — see #streakSalvageModalOverlay in the markup. Checked at cold start
+   (right after renderStreak(), same place watchForDayRollover()'s own
+   cold-start counterpart runs) and on every later foreground return via
+   watchForStreakSalvage() below — unlike idea 67's Christmas ask, there's
+   no async donation-status dependency here, so the cold-start check is
+   safe immediately. */
+function maybeShowStreakSalvageOffer(){
+  const record = loadStreakSalvage();
+  if (!record || record.usedAt) return;
+  const today = localDateSeed(new Date());
+  if (record.date !== today) return; // yesterday's snapshot, no longer relevant
+  if (!record.shown){
+    record.shown = true;
+    saveStreakSalvage(record);
+    scheduleStreakSalvageNotification();
+    openStreakSalvageModal();
+  }
+}
+function watchForStreakSalvage(){
+  onForeground(maybeShowStreakSalvageOffer);
+}
+function openStreakSalvageModal(){
+  const overlay = document.getElementById('streakSalvageModalOverlay');
+  if (!overlay) return; // web build without this markup — no-op, matching every other overlay lookup in this file
+  overlay.hidden = false;
+}
+function closeStreakSalvageModal(){
+  const overlay = document.getElementById('streakSalvageModalOverlay');
+  if (overlay) overlay.hidden = true;
 }
 
 /* Trigger 3: weekly Come Follow Me reminder — a second, separately opt-in
@@ -9622,16 +9879,70 @@ async function copyText(text){
       and hitting that bug. `text` is required and MUST already contain
       the full message including any link that needs to survive a plain
       clipboard paste. */
-async function performShare({title, text}, btnEl){
+/* `imageBlob` (idea 71, added alongside the three tiers above — optional,
+   every existing caller that doesn't pass one behaves exactly as before):
+   a PNG Blob to attach alongside `text`. Each tier attaches it its own
+   way, since none of the three share a common file API:
+   - Capacitor's native Share plugin takes a `url` pointing at a real
+     on-device file, not a Blob/File object — so the blob is first written
+     to the app's cache dir via the Filesystem plugin (see
+     writeShareImageToCache() below), same mechanism saveBackupToFile()
+     already uses for its own file share, just for an image instead of a
+     JSON export.
+   - The Web Share API takes a `files` array of real File objects
+     directly, gated behind `navigator.canShare({files})` — not every
+     browser that has `navigator.share` at all also supports file
+     attachments.
+   - The clipboard-copy fallback can't carry an image at all (there's no
+     clipboard-image equivalent to `copyText()`'s plain-text path) — an
+     image-less share is silently and deliberately preferred here over no
+     share at all, matching the "fall back to today's text-only share"
+     option already decided when this was designed. */
+async function writeShareImageToCache(cap, imageBlob, filename){
+  const base64 = await new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onloadend = ()=> resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(imageBlob);
+  });
+  const { uri } = await cap.Plugins.Filesystem.writeFile({
+    path: filename, data: base64, directory: 'CACHE'
+  });
+  return uri;
+}
+async function performShare({title, text, imageBlob}, btnEl){
+  const filename = `findatalk-share-${Date.now()}.png`;
   const cap = window.Capacitor;
   const NativeShare = cap && cap.Plugins && cap.Plugins.Share;
   if (NativeShare){
+    if (imageBlob && cap.Plugins.Filesystem){
+      try {
+        const fileUri = await writeShareImageToCache(cap, imageBlob, filename);
+        await NativeShare.share({ title, text, url: fileUri, dialogTitle: 'Share' });
+        return;
+      } catch(err){ /* fall through to the text-only native share below — a
+        failed image write/share shouldn't block the share entirely */ }
+    }
     try {
       await NativeShare.share({ title, text, dialogTitle: 'Share' });
       return;
     } catch(err){ return; } // cancelled, or the plugin rejected — either way, no fallback needed on native
   }
   if (navigator.share){
+    if (imageBlob && navigator.canShare){
+      const file = new File([imageBlob], filename, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })){
+        try {
+          await navigator.share({ title, text, files: [file] });
+          return;
+        } catch(err){
+          if (err && err.name === 'AbortError') return;
+          // anything else (not just a cancel) falls through to the
+          // text-only web share below, same "don't block on the image"
+          // principle as the native tier above
+        }
+      }
+    }
     try {
       await navigator.share({ title, text }); // no url — see this function's own comment for why
       return;
@@ -9646,6 +9957,403 @@ async function performShare({title, text}, btnEl){
   flashShareButton(btnEl, copied ? 'Copied!' : 'Copy failed');
 }
 
+/* ---------------- idea 71 — generated share-card images ----------------
+   Canvas-rendered, not a captured screenshot/DOM-to-image conversion —
+   plain 2D canvas APIs only, no image-manipulation library, consistent
+   with this app's existing single-file/no-unnecessary-dependencies
+   pattern. Exported at 1080x1080 (a size that reads reasonably across
+   Instagram/X/Facebook without per-platform variants — the OS share sheet,
+   not this app, is what actually routes to a specific destination).
+   Every drawing measurement below is written at a 360-unit design scale
+   (matching the mockup this was built from) and multiplied by
+   SHARE_CARD_SCALE, so the numbers read the same as the design notes. */
+const SHARE_CARD_PX = 1080;
+const SHARE_CARD_SCALE = SHARE_CARD_PX / 360;
+
+// Palette read LIVE from the same CSS custom properties every other
+// surface in the app already uses — not a separate hardcoded table — so
+// a share always matches whatever Appearance x Palette the sender's own
+// device currently has set, including the secret Celestial palette (a
+// deliberate choice, not an oversight: see idea 71's own design notes on
+// why the "why does hers look different" curiosity is the intended
+// effect here, not a leak to guard against).
+function readCardPalette(){
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name)=> cs.getPropertyValue(name).trim();
+  return { ink: v('--ink'), inkSoft: v('--ink-soft'), paper: v('--paper'), accentA: v('--brass'), line: v('--line') };
+}
+
+async function ensureShareFontsReady(){
+  if (document.fonts && document.fonts.ready){
+    try { await document.fonts.ready; } catch(err){ /* ignore — worst case, measures against a fallback font this one time */ }
+  }
+}
+
+// Canvas has no native text wrapping — greedy word-wrap against whatever
+// font is currently set on `ctx`.
+function wrapCanvasLines(ctx, text, maxWidth){
+  const words = text.split(/\s+/);
+  const lines = [];
+  let line = '';
+  words.forEach(word=>{
+    const test = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(test).width > maxWidth){
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function ellipsizeCanvasText(ctx, text, maxWidth){
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
+  return t + '…';
+}
+
+/* The talk card's title/quote fit-to-box rule (idea 71): shrinks
+   font-size from maxPx down to minPx until the text wraps within
+   maxWidth/maxHeight at that size, then truncates the last line with a
+   real ellipsis if even the floor size still doesn't fit — so neither
+   field can ever draw past the card's edge, checked against the real
+   longest title (101 chars) and longest kicker (233 chars) in
+   docs/data.json. Mirrors the DOM mockup's shrink/truncate loop, using
+   ctx.measureText() instead of the DOM's scrollHeight/scrollWidth. */
+function fitCanvasText(ctx, text, {fontFamily, weight, style, maxPx, minPx, maxWidth, maxHeight, lineHeight}){
+  const styleStr = style || 'normal';
+  let size = maxPx;
+  let lines;
+  for(;;){
+    ctx.font = `${styleStr} ${weight} ${size}px ${fontFamily}`;
+    lines = wrapCanvasLines(ctx, text, maxWidth);
+    if (lines.length * size * lineHeight <= maxHeight || size <= minPx) break;
+    size -= 1;
+  }
+  const maxLines = Math.max(1, Math.floor(maxHeight / (size * lineHeight)));
+  if (lines.length > maxLines){
+    lines = lines.slice(0, maxLines);
+    lines[lines.length - 1] = ellipsizeCanvasText(ctx, lines[lines.length - 1], maxWidth).replace(/[,;:.!?…\s]*…$/, '…');
+  }
+  return { size, lines };
+}
+
+function canvasToPngBlob(canvas){
+  return new Promise(resolve=> canvas.toBlob(resolve, 'image/png'));
+}
+
+// Masthead — wordmark + thin rule + star, the card's one permanent brand
+// mark (replaces the original "General Conference" eyebrow). Returns the
+// y position immediately below it.
+function drawCardMasthead(ctx, W, palette, topY){
+  const s = SHARE_CARD_SCALE;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = palette.ink;
+  ctx.font = `700 ${21*s}px Lora, serif`;
+  ctx.fillText('FindATalk', W/2, topY + 21*s);
+  const ruleY = topY + 21*s + 13*s;
+  const starHalf = 7*s, ruleGap = 8*s;
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = Math.max(1, s);
+  ctx.beginPath();
+  ctx.moveTo(26*s, ruleY);
+  ctx.lineTo(W/2 - starHalf - ruleGap, ruleY);
+  ctx.moveTo(W/2 + starHalf + ruleGap, ruleY);
+  ctx.lineTo(W - 26*s, ruleY);
+  ctx.stroke();
+  ctx.fillStyle = palette.accentA;
+  ctx.font = `${13*s}px sans-serif`;
+  ctx.fillText('☆', W/2, ruleY + 4*s);
+  return ruleY + 18*s;
+}
+
+// TOTD tag — icon + label + real date, reusing the exact calendar glyph
+// already drawn for #totdCalendarBtn's own SVG (a rect + three short
+// lines), redrawn directly on canvas rather than rasterizing the SVG.
+// Same short-date format already used elsewhere for badge-earned dates.
+function drawTotdTag(ctx, W, palette, topY){
+  const s = SHARE_CARD_SCALE;
+  const iconSize = 12*s;
+  const label = 'TALK OF THE DAY';
+  ctx.textAlign = 'left';
+  ctx.font = `700 ${10*s}px Inter, sans-serif`;
+  const labelWidth = ctx.measureText(label).width;
+  const totalWidth = iconSize + 6*s + labelWidth;
+  const x = W/2 - totalWidth/2;
+  const labelBaseline = topY + iconSize*0.8;
+  ctx.strokeStyle = palette.accentA;
+  ctx.lineWidth = 1.6*s;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const iy = topY;
+  ctx.strokeRect(x + iconSize*0.146, iy + iconSize*0.208, iconSize*0.708, iconSize*0.667);
+  ctx.beginPath();
+  ctx.moveTo(x + iconSize*0.146, iy + iconSize*0.396);
+  ctx.lineTo(x + iconSize*0.854, iy + iconSize*0.396);
+  ctx.moveTo(x + iconSize*0.333, iy + iconSize*0.125);
+  ctx.lineTo(x + iconSize*0.333, iy + iconSize*0.292);
+  ctx.moveTo(x + iconSize*0.667, iy + iconSize*0.125);
+  ctx.lineTo(x + iconSize*0.667, iy + iconSize*0.292);
+  ctx.stroke();
+  ctx.fillStyle = palette.accentA;
+  ctx.fillText(label, x + iconSize + 6*s, labelBaseline);
+  ctx.textAlign = 'center';
+  ctx.font = `${10*s}px Inter, sans-serif`;
+  ctx.fillStyle = palette.inkSoft;
+  const dateStr = new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  ctx.fillText(dateStr, W/2, topY + 10*s + 15*s);
+  return topY + 10*s + 15*s + 16*s;
+}
+
+function drawCardFooterUrl(ctx, W, H, palette){
+  const s = SHARE_CARD_SCALE;
+  ctx.textAlign = 'center';
+  ctx.font = `${10.5*s}px Inter, sans-serif`;
+  ctx.fillStyle = palette.inkSoft;
+  ctx.fillText('findatalk.com', W/2, H - 22*s);
+}
+
+// The talk card — quote-forward layout. `opts.totd` draws the TOTD tag
+// (and its real date) between the masthead and the title.
+async function buildTalkShareCardBlob(pick, opts){
+  await ensureShareFontsReady();
+  const isTotd = !!(opts && opts.totd);
+  const s = SHARE_CARD_SCALE;
+  const W = SHARE_CARD_PX, H = SHARE_CARD_PX;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const palette = readCardPalette();
+
+  ctx.fillStyle = palette.paper;
+  ctx.fillRect(0, 0, W, H);
+
+  const padTop = 26*s, padSide = 28*s, padBottom = 22*s;
+  let y = drawCardMasthead(ctx, W, palette, padTop);
+  if (isTotd) y = drawTotdTag(ctx, W, palette, y);
+
+  const contentWidth = W - padSide*2;
+  const [title, speaker] = pick;
+  const role = talkRole(pick);
+  const roleLabel = role ? ROLE_LABELS[role] : '';
+  const year = pick[2], month = pick[3];
+  const confLabel = `${monthName(month)} ${year} General Conference`;
+  const quoteText = `“${talkKicker(pick) || title}”`;
+
+  // Fixed heights reserved up front for the title box, the meta block,
+  // and the footer (canvas has no flex layout to claim leftover space
+  // the way the DOM mockup's flex:1 1 auto did) so the quote gets
+  // whatever's actually left over, same intent as the mockup.
+  const titleBoxH = 54*s;
+  const metaH = 70*s;
+  const footerH = 40*s;
+  const quoteBoxTop = y + 10*s;
+  const quoteBoxH = Math.max(40*s, H - padBottom - footerH - metaH - quoteBoxTop);
+
+  const titleFit = fitCanvasText(ctx, title.toUpperCase(), {
+    fontFamily:'Inter, sans-serif', weight:700, maxPx:12.5*s, minPx:9*s,
+    maxWidth:contentWidth, maxHeight:titleBoxH, lineHeight:1.35
+  });
+  ctx.textAlign = 'left';
+  ctx.fillStyle = palette.inkSoft;
+  ctx.font = `700 ${titleFit.size}px Inter, sans-serif`;
+  titleFit.lines.forEach((line, i)=> ctx.fillText(line, padSide, y + titleFit.size*(i + 0.85)));
+  y += titleFit.lines.length * titleFit.size * 1.35 + 10*s;
+
+  const quoteFit = fitCanvasText(ctx, quoteText, {
+    fontFamily:'Lora, serif', weight:500, style:'italic', maxPx:19*s, minPx:13*s,
+    maxWidth:contentWidth, maxHeight:quoteBoxH, lineHeight:1.38
+  });
+  const quoteBlockH = quoteFit.lines.length * quoteFit.size * 1.38;
+  let qy = quoteBoxTop + Math.max(0, (quoteBoxH - quoteBlockH) / 2) + quoteFit.size*0.85;
+  ctx.fillStyle = palette.ink;
+  ctx.font = `italic 500 ${quoteFit.size}px Lora, serif`;
+  quoteFit.lines.forEach(line=>{ ctx.fillText(line, padSide, qy); qy += quoteFit.size * 1.38; });
+
+  let my = H - padBottom - footerH - metaH + 18*s;
+  ctx.font = `700 ${14*s}px Inter, sans-serif`;
+  ctx.fillStyle = palette.ink;
+  ctx.fillText(ellipsizeCanvasText(ctx, speaker, contentWidth), padSide, my);
+  my += 16*s;
+  if (roleLabel){
+    ctx.font = `${12*s}px Inter, sans-serif`;
+    ctx.fillStyle = palette.inkSoft;
+    ctx.fillText(ellipsizeCanvasText(ctx, roleLabel, contentWidth), padSide, my);
+    my += 15*s;
+  }
+  ctx.font = `${11.5*s}px Inter, sans-serif`;
+  ctx.fillStyle = palette.inkSoft;
+  ctx.fillText(confLabel, padSide, my);
+
+  drawCardFooterUrl(ctx, W, H, palette);
+  return canvasToPngBlob(canvas);
+}
+
+/* The badge/Supporter/streak layout — a centered "achievement" card
+   instead of the talk card's quote-forward one, since none of these three
+   have a quote to lead with. `centerpiece(ctx, cx, cy, s)` draws whatever
+   goes above the title (an emoji icon, a star cluster, or a big number) —
+   the one part that genuinely differs between the three variants. Badge
+   labels/descriptions are short, fixed, closed-vocabulary strings (the
+   longest real BADGE_DEFS entry is "1,000 Talks Read" / "Read 1,000
+   talks"), nowhere near the talk card's 101/233-character worst cases, so
+   a single-line ellipsis is enough here — the heavier shrink-then-
+   truncate loop above isn't needed for this layout. */
+async function buildAchievementShareCardBlob({ title, desc, dateLine, centerpiece }){
+  await ensureShareFontsReady();
+  const s = SHARE_CARD_SCALE;
+  const W = SHARE_CARD_PX, H = SHARE_CARD_PX;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const palette = readCardPalette();
+
+  ctx.fillStyle = palette.paper;
+  ctx.fillRect(0, 0, W, H);
+
+  const padTop = 26*s, padSide = 28*s, padBottom = 22*s;
+  const mastBottom = drawCardMasthead(ctx, W, palette, padTop);
+  const footerH = 40*s;
+  const centerTop = mastBottom;
+  const centerBottom = H - padBottom - footerH;
+  const cx = W/2;
+
+  ctx.textAlign = 'center';
+  centerpiece(ctx, cx, centerTop, s);
+
+  let ty = centerTop + 62*s;
+  ctx.font = `italic 600 ${19*s}px Lora, serif`;
+  ctx.fillStyle = palette.ink;
+  ctx.fillText(ellipsizeCanvasText(ctx, title, W - padSide*2), cx, ty);
+
+  ty += 24*s;
+  ctx.font = `${12.5*s}px Inter, sans-serif`;
+  ctx.fillStyle = palette.inkSoft;
+  ctx.fillText(ellipsizeCanvasText(ctx, desc, W - padSide*2), cx, ty);
+
+  if (dateLine){
+    ty += 18*s;
+    ctx.font = `${10.5*s}px Inter, sans-serif`;
+    ctx.fillStyle = palette.inkSoft;
+    ctx.fillText(dateLine, cx, ty);
+  }
+
+  drawCardFooterUrl(ctx, W, H, palette);
+  return canvasToPngBlob(canvas);
+}
+
+function buildBadgeShareCardBlob({ icon, title, desc, earnedAt }){
+  const dateStr = earnedAt ? `Earned ${new Date(earnedAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}` : '';
+  return buildAchievementShareCardBlob({
+    title, desc, dateLine: dateStr,
+    centerpiece(ctx, cx, topY, s){
+      ctx.font = `${40*s}px sans-serif`;
+      ctx.fillText(icon, cx, topY + 40*s);
+    }
+  });
+}
+
+function buildSupporterShareCardBlob({ years, statusLine }){
+  return buildAchievementShareCardBlob({
+    title: 'Supporter', desc: statusLine, dateLine: '',
+    centerpiece(ctx, cx, topY, s){
+      const n = Math.max(1, years);
+      const starPx = 15*s;
+      const cols = n <= 2 ? n : Math.ceil(n / 2);
+      const totalWidth = cols * starPx * 0.82;
+      ctx.font = `${starPx}px sans-serif`;
+      for (let i = 0; i < n; i++){
+        const row = n <= 2 ? 0 : Math.floor(i / cols);
+        const col = n <= 2 ? i : i % cols;
+        const rowCols = (n <= 2) ? n : (row === 0 ? cols : n - cols);
+        const rowWidth = rowCols * starPx * 0.82;
+        const x = cx - rowWidth/2 + col * starPx * 0.82 + starPx*0.4;
+        const rowY = topY + 20*s + row * starPx * 1.1;
+        ctx.fillText('⭐', x, rowY);
+      }
+    }
+  });
+}
+
+function buildStreakShareCardBlob({ count, activeDays, windowDays }){
+  return buildAchievementShareCardBlob({
+    title: '', desc: `${activeDays} of the last ${windowDays} days active`, dateLine: '',
+    centerpiece(ctx, cx, topY, s){
+      ctx.font = `${36*s}px sans-serif`;
+      ctx.fillText('🔥', cx, topY + 36*s);
+      ctx.font = `700 ${46*s}px Lora, serif`;
+      ctx.fillStyle = readCardPalette().ink;
+      ctx.fillText(String(count), cx, topY + 36*s + 54*s);
+      ctx.font = `700 ${11*s}px Inter, sans-serif`;
+      ctx.fillStyle = readCardPalette().accentA;
+      ctx.fillText('DAY STREAK', cx, topY + 36*s + 54*s + 18*s);
+    }
+  });
+}
+// Streak/badge cards draw their title inside centerpiece() when there's a
+// number to lead with instead — buildAchievementShareCardBlob still draws
+// the (empty) `title` line for the streak card, so its regular title slot
+// is deliberately left blank there and DAY STREAK/the count stand in for
+// it instead; the small vertical gap this leaves is intentional, not a
+// bug, matching the mockup's own centered spacing.
+
+/* ---------------- idea 71 — share compose modal ----------------
+   Opened by shareTalk() before performShare() ever runs. Cancel closes
+   with nothing sent, same as the Note modal's own Cancel. The link lives
+   in a locked row below the textarea (see the CSS comment on .link-row)
+   so an edit can never break or delete it — only the textarea's own
+   value is editable, and it's concatenated with the fixed link at
+   Share-tap time. */
+const shareComposeModalOverlay = document.getElementById('shareComposeModalOverlay');
+const shareComposeEyebrow = document.getElementById('shareComposeEyebrow');
+const shareComposeModalTitle = document.getElementById('shareComposeModalTitle');
+const shareComposeThumb = document.getElementById('shareComposeThumb');
+const shareComposePreviewTitle = document.getElementById('shareComposePreviewTitle');
+const shareComposePreviewSubtitle = document.getElementById('shareComposePreviewSubtitle');
+const shareComposeTextarea = document.getElementById('shareComposeTextarea');
+const shareComposeLinkText = document.getElementById('shareComposeLinkText');
+let shareComposeState = null;
+
+function openShareComposeModal({ title, totd, previewTitle, previewSubtitle, bodyText, linkUrl, imageBlob, shareTitle, btnEl }){
+  shareComposeModalTitle.textContent = title;
+  shareComposeEyebrow.hidden = !totd;
+  shareComposePreviewTitle.textContent = previewTitle;
+  shareComposePreviewSubtitle.textContent = previewSubtitle;
+  shareComposeTextarea.value = bodyText;
+  shareComposeLinkText.textContent = linkUrl.replace(/^https?:\/\//, '');
+  if (shareComposeThumb.dataset.objectUrl) URL.revokeObjectURL(shareComposeThumb.dataset.objectUrl);
+  const objectUrl = URL.createObjectURL(imageBlob);
+  shareComposeThumb.src = objectUrl;
+  shareComposeThumb.dataset.objectUrl = objectUrl;
+  shareComposeState = { linkUrl, imageBlob, shareTitle, btnEl };
+  shareComposeModalOverlay.hidden = false;
+  shareComposeTextarea.focus();
+}
+function closeShareComposeModal(){
+  shareComposeModalOverlay.hidden = true;
+  shareComposeState = null;
+}
+document.getElementById('shareComposeModalClose').addEventListener('click', closeShareComposeModal);
+document.getElementById('shareComposeCancelBtn').addEventListener('click', closeShareComposeModal);
+document.getElementById('shareComposeShareBtn').addEventListener('click', async ()=>{
+  if (!shareComposeState) return;
+  const { linkUrl, imageBlob, shareTitle, btnEl } = shareComposeState;
+  const body = shareComposeTextarea.value.trim();
+  const text = body ? `${body} ${linkUrl}` : linkUrl;
+  closeShareComposeModal();
+  await performShare({ title: shareTitle, text, imageBlob }, btnEl);
+});
+shareComposeModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === shareComposeModalOverlay) closeShareComposeModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !shareComposeModalOverlay.hidden) closeShareComposeModal();
+});
+
 async function shareTalk(pick, btnEl, context='other'){
   const [title, speaker] = pick;
   // A FindATalk deep link (see buildTalkShareUrl()), not talkUrl()'s raw
@@ -9657,21 +10365,28 @@ async function shareTalk(pick, btnEl, context='other'){
   // talk (see checkForSharedTalkLink()), and the ticket view they land
   // on has its own "Read on Gospel Library" link right there.
   const url = buildTalkShareUrl(pick);
+  const isTotd = context === 'totd';
 
-  // Build prefilled message based on context. The url is embedded
-  // directly in the text — performShare() no longer accepts a separate
-  // `url` field at all (every tier was found to duplicate it against
-  // this embedded copy — see that function's own comment) — so this is
-  // the only place the link needs to live for it to survive every tier,
-  // including a plain clipboard copy.
-  let shareText;
-  if (context === 'totd'){
-    shareText = `I thought of you while studying today's Talk of the Day. Check it out: ${url} (via FindATalk)`;
-  } else {
-    shareText = `I found this talk and thought of you. Check it out: ${url} (via FindATalk)`;
-  }
+  // Starting text stays close to what shareTalk() has always said, minus
+  // the link (now the compose modal's own locked row) and the trailing
+  // "(via FindATalk)" (now redundant — the card's masthead carries that
+  // attribution visually).
+  const bodyText = isTotd
+    ? "I thought of you while studying today's Talk of the Day."
+    : 'I found this talk and thought of you.';
 
-  await performShare({ title, text: shareText }, btnEl);
+  const imageBlob = await buildTalkShareCardBlob(pick, { totd: isTotd });
+  openShareComposeModal({
+    title: isTotd ? "Share Today's Talk" : 'Share This Talk',
+    totd: isTotd,
+    previewTitle: title,
+    previewSubtitle: speaker,
+    bodyText,
+    linkUrl: url,
+    imageBlob,
+    shareTitle: title,
+    btnEl
+  });
 }
 /* Briefly swaps a share button's content to a confirmation message, then
    restores its original icon. The ticket's share button and every list
@@ -9714,8 +10429,8 @@ const DONATE_URL = 'https://findatalk.com/donate.html';
    second `url` parameter here passed through to performShare as a
    "structured" field, removed after real-device testing found it just
    produced a duplicated link (see performShare()'s comment). */
-async function shareText(text, btnEl){
-  await performShare({ text }, btnEl);
+async function shareText(text, btnEl, imageBlob){
+  await performShare({ text, imageBlob }, btnEl);
 }
 
 const shareBtn = document.getElementById('shareBtn');
@@ -9729,15 +10444,21 @@ shareBtn.addEventListener('click', ()=>{
 /* Phase 3 (idea 45) — share current streak. Same branding pattern as
    shareTalk()'s messages, just no separate url — the streak isn't a page
    anyone else can visit (yet — see idea 45's deep-linking gap notes for
-   what a future upgrade could look like). */
+   what a future upgrade could look like).
+   Idea 71 — now also attaches a generated streak card image, straight to
+   performShare() with no compose-modal review step: that review flow was
+   deliberately scoped to talk shares only when it was designed, so a
+   badge/streak/Supporter share stays the single-tap instant share it's
+   always been, just with an image riding along now. */
 const streakShareBtn = document.getElementById('streakShareBtn');
-streakShareBtn.addEventListener('click', ()=>{
+streakShareBtn.addEventListener('click', async ()=>{
   const streak = loadStreak();
   if (streak.count <= 0) return;
   const text = streak.count === 1
     ? `I just started a streak on FindATalk! 🔥 ${FINDATALK_URL}`
     : `I'm on a ${streak.count}-day streak on FindATalk! 🔥 ${FINDATALK_URL}`;
-  shareText(text, streakShareBtn);
+  const imageBlob = await buildStreakShareCardBlob({ count: streak.count, activeDays: streak.activeDays.length, windowDays: ACTIVE_DAYS_WINDOW });
+  await shareText(text, streakShareBtn, imageBlob);
 });
 
 /* ---------------- Recently Viewed / Favorites / My Lists pages ---------------- */
@@ -12846,9 +13567,15 @@ attachCalendarSwipe(cfmCalGrid, cfmCalPrevBtn, cfmCalNextBtn);
 
 renderTalkOfTheDay();
 renderStreak();
+// Idea 70 — safe to check right at cold start (unlike idea 67's Christmas
+// ask): renderStreak() just above already ran settleStreak(), so any
+// salvage-eligibility snapshot for today already exists by this line, no
+// async dependency (like donationState) left to wait for.
+maybeShowStreakSalvageOffer();
 watchForDayRollover();
 watchForPendingRead();
 watchForStreakRisk();
+watchForStreakSalvage();
 // idea 67 — Dec 18-31 Christmas ask. Deliberately no direct call here at
 // cold start (unlike watchForDayRollover()'s renderTalkOfTheDay()/
 // renderStreak() pattern just above): donationState isn't known yet this
@@ -12871,7 +13598,7 @@ initSupportUI();
 // closure, unlike BADGE_DEFS/renderBadgesList() which are top-level; a
 // listener attached outside initApp() genuinely cannot reach it. Caught
 // live as a real ReferenceError before landing here — see idea 45's notes.
-document.getElementById('badgesModalList').addEventListener('click', (e)=>{
+document.getElementById('badgesModalList').addEventListener('click', async (e)=>{
   const btn = e.target.closest('.badge-share-btn');
   if (!btn) return;
   // Supporter, like Think Celestial! below, isn't in BADGE_DEFS (it's
@@ -12879,19 +13606,31 @@ document.getElementById('badgesModalList').addEventListener('click', (e)=>{
   // with its own share text pointing at the donate page, rather than the
   // generic "I just earned..." + FINDATALK_URL every BADGE_DEFS badge
   // shares, since the point here is inviting someone else to give, not
-  // just announcing a badge.
+  // just announcing a badge. Idea 71 — its card is its own layout too
+  // (the real star cluster), not a reuse of the generic badge card below.
   if (btn.dataset.badgeId === 'supporter'){
-    shareText(`⭐ Just supported FindATalk — the free, ad-free app for studying General Conference talks. If it's been useful to you too: ${DONATE_URL}`, btn);
+    const years = (donationState && donationState.years) || [];
+    const dateStr = donationState && donationState.activeUntil ? new Date(donationState.activeUntil).toLocaleDateString('en-US', {month:'short', year:'numeric'}) : '';
+    const statusLine = isActiveSupporter()
+      ? `Supported in ${joinYearsSentence(years)} — renews ${dateStr}`
+      : `Supported in ${joinYearsSentence(years)} — expired, renew?`;
+    const imageBlob = await buildSupporterShareCardBlob({ years: years.length, statusLine });
+    shareText(`⭐ Just supported FindATalk — the free, ad-free app for studying General Conference talks. If it's been useful to you too: ${DONATE_URL}`, btn, imageBlob);
     return;
   }
   // Idea 54's "Think Celestial!" badge isn't in BADGE_DEFS (it's earned
   // by an event — finding the secret star — not a progress threshold, so
   // it doesn't fit that array's shape) — special-cased here rather than
   // added to BADGE_DEFS just to make this one lookup uniform.
-  const label = btn.dataset.badgeId === 'think-celestial' ? 'Think Celestial!' :
-    (BADGE_DEFS.find(d=> d.id === btn.dataset.badgeId) || {}).label;
+  const isCelestial = btn.dataset.badgeId === 'think-celestial';
+  const def = isCelestial ? null : BADGE_DEFS.find(d=> d.id === btn.dataset.badgeId);
+  const label = isCelestial ? 'Think Celestial!' : (def || {}).label;
   if (!label) return;
-  shareText(`I just earned the "${label}" badge on FindATalk! 🎉 ${FINDATALK_URL}`, btn);
+  const icon = isCelestial ? '☀️' : '🏅';
+  const desc = isCelestial ? 'Not everyone finds this one' : def.desc;
+  const earnedAt = earnedBadges[btn.dataset.badgeId];
+  const imageBlob = await buildBadgeShareCardBlob({ icon, title: label, desc, earnedAt });
+  shareText(`I just earned the "${label}" badge on FindATalk! 🎉 ${FINDATALK_URL}`, btn, imageBlob);
 });
 updateStreakRiskNotification(); // Phase 2 (idea 45) — also check once on startup, not just on later foregrounds, in case a streak is already at risk from before this exact code existed
 maybeShowOnboarding();

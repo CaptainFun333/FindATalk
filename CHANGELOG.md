@@ -11,8 +11,10 @@ this updated.
 ## [Unreleased]
 
 ### Added
+- Missed a day and about to lose your streak? Read 2 talks the day you notice and your streak keeps going instead of resetting — you'll see a heads-up the first time this happens, and (on the app) a reminder later that day if you haven't read yet. Limited to once a week, and only when you've missed exactly one day. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - FindATalk now occasionally invites you to support the app: once after your 10th talk read (and every 30 after that, at most once a month), and once each year between December 18th and New Year's Eve if you've supported before or never have. If you've given a gift recently, you won't be asked. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - A new project ledger page at findatalk.com/ledger.html — a running, self-updating record of the changelog, key decisions, and style guide, for anyone following development. (Live immediately on the website; not part of the app itself, so no native build needed.)
+- Sharing a talk now attaches a nicely designed image card alongside the link, and opens a quick preview so you can use the suggested message or write your own before it goes out. Earning a badge, becoming a Supporter, or hitting a streak milestone now shares a matching image card too. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 
 ### Fixed
 - Opening a talk and reading it elsewhere (without returning to the app that day) no longer triggers a "Don't lose your streak" notification that evening — it now clears the moment you open a talk, since your read is already on its way to being credited even though it hasn't posted yet.

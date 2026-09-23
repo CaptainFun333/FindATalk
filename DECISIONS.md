@@ -119,6 +119,19 @@ under whichever group it belongs in, not just at the top.
   off as a separate, still-open idea — noting that a future move to
   real `history.pushState`/`popstate`-based navigation could solve both
   platforms at once instead of two one-off fixes.
+- **2026-09-22** — Streak "salvage" (missing exactly one day) continues
+  the consecutive-day count on a second credited read the same day rather
+  than literally backdating yesterday into the streak's `activeDays`
+  history — `activeDays` also drives the "days active out of the last
+  365" stat and gets unioned across devices on sign-in, so fabricating a
+  day in it would have silently propagated a false activity record
+  everywhere it syncs. Capped at once per rolling week and only for a
+  single missed day (never two or more), so it stays a genuine save
+  rather than a quietly looser definition of "daily." The standing
+  recurring 8am reminder was deliberately left untouched — a second,
+  purpose-built one-off notification (scheduled only at the moment a
+  salvage is actually available) avoids the risk of the recurring
+  reminder firing with stale copy or promising a save no longer on offer.
 
 ## Minor / cosmetic / secrecy
 
@@ -136,3 +149,22 @@ under whichever group it belongs in, not just at the top.
   "FindATalk" was deliberately not fixed — the real fix needs a custom
   Firebase Auth domain (DNS + config changes) and was judged low priority.
   Logged as a future idea rather than acted on.
+- **2026-09-22** — Generated share-card images (talk, badge, Supporter,
+  streak) render in whatever Appearance x Palette the sender's own device
+  currently has set, **including the secret Celestial palette** — a
+  deliberate exception to the 2026-09-18 rule keeping Celestial's colors
+  off public-facing surfaces like the tip jar icons. Judged different here
+  because a share card is personal (chosen by the person sharing it, not a
+  neutral store asset) and the "why does hers look different" curiosity is
+  the intended effect, not a leak to guard against.
+- **2026-09-22** — The new share-compose review modal (edit-before-sharing,
+  idea 71) is scoped to talk shares only, not badge/Supporter/streak
+  shares — those three now attach a generated image too, but stay a
+  single-tap instant share exactly as before, to avoid adding the modal's
+  extra step everywhere at once. Could be extended later as its own call.
+- **2026-09-22** — Share-card images have no "long-press to save" or other
+  affordance on a platform/browser that can't attach a file to a share —
+  they silently fall back to the existing text-only share instead. Chosen
+  over a save-image fallback to keep the share flow's behavior simple and
+  predictable across platforms, at the cost of some shares carrying no
+  image at all on older/unsupported browsers.
