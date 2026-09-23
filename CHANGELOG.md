@@ -16,6 +16,7 @@ this updated.
 - A new project ledger page at findatalk.com/ledger.html — a running, self-updating record of the changelog, key decisions, and style guide, for anyone following development. (Live immediately on the website; not part of the app itself, so no native build needed.)
 - Sharing a talk now attaches a nicely designed image card alongside the link, and opens a quick preview so you can use the suggested message or write your own before it goes out. Earning a badge, becoming a Supporter, or hitting a streak milestone now shares a matching image card too. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - New "My Stats" window shows your reading numbers all in one place — unique talks read, total reads (including rereads), your current and longest streaks, days active in the last year, and your most-read talk. Open it from Settings next to "My Badges," or tap your streak pill on the Home screen. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
+- My Lists now shows how many lists you have, right next to the title. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 
 ### Fixed
 - Opening a talk and reading it elsewhere (without returning to the app that day) no longer triggers a "Don't lose your streak" notification that evening — it now clears the moment you open a talk, since your read is already on its way to being credited even though it hasn't posted yet.

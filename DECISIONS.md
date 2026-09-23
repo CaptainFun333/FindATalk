@@ -178,3 +178,10 @@ under whichever group it belongs in, not just at the top.
   over a save-image fallback to keep the share flow's behavior simple and
   predictable across platforms, at the cost of some shares carrying no
   image at all on older/unsupported browsers.
+- **2026-09-22** — Idea 74's page-title count only shipped on My Lists, not
+  Favorites — Favorites already shows a real count ("Showing all 34
+  talks") via its existing search/filter row, so a second number in the
+  title would be redundant there. My Lists counts the number of lists
+  themselves, not a sum of each list's own talk count — a talk can belong
+  to more than one list, so summing would double-count it and show a
+  number that doesn't correspond to anything real.
