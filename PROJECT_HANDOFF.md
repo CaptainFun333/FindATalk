@@ -4475,8 +4475,15 @@ website/app-open visits and store downloads (idea 6 — analytics — is still
 open; App Store Connect / Play Console have their own APIs).
 
 Verified against local Auth + Firestore emulators with seeded data (counts,
-throttle, 405 on non-GET, CORS header). **Not yet deployed** as of this
-entry: needs `firebase deploy --only functions,firestore:rules,hosting`
-(after `firebase login --reauth`). Until then the Stats tab shows a "not
-generated yet" message.
-
+throttle, 405 on non-GET, CORS header), then **deployed and verified live
+2026-09-23** (`firebase deploy --only functions:ledgerStatsDaily,functions:ledgerStatsRefresh,firestore:rules,hosting`
+— targeted, so `stripeWebhook`/`verifyIAPPurchase` weren't redeployed).
+First live call failed with `auth/insufficient-permission`: the functions'
+runtime identity (`322287724872-compute@developer.gserviceaccount.com`)
+needed `roles/firebaseauth.viewer` to call `listUsers()` — same class of gap
+as the `roles/datastore.user` grant above. Granted via Console (no `gcloud`
+installed locally); endpoint then returned real numbers. First real
+readings: 12 accounts, 7 `donations` docs but only 2 with a `years` entry
+(worth understanding — likely test/legacy docs), and the live
+`totalTalksRead` counter (22) far below signed-in accounts' synced history
+(317) because the counter only counts reads since it launched.

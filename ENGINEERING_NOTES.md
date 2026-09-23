@@ -381,3 +381,32 @@ served live at findatalk.com; this one should never be public.
   verifying UI changes live, driving the DOM directly with the actual
   production classnames/markup is more reliable than trusting
   synthetic JS-injected test data.
+
+## Cloud Functions / Firebase project
+
+- **A function's Admin SDK access is per-service, not blanket.** The
+  functions' runtime identity (`322287724872-compute@developer.gserviceaccount.com`)
+  needed `roles/datastore.user` to write Firestore (Stripe webhook) and,
+  separately, `roles/firebaseauth.viewer` before `getAuth().listUsers()`
+  worked (`auth/insufficient-permission`). Any new function touching a new
+  Firebase service should expect an IAM grant, done by the user in
+  Console → IAM (no `gcloud` installed locally, and Claude shouldn't change
+  IAM itself).
+- **Deploy targeted, not `--only functions`.** `firebase deploy --only
+  functions:<name>,...` redeploys just the named functions; a bare
+  `--only functions` redeploys every function in the codebase, including
+  `stripeWebhook` and `verifyIAPPurchase`.
+- **Node.js 20 is deprecated and is decommissioned 2026-10-30** — after
+  that date nothing can be deployed until `functions/package.json` and
+  `firebase.json` move to a newer runtime (Node 22).
+- **New public HTTP endpoints must go through a Hosting rewrite** (see
+  `firebase.json`, e.g. `/ledgerStatsRefresh`), served from
+  `https://findatalk-28e26.web.app/...` — see the org-policy notes in
+  `PROJECT_HANDOFF.md`. A scheduled function (`onSchedule`) needs no
+  public access; the first deploy auto-enables Cloud Scheduler.
+- **`firebase emulators:exec` needs a config that lists the `auth`
+  emulator** — this repo's `firebase.json` only configures functions and
+  Firestore, so testing anything that calls `getAuth()` needs a temporary
+  config passed with `--config` (use a `demo-...` project id so nothing
+  touches production).
+
