@@ -20,6 +20,12 @@ service cloud.firestore {
         && request.resource.data.totalTalksRead ==
            (resource == null ? 0 : resource.data.totalTalksRead) + 1;
     }
+    // Aggregate ledger stats only (counts, no per-user data) — written
+    // solely by the ledgerStats* functions via the Admin SDK.
+    match /stats/ledger {
+      allow read: if true;
+      allow write: if false;
+    }
     match /donations/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;

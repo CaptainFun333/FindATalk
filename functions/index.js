@@ -1,8 +1,10 @@
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 const Stripe = require('stripe');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -269,3 +271,125 @@ exports.verifyIAPPurchase = onCall(
     throw new HttpsError('invalid-argument', `Unknown platform: ${platform}`);
   }
 );
+
+// --- Project ledger stats (docs/ledger.html "Stats" tab) ---
+//
+// Aggregates only — counts, never per-user data or dollar amounts — written
+// to stats/ledger, which firestore.rules makes publicly readable so the
+// ledger page can read it straight from Firestore with no function call.
+// Refreshed once a day by ledgerStatsDaily, and on demand (throttled) by
+// ledgerStatsRefresh via a Hosting rewrite, same pattern as stripeWebhook.
+const LEDGER_MIN_REFRESH_MS = 10 * 60 * 1000;
+const LEDGER_HISTORY_DAYS = 120;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+async function computeLedgerStats(previous) {
+  const now = Date.now();
+
+  const providers = {};
+  let total = 0, new7 = 0, new30 = 0, active7 = 0, active30 = 0;
+  let pageToken;
+  do {
+    const page = await getAuth().listUsers(1000, pageToken);
+    for (const u of page.users) {
+      total++;
+      const created = Date.parse(u.metadata.creationTime);
+      const last = Date.parse(u.metadata.lastRefreshTime || u.metadata.lastSignInTime);
+      if (now - created < 7 * DAY_MS) new7++;
+      if (now - created < 30 * DAY_MS) new30++;
+      if (now - last < 7 * DAY_MS) active7++;
+      if (now - last < 30 * DAY_MS) active30++;
+      for (const p of u.providerData) providers[p.providerId] = (providers[p.providerId] || 0) + 1;
+    }
+    pageToken = page.pageToken;
+  } while (pageToken);
+
+  let accountsTalksRead = 0, favorites = 0, lists = 0, notes = 0;
+  let streaksActive = 0, longestStreak = 0, accountsWithData = 0;
+  const sizeOf = (v) => (Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0));
+  const users = await firestore.collection('users').select('read', 'favorites', 'collections', 'notes', 'streak').get();
+  users.forEach((d) => {
+    const x = d.data();
+    const reads = sizeOf(x.read);
+    if (reads || sizeOf(x.favorites) || sizeOf(x.collections) || sizeOf(x.notes)) accountsWithData++;
+    accountsTalksRead += reads;
+    favorites += sizeOf(x.favorites);
+    lists += sizeOf(x.collections);
+    notes += sizeOf(x.notes);
+    const s = x.streak;
+    if (s && typeof s.count === 'number') {
+      longestStreak = Math.max(longestStreak, s.count);
+      const lastDay = Date.parse(s.lastDate);
+      if (s.count > 0 && !isNaN(lastDay) && now - lastDay < 2 * DAY_MS) streaksActive++;
+    }
+  });
+
+  const globalDoc = await firestore.collection('stats').doc('global').get();
+  const globalTalksRead = globalDoc.exists ? (globalDoc.data().totalTalksRead || 0) : 0;
+
+  let supportersTotal = 0, supportersActive = 0;
+  const supportersByYear = {};
+  const donations = await firestore.collection('donations').get();
+  donations.forEach((d) => {
+    const x = d.data();
+    supportersTotal++;
+    if (x.activeUntil > now) supportersActive++;
+    for (const y of (x.years || [])) supportersByYear[y] = (supportersByYear[y] || 0) + 1;
+  });
+
+  let content = null;
+  try {
+    const res = await fetch('https://findatalk.com/data.json');
+    const data = await res.json();
+    const conferences = new Set(data.talks.map((t) => `${t[2]}-${t[3]}`));
+    content = { talks: data.talks.length, conferences: conferences.size, dataGeneratedAt: data.generatedAt };
+  } catch (err) {
+    logger.warn('ledger stats: could not read data.json', err);
+  }
+
+  const today = new Date(now).toISOString().slice(0, 10);
+  const history = ((previous && previous.history) || []).filter((h) => h.d !== today);
+  history.push({ d: today, accounts: total, talksRead: globalTalksRead, supporters: supportersTotal });
+
+  return {
+    generatedAt: now,
+    accounts: { total, new7, new30, active7, active30, withData: accountsWithData, providers },
+    activity: { globalTalksRead, accountsTalksRead, favorites, lists, notes, streaksActive, longestStreak },
+    supporters: { total: supportersTotal, active: supportersActive, byYear: supportersByYear },
+    content,
+    history: history.slice(-LEDGER_HISTORY_DAYS),
+  };
+}
+
+async function refreshLedgerStats({ force }) {
+  const ref = firestore.collection('stats').doc('ledger');
+  const existing = await ref.get();
+  const previous = existing.exists ? JSON.parse(existing.data().json) : null;
+  if (!force && previous && Date.now() - previous.generatedAt < LEDGER_MIN_REFRESH_MS) {
+    return { stats: previous, throttled: true };
+  }
+  const stats = await computeLedgerStats(previous);
+  await ref.set({ json: JSON.stringify(stats), updatedAt: stats.generatedAt });
+  return { stats, throttled: false };
+}
+
+exports.ledgerStatsDaily = onSchedule(
+  { schedule: 'every day 06:00', timeZone: 'America/Denver' },
+  async () => {
+    await refreshLedgerStats({ force: true });
+  }
+);
+
+exports.ledgerStatsRefresh = onRequest({ cors: true }, async (req, res) => {
+  if (req.method !== 'GET') {
+    res.status(405).send('GET only');
+    return;
+  }
+  try {
+    const { stats, throttled } = await refreshLedgerStats({ force: false });
+    res.json({ throttled, stats });
+  } catch (err) {
+    logger.error('ledgerStatsRefresh failed', err);
+    res.status(500).json({ error: 'refresh failed' });
+  }
+});

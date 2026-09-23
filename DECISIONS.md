@@ -53,6 +53,17 @@ under whichever group it belongs in, not just at the top.
 
 ## Feature scope & UX tradeoffs
 
+- **2026-09-23** — The ledger's cloud stats are computed server-side by a
+  Cloud Function (Admin SDK) into one public-read `stats/ledger` doc,
+  rather than by a scheduled GitHub Action, because the Action would need
+  a Firebase service-account key and this project's org policy is already
+  hostile to public/keyed access (see the Domain Restricted Sharing notes
+  in `PROJECT_HANDOFF.md`). Deliberately aggregate-only — counts of
+  accounts, reads, and supporters, never per-user data and never dollar
+  amounts — since the ledger URL is public even though it's unlinked and
+  `noindex`. Recalculated daily, plus a throttled on-demand refresh
+  (once per 10 minutes) so a button-mashing visitor can't run up
+  Firestore reads.
 - **2026-09-22** — My Stats' standalone modal was retired the same day it
   shipped: once its content sat one tap behind the new "Your FindATalk"
   panel (below), almost every number it revealed was already visible at

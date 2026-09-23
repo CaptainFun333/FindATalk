@@ -122,6 +122,19 @@
   .loading, .error { color: var(--ink-soft); font-style: italic; padding: 12px 0; }
   .error { color: var(--accent-b); }
   a.src-link { color: var(--accent-b); }
+  .refresh-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .refresh-row .meta-line { margin-top: 0; }
+  button.refresh {
+    font-family: var(--font-sans); font-size: 12.5px; font-weight: 600;
+    background: var(--accent-fill); color: var(--on-accent); border: none;
+    border-radius: var(--radius); padding: 6px 12px; cursor: pointer;
+  }
+  button.refresh:disabled { opacity: 0.6; cursor: default; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 8px; }
+  .stat { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .stat .n { font-family: var(--font-serif); font-weight: 600; font-size: 24px; line-height: 1.2; }
+  .stat .l { color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
+  .stat .d { color: var(--accent-a); font-size: 11.5px; font-weight: 600; margin-top: 4px; }
   footer { margin-top: 48px; color: var(--ink-soft); font-size: 12px; text-align: center; }
 </style>
 </head>
@@ -131,11 +144,15 @@
     <p class="eyebrow">Project Ledger</p>
     <h1>FindATalk</h1>
     <p class="tagline">Changelog, key decisions, and style guide in one place — pulled live from this repo, so it's always current with whatever's on <code>main</code>.</p>
-    <p class="meta-line" id="meta-line">Loading latest activity…</p>
+    <div class="refresh-row">
+      <button class="refresh" id="refresh-btn" type="button">Refresh</button>
+      <p class="meta-line" id="meta-line">Loading latest activity…</p>
+    </div>
   </header>
 
   <nav class="tabs">
     <button data-panel="ideas" class="active">Ideas</button>
+    <button data-panel="stats">Stats</button>
     <button data-panel="activity">Activity</button>
     <button data-panel="changelog">Changelog</button>
     <button data-panel="decisions">Decisions</button>
@@ -146,6 +163,13 @@
     <h2>Feature ideas</h2>
     <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">The running brainstorm list — a working list, not a roadmap or a promise of what ships next.</p>
     <div id="ideas-body"><p class="loading">Fetching IDEAS.md…</p></div>
+  </section>
+
+  <section class="panel" id="panel-stats">
+    <h2>Cloud stats</h2>
+    <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px" id="stats-meta">Loading…</p>
+    <div id="stats-body"></div>
+    <p style="color:var(--ink-soft);font-size:12px;margin-top:20px">Aggregate counts only — never anything about an individual person, and no dollar amounts. Recalculated automatically once a day; the Refresh button recalculates on demand (at most once every 10 minutes).</p>
   </section>
 
   <section class="panel" id="panel-activity">
@@ -198,7 +222,7 @@
   </section>
 
   <footer>
-    Pulled live from <a class="src-link" href="https://github.com/CaptainFun333/FindATalk" target="_blank" rel="noopener">github.com/CaptainFun333/FindATalk</a> on every page load. Edit <code>CHANGELOG.md</code> / <code>DECISIONS.md</code> and push — this page updates itself, no rebuild needed.
+    Pulled live from <a class="src-link" href="https://github.com/CaptainFun333/FindATalk" target="_blank" rel="noopener">github.com/CaptainFun333/FindATalk</a> on every page load. Edit <code>CHANGELOG.md</code> / <code>DECISIONS.md</code> / <code>IDEAS.md</code> and push — this page updates itself, no rebuild needed. Cloud stats recalculate daily.
   </footer>
 </div>
 
@@ -361,10 +385,108 @@ async function loadCommits() {
   }
 }
 
+const FIREBASE_PROJECT = "findatalk-28e26";
+const FIREBASE_API_KEY = "AIzaSyCK90mmgiOFUQOdOIqMMO5aNyxu_LDB7BI";
+const STATS_DOC_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/stats/ledger?key=${FIREBASE_API_KEY}`;
+const STATS_REFRESH_URL = `https://${FIREBASE_PROJECT}.web.app/ledgerStatsRefresh`;
+
+const fmt = (n) => Number(n || 0).toLocaleString();
+function agoLabel(ms) {
+  const mins = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.round(mins / 60);
+  return hrs < 48 ? hrs + ' h ago' : Math.round(hrs / 24) + ' d ago';
+}
+function statTile(n, label, delta) {
+  const d = delta ? `<div class="d">${escapeHtml(delta)}</div>` : '';
+  return `<div class="stat"><div class="n">${fmt(n)}</div><div class="l">${escapeHtml(label)}</div>${d}</div>`;
+}
+function weekDelta(history, key) {
+  if (!history || history.length < 2) return '';
+  const latest = history[history.length - 1];
+  const cutoff = new Date(latest.d).getTime() - 7 * 86400000;
+  const base = history.filter(h => new Date(h.d).getTime() <= cutoff).pop() || history[0];
+  if (base === latest) return '';
+  const diff = latest[key] - base[key];
+  return (diff >= 0 ? '+' : '') + fmt(diff) + ' vs. ' + (base === history[0] && new Date(base.d).getTime() > cutoff ? 'first snapshot' : '7 days ago');
+}
+function renderStats(st) {
+  const a = st.accounts, r = st.activity, s = st.supporters, c = st.content, h = st.history;
+  const providerNames = { 'google.com': 'Google', 'apple.com': 'Apple', 'password': 'Email' };
+  const providers = Object.entries(a.providers || {}).map(([k, v]) => `${providerNames[k] || k} ${fmt(v)}`).join(' · ') || '—';
+  const years = Object.entries(s.byYear || {}).sort().map(([y, n]) => `${y}: ${fmt(n)}`).join(' · ') || '—';
+  let html = '<div class="kind-label">Accounts</div><div class="stat-grid">'
+    + statTile(a.total, 'Accounts', weekDelta(h, 'accounts'))
+    + statTile(a.new7, 'New in last 7 days')
+    + statTile(a.new30, 'New in last 30 days')
+    + statTile(a.active7, 'Active in last 7 days')
+    + statTile(a.active30, 'Active in last 30 days')
+    + statTile(a.withData, 'Accounts with synced data')
+    + '</div><p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px">Sign-in methods: ' + escapeHtml(providers) + '</p>';
+  html += '<div class="kind-label">Reading</div><div class="stat-grid">'
+    + statTile(r.globalTalksRead, 'Talks read, all users', weekDelta(h, 'talksRead'))
+    + statTile(r.accountsTalksRead, 'Talks read, signed-in accounts')
+    + statTile(a.total ? Math.round(r.accountsTalksRead / a.total) : 0, 'Avg. talks read per account')
+    + statTile(r.favorites, 'Favorites saved')
+    + statTile(r.lists, 'Lists created')
+    + statTile(r.notes, 'Notes written')
+    + statTile(r.streaksActive, 'Streaks active now')
+    + statTile(r.longestStreak, 'Longest streak (days)')
+    + '</div>';
+  html += '<div class="kind-label">Supporters</div><div class="stat-grid">'
+    + statTile(s.total, 'Supporters, all time', weekDelta(h, 'supporters'))
+    + statTile(s.active, 'Currently active')
+    + '</div><p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px">Supporters by year: ' + escapeHtml(years) + '</p>';
+  if (c) {
+    html += '<div class="kind-label">Content</div><div class="stat-grid">'
+      + statTile(c.talks, 'Talks in the app')
+      + statTile(c.conferences, 'Conferences covered')
+      + '</div><p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px">Talk data last generated ' + escapeHtml(new Date(c.dataGeneratedAt).toLocaleDateString()) + '</p>';
+  }
+  document.getElementById('stats-body').innerHTML = html;
+  document.getElementById('stats-meta').textContent = 'Updated ' + agoLabel(st.generatedAt) + ' · recalculates automatically once a day';
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch(STATS_DOC_URL);
+    if (!res.ok) throw new Error(res.status);
+    const doc = await res.json();
+    renderStats(JSON.parse(doc.fields.json.stringValue));
+  } catch (e) {
+    document.getElementById('stats-meta').textContent = "Stats haven't been generated yet — they'll appear after the first daily run, or press Refresh.";
+  }
+}
+
+async function refreshStats() {
+  const res = await fetch(STATS_REFRESH_URL);
+  if (!res.ok) throw new Error(res.status);
+  const { throttled, stats } = await res.json();
+  renderStats(stats);
+  return throttled;
+}
+
+async function refreshAll() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  btn.textContent = 'Refreshing…';
+  const notes = [];
+  const jobs = [loadCommits(), loadChangelog(), loadDecisions(), loadIdeas(),
+    refreshStats().then(t => { if (t) notes.push('Stats were already fresh — recalculation is limited to once every 10 minutes.'); })
+      .catch(() => { notes.push("Couldn't recalculate stats right now."); })];
+  await Promise.all(jobs);
+  btn.disabled = false;
+  btn.textContent = 'Refresh';
+  if (notes.length) document.getElementById('stats-meta').textContent += ' · ' + notes.join(' ');
+}
+document.getElementById('refresh-btn').addEventListener('click', refreshAll);
+
 loadCommits();
 loadChangelog();
 loadDecisions();
 loadIdeas();
+loadStats();
 </script>
 </body>
 </html>

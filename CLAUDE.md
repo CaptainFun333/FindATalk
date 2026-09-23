@@ -118,4 +118,14 @@ page current; the page itself should only need edits when its static
 "Style Guide" tab goes stale against `docs/index.html`'s actual palettes/
 type/shape tokens.
 
+Its **Stats** tab is the one exception to "no backend": it reads
+`stats/ledger` (a public-read Firestore doc of aggregate counts only)
+that the `ledgerStatsDaily` scheduled function refreshes every morning and
+the `ledgerStatsRefresh` function recalculates on demand (throttled to
+once per 10 minutes, reached through a Hosting rewrite like
+`stripeWebhook`). Changes to `functions/index.js`, `firestore.rules`, or
+`firebase.json` only take effect after a `firebase deploy` — the user
+does that step (their CLI login is interactive). Keep the stats
+aggregate-only: no per-user data and no dollar amounts on this public page.
+
 See `PROJECT_HANDOFF.md` for full architecture/history detail.

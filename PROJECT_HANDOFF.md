@@ -4449,3 +4449,34 @@ in production.
 verification, see this file's IAP entries above) was set and
 `verifyIAPPurchase` redeployed in the same session as this fix, so that
 blocker is now also cleared.
+
+## 2026-09-23 — Ledger cloud stats (`stats/ledger`)
+
+`docs/ledger.html` gained a **Stats** tab and a Refresh button. Data flow:
+`ledgerStatsDaily` (`onSchedule`, 06:00 America/Denver) and
+`ledgerStatsRefresh` (`onRequest`, GET-only, CORS on, 10-minute throttle,
+routed via a Hosting rewrite at `https://findatalk-28e26.web.app/ledgerStatsRefresh`
+exactly like `stripeWebhook`, because of the org-policy constraint
+described above) both call `refreshLedgerStats()` in `functions/index.js`,
+which writes `stats/ledger` = `{ json: "<stringified stats>", updatedAt }`.
+`firestore.rules` makes that one doc public-read / client-write-denied, so
+the page reads it via the Firestore REST API (`GET
+.../documents/stats/ledger?key=<public web API key>`) with no function call
+on page load; only the Refresh button hits the function.
+
+What's aggregated: Auth users (total, new/active over 7/30 days, sign-in
+providers — "active" uses `lastRefreshTime`, i.e. last token refresh, an
+approximation of app use), `users/{uid}` docs (reads, favorites, lists,
+notes, active/longest streak), `stats/global.totalTalksRead`, `donations`
+(counts and years only), and `https://findatalk.com/data.json` (talk and
+conference counts). `history[]` keeps one snapshot per day (120 days) so
+the tab can show 7-day deltas. Not available from the cloud today:
+website/app-open visits and store downloads (idea 6 — analytics — is still
+open; App Store Connect / Play Console have their own APIs).
+
+Verified against local Auth + Firestore emulators with seeded data (counts,
+throttle, 405 on non-GET, CORS header). **Not yet deployed** as of this
+entry: needs `firebase deploy --only functions,firestore:rules,hosting`
+(after `firebase login --reauth`). Until then the Stats tab shows a "not
+generated yet" message.
+

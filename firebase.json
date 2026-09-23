@@ -16,6 +16,10 @@
       {
         "source": "/stripeWebhook",
         "function": "stripeWebhook"
+      },
+      {
+        "source": "/ledgerStatsRefresh",
+        "function": "ledgerStatsRefresh"
       }
     ]
   },
