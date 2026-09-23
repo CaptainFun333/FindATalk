@@ -3575,16 +3575,16 @@
   <!-- Idea 67 — the "active interruption" side of the Support the App
        plan (the quiet #supportAppBtn/openSupportModal() above is the
        passive door; this is the other one): a reading-count milestone ask
-       (10 talks, then every 30 after) and a Jan 1 New Year ask, both
+       (10 talks, then every 30 after) and a Dec 18–31 Christmas ask, both
        opened from openSupportAsk() (see maybeShowSupportMilestoneAsk()/
-       maybeShowNewYearSupportAsk() in the script). Reuses
+       maybeShowChristmasSupportAsk() in the script). Reuses
        .badge-celebration-modal's chrome (glyph/h3/.modal-copy) like
        secretRevealModalOverlay above, but — unlike every other
        celebration modal here — this one is a genuine ask with two real
        choices, not a one-button acknowledgment, so it gets a second,
        lower-emphasis dismiss alongside the usual .btn-primary (same
        .secret-modal-later treatment as the secret reveal's "Maybe
-       later"). #supportAskBadgeRow only shows for the New Year/lapsed-
+       later"). #supportAskBadgeRow only shows for the Christmas/lapsed-
        supporter variant, which reuses the same star-cluster rendering as
        the real Support modal above it. -->
   <div class="modal-overlay" id="supportAskModalOverlay" hidden>
@@ -4487,7 +4487,7 @@ document.addEventListener('keydown', (e)=>{
 
 /* Idea 67 — support-ask modal wiring. Opened only from
    openSupportAsk() (see maybeShowSupportMilestoneAsk()/
-   maybeShowNewYearSupportAsk() further down), never by a direct user
+   maybeShowChristmasSupportAsk() further down), never by a direct user
    click — same "opened programmatically, dismissed by the user" shape
    as badgeCelebrationModalOverlay just above. The primary button hands
    off to the real checkout (openSupportModal()) rather than donating
@@ -5991,7 +5991,7 @@ function isSupportMilestoneCount(n){
 const SUPPORT_MILESTONE_LAST_ASK_KEY = 'findATalkSupportMilestoneLastAsk';
 const SUPPORT_MILESTONE_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // "capped at once a month" — a binge reader crossing several tiers in one sitting only gets asked once
 // True while either celebration-family overlay is already open — both
-// maybeShowSupportMilestoneAsk() and maybeShowNewYearSupportAsk() defer
+// maybeShowSupportMilestoneAsk() and maybeShowChristmasSupportAsk() defer
 // rather than stack a second overlay on top of one already showing.
 function celebrationSurfaceBusy(){
   const badge = document.getElementById('badgeCelebrationModalOverlay');
@@ -6033,40 +6033,55 @@ function maybeShowSupportMilestoneAsk(){
 // fires a real celebration when it actually happens (see
 // startDonationSync() further down), so a calendar-driven ask here would
 // just be a redundant, worse-timed version of that.
-const SUPPORT_NEWYEAR_LAST_SHOWN_KEY = 'findATalkSupportNewYearShownYear';
-function maybeShowNewYearSupportAsk(){
+// Idea 67 — replaces the original Jan 1 "Happy New Year!" ask (see
+// DECISIONS.md, 2026-09-22): user's read that people are more generous
+// around Christmas than New Year's Day, so this fires Dec 18–31 instead of
+// all of January. The window is deliberately 14 days, not a single date —
+// same reasoning as the original all-of-January range: this only ever
+// fires from a foreground check (onForeground, below), never a push
+// notification, so there's no way to "send" it on one exact day; a window
+// gives a realistic chance of catching most active users' next app open
+// at least once. Runs through Dec 31, not just to Christmas Day, since the
+// actual deadline being urged is "before the year is out" and the days
+// between Christmas and New Year's are themselves a real second wave of
+// year-end giving — stopping at the 25th would drop the highest-intent
+// days. The "gift next year's badge early" segment (someone who already
+// gave this calendar year) was explicitly considered and disregarded —
+// isActiveSupporter() below already excludes them, same guard as before.
+const SUPPORT_CHRISTMAS_LAST_SHOWN_KEY = 'findATalkSupportChristmasShownYear';
+function maybeShowChristmasSupportAsk(){
   const now = new Date();
-  if (now.getMonth() !== 0) return; // January only
+  if (now.getMonth() !== 11 || now.getDate() < 18) return; // Dec 18–31 only
   const year = now.getFullYear();
   let lastShown = null;
   try {
-    const raw = localStorage.getItem(SUPPORT_NEWYEAR_LAST_SHOWN_KEY);
+    const raw = localStorage.getItem(SUPPORT_CHRISTMAS_LAST_SHOWN_KEY);
     lastShown = raw ? Number(raw) : null;
   } catch(err){ lastShown = null; }
   if (lastShown === year) return; // already shown this year
   if (celebrationSurfaceBusy()) return; // try again next foreground event rather than skip the year entirely
   if (isActiveSupporter()) return;
   const givenYears = (donationState && Array.isArray(donationState.years)) ? donationState.years : [];
-  try { localStorage.setItem(SUPPORT_NEWYEAR_LAST_SHOWN_KEY, String(year)); } catch(err){ /* ignore */ }
+  try { localStorage.setItem(SUPPORT_CHRISTMAS_LAST_SHOWN_KEY, String(year)); } catch(err){ /* ignore */ }
   if (givenYears.length){
     openSupportAsk({
-      glyph: '🎉',
-      title: 'Happy New Year!',
-      desc: `You've supported FindATalk in ${joinYearsSentence(givenYears)}. Want to add ${year} to your badge?`,
+      glyph: '🎄',
+      title: 'Merry Christmas!',
+      desc: `You've supported FindATalk in ${joinYearsSentence(givenYears)}. Want to add ${year} to your badge before the year is out?`,
       dismissLabel: 'Not this year',
       badgeYears: givenYears
     });
   } else {
     openSupportAsk({
-      glyph: '🎉',
-      title: 'Happy New Year!',
-      desc: `Thank you for using FindATalk. Supporters earn a badge that grows with every year they give — want to start yours with a ${year} gift?`,
+      glyph: '🎄',
+      title: 'Merry Christmas!',
+      desc: `Thank you for using FindATalk. Supporters earn a badge that grows with every year they give — want to start yours with a ${year} gift before the year ends?`,
       dismissLabel: 'Not right now'
     });
   }
 }
 function watchForSupportPrompts(){
-  onForeground(maybeShowNewYearSupportAsk);
+  onForeground(maybeShowChristmasSupportAsk);
 }
 
 function openSupportAsk({glyph, title, desc, dismissLabel, badgeYears}){
@@ -12320,10 +12335,10 @@ function startDonationSync(uid){
     // sequence: donationState only exists once this (async) snapshot has
     // actually loaded, so checking earlier would always see it as null
     // and wrongly treat a real lapsed supporter as "never donated" —
-    // permanently, since maybeShowNewYearSupportAsk() marks the year as
-    // shown the moment it runs. Its own January/once-a-year/busy-overlay
+    // permanently, since maybeShowChristmasSupportAsk() marks the year as
+    // shown the moment it runs. Its own Dec-18-31/once-a-year/busy-overlay
     // guards make it safe to call on every snapshot, not just the first.
-    maybeShowNewYearSupportAsk();
+    maybeShowChristmasSupportAsk();
   }, (err)=>{ console.error('[IAP] donations listener failed', err); });
 }
 function stopDonationSync(){
@@ -12335,7 +12350,7 @@ function stopDonationSync(){
   // startDonationSync() above, nothing further will load), and null
   // donationState correctly means "never donated" for this bucket, so
   // it's safe to check immediately rather than waiting on anything async.
-  maybeShowNewYearSupportAsk();
+  maybeShowChristmasSupportAsk();
 }
 
 onCloudUserChanged = (user)=>{
@@ -12834,11 +12849,11 @@ renderStreak();
 watchForDayRollover();
 watchForPendingRead();
 watchForStreakRisk();
-// idea 67 — Jan 1 New Year ask. Deliberately no direct call here at cold
-// start (unlike watchForDayRollover()'s renderTalkOfTheDay()/renderStreak()
-// pattern just above): donationState isn't known yet this early — see
-// startDonationSync()/stopDonationSync()'s own calls to
-// maybeShowNewYearSupportAsk(), which are the real "we now know this
+// idea 67 — Dec 18-31 Christmas ask. Deliberately no direct call here at
+// cold start (unlike watchForDayRollover()'s renderTalkOfTheDay()/
+// renderStreak() pattern just above): donationState isn't known yet this
+// early — see startDonationSync()/stopDonationSync()'s own calls to
+// maybeShowChristmasSupportAsk(), which are the real "we now know this
 // user's donation status" moments this actually needs to wait for.
 // watchForSupportPrompts() only covers a LATER return to the foreground.
 watchForSupportPrompts();

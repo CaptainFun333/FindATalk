@@ -53,6 +53,22 @@ under whichever group it belongs in, not just at the top.
 
 ## Feature scope & UX tradeoffs
 
+- **2026-09-22** — The support-ask that used to fire once every January
+  ("Happy New Year!") now fires December 18–31 instead ("Merry
+  Christmas!") — the read is that people are more generous around
+  Christmas than New Year's Day. The window runs through Dec 31, not just
+  to Christmas Day, since the actual deadline being urged is "before the
+  year is out" and the days between Christmas and New Year's are
+  themselves a real second wave of year-end giving. A window (not a
+  single date) was kept deliberately, same reasoning as the original
+  all-of-January range: this only fires from a foreground check, never a
+  push notification, so a single fixed day risks missing anyone who
+  doesn't happen to open the app that exact day. A related idea — pinging
+  someone who's *already* given this year to buy next year's badge early,
+  as a "Christmas gift" — was considered and explicitly rejected: it would
+  need a new exception to the "one star per real calendar year" badge
+  rule and risked colliding with the existing annual-renewal webhook
+  trigger, for a segment `isActiveSupporter()` already correctly mutes.
 - **2026-09-22** — The "don't lose your streak" nudge notification is now
   cancelled the instant a talk is opened, instead of after a short
   read-confirmation delay — Android can suspend JS timers the moment the

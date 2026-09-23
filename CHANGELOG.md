@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Added
-- FindATalk now occasionally invites you to support the app: once after your 10th talk read (and every 30 after that, at most once a month), and once every New Year if you've supported before or never have. If you've given a gift recently, you won't be asked. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
+- FindATalk now occasionally invites you to support the app: once after your 10th talk read (and every 30 after that, at most once a month), and once each year between December 18th and New Year's Eve if you've supported before or never have. If you've given a gift recently, you won't be asked. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - A new project ledger page at findatalk.com/ledger.html — a running, self-updating record of the changelog, key decisions, and style guide, for anyone following development. (Live immediately on the website; not part of the app itself, so no native build needed.)
 
 ### Fixed
