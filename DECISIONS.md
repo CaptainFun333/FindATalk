@@ -132,6 +132,16 @@ under whichever group it belongs in, not just at the top.
   purpose-built one-off notification (scheduled only at the moment a
   salvage is actually available) avoids the risk of the recurring
   reminder firing with stale copy or promising a save no longer on offer.
+- **2026-09-22** — My Stats deliberately does not absorb My Badges — it
+  shows exactly six numbers (unique reads, total reads, current streak,
+  longest streak, days active, most-read talk) and links out to the
+  existing My Badges modal via a single summary row instead of
+  duplicating the badge list, so there's one authoritative badge display
+  rather than two that could drift out of sync with each other. List and
+  favorites counts were considered and deliberately left out of scope —
+  spun into their own idea (showing a count on the Favorites/My Lists
+  pages themselves) rather than folded in here, since those are page-
+  level counts, not personal stats collected into a dashboard.
 
 ## Minor / cosmetic / secrecy
 

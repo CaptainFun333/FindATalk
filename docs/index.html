@@ -809,6 +809,50 @@
     font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft); margin-top:2px;
   }
   .badge-locked{ opacity:.55; }
+  /* ---------- My Stats modal (idea 73) ----------
+     .stat-grid/.stat-cell reuse .badge-row's neighboring visual language
+     (paper/line/radius already established for these small stat/status
+     surfaces) rather than inventing new tokens. */
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .stat-cell{
+    background:var(--paper); border:1px solid var(--line); border-radius:4px;
+    padding:12px 10px; text-align:center;
+  }
+  .stat-value{
+    font-family:'Lora',serif; font-weight:700; font-size:24px; color:var(--ink); line-height:1.1; margin:0 0 3px;
+  }
+  .stat-label{
+    font-family:'Inter',sans-serif; font-size:10.5px; font-weight:600; letter-spacing:.03em;
+    color:var(--ink-soft); margin:0; line-height:1.3;
+  }
+  .stats-row-label{
+    font-family:'Inter',sans-serif; font-size:10px; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--brass); margin:0 0 8px;
+  }
+  .stats-context-row{
+    display:flex; align-items:center; gap:11px;
+    background:var(--paper); border:1px solid var(--line); border-radius:4px;
+    padding:11px 13px; margin-bottom:14px;
+  }
+  .stats-context-row .badge-icon{ font-size:19px; }
+  .stats-context-row[hidden]{ display:none; }
+  .stats-badges-link{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    width:100%; text-align:left;
+    padding:11px 13px; border-radius:4px; border:1px solid var(--line);
+    background:var(--tint); cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; color:var(--ink);
+  }
+  .stats-badges-link .chev{ color:var(--ink-soft); font-size:12.5px; font-weight:400; }
+  /* Idea 73 — the streak pill becomes a tappable entry into My Stats, so
+     it needs a visible tap affordance it never needed as plain status
+     text. aria-hidden since the pill's own text already is the
+     accessible name — the glyph would otherwise read as noise to a
+     screen reader. */
+  .streak-chevron{ opacity:.55; font-size:11px; margin-left:3px; }
+  .streak-badge{ cursor:pointer; }
+  .streak-badge:hover{ border-color:var(--brass); }
+  .streak-badge:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
   /* Native IAP tip jar — Supporter badge's star cluster, same math/markup
      as docs/donate.html's renderSupporterStarCluster() (both read the same
      donations/{uid} doc shape, see startDonationSync() in the script). */
@@ -1282,6 +1326,18 @@
     font-weight:600;
     font-size:26px;
     margin:0;
+  }
+  /* Idea 74 — quiet, permanent total next to a page title. Deliberately
+     NOT styled like .pool-count strong's bold-burgundy numeral treatment
+     below: that emphasis belongs to a dynamic "Showing X of Y" line
+     (Favorites/Recently Viewed/My Notes already have one), which should
+     keep visual priority over this quieter permanent label whenever both
+     are ever on screen together. */
+  .page-title-count{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    color:var(--ink-soft);
   }
   .list-empty{
     display:none;
@@ -2491,6 +2547,12 @@
      names, idea 58) rather than shrinking text to force one line. */
   .settings-danger-row{ display:flex; flex-wrap:wrap; gap:8px; }
   .settings-danger-row .btn{ flex:0 0 auto; }
+  /* Idea 73 — My Badges / My Stats. Same wrap-don't-clip row mechanics as
+     .settings-danger-row above, but its own neutral class: reusing the
+     danger-named one here would be a misleading label for two plain,
+     non-destructive buttons. */
+  .settings-btn-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .settings-btn-row .btn{ flex:0 0 auto; }
   /* Idea 69 — note-conflict resolution modal. Same family as .modal-copy,
      just a labeled pair of read-only text blocks instead of one
      paragraph. */
@@ -2633,7 +2695,7 @@
          while .streak-badge previously had no such cap, so it hugged
          the page's left edge instead of the card's). -->
     <div class="streak-badge-row">
-      <div class="streak-badge" id="streakBadge" hidden></div>
+      <div class="streak-badge" id="streakBadge" role="button" tabindex="0" hidden></div>
       <!-- Phase 3 (idea 45) — hidden until there's a real streak worth
            sharing (count > 0); see syncStreakShareBtn() in the script. -->
       <button type="button" class="share-btn-icon" id="streakShareBtn" aria-label="Share your streak" hidden>
@@ -2955,6 +3017,7 @@
     <div class="page-nav" id="collectionsIndexZoneNav"></div>
     <div class="page-header">
       <h2 class="page-title">My Lists</h2>
+      <span class="page-title-count" id="collectionsIndexCount"></span>
     </div>
     <div class="collections-new-row">
       <input type="text" id="collectionsIndexNewInput" placeholder="New list name…" autocomplete="off">
@@ -3360,7 +3423,10 @@
            same pattern as #reminderSettingsSection just below. -->
       <div class="settings-section" id="badgesSettingsSection" hidden>
         <p class="settings-label">Achievements</p>
-        <button type="button" class="btn btn-ghost" id="viewBadgesBtn">My Badges</button>
+        <div class="settings-btn-row">
+          <button type="button" class="btn btn-ghost" id="viewBadgesBtn">My Badges</button>
+          <button type="button" class="btn btn-ghost" id="viewStatsBtn">My Stats</button>
+        </div>
       </div>
 
       <div class="settings-section" id="reminderSettingsSection" hidden>
@@ -3582,6 +3648,56 @@
         <button type="button" class="modal-close" id="badgesModalClose" aria-label="Close">&times;</button>
       </div>
       <div class="badges-list" id="badgesModalList"></div>
+    </div>
+  </div>
+
+  <!-- Idea 73 — My Stats, opened from either the "My Stats" Settings
+       button or the Home streak pill itself. Six numbers, deliberately
+       no more: unique reads, total reads (rereads included), current
+       streak, longest streak, days active, most-read talk — plus a
+       single link into the real My Badges modal rather than a second,
+       separately-maintained badge list. -->
+  <div class="modal-overlay" id="statsModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="statsModalTitle">
+      <div class="modal-header">
+        <h3 id="statsModalTitle">My Stats</h3>
+        <button type="button" class="modal-close" id="statsModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <p class="stat-value" id="statUniqueReads">0</p>
+          <p class="stat-label">Unique Talks Read</p>
+        </div>
+        <div class="stat-cell">
+          <p class="stat-value" id="statTotalReads">0</p>
+          <p class="stat-label">Reads &amp; Rereads</p>
+        </div>
+        <div class="stat-cell">
+          <p class="stat-value" id="statCurrentStreak">0</p>
+          <p class="stat-label">Current Streak (Days)</p>
+        </div>
+        <div class="stat-cell">
+          <p class="stat-value" id="statLongestStreak">0</p>
+          <p class="stat-label">Longest Streak</p>
+        </div>
+      </div>
+
+      <p class="stats-row-label">Days Active</p>
+      <div class="stats-context-row">
+        <span class="badge-icon">&#128293;</span>
+        <div class="badge-row-text"><strong id="statDaysActive">0 of the last 365 days</strong><span>Since this time last year</span></div>
+      </div>
+
+      <p class="stats-row-label" id="statsMostReadLabel" hidden>Most-Read Talk</p>
+      <div class="stats-context-row" id="statsMostReadRow" hidden>
+        <span class="badge-icon">&#128214;</span>
+        <div class="badge-row-text"><strong id="statsMostReadTitle"></strong><span id="statsMostReadMeta"></span></div>
+      </div>
+
+      <button type="button" class="stats-badges-link" id="statsBadgesLink">
+        <span id="statsBadgeCount">0 badges earned</span>
+        <span class="chev">View My Badges &rsaquo;</span>
+      </button>
     </div>
   </div>
 
@@ -4558,6 +4674,90 @@ badgesModalOverlay.addEventListener('click', (e)=>{
 });
 document.addEventListener('keydown', (e)=>{
   if (e.key === 'Escape' && !badgesModalOverlay.hidden) closeBadgesModal();
+});
+
+/* Idea 73 — My Stats. Two entry points (the Settings button and the Home
+   streak pill itself) open the identical modal, both wired below. All
+   the data this reads (readKeys, visitCounts, loadStreak(), TALKS_BY_KEY,
+   earnedBadges) is top-level, same as renderBadgesList() just above —
+   safe to reference before its own declaration further down the file,
+   since this only runs later, on an actual click, not at parse time. */
+const statsModalOverlay = document.getElementById('statsModalOverlay');
+// Sourced from visitCounts, not readKeys — same reasoning as idea 55's
+// own "Most Read" sort: readKeys only ever marks a talk read once, so it
+// can't tell which one someone actually returned to most.
+// Deliberately TALKS.find(), not the O(1) TALKS_BY_KEY map — that index
+// is built inside initApp()'s own closure (see its declaration's
+// comment), not visible to this top-level function; a linear scan over
+// TALKS here only ever runs once, on an actual modal open, not in a hot
+// loop, so the O(n) cost is a non-issue in practice.
+function mostReadTalk(){
+  let bestTalk = null, bestCount = 0;
+  for (const key in visitCounts){
+    if (visitCounts[key] > bestCount){
+      const talk = TALKS.find(t=> talkKey(t) === key);
+      if (talk){ bestCount = visitCounts[key]; bestTalk = talk; }
+    }
+  }
+  return bestTalk ? { talk: bestTalk, count: bestCount } : null;
+}
+function renderStatsModal(){
+  const streak = loadStreak();
+  const totalReads = Object.values(visitCounts).reduce((sum, n)=> sum + n, 0);
+  document.getElementById('statUniqueReads').textContent = readKeys.size;
+  document.getElementById('statTotalReads').textContent = totalReads;
+  document.getElementById('statCurrentStreak').textContent = streak.count;
+  document.getElementById('statLongestStreak').textContent = streak.longest;
+  document.getElementById('statDaysActive').textContent =
+    `${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} days`;
+
+  const mr = mostReadTalk();
+  const mrLabel = document.getElementById('statsMostReadLabel');
+  const mrRow = document.getElementById('statsMostReadRow');
+  // Talks are positional tuples ([title, speaker, year, month, slug]),
+  // not objects — talk[0]/talk[1], same lesson idea 69's note-conflict
+  // modal already hit live over this exact assumption.
+  mrLabel.hidden = mrRow.hidden = !mr;
+  if (mr){
+    document.getElementById('statsMostReadTitle').textContent = mr.talk[0];
+    document.getElementById('statsMostReadMeta').textContent =
+      `${mr.talk[1]} — read ${mr.count} time${mr.count === 1 ? '' : 's'}`;
+  }
+
+  const badgeCount = Object.keys(earnedBadges).length;
+  document.getElementById('statsBadgeCount').textContent =
+    `${badgeCount} badge${badgeCount === 1 ? '' : 's'} earned`;
+}
+function openStatsModal(){
+  renderStatsModal();
+  statsModalOverlay.hidden = false;
+}
+function closeStatsModal(){
+  statsModalOverlay.hidden = true;
+}
+document.getElementById('viewStatsBtn').addEventListener('click', ()=>{
+  closeSettingsModal();
+  openStatsModal();
+});
+const streakBadgeEl = document.getElementById('streakBadge');
+streakBadgeEl.addEventListener('click', openStatsModal);
+// role="button" on a <div> gets no native Enter/Space activation — has
+// to be wired by hand, same as any other non-<button> click target.
+streakBadgeEl.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openStatsModal(); }
+});
+document.getElementById('statsModalClose').addEventListener('click', closeStatsModal);
+statsModalOverlay.addEventListener('click', (e)=>{
+  if (e.target === statsModalOverlay) closeStatsModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !statsModalOverlay.hidden) closeStatsModal();
+});
+// Links out to the real My Badges modal rather than duplicating its list
+// here — one authoritative badge display, not two that could drift.
+document.getElementById('statsBadgesLink').addEventListener('click', ()=>{
+  closeStatsModal();
+  openBadgesModal();
 });
 
 /* APP ONLY (idea 45, Phase 1) — badge celebration modal wiring. Opened
@@ -6005,6 +6205,11 @@ function renderStreak(){
   } else {
     el.innerHTML = `${flameHtml} ${streak.activeDays.length} of the last ${ACTIVE_DAYS_WINDOW} — ${streak.count}-day streak`;
   }
+  // Idea 73 — the pill opens My Stats regardless of which branch above
+  // fired; even a brand-new/paused streak can have real unique/total
+  // read numbers worth seeing, so this isn't gated to streak.count > 0.
+  // aria-hidden since the pill's own text already is its accessible name.
+  el.innerHTML += ' <span class="streak-chevron" aria-hidden="true">›</span>';
   // Phase 3 (idea 45) — nothing worth sharing until there's a real streak.
   const shareBtnEl = document.getElementById('streakShareBtn');
   if (shareBtnEl) shareBtnEl.hidden = streak.count <= 0;
@@ -11997,6 +12202,13 @@ function renderCollectionsIndexPage(){
   const emptyEl = document.getElementById('collectionsIndexEmpty');
   const searchFieldEl = document.getElementById('collectionsSearchField');
   const sortRowEl = document.getElementById('collectionsSortRow');
+  // Idea 74 — the true total, always shown regardless of search/empty
+  // state (counts lists themselves, not a sum of each list's own talk
+  // count — a talk can belong to more than one list, so summing would
+  // double-count it and produce a number that doesn't correspond to
+  // anything real).
+  document.getElementById('collectionsIndexCount').textContent =
+    `${collections.length} list${collections.length === 1 ? '' : 's'}`;
   listEl.innerHTML = '';
   if (!collections.length){
     listEl.style.display = 'none';
@@ -13682,7 +13894,7 @@ if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.
     }
   }).catch(()=>{}); // not available on web/unsupported platform — nothing to do
 }
-/* Idea 59 — finds whichever of the app's 12 separate modal/popup
+/* Idea 59 — finds whichever of the app's 13 separate modal/popup
    overlays is currently open (at most one ever is, in practice) and
    closes it through its own real close function — same dismiss path as
    tapping its Cancel/X button, clicking the overlay backdrop, or (where
@@ -13707,6 +13919,7 @@ function closeTopmostModal(){
   if (!overlay('clearDataModalOverlay').hidden){ closeClearDataModal(); return true; }
   if (!overlay('settingsModalOverlay').hidden){ closeSettingsModal(); return true; }
   if (!overlay('badgesModalOverlay').hidden){ closeBadgesModal(); return true; }
+  if (!overlay('statsModalOverlay').hidden){ closeStatsModal(); return true; }
   if (!overlay('supportModalOverlay').hidden){ closeSupportModal(); return true; }
   if (!overlay('supportAskModalOverlay').hidden){ closeSupportAsk(); return true; }
   if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }

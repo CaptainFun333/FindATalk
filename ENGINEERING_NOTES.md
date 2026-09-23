@@ -239,6 +239,15 @@ served live at findatalk.com; this one should never be public.
   `onReadBadgeHtml`) assigned from inside `initApp()`, rather than
   referencing the closure-scoped constant directly from a top-level
   function.
+  **Another concrete instance (idea 73, My Stats):** `TALKS_BY_KEY` (the
+  O(1) key→talk lookup) is built inside `initApp()`, not top-level —
+  despite being one of the most obviously-reusable-looking constants in
+  the file. A new top-level feature needing "look up a talk by its key"
+  either needs the indirection-slot pattern, or can fall back to a plain
+  `TALKS.find(t => talkKey(t) === key)` linear scan (`TALKS` itself
+  *is* top-level) when the lookup only runs on a rare user action (a
+  modal open, a button click) rather than in a hot loop — cheap insurance
+  that avoids a new slot for a one-off read.
 - **Per-talk UI elements need a broadcast-refresh pattern, or they go
   stale.** Favorite-star buttons were originally built as isolated
   closures per view (`createFavoriteButton()`), so toggling a favorite
