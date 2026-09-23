@@ -24,3 +24,6 @@ functions/.env*
 .firebase/
 firestore-debug.log
 ui-debug.log
+
+# Gradle build output inside locally vendored plugins under packages/
+packages/**/android/build/
