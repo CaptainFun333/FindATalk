@@ -30,16 +30,15 @@
                  route findatalk.com links straight to the app instead of a
                  browser disambiguation prompt — silently falls back to the
                  browser if verification ever fails (unsigned build, wrong
-                 fingerprint, site unreachable), no crash either way. Two
-                 separate <data> blocks (not combined android:host values)
-                 since a single <data> element only contributes one host to
-                 the filter. -->
+                 fingerprint, site unreachable), no crash either way. Apex
+                 host only: www.findatalk.com 301-redirects to the apex
+                 (GitHub Pages), and Play's verifier rejects redirects on
+                 /.well-known/assetlinks.json, so declaring www fails. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="findatalk.com" />
-                <data android:scheme="https" android:host="www.findatalk.com" />
             </intent-filter>
 
         </activity>

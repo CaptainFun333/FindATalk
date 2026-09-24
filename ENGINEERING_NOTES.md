@@ -204,6 +204,13 @@ served live at findatalk.com; this one should never be public.
   via `file:`. Don't switch back to the registry copy or run `npm update` on it without checking that line first — and
   a web-only test can't catch this; only a real Gradle build does.
 
+- **Android App Links: don't declare `www.findatalk.com`.** Play Console
+  showed "Deep links not working / 1 domain failed validation" because
+  `www` 301-redirects to the apex (GitHub Pages) and Android's verifier does
+  not follow redirects for `/.well-known/assetlinks.json`. The manifest
+  autoVerify filter lists only `findatalk.com`. (`applinks:www.findatalk.com`
+  in the iOS entitlements has the same redirect problem; left as-is.)
+
 ## In-app purchases (StoreKit / Play Billing)
 
 - **"App Apple ID" (the numeric App Store Connect identifier, e.g.
