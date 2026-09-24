@@ -2674,6 +2674,22 @@
     text-align:center;
   }
   footer a{ color:var(--burgundy); }
+  /* Idea 77 — store badge row above the footer text. Badges are the
+     stores' own files, unmodified, at one shared height; "coming soon" is
+     plain text in the site's own style, never a lookalike badge. */
+  .store-row{ display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 20px; }
+  .store-row[hidden]{ display:none; }
+  .store-lead{ width:100%; margin:0 0 2px; font-size:12px; color:var(--ink-soft); }
+  .store-badge{ display:inline-flex; }
+  /* Google's badge file carries its own built-in clear space, so the image
+     is drawn taller with negative margins to make the visible badge match
+     the 40px "coming soon" box beside it. */
+  .store-badge img{ height:72px; width:auto; display:block; margin:-16px -10px; }
+  .store-soon{
+    height:40px; display:inline-flex; align-items:center; padding:0 14px;
+    border:1px dashed var(--line); border-radius:6px;
+    font-size:12.5px; font-weight:600; color:var(--ink-soft);
+  }
 
   /* ---------- nav-tab swipe transition (idea 37) ----------
      A simple sequential fade/slide, not a true overlapping slide-over: the
@@ -4006,6 +4022,8 @@
   </div>
 
   <footer>
+    <!-- Idea 77 — store badges, plain web only; filled in by initStoreBadges(). -->
+    <div class="store-row" id="storeRow" hidden></div>
     From <strong id="confCount"></strong> General Conferences — April 1971–present.<br>
     For the complete library, visit:<br>
     <a href="https://www.churchofjesuschrist.org/study/general-conference?lang=eng" target="_blank" rel="noopener">churchofjesuschrist.org/study/general-conference</a>.<br>
@@ -13673,6 +13691,39 @@ function initMigrationBanner(){
   });
 }
 initMigrationBanner();
+
+/* Idea 77 — App Store / Google Play badges in the footer. Plain web only
+   (the native app never shows them, same gate as the migration banner) and
+   matched to the visitor's device: Android sees Google Play, iPhone/iPad
+   sees the App Store, desktop sees both. Google Play is live. The App
+   Store isn't public yet, so until APP_STORE_URL is filled in it shows
+   plain "coming soon" text — deliberately not a lookalike Apple badge.
+   When Apple approves: set APP_STORE_URL to the listing's
+   https://apps.apple.com/app/id<numeric id> link and add Apple's official
+   badge file as docs/app-store-badge.svg. */
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.captainfun333.findatalk';
+const APP_STORE_URL = null;
+function initStoreBadges(){
+  const row = document.getElementById('storeRow');
+  if (!row) return;
+  const cap = window.Capacitor;
+  if (cap && cap.isNativePlatform && cap.isNativePlatform()) return;
+  const ua = navigator.userAgent || '';
+  const isAndroid = /Android/i.test(ua);
+  // iPadOS reports a desktop Mac user agent; touch points tell them apart.
+  const isIos = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  const play = `<a class="store-badge" href="${PLAY_STORE_URL}" target="_blank" rel="noopener"><img src="play-badge.png" alt="Get it on Google Play"></a>`;
+  const apple = APP_STORE_URL
+    ? `<a class="store-badge" href="${APP_STORE_URL}" target="_blank" rel="noopener"><img src="app-store-badge.svg" alt="Download on the App Store"></a>`
+    : null;
+  let html = '';
+  if (isAndroid) html = play;
+  else if (isIos) html = apple || '<span class="store-soon">Coming soon to the App Store</span>';
+  else html = play + (apple || '<span class="store-soon">App Store · coming soon</span>');
+  row.innerHTML = `<p class="store-lead">${isAndroid || isIos ? 'Get the app' : 'Also available as an app'}</p>${html}`;
+  row.hidden = false;
+}
+initStoreBadges();
 
 /* ---------------- "Add to a List" modal ---------------- */
 // Reused for every talk on the page (ticket, list rows, Talk of the Day,

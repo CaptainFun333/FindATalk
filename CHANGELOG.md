@@ -11,6 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Added
+- findatalk.com now shows a "Get it on Google Play" button at the bottom of the page for visitors on a computer or an Android phone, and "coming soon" for the App Store until it's approved. It doesn't appear inside the app itself. (Live immediately on the website; not part of the native apps, so no native build needed.)
 - After you've read 25 talks, the app may occasionally ask if you'd like to rate FindATalk on the App Store or Google Play — never more than once every 90 days, never more than 3 times in total, never again once you tap Rate, and never on a day another popup has already shown. (App only; requires a new build on both iPhone/iPad and Android to take effect.)
 
 ### Fixed
