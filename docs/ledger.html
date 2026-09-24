@@ -95,6 +95,12 @@
   }
   ul.entries { margin: 0 0 4px; padding-left: 20px; }
   ul.entries li { margin-bottom: 6px; }
+  .statement {
+    font-family: var(--font-serif); font-size: 17px; line-height: 1.55;
+    background: var(--paper-raised); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent-a); border-radius: var(--radius);
+    padding: 14px 16px; margin: 0 0 12px;
+  }
   .decision {
     border-left: 3px solid var(--accent-a); padding: 4px 0 4px 14px;
     margin-bottom: 16px;
@@ -143,7 +149,7 @@
   <header>
     <p class="eyebrow">Project Ledger</p>
     <h1>FindATalk</h1>
-    <p class="tagline">Changelog, key decisions, and style guide in one place — pulled live from this repo, so it's always current with whatever's on <code>main</code>.</p>
+    <p class="tagline">Mission, changelog, key decisions, and style guide in one place — pulled live from this repo, so it's always current with whatever's on <code>main</code>.</p>
     <div class="refresh-row">
       <button class="refresh" id="refresh-btn" type="button">Refresh</button>
       <p class="meta-line" id="meta-line">Loading latest activity…</p>
@@ -151,7 +157,8 @@
   </header>
 
   <nav class="tabs">
-    <button data-panel="ideas" class="active">Ideas</button>
+    <button data-panel="mission" class="active">Mission</button>
+    <button data-panel="ideas">Ideas</button>
     <button data-panel="stats">Stats</button>
     <button data-panel="activity">Activity</button>
     <button data-panel="changelog">Changelog</button>
@@ -159,7 +166,13 @@
     <button data-panel="style">Style Guide</button>
   </nav>
 
-  <section class="panel active" id="panel-ideas">
+  <section class="panel active" id="panel-mission">
+    <h2>Mission, vision &amp; values</h2>
+    <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">Our compass — the test every feature, message, and store listing gets held against.</p>
+    <div id="mission-body"><p class="loading">Fetching MISSION.md…</p></div>
+  </section>
+
+  <section class="panel" id="panel-ideas">
     <h2>Feature ideas</h2>
     <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">The running brainstorm list — a working list, not a roadmap or a promise of what ships next.</p>
     <div id="ideas-body"><p class="loading">Fetching IDEAS.md…</p></div>
@@ -222,7 +235,7 @@
   </section>
 
   <footer>
-    Pulled live from <a class="src-link" href="https://github.com/CaptainFun333/FindATalk" target="_blank" rel="noopener">github.com/CaptainFun333/FindATalk</a> on every page load. Edit <code>CHANGELOG.md</code> / <code>DECISIONS.md</code> / <code>IDEAS.md</code> and push — this page updates itself, no rebuild needed. Cloud stats recalculate daily.
+    Pulled live from <a class="src-link" href="https://github.com/CaptainFun333/FindATalk" target="_blank" rel="noopener">github.com/CaptainFun333/FindATalk</a> on every page load. Edit <code>MISSION.md</code> / <code>CHANGELOG.md</code> / <code>DECISIONS.md</code> / <code>IDEAS.md</code> and push — this page updates itself, no rebuild needed. Cloud stats recalculate daily.
   </footer>
 </div>
 
@@ -304,6 +317,42 @@ function renderDecisions(md) {
   return html;
 }
 
+function renderMission(md) {
+  const em = (t) => inline(t).replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\u0001/g, '<br>');
+  const lines = md.split('\n');
+  let html = '', para = [], listTag = null, item = null, seenH2 = false, statement = false;
+  const flushPara = () => {
+    if (para.length) html += `<p${statement ? ' class="statement"' : ''}>${em(para.join(' '))}</p>`;
+    para = [];
+  };
+  const flushItem = () => { if (item !== null) html += `<li>${em(item)}</li>`; item = null; };
+  const closeList = () => { flushItem(); if (listTag) html += `</${listTag}>`; listTag = null; };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^##\s+/.test(line)) {
+      flushPara(); closeList(); seenH2 = true;
+      const title = line.replace(/^##\s*/, '');
+      statement = /^(mission|vision)$/i.test(title);
+      html += `<div class="kind-label" style="margin-top:20px">${escapeHtml(title)}</div>`;
+    } else if (!seenH2) {
+      continue; // title + reuse note above the first section
+    } else if (/^\d+\.\s+/.test(line) || /^-\s+/.test(line)) {
+      flushPara(); flushItem();
+      const tag = /^\d/.test(line) ? 'ol' : 'ul';
+      if (listTag !== tag) { closeList(); html += `<${tag} class="entries">`; listTag = tag; }
+      item = line.replace(/^(\d+\.|-)\s+/, '');
+    } else if (line === '') {
+      flushPara(); closeList();
+    } else if (item !== null) {
+      item += (/^\*Why:/.test(line.trim()) ? '\u0001' : ' ') + line.trim();
+    } else {
+      para.push(line.trim());
+    }
+  }
+  flushPara(); closeList();
+  return html || '<p class="error">No mission found.</p>';
+}
+
 function renderIdeas(md) {
   const lines = md.split('\n').filter(l => /^\d+\.\s/.test(l.trim()) || /^##\s+/.test(l.trim()));
   if (!lines.length) return '<p class="error">No ideas found.</p>';
@@ -350,6 +399,16 @@ async function loadDecisions() {
     document.getElementById('decisions-body').innerHTML = renderDecisions(await res.text());
   } catch (e) {
     document.getElementById('decisions-body').innerHTML = '<p class="error">Could not load DECISIONS.md right now.</p>';
+  }
+}
+
+async function loadMission() {
+  try {
+    const res = await fetch(RAW('MISSION.md'));
+    if (!res.ok) throw new Error(res.status);
+    document.getElementById('mission-body').innerHTML = renderMission(await res.text());
+  } catch (e) {
+    document.getElementById('mission-body').innerHTML = '<p class="error">Could not load MISSION.md right now.</p>';
   }
 }
 
@@ -472,7 +531,7 @@ async function refreshAll() {
   btn.disabled = true;
   btn.textContent = 'Refreshing…';
   const notes = [];
-  const jobs = [loadCommits(), loadChangelog(), loadDecisions(), loadIdeas(),
+  const jobs = [loadCommits(), loadChangelog(), loadDecisions(), loadIdeas(), loadMission(),
     refreshStats().then(t => { if (t) notes.push('Stats were already fresh — recalculation is limited to once every 10 minutes.'); })
       .catch(() => { notes.push("Couldn't recalculate stats right now."); })];
   await Promise.all(jobs);
@@ -486,6 +545,7 @@ loadCommits();
 loadChangelog();
 loadDecisions();
 loadIdeas();
+loadMission();
 loadStats();
 </script>
 </body>
