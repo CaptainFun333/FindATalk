@@ -182,19 +182,29 @@ served live at findatalk.com; this one should never be public.
   restriction on all link shares, not something fixable from this app's
   side. Don't spend time trying to work around it again.
 - **Targeting SDK 35+ (Android 15+) makes the OS draw edge-to-edge
-  unconditionally — there is no manifest flag or theme attribute to opt
-  out**, and Capacitor's `BridgeActivity` (still true as of `@capacitor/
-  android` 8.5.0) does nothing to compensate; it neither enables
-  edge-to-edge deliberately nor pads the WebView for it. Left alone, the
-  WebView's content draws under the status/nav bars on affected devices
-  (Play Console flags this as "Edge-to-edge may not display for all
-  users" under App warnings). Fixed by attaching a
-  `ViewCompat.setOnApplyWindowInsetsListener` to `getBridge().getWebView()`
-  in `MainActivity.onCreate()` that pads the WebView by
-  `WindowInsetsCompat.Type.systemBars()` — simpler and more reliable here
-  than trying to thread `env(safe-area-inset-*)` through Android's WebView,
-  which (unlike iOS's WKWebView) doesn't consistently report those insets
-  to CSS without native help.
+  unconditionally — no manifest flag or theme attribute opts out.**
+  Capacitor 8's built-in `SystemBars` plugin (in `@capacitor/android`
+  core, on by default with `insetsHandling: "css"`) already handles it: on
+  WebView 140+ with `viewport-fit=cover` it passes the real insets through
+  so `env(safe-area-inset-*)` works in CSS; on older WebViews it pads the
+  WebView's *parent*. **Do not attach your own insets listener to the
+  WebView itself** — the 1.7.3 attempt did (`setPadding` on
+  `getBridge().getWebView()`), and it silently did nothing: Android's
+  WebView ignores its own padding (viewport stayed full-screen), and
+  intercepting the insets zeroed `env(safe-area-inset-*)` too. Verify with
+  WebView remote debugging (`adb forward tcp:9333
+  localabstract:webview_devtools_remote_<pid>`, then evaluate
+  `innerHeight` and a probe element's computed `env()` top/bottom) —
+  screenshots can mislead, because the header's `max(48px, …)` padding
+  happens to roughly clear the status bar even with a 0 inset.
+  Two follow-ons in `docs/index.html`: `SystemBars` picks status-bar icon
+  color from the *OS* dark mode, so `updateThemeToggleUI()` calls
+  `SystemBars.setStyle` from the app's own Appearance (`'DARK'` = light
+  icons); and a fixed `body::after` strip of `env(safe-area-inset-top)`
+  height fills in behind the status bar so scrolled content doesn't
+  collide with the clock. Modal overlays live inside `.wrap`'s stacking
+  context and can't paint over that strip, so it tints itself with
+  `--overlay` via `body:has(.modal-overlay:not([hidden]))`.
 
 - **`@capacitor-community/in-app-review` 8.0.0 doesn't build on this project's Android Gradle Plugin 9.** Its
   `android/build.gradle` calls `getDefaultProguardFile('proguard-android.txt')`, which AGP 9 rejects ("no longer

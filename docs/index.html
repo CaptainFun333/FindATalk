@@ -538,6 +538,25 @@
     pointer-events:none;
     z-index:0;
   }
+  /* Solid strip behind the status bar in the apps, which draw edge-to-edge
+     (always on Android at targetSdk 35+, and iOS via viewport-fit=cover) —
+     without it, scrolled content runs straight into the clock/icons.
+     Zero height on the website, where the inset is always 0. The modal
+     overlays live inside .wrap's stacking context, so they can't paint
+     over this; instead it takes on the same --overlay tint itself while
+     any popup is open. */
+  body::after{
+    content:'';
+    position:fixed;
+    top:0; left:0; right:0;
+    height:env(safe-area-inset-top);
+    background:var(--paper);
+    pointer-events:none;
+    z-index:150;
+  }
+  body:has(.modal-overlay:not([hidden]))::after{
+    background:linear-gradient(var(--overlay), var(--overlay)), var(--paper);
+  }
   .wrap{ width:100%; max-width:760px; position:relative; z-index:1; }
 
   /* ---------- header ---------- */
@@ -4143,10 +4162,23 @@ function updateThemeToggleUI(){
   const isDark = effectiveTheme()==='dark';
   const meta = document.getElementById('themeColorMeta');
   if (meta) meta.setAttribute('content', isDark ? '#161b26' : '#f3efe2');
+  syncNativeStatusBarStyle(isDark);
   const active = getStoredTheme() || 'system';
   document.querySelectorAll('[data-theme-choice]').forEach((btn)=>{
     btn.setAttribute('aria-pressed', String(btn.dataset.themeChoice === active));
   });
+}
+// The app draws edge-to-edge, so the native status bar's clock/icons
+// sit on the page's own background. Capacitor's SystemBars defaults them
+// to the OS light/dark setting, which is wrong whenever Appearance is set
+// to the other one (dark icons on a dark page). 'DARK' = light icons for a
+// dark background. Best-effort: older builds without SystemBars skip it.
+function syncNativeStatusBarStyle(isDark){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const bars = cap.Plugins && cap.Plugins.SystemBars;
+  if (!bars || !bars.setStyle) return;
+  bars.setStyle({ style: isDark ? 'DARK' : 'LIGHT' }).catch(()=>{});
 }
 // Sets the Appearance choice from a tap in the Settings modal.
 // 'light'/'dark' store an explicit override; 'system' clears it so the
