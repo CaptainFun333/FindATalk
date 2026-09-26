@@ -1,13 +1,14 @@
-Version 1.4 — What's new (Google Play Console "release notes" field)
+Version 1.7.3 — What's new (Google Play Console / App Store Connect "What's New" field)
 Character count: fits within Play's 500-character limit per language.
+Android version mentions the link and status-bar fixes; the App Store version
+can drop the "Android" line.
 
 ---
 
-New: a "Come, Follow Me" tab matches talks to this week's reading, with
-its own filters, a week picker, and holiday-themed Talk of the Day picks.
-Swipe between Home, Recents, Favorites, Notes & Lists. Browse past
-"Talk of the Day" picks on a calendar. Search now catches related words
-and misspelled topics/speakers.
+Enjoying FindATalk? After you've read a few talks, we may occasionally ask
+for a rating. It's rare and easy to skip.
 
-Fixed: streak resetting late, a stuck data update, and the iOS widget
-failing to build. Renamed to "FindATalk" throughout.
+Fixed: findatalk.com links now open straight in the app on Android. The top
+and bottom of the screen no longer hide behind the status and gesture bars.
+The clock and battery icons now match your chosen Appearance. Share cards
+are less cramped, and "Reads & Rereads" counts every talk you've read.
