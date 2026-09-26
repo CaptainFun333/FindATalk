@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- Tapping "Rate FindATalk" on the rating pop-up now opens FindATalk's Google Play page so you can leave a rating. Before, the pop-up could just disappear with nothing else happening. On iPhone/iPad the button will do the same once the App Store listing is live. (App only; needs a new Android build.)
 
 ## [1.7.3] — 2026-09-26
 

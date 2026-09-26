@@ -214,6 +214,13 @@ served live at findatalk.com; this one should never be public.
   via `file:`. Don't switch back to the registry copy or run `npm update` on it without checking that line first — and
   a web-only test can't catch this; only a real Gradle build does.
 
+- **In-app review APIs can silently show nothing, and you can't tell.** Play's `launchReviewFlow` completes
+  successfully with no dialog when the user already reviewed, hit Google's quota, or installed outside a normal Play
+  track; Apple's `requestReview` is a no-op in TestFlight and past 3 prompts/365 days, and the vendored iOS plugin resolves
+  immediately regardless. Behind a custom "Rate" button this looks like the button just closes the popup. So the Rate
+  button opens the store listing (`PLAY_STORE_URL`, or `APP_STORE_URL?action=write-review`) and uses the plugin only as
+  the iOS fallback until `APP_STORE_URL` is set.
+
 - **Android App Links: don't declare `www.findatalk.com`.** Play Console
   showed "Deep links not working / 1 domain failed validation" because
   `www` 301-redirects to the apex (GitHub Pages) and Android's verifier does

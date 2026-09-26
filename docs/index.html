@@ -3954,8 +3954,9 @@
   <!-- Idea 76 — rating pre-ask. Opened programmatically by
        maybeShowRatingAsk() (native only), never by a direct click. Same
        .badge-celebration-modal chrome as the support ask above. The
-       primary button hands off to the store's own rating sheet — this
-       modal is only the polite pre-ask. -->
+       primary button opens the store listing (falling back to the store's
+       own rating sheet on iOS until APP_STORE_URL exists) — this modal is
+       only the polite pre-ask. -->
   <div class="modal-overlay" id="ratingAskModalOverlay" hidden>
     <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="ratingAskTitle">
       <span class="secret-modal-glyph">&#127775;</span>
@@ -5054,6 +5055,17 @@ document.getElementById('ratingAskRateBtn').addEventListener('click', async ()=>
   state.rated = true;
   saveRatingAsk(state);
   closeRatingAsk();
+  // Open the store listing directly when we have one: the stores' in-app
+  // sheets are allowed to silently show nothing (quota, already rated,
+  // TestFlight), which looked to users like the button just vanished.
+  const platform = window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform();
+  const listingUrl = platform === 'android' ? PLAY_STORE_URL
+    : (platform === 'ios' && APP_STORE_URL) ? `${APP_STORE_URL}?action=write-review`
+    : null;
+  if (listingUrl){
+    window.open(listingUrl, '_blank', 'noopener');
+    return;
+  }
   const plugin = ratingPlugin();
   if (plugin){
     try { await plugin.requestReview(); } catch(err){ /* store declined or unavailable — nothing to recover */ }
@@ -13732,7 +13744,8 @@ initMigrationBanner();
    plain "coming soon" text — deliberately not a lookalike Apple badge.
    When Apple approves: set APP_STORE_URL to the listing's
    https://apps.apple.com/app/id<numeric id> link and add Apple's official
-   badge file as docs/app-store-badge.svg. */
+   badge file as docs/app-store-badge.svg. Both constants are also used by
+   the rating ask's Rate button (idea 76) to open the store listing. */
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.captainfun333.findatalk';
 const APP_STORE_URL = null;
 function initStoreBadges(){
