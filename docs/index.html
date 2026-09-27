@@ -3858,8 +3858,8 @@
        varies, so the two platforms visibly disagreed; a flat "$N" across
        both is simpler and was what was actually wanted. "Choose your own
        amount" stays hidden (no equivalent — IAP has no arbitrary-amount concept),
-       and Yearly is disabled until real annual product ids exist (see
-       ANNUAL_TIP_TIERS). Web (no IAPBridge): Continue/"Choose your own
+       and the whole Frequency toggle is hidden until real annual product
+       ids exist (see ANNUAL_TIP_TIERS). Web (no IAPBridge): Continue/"Choose your own
        amount" open the same Stripe Payment Links as docs/donate.html —
        see openSupportDonateLink(). -->
   <div class="modal-overlay" id="supportModalOverlay" hidden>
@@ -3875,10 +3875,12 @@
         <div class="badge-row-text"><strong>Supporter</strong><span id="supportModalBadgeText"></span></div>
       </div>
       <div id="supportPicker">
-        <p class="settings-label">Frequency</p>
-        <div class="segmented" role="group" aria-label="Frequency">
-          <button type="button" data-support-freq="oneTime" aria-pressed="true">One-Time</button>
-          <button type="button" data-support-freq="annual" aria-pressed="false">Yearly</button>
+        <div id="supportFreqGroup">
+          <p class="settings-label">Frequency</p>
+          <div class="segmented" role="group" aria-label="Frequency">
+            <button type="button" data-support-freq="oneTime" aria-pressed="true">One-Time</button>
+            <button type="button" data-support-freq="annual" aria-pressed="false">Yearly</button>
+          </div>
         </div>
         <p class="settings-label">Amount</p>
         <button type="button" class="btn btn-ghost full-width" id="supportCustomAmountBtn">Choose your own amount</button>
@@ -3889,7 +3891,6 @@
           <button type="button" class="amt-chip" data-support-amount="10" aria-pressed="false">$10</button>
           <button type="button" class="amt-chip" data-support-amount="25" aria-pressed="false">$25</button>
         </div>
-        <p class="settings-sub" id="supportAnnualNativeNote" hidden>Annual tips aren't available in the app yet — check the donate page on the website.</p>
         <button type="button" class="btn btn-primary full-width" id="supportContinueBtn">Continue — $3</button>
       </div>
     </div>
@@ -9739,10 +9740,10 @@ const TIP_TIERS = {
 // Annual-subscription tip products already exist in both App Store
 // Connect and Play Console (see PROJECT_HANDOFF.md) but their real,
 // unrenameable product ids were never recorded anywhere in this repo —
-// left null (rather than guessed) until they're supplied. Annual stays
-// selectable on native so the picker still matches the web layout, but
-// Continue is disabled with an explanatory note (see renderSupportPicker())
-// until this is filled in with the same {id, amount} shape as TIP_TIERS.
+// left null (rather than guessed) until they're supplied. Until then a
+// store build hides the Frequency toggle entirely (see
+// renderSupportPicker()) — never a "use the website" note, which is what
+// got 1.7.2 rejected under Guideline 3.1.1 — until this is filled in with the same {id, amount} shape as TIP_TIERS.
 const ANNUAL_TIP_TIERS = null;
 
 // Same live Stripe Payment Links as docs/donate.html — kept in sync by
@@ -9825,11 +9826,15 @@ function renderSupportPicker(){
     btn.setAttribute('aria-pressed', String(Number(btn.dataset.supportAmount) === supportDonateAmount));
   });
   const plugin = iapPlugin();
-  const nativeAnnualUnavailable = !!plugin && supportDonateFreq === 'annual' && !ANNUAL_TIP_TIERS;
+  // Native with no annual IAP products: the Frequency toggle is hidden
+  // outright (one-time only). It used to stay visible with a note sending
+  // people to the website's donate page for Yearly — Apple rejected 1.7.2
+  // under Guideline 3.1.1 for exactly that (pointing to a non-IAP payment
+  // mechanism for tips), so a store build must never mention or link it.
+  const nativeAnnualUnavailable = !!plugin && !ANNUAL_TIP_TIERS;
+  if (nativeAnnualUnavailable) supportDonateFreq = 'oneTime';
+  document.getElementById('supportFreqGroup').hidden = nativeAnnualUnavailable;
   document.getElementById('supportCustomAmountBtn').hidden = !!plugin || supportDonateFreq === 'annual';
-  document.getElementById('supportAmountRow').hidden = nativeAnnualUnavailable;
-  document.getElementById('supportAnnualNativeNote').hidden = !nativeAnnualUnavailable;
-  document.getElementById('supportContinueBtn').hidden = nativeAnnualUnavailable;
   document.getElementById('supportContinueBtn').textContent = `Continue — $${supportDonateAmount}`;
 }
 
@@ -10971,6 +10976,9 @@ const FINDATALK_URL = 'https://findatalk.com';
 // Supporter badge's own share text, which invites someone else to give
 // rather than just announcing a badge (see badge-share-btn's click
 // handler), so it needs the donate page, not the app's front door.
+// Web only — a store build shares FINDATALK_URL instead, since linking
+// the (Stripe) donate page from inside the app violates App Store
+// Guideline 3.1.1 (1.7.2 was rejected for the same kind of pointer).
 const DONATE_URL = 'https://findatalk.com/donate.html';
 
 /* Phase 3 (idea 45) — generic plain-text share, for things that aren't a
@@ -14211,7 +14219,7 @@ document.getElementById('badgesModalList').addEventListener('click', async (e)=>
       ? `Supported in ${joinYearsSentence(years)} — renews ${dateStr}`
       : `Supported in ${joinYearsSentence(years)} — expired, renew?`;
     const imageBlob = await buildSupporterShareCardBlob({ years: years.length, statusLine });
-    shareText(`⭐ Just supported FindATalk — the free, ad-free app for studying General Conference talks. If it's been useful to you too: ${DONATE_URL}`, btn, imageBlob);
+    shareText(`⭐ Just supported FindATalk — the free, ad-free app for studying General Conference talks. If it's been useful to you too: ${iapPlugin() ? FINDATALK_URL : DONATE_URL}`, btn, imageBlob);
     return;
   }
   // Idea 54's "Think Celestial!" badge isn't in BADGE_DEFS (it's earned

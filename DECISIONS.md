@@ -228,3 +228,9 @@ under whichever group it belongs in, not just at the top.
 - **2026-09-23** — Added a Mission tab (first tab, default view) to the ledger page that reads `MISSION.md` live, so the compass stays visible next to the changelog and decisions. `MISSION.md` is public via the repo, so it deliberately describes in-app surprises only vaguely.
 - **2026-09-24** — Idea 77's store badges ship with the App Store side as plain "coming soon" text rather than waiting for Apple's approval or showing a lookalike Apple badge: Google Play is live now, and the Apple badge flips on later by filling in one constant (`APP_STORE_URL`) plus Apple's official badge file.
 - **2026-09-26** — The rating ask's Rate button now opens the store listing directly instead of calling the in-app review API. A user reported tapping Rate and nothing happening, and neither store tells us whether its sheet appeared, so a guaranteed redirect beats a nicer sheet that can silently fail. iOS keeps the in-app sheet as a fallback only until `APP_STORE_URL` is set.
+- **2026-09-27** — Apple rejected iOS 1.7.2 (Guideline 3.1.1) because the
+  in-app Support modal's Yearly option sent people to the website's donate
+  page. Store builds now hide the Frequency toggle entirely (one-time IAP
+  tips only) and never reference the donate page, including in the
+  Supporter badge share text; yearly giving stays web-only until annual
+  IAP products are wired in.

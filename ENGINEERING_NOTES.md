@@ -253,6 +253,19 @@ served live at findatalk.com; this one should never be public.
   top-level function placement in this single-file app is easy to get
   wrong and can break features that have nothing to do with what you're
   adding. See "closure-scoping trap" below.
+- **App Review treats *any* in-app pointer to an outside payment page for
+  tips as a Guideline 3.1.1 violation — even a passive note, not just a
+  link.** 1.7.2 was rejected because selecting "Yearly" in the native
+  Support modal showed "check the donate page on the website." In a store
+  build, never mention/link `donate.html` or Stripe (modal copy, share
+  text, anywhere) — gate on `iapPlugin()`; hide unsupported options
+  instead of explaining where else to get them.
+- **Reviewers can only buy IAPs that are attached to the version being
+  submitted** (App Store Connect → version page → "In-App Purchases and
+  Subscriptions" → add them). Products sitting at "Ready to Submit" but not
+  attached make `Product.products(for:)` return nothing in review, so
+  `purchase()` rejects "Unknown product" → the generic "Something went
+  wrong starting that purchase" error the reviewer screenshotted.
 
 ## Sharing a generated file (Capacitor Share vs. Web Share API)
 
