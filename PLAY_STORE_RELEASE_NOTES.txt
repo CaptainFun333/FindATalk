@@ -1,14 +1,9 @@
-Version 1.7.3 — What's new (Google Play Console / App Store Connect "What's New" field)
+Version 1.7.4 — What's new (Google Play Console / App Store Connect "What's New" field)
 Character count: fits within Play's 500-character limit per language.
-Android version mentions the link and status-bar fixes; the App Store version
-can drop the "Android" line.
+Same text works for both stores.
 
 ---
 
-Enjoying FindATalk? After you've read a few talks, we may occasionally ask
-for a rating. It's rare and easy to skip.
-
-Fixed: findatalk.com links now open straight in the app on Android. The top
-and bottom of the screen no longer hide behind the status and gesture bars.
-The clock and battery icons now match your chosen Appearance. Share cards
-are less cramped, and "Reads & Rereads" counts every talk you've read.
+Fixed: the "Rate FindATalk" button now opens the store page so you can leave
+a rating, instead of the pop-up sometimes just disappearing. Support the App
+has been simplified to one-time tips.
