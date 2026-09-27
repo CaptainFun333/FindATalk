@@ -13,7 +13,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "2DollarOneTime26",
+      "productID" : "2OneTime26",
       "referenceName" : "Tip $2",
       "type" : "Consumable"
     },
@@ -28,7 +28,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "3DollarOneTime26",
+      "productID" : "3OneTime26",
       "referenceName" : "Tip $3",
       "type" : "Consumable"
     },
@@ -43,7 +43,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "5DollarOneTime26",
+      "productID" : "5OneTime26",
       "referenceName" : "Tip $5",
       "type" : "Consumable"
     },
@@ -58,7 +58,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "10DollarOneTime26",
+      "productID" : "10OneTime26",
       "referenceName" : "Tip $10",
       "type" : "Consumable"
     },
@@ -73,7 +73,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "25DollarOneTime26",
+      "productID" : "25OneTime26",
       "referenceName" : "Tip $25",
       "type" : "Consumable"
     }

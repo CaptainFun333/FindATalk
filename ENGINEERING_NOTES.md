@@ -260,6 +260,11 @@ served live at findatalk.com; this one should never be public.
   build, never mention/link `donate.html` or Stripe (modal copy, share
   text, anywhere) — gate on `iapPlugin()`; hide unsupported options
   instead of explaining where else to get them.
+- **`ios/App/App/Configuration.storekit` must list the same product ids as
+  `TIP_TIERS.ios`.** The App scheme's Run action uses it, so Xcode/Simulator
+  purchases hit this file, not App Store Connect — stale ids there give the
+  same "Something went wrong starting that purchase" error as a real
+  product problem. Archives/TestFlight ignore it.
 - **Reviewers can only buy IAPs that are attached to the version being
   submitted** (App Store Connect → version page → "In-App Purchases and
   Subscriptions" → add them). Products sitting at "Ready to Submit" but not
