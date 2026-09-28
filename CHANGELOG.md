@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- On the Come, Follow Me page, the Topic, Calling, Conference, and Session drop-down lists were cut off at the bottom of the filters box, so most of their choices couldn't be seen. They now open fully. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
 
 ## [1.7.4] — 2026-09-27
 

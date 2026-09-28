@@ -1127,12 +1127,16 @@
     border:1px solid var(--line);
     border-radius:6px;
     background:var(--paper-raised);
-    overflow:hidden;
+    /* No overflow:hidden here — it clipped the absolutely-positioned
+       .ms-panel dropdowns at the box's bottom edge (most visibly on CFM,
+       whose box is short). The header rounds its own top corners instead
+       so its count-flash background still stays inside the border. */
   }
   .narrow-box-header{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     padding:14px 18px;
     border-bottom:1px solid var(--line);
+    border-radius:5px 5px 0 0;
     font-family:'Inter',sans-serif;
     font-weight:600;
     font-size:13.5px;
