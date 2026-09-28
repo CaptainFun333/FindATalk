@@ -1,10 +1,7 @@
 package com.captainfun333.findatalk;
 
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
-
-import androidx.activity.EdgeToEdge;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -23,24 +20,13 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetRefreshPlugin.class);
         registerPlugin(IAPBridgePlugin.class);
         super.onCreate(savedInstanceState);
-        // Android 15+ forces edge-to-edge anyway, so this changes no layout
-        // there; it's here because Play Console flags targetSdk 35+ apps
-        // that never call it. Deliberately not called on older versions:
-        // SystemBars only passes insets through on WebView 140+, and
-        // Android 8/9 can't update past WebView 138, so enabling it there
-        // would put content under the bars (see ENGINEERING_NOTES.md).
-        // Must run after super.onCreate(): BridgeActivity sets the
-        // NoActionBar theme there, and calling this first builds the window
-        // with the launch theme and shows an action bar.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            EdgeToEdge.enable(this);
-        }
         // Edge-to-edge (forced at targetSdk 35+) is handled by Capacitor's
         // built-in SystemBars plugin, which feeds the real system-bar insets
         // to the page's env(safe-area-inset-*) CSS. Don't attach an insets
         // listener to the WebView here: Android ignores padding on a WebView,
         // and intercepting the insets hides them from the CSS (see
-        // ENGINEERING_NOTES.md).
+        // ENGINEERING_NOTES.md). Don't add EdgeToEdge.enable() for Play
+        // Console's edge-to-edge warning either — see ENGINEERING_NOTES.md.
         // Cold start already opens fresh on Home with no stale state to
         // reset, so this is a harmless no-op here — kept for symmetry with
         // onNewIntent() below, which is where this actually matters (the

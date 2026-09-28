@@ -206,13 +206,21 @@ served live at findatalk.com; this one should never be public.
   context and can't paint over that strip, so it tints itself with
   `--overlay` via `body:has(.modal-overlay:not([hidden]))`.
 
-- **`EdgeToEdge.enable(this)` in `MainActivity` must run *after*
-  `super.onCreate()`.** `BridgeActivity` sets `AppTheme.NoActionBar` inside
-  its `onCreate`; calling `EdgeToEdge.enable` first builds the decor with the
-  launch theme and shows a blue "FindATalk" action bar. It's gated to API
-  35+ on purpose: it only exists to clear Play Console's "Edge-to-edge may
-  not display for all users" warning. On API <35, SystemBars only passes
-  insets through on WebView 140+, and Android 8/9 are stuck at WebView 138.
+- **Don't add `EdgeToEdge.enable()` to clear Play Console's "Edge-to-edge
+  may not display for all users" recommendation — it backfires.** Tried in
+  1.7.6: R8 inlines the call into `onCreate`, so Play's scan still doesn't
+  see it and the warning stays, *and* the androidx `EdgeToEdgeApi23/26/29`
+  classes it pulls in call `setStatusBarColor`/`setNavigationBarColor`/
+  `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`, which adds a new "deprecated
+  APIs for edge-to-edge" warning. Removed in 1.7.7. Capacitor's SystemBars
+  already handles insets correctly, so treat that one warning as a known
+  false positive. (If it's ever retried: call it after `super.onCreate()` —
+  before it, the window picks up the launch theme and shows an action bar —
+  and only on API 35+, since Android 8/9 are stuck on WebView 138 and
+  SystemBars only passes insets through on WebView 140+.)
+- **Play Console's "bitmap downsampling" recommendation points at library
+  code** (Capacitor's `AssetUtil` / local-notifications icon loading), not
+  ours — nothing to fix in this app.
 - **R8 (`minifyEnabled true`) needs `-dontwarn com.facebook.**`.**
   `@capacitor-firebase/authentication` references every provider SDK as
   compileOnly, so R8 fails on the missing Facebook classes. Capacitor's own

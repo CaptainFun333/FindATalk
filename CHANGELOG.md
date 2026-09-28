@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+- The Android app is a little smaller again, from better trimming of unused images and layouts. Nothing looks different. (Android only; needs a new Android build.)
 
 ## [1.7.6] — 2026-09-28
 
