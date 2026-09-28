@@ -1,12 +1,8 @@
-Version 1.7.5 — What's new (Google Play Console / App Store Connect "What's New" field)
+Version 1.7.6 — What's new (Google Play Console "What's New" field)
 Character count: fits within Play's 500-character limit per language.
-Same text works for both stores.
+Android only; no App Store release for this version.
 
 ---
 
-New: share "Your FindATalk" stats as one image card. Show a List can now sort
-Oldest First, and Recently Viewed, Favorites, My Notes and your lists can flip
-to oldest-first too. The Conference filter has a new "Select a range" option —
-pick a start and end conference to check everything in between.
-
-Fixed: filter drop-downs on Come, Follow Me were cut off and now open fully.
+A smaller, faster download: the app is now about 40% smaller, with better
+full-screen support on Android 15 and newer. Nothing else changes.
