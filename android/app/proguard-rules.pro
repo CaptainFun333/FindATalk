@@ -14,8 +14,13 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# @capacitor-firebase/authentication compiles against every sign-in
+# provider's SDK as compileOnly; only Google is bundled here, so R8 would
+# otherwise fail on the absent Facebook (etc.) classes it references.
+-dontwarn com.facebook.**

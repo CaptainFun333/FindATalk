@@ -206,6 +206,19 @@ served live at findatalk.com; this one should never be public.
   context and can't paint over that strip, so it tints itself with
   `--overlay` via `body:has(.modal-overlay:not([hidden]))`.
 
+- **`EdgeToEdge.enable(this)` in `MainActivity` must run *after*
+  `super.onCreate()`.** `BridgeActivity` sets `AppTheme.NoActionBar` inside
+  its `onCreate`; calling `EdgeToEdge.enable` first builds the decor with the
+  launch theme and shows a blue "FindATalk" action bar. It's gated to API
+  35+ on purpose: it only exists to clear Play Console's "Edge-to-edge may
+  not display for all users" warning. On API <35, SystemBars only passes
+  insets through on WebView 140+, and Android 8/9 are stuck at WebView 138.
+- **R8 (`minifyEnabled true`) needs `-dontwarn com.facebook.**`.**
+  `@capacitor-firebase/authentication` references every provider SDK as
+  compileOnly, so R8 fails on the missing Facebook classes. Capacitor's own
+  consumer rules keep all `Plugin` subclasses, so plugins survive shrinking.
+  Release builds aren't WebView-debuggable, so check them on a device.
+
 - **`@capacitor-community/in-app-review` 8.0.0 doesn't build on this project's Android Gradle Plugin 9.** Its
   `android/build.gradle` calls `getDefaultProguardFile('proguard-android.txt')`, which AGP 9 rejects ("no longer
   supported") while evaluating the project — so `./gradlew :app:assembleDebug` fails before compiling anything. Every
