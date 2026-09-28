@@ -16,6 +16,7 @@ this updated.
 - The Conference filter (on Home and on Come, Follow Me) has a new "Select a range" option — tap a starting conference and an ending one, and every conference in between gets checked, so you can search something like "between April 2024 and April 2026" in two taps. Picking conferences one at a time still works as before. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 
 ### Fixed
+- findatalk.com now shows "FindATalk — Daily & Searchable General Conference Talks" as its browser-tab title instead of the old "Pick a Talk — General Conference", and has a short description for search results and link previews. (Website only; nothing visible changes inside the apps.)
 - On the Come, Follow Me page, the Topic, Calling, Conference, and Session drop-down lists were cut off at the bottom of the filters box, so most of their choices couldn't be seen. They now open fully. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
 
 ## [1.7.4] — 2026-09-27

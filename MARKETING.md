@@ -20,18 +20,12 @@ at the repo root (not in `docs/`, which is public).
   general conference", which is exactly FindATalk's pitch. That gives you a
   timely reason to reach out.
 
-## Guardrail first: be clearly unofficial
+## Guardrail: stay clearly unofficial
 
-The Church's concern with third-party apps is confusion over whether
-something is official. `docs/index.html` and the store listings currently
-have **no "not affiliated" line**. Before any outreach, add a short footer and
-store-listing line such as *"FindATalk is an independent app and is not
-made by or affiliated with The Church of Jesus Christ of Latter-day Saints.
-Talks link to the Church's official Gospel Library."* Also avoid Church
-logos and lookalike styling in anything promotional. This protects the app
-from being pulled over a trademark complaint, and it makes moderators and
-journalists more willing to share it. It also fits the "doorway to Gospel
-Library, not a rival" value in `MISSION.md`.
+The site footer already says "FindATalk is a fan-made tool, not produced by
+the Church," and links to the Church's own General Conference library. Keep
+that. Also put the same line in the Play/App Store descriptions, and never
+use Church logos or lookalike styling in promotional images or posts.
 
 ## Ranked plan
 
@@ -99,10 +93,9 @@ speakers preparing a sacrament meeting talk. The Topic and scripture
   as a second launch moment.
 
 ### 7. Website SEO (small code changes, long tail)
-- `docs/index.html`'s `<title>` is "Pick a Talk — General Conference",
-  and there is no `<meta name="description">`. Use something like
-  "FindATalk — Random & Searchable General Conference Talks" plus a
-  description.
+- ✅ Done 2026-09-28: the page title is now "FindATalk — Daily & Searchable
+  General Conference Talks" with a matching meta description and
+  link-preview text (it used to be "Pick a Talk — General Conference").
 - Switch `twitter:card` to `summary_large_image` and use a wide (1200×630)
   `og:image` so shared links preview better.
 - Later: static, searchable pages (e.g., "General Conference talks on
@@ -125,8 +118,8 @@ findatalk.com to see which channels actually work, then double down on
 those.
 
 ## Suggested first week
-1. Add the "not affiliated" line to the site footer and store listing.
-2. Fix the page title/description and link preview.
+1. Add the footer's "fan-made, not produced by the Church" line to the store listing.
+2. ✅ Page title/description fixed.
 3. Draft one Reddit post, one Facebook group post, and one short video.
    Ask mods and admins for permission now.
 4. Email 3–5 pitches (LDS Living, Church News, LDS365, two podcasts).
