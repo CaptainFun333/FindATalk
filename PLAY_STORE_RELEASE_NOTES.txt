@@ -1,9 +1,12 @@
-Version 1.7.4 — What's new (Google Play Console / App Store Connect "What's New" field)
+Version 1.7.5 — What's new (Google Play Console / App Store Connect "What's New" field)
 Character count: fits within Play's 500-character limit per language.
 Same text works for both stores.
 
 ---
 
-Fixed: the "Rate FindATalk" button now opens the store page so you can leave
-a rating, instead of the pop-up sometimes just disappearing. Support the App
-has been simplified to one-time tips.
+New: share "Your FindATalk" stats as one image card. Show a List can now sort
+Oldest First, and Recently Viewed, Favorites, My Notes and your lists can flip
+to oldest-first too. The Conference filter has a new "Select a range" option —
+pick a start and end conference to check everything in between.
+
+Fixed: filter drop-downs on Come, Follow Me were cut off and now open fully.

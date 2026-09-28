@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.7.5] — 2026-09-28
+
 ### Added
 - "Your FindATalk" now has a share button — it turns your unique talks read, streak, days active, and badge count into one shareable image, the same way sharing a talk or a badge already works. Your most-read talk and the Support button stay off the image. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
 - Show a List has a new "Oldest First" sort option, so you can browse matching talks starting from the earliest — handy for reading through one speaker's talks in the order they gave them. Recently Viewed, Favorites, My Notes, and a List's own page can now also be flipped to oldest-first, both by when you added them and by the talk's own conference date. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
