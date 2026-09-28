@@ -2092,6 +2092,11 @@
   .modal-header h3{
     font-family:'Lora',serif; font-weight:600; font-size:20px; margin:0;
   }
+  /* Idea 71, extended — groups the trophy panel's new share button with
+     its existing close button so .modal-header stays a simple two-child
+     space-between row (title | actions) instead of three children
+     spreading unevenly across it. */
+  .modal-header-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
   .modal-close{
     background:none; border:none; cursor:pointer;
     font-size:24px; line-height:1; color:var(--ink-soft);
@@ -3767,7 +3772,16 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="trophyModalTitle">
       <div class="modal-header">
         <h3 id="trophyModalTitle">Your FindATalk</h3>
-        <button type="button" class="modal-close" id="trophyModalClose" aria-label="Close">&times;</button>
+        <div class="modal-header-actions">
+          <!-- Idea 71, extended — shares the four headline numbers below as
+               one recap card. Same share-btn-icon markup as every other
+               share trigger; wired in initApp() (see buildStatsShareCardBlob()'s
+               call site) since it needs shareText()/performShare(). -->
+          <button type="button" class="share-btn-icon" id="trophyShareBtn" aria-label="Share your stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+          </button>
+          <button type="button" class="modal-close" id="trophyModalClose" aria-label="Close">&times;</button>
+        </div>
       </div>
 
       <!-- Idea 75 — each cell toggles between two related numbers on tap
@@ -10864,6 +10878,78 @@ function buildStreakShareCardBlob({ count, activeDays, windowDays }){
 // it instead; the small vertical gap this leaves is intentional, not a
 // bug, matching the mockup's own centered spacing.
 
+/* Idea 71, extended — the "Your FindATalk" recap card. A genuinely
+   different layout from buildAchievementShareCardBlob() above: that one
+   is built for ONE centerpiece + one caption line, which four numbers at
+   once doesn't fit — this draws its own small grid instead, mirroring the
+   in-app .stat-grid's big-number-over-label look. Same masthead/footer/
+   palette-matching calls as every other card.
+   Deliberately only four numbers, the same ones the trophy panel already
+   gives the most visual weight — Unique Talks Read, current streak, Days
+   Active, and badge count. Most-Read Talk is left off on purpose: a
+   streak or a read count says how much someone studies, but a most-read
+   talk says what they're drawn to, which could be a sensitive subject —
+   not something to broadcast by default. Give Back/Support is left off
+   too, same rule every other share card already follows (nothing
+   app-functional rides along in a shared image). */
+function drawStatCell(ctx, x, y, w, h, palette, value, label){
+  const s = SHARE_CARD_SCALE;
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = Math.max(1, s);
+  const r = 4*s;
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.ink;
+  ctx.font = `700 ${22*s}px Lora, serif`;
+  ctx.fillText(ellipsizeCanvasText(ctx, String(value), w - 12*s), x + w/2, y + h*0.5);
+  ctx.fillStyle = palette.inkSoft;
+  ctx.font = `600 ${9.5*s}px Inter, sans-serif`;
+  ctx.fillText(label.toUpperCase(), x + w/2, y + h*0.5 + 22*s);
+}
+async function buildStatsShareCardBlob({ uniqueReads, streakCount, activeDays, windowDays, badgeCount }){
+  await ensureShareFontsReady();
+  const s = SHARE_CARD_SCALE;
+  const W = SHARE_CARD_PX, H = SHARE_CARD_PX;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const palette = readCardPalette();
+
+  ctx.fillStyle = palette.paper;
+  ctx.fillRect(0, 0, W, H);
+
+  const padTop = 26*s, padSide = 28*s;
+  const mastBottom = drawCardMasthead(ctx, W, palette, padTop);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.accentA;
+  ctx.font = `700 ${11*s}px Inter, sans-serif`;
+  ctx.fillText('MY FINDATALK JOURNEY', W/2, mastBottom + 14*s);
+
+  const gridTop = mastBottom + 34*s;
+  const gap = 10*s;
+  const cellW = (W - padSide*2 - gap) / 2;
+  const cellH = 82*s;
+  const cells = [
+    [uniqueReads, 'Unique Talks Read'],
+    [streakCount, 'Day Streak'],
+    [`${activeDays}/${windowDays}`, 'Days Active'],
+    [badgeCount, 'Badges Earned']
+  ];
+  cells.forEach((c, i)=>{
+    const col = i % 2, row = Math.floor(i/2);
+    const x = padSide + col*(cellW+gap);
+    const y = gridTop + row*(cellH+gap);
+    drawStatCell(ctx, x, y, cellW, cellH, palette, c[0], c[1]);
+  });
+
+  drawCardFooterUrl(ctx, W, H, palette);
+  return canvasToPngBlob(canvas);
+}
+
 /* ---------------- idea 71 — share compose modal ----------------
    Opened by shareTalk() before performShare() ever runs. Cancel closes
    with nothing sent, same as the Note modal's own Cancel. The link lives
@@ -14240,6 +14326,32 @@ document.getElementById('badgesModalList').addEventListener('click', async (e)=>
   const imageBlob = await buildBadgeShareCardBlob({ icon, title: label, desc, earnedAt });
   shareText(`I just earned the "${label}" badge on FindATalk! 🎉 ${FINDATALK_URL}`, btn, imageBlob);
 });
+
+/* Idea 71, extended — share the trophy panel's four headline numbers as
+   one recap card. Same single-tap pattern as the badge/streak/Supporter
+   shares above (no compose-modal review step — that was deliberately
+   scoped to talk shares only), wired here rather than near
+   renderTrophyPreview() for the same reason as the badge listener just
+   above: shareText()/performShare() only exist inside initApp()'s
+   closure. Reads the same source data renderTrophyPreview() does,
+   recomputed fresh rather than scraped from the DOM, so it can't drift
+   from whatever toggle state (remaining/longest) happens to be showing —
+   always Unique Talks Read + current streak, matching the card's own
+   fixed labels. */
+document.getElementById('trophyShareBtn').addEventListener('click', async (e)=>{
+  const btn = e.currentTarget;
+  const streak = loadStreak();
+  const badgeCount = Object.keys(earnedBadges).length;
+  const imageBlob = await buildStatsShareCardBlob({
+    uniqueReads: readKeys.size,
+    streakCount: streak.count,
+    activeDays: streak.activeDays.length,
+    windowDays: ACTIVE_DAYS_WINDOW,
+    badgeCount
+  });
+  shareText(`My FindATalk journey so far — ${readKeys.size} talks read, ${streak.count}-day streak. 📖 ${FINDATALK_URL}`, btn, imageBlob);
+});
+
 updateStreakRiskNotification(); // Phase 2 (idea 45) — also check once on startup, not just on later foregrounds, in case a streak is already at risk from before this exact code existed
 maybeShowOnboarding();
 

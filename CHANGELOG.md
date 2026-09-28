@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- "Your FindATalk" now has a share button — it turns your unique talks read, streak, days active, and badge count into one shareable image, the same way sharing a talk or a badge already works. Your most-read talk and the Support button stay off the image. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
+
 ### Fixed
 - On the Come, Follow Me page, the Topic, Calling, Conference, and Session drop-down lists were cut off at the bottom of the filters box, so most of their choices couldn't be seen. They now open fully. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
 

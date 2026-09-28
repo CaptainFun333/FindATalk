@@ -234,3 +234,10 @@ under whichever group it belongs in, not just at the top.
   tips only) and never reference the donate page, including in the
   Supporter badge share text; yearly giving stays web-only until annual
   IAP products are wired in.
+- **2026-09-28** — The "Your FindATalk" share card deliberately leaves out
+  Most-Read Talk: a streak or a read count says how much someone studies,
+  but a most-read talk says what they're drawn to, which could be a
+  sensitive subject — not something to broadcast by default. It's a new
+  grid layout (`buildStatsShareCardBlob()`), not a reuse of the existing
+  one-centerpiece badge/streak card function, since four numbers at once
+  doesn't fit that shape.
