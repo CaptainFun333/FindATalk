@@ -251,3 +251,4 @@ under whichever group it belongs in, not just at the top.
   the activity-axis button does a full label swap ("Recently Favorited"
   ↔ "Oldest Favorited") instead, matching the tap-to-flip convention
   "Your FindATalk"'s own stat cells already use.
+- **2026-09-28** — Idea 79's conference range is an explicit "Select a range" button that fills in checkboxes, not "two checked boxes means a range": the Conference filter is a real multi-select, and someone who wants just April 2024 and April 2026 would be silently surprised. The range fills from every conference, not only the ones currently shown, so it stays a true range when other filters change. The button label uses two-digit years ("Oct ’24 – Apr ’26"), falling back to years only on phones, because the half-width Conference field can't fit more.

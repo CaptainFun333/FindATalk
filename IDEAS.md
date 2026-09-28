@@ -86,6 +86,7 @@ promise of what ships next. Grouped by status, most active first:
 76. ~~Rating prompt after 25 talks~~ — ✅ done (app only; store rating sheet after a pre-ask, 90-day gap, 3-ask cap; needs a new build)
 77. ~~App Store / Google Play badges on findatalk.com~~ — ✅ done (Google Play live; App Store shows "coming soon" until approved)
 78. ~~"Oldest First" sort~~ — ✅ done (Show a List gets a third button; Favorites/My Notes/a List's page/Recently Viewed get two flippable buttons covering both the activity order and the talk's own conference date)
+79. ~~Conference filter as a date range~~ — ✅ done ("Select a range" on Home and Come, Follow Me: tap a start and an end, everything between gets checked)
 
 ## Disregarded
 
@@ -104,6 +105,6 @@ promise of what ships next. Grouped by status, most active first:
 
 **In progress:** 44, 68
 **Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66
-**Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78
+**Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79
 **Disregarded:** 1, 2, 26, 50
 **Obsolete:** 39, 42, 43
