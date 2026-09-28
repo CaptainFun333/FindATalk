@@ -16,7 +16,7 @@ this updated.
 ## [1.7.6] — 2026-09-28
 
 ### Changed
-- The Android app is now smaller to download (roughly 40% less), and it now tells Android 15 and newer it's built to fill the whole screen, clearing two Google Play warnings. Nothing should look different. (Android only; needs a new Android build.)
+- The Android app is now smaller to download (roughly 40% less), which also clears a Google Play code-optimization warning. Nothing should look different. (Android only; needs a new Android build.)
 
 ## [1.7.5] — 2026-09-28
 
