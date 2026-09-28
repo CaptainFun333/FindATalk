@@ -373,6 +373,21 @@ served live at findatalk.com; this one should never be public.
   not work in the iOS simulator. Any future "text size" feature needs the
   px→rem conversion done first (mechanical: px÷16) before a single root
   multiplier can work.
+- **A pill button row can "fit" by total width and still visibly wrap
+  each button's own text into two lines** (idea 78, adding a third
+  button to `.sort-toggle`/`.list-size-options` rows): with no
+  `white-space:nowrap` on `.sort-toggle-btn`/`.list-size-btn`, a flex
+  child's default `flex-shrink:1` lets the browser compress a button
+  below its natural content width, wrapping its label instead of
+  shrinking the row — the sum of the *wrapped* button widths can look
+  like it fits its container even though the row is actually too narrow.
+  Adding `white-space:nowrap` fixes the in-button wrapping but can then
+  reveal the row genuinely overflowing its container (confirmed live at
+  a real 375px width, not assumed) — check both together, in that order:
+  add `nowrap` first, then re-measure the row's real right edge against
+  its container before deciding whether a dense-sizing override
+  (`.narrow-box-header .sort-toggle-btn`'s existing pattern: reduced
+  padding + font-size, scoped to just the row that needs it) is needed.
 
 ## Android widget / Doze
 

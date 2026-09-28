@@ -241,3 +241,13 @@ under whichever group it belongs in, not just at the top.
   grid layout (`buildStatsShareCardBlob()`), not a reuse of the existing
   one-centerpiece badge/streak card function, since four numbers at once
   doesn't fit that shape.
+- **2026-09-28** — The four personal-collection pages (Recently Viewed,
+  Favorites, My Notes, a List's own page) get two independently-flippable
+  sort buttons instead of four separate ones, since they cover two real,
+  distinct orderings (when you added/favorited/noted it, vs. the talk's
+  own conference date) that both deserve a reverse. "Conference Date"
+  keeps its name with a flipping arrow rather than a full label swap, to
+  avoid renaming a label already used identically across four pages;
+  the activity-axis button does a full label swap ("Recently Favorited"
+  ↔ "Oldest Favorited") instead, matching the tap-to-flip convention
+  "Your FindATalk"'s own stat cells already use.
