@@ -11,6 +11,7 @@ promise of what ships next. Grouped by status, most active first:
 
 44. Siri/Google Assistant shortcuts — in progress (iOS done; Android/Google Assistant side still open, more constrained)
 68. Global "impact" counter — in progress (data collection built and writing to the shared counter; no display UI yet)
+80. More personal progress stats ("Your Journey") — in progress (read dates now recorded, plus a one-time estimated backfill from active days + Talk of the Day, for a future this-year/year-in-review; speakers heard, scriptures cited, and other ideas not built)
 
 ## Open
 
@@ -103,7 +104,7 @@ promise of what ships next. Grouped by status, most active first:
 
 ---
 
-**In progress:** 44, 68
+**In progress:** 44, 68, 80
 **Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66
 **Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79
 **Disregarded:** 1, 2, 26, 50

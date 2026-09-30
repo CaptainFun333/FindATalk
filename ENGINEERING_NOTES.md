@@ -467,6 +467,16 @@ served live at findatalk.com; this one should never be public.
   verifying UI changes live, driving the DOM directly with the actual
   production classnames/markup is more reliable than trusting
   synthetic JS-injected test data.
+- **Testing `mergeBackupData()` live: go through the real Import Backup
+  input, and include `favorites: []`, `collections: []`,
+  `collectionMembers: {}` in the test file.** `mergeBackupData()` and
+  `exportBackupData()` live inside `initApp()`'s closure, so the eval
+  tool can't call them; and `importBackupFile()` silently rejects any
+  file missing those three fields as "not a valid backup," so a
+  hand-built fixture without them looks like a merge bug when the merge
+  never ran. Also: clicking Export on the plain web build saves a real
+  `find-a-talk-backup-*.json` into the repo root in the browser pane —
+  stub `HTMLAnchorElement.prototype.click` or delete the file after.
 
 ## Cloud Functions / Firebase project
 

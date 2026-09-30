@@ -5846,12 +5846,24 @@ const FAVORITES_KEY = 'findATalkFavorites';
 const FAVORITES_META_KEY = 'findATalkFavoriteMeta';
 const READ_KEY = 'findATalkRead';
 const VISIT_COUNTS_KEY = 'findATalkVisitCounts';
+// Idea 80 — the local day ("yyyy-mm-dd") of every credited read, per talk:
+// {talkKey: ["2026-09-30", ...]}. readKeys/visitCounts record whether and
+// how often, never when, so "this year" / year-in-review stats need this.
+// Nothing displays it yet; it's collected now because past reads can't be
+// backfilled. Reads from before this existed simply have no entries.
+const READ_LOG_KEY = 'findATalkReadLog';
+// Idea 80 — estimated read dates from before READ_LOG_KEY existed, same
+// shape as readLog but kept separate so any display can say "about"
+// instead of mixing guesses into real data. See backfillReadLogEstimates().
+const READ_LOG_ESTIMATED_KEY = 'findATalkReadLogEstimated';
 const RECENT_MAX = 50;
 let recentKeys = [];
 let favoriteKeys = new Set();
 let favoriteUpdatedAt = {};
 let readKeys = new Set();
 let visitCounts = {};
+let readLog = {};
+let readLogEstimated = {};
 
 /* ---------------- read/streak-credit integrity gate ----------------
    Opening a talk (recordOpened() below) still instantly updates
@@ -6027,6 +6039,14 @@ function loadRecentAndFavorites(){
     const raw = localStorage.getItem(VISIT_COUNTS_KEY);
     if (raw) visitCounts = JSON.parse(raw);
   } catch(err){ visitCounts = {}; }
+  try {
+    const raw = localStorage.getItem(READ_LOG_KEY);
+    if (raw) readLog = JSON.parse(raw);
+  } catch(err){ readLog = {}; }
+  try {
+    const raw = localStorage.getItem(READ_LOG_ESTIMATED_KEY);
+    if (raw) readLogEstimated = JSON.parse(raw);
+  } catch(err){ readLogEstimated = {}; }
 }
 loadRecentAndFavorites();
 
@@ -6051,6 +6071,16 @@ function saveVisitCounts(){
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
+function saveReadLog(){
+  try { localStorage.setItem(READ_LOG_KEY, JSON.stringify(readLog)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
+}
+function saveReadLogEstimated(){
+  try { localStorage.setItem(READ_LOG_ESTIMATED_KEY, JSON.stringify(readLogEstimated)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
+}
 function isRead(talk){ return readKeys.has(talkKey(talk)); }
 function visitCountFor(talk){ return visitCounts[talkKey(talk)] || 0; }
 function markRead(talk){
@@ -6063,10 +6093,12 @@ function markRead(talk){
 // read), this keeps incrementing on every later one. Called alongside
 // markRead() from checkPendingRead(), through the same integrity gate —
 // see that function below, and the comment above VISIT_COUNTS_KEY.
-function incrementVisitCount(talk){
+function incrementVisitCount(talk, creditDate){
   const key = talkKey(talk);
   visitCounts[key] = (visitCounts[key] || 0) + 1;
   saveVisitCounts();
+  (readLog[key] || (readLog[key] = [])).push(localDateSeed(creditDate));
+  saveReadLog();
   // Hotfix (2026-09) — was a direct call to a top-level
   // incrementGlobalReadCounter() that read cloudSyncUid (initApp()-only)
   // and threw live, silently aborting checkPendingRead() before
@@ -6171,7 +6203,7 @@ function checkPendingRead(){
   clearPendingRead();
   if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
   markRead(talk);
-  incrementVisitCount(talk); // idea 55 — keeps counting past the first credited read, unlike markRead() above
+  incrementVisitCount(talk, new Date(departedAt)); // idea 55 — keeps counting past the first credited read, unlike markRead() above. Idea 80: dated by the day the talk was opened, same rule as touchStreak() below
   refreshReadBadgesFor(talk); // list-row "Read" badges (Show a List, Recently Viewed, Favorites, My Lists, TOTD, CFM) — the ticket's own badge is handled separately below via onTicketReadBadgeSync
   // Idea 49: Read/Unread filter — a talk just marked read needs to drop
   // out of an active "Unread" filter (or appear under "Read") without
@@ -7588,6 +7620,35 @@ function loadTotdHistory(){
   } catch(err){ totdHistory = {}; }
 }
 loadTotdHistory();
+
+/* Idea 80 — one-time, per-device estimate of read dates from before
+   readLog existed. The Talk of the Day calendar's checkmark alone isn't
+   evidence (it only means that talk was read at some point, and a fresh
+   install seeds past days the person never saw), so a date is estimated
+   only when BOTH hold: the day is in streak.activeDays (a real, dated
+   record that at least one read was credited that day) AND that day's
+   Talk of the Day is marked read. Days before this device's first run
+   only — from then on readLog records real dates. activeDays covers only
+   the last 365 days, so older history can't be recovered. Per device
+   because totdHistory isn't synced; results merge across devices through
+   mergeBackupData()'s same no-duplicates date-log merge. */
+const READ_LOG_BACKFILLED_KEY = 'findATalkReadLogBackfilled';
+function backfillReadLogEstimates(){
+  try { if (localStorage.getItem(READ_LOG_BACKFILLED_KEY)) return; } catch(err){ return; }
+  const today = localDateSeed();
+  let added = false;
+  (loadStreak().activeDays || []).forEach(day=>{
+    if (day >= today) return;
+    const key = totdHistory[day];
+    if (!key || !readKeys.has(key)) return;
+    if ((readLog[key] || []).includes(day)) return;
+    const list = readLogEstimated[key] || (readLogEstimated[key] = []);
+    if (!list.includes(day)){ list.push(day); list.sort(); added = true; }
+  });
+  if (added) saveReadLogEstimated();
+  try { localStorage.setItem(READ_LOG_BACKFILLED_KEY, today); } catch(err){ /* not fatal */ }
+}
+backfillReadLogEstimates();
 function saveTotdHistory(){
   try { localStorage.setItem(TOTD_HISTORY_KEY, JSON.stringify(totdHistory)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
@@ -7671,7 +7732,10 @@ const allTopics = Object.keys(TOPIC_LABELS);
 const TOPIC_ALIASES = {
   // The chastity cluster points at Morality, not Sexual purity: Sexual
   // purity is a real topic but only ~1 talk carries it, while Morality has
-  // ~169 — a "did you mean" that lands on one talk isn't much help.
+  // ~169 — a "did you mean" that lands on one talk isn't much help. Same
+  // reason the mental-illness/mental-health terms (self-harm, PTSD, OCD,
+  // therapy...) point at Healing (~74 talks) rather than those 2-3-talk
+  // topics.
   'chastity': 'morality',
   'premarital sex': 'morality',
   'masturbation': 'morality',
@@ -7695,8 +7759,8 @@ const TOPIC_ALIASES = {
   'loss of a loved one': 'death',
   'self worth': 'individual-worth',
   'self-worth': 'individual-worth',
-  'self harm': 'mental-illness',
-  'self-harm': 'mental-illness',
+  'self harm': 'healing',
+  'self-harm': 'healing',
   'lgbt marriage': 'marriage',
   'gay marriage': 'marriage',
   'same-sex marriage': 'marriage',
@@ -7747,7 +7811,7 @@ const TOPIC_ALIASES = {
   'illness': 'healing',
   'sickness': 'healing',
   'trauma': 'healing',
-  'ptsd': 'mental-illness',
+  'ptsd': 'healing',
   'special needs': 'disabilities',
   'aging': 'elderly',
   'old age': 'elderly',
@@ -7812,9 +7876,9 @@ const TOPIC_ALIASES = {
   'natural disasters': 'humanitarian-aid',
 
   // Batch 4 — same method again, previewed to the user before committing.
-  'eating disorder': 'mental-illness',
-  'ocd': 'mental-illness',
-  'bipolar': 'mental-illness',
+  'eating disorder': 'healing',
+  'ocd': 'healing',
+  'bipolar': 'healing',
   'anxious': 'anxiety',
   'suicidal': 'suicide',
   'postpartum depression': 'depression',
@@ -7905,7 +7969,7 @@ const TOPIC_ALIASES = {
   'bereavement': 'death',
   'hospice': 'death',
   'life after death': 'eternal-life',
-  'self injury': 'mental-illness',
+  'self injury': 'healing',
   'worrying': 'anxiety',
   'artificial intelligence': 'technology',
   'recycling': 'environment',
@@ -8079,8 +8143,8 @@ const TOPIC_ALIASES = {
   'faith crisis': 'faith',
   'online safety': 'technology',
   'evolution': 'creation',
-  'counseling': 'mental-health',
-  'therapy': 'mental-health',
+  'counseling': 'healing',
+  'therapy': 'healing',
 };
 
 // Looks up a "did you mean" suggestion for a failed topic search. Tries an
@@ -13190,6 +13254,8 @@ function exportBackupData(){
     favoriteUpdatedAt: {...favoriteUpdatedAt},
     read: [...readKeys],
     visitCounts: {...visitCounts}, // idea 55 — authored, non-recomputable, same category as read/favorites
+    readLog: JSON.parse(JSON.stringify(readLog)), // idea 80
+    readLogEstimated: JSON.parse(JSON.stringify(readLogEstimated)), // idea 80 backfill
     collections,
     collectionMembers,
     collectionUpdatedAt: {...collectionUpdatedAt},
@@ -13413,6 +13479,7 @@ function mergeBackupData(data){
   // one of which schedules a cloud push) only fires when this merge
   // actually changed that bucket — see mergeStreakData's own comment for
   // why an unconditional save here creates an infinite pull/push loop.
+  let readLogChanged = false, readLogEstimatedChanged = false;
   let addedRead = false, visitCountsChanged = false, listsChanged = false, favoritesChanged = false;
   // Streak merge runs FIRST and in its own try/catch, ahead of every other
   // bucket below — it's the one thing here someone would actually be
@@ -13462,6 +13529,34 @@ function mergeBackupData(data){
       });
     }
   } catch(err){ console.error('[cloud sync] visitCounts merge failed — other sections still ran', err); }
+  // Idea 80 — readLog (and its estimated-backfill twin). Merged per talk,
+  // per day, keeping the larger count of that day's reads from either side
+  // (not a sum), so re-syncing or re-importing the same data never
+  // duplicates entries — same "never double-counts" rule as visitCounts.
+  const mergeDateLog = (target, incomingLog)=>{
+    let changed = false;
+    if (!incomingLog || typeof incomingLog !== 'object') return false;
+    const tally = arr=> arr.reduce((m, d)=>{ m[d] = (m[d] || 0) + 1; return m; }, {});
+    Object.keys(incomingLog).forEach(key=>{
+      const incoming = Array.isArray(incomingLog[key]) ? incomingLog[key].filter(d=> typeof d === 'string') : [];
+      if (!incoming.length) return;
+      const local = target[key] || [];
+      const lc = tally(local), ic = tally(incoming);
+      const merged = local.slice();
+      let added = false;
+      Object.keys(ic).forEach(d=>{
+        for (let i = lc[d] || 0; i < ic[d]; i++){ merged.push(d); added = true; }
+      });
+      if (added){ target[key] = merged.sort(); changed = true; }
+    });
+    return changed;
+  };
+  try {
+    if (mergeDateLog(readLog, data.readLog)) readLogChanged = true;
+  } catch(err){ console.error('[cloud sync] readLog merge failed — other sections still ran', err); }
+  try {
+    if (mergeDateLog(readLogEstimated, data.readLogEstimated)) readLogEstimatedChanged = true;
+  } catch(err){ console.error('[cloud sync] readLogEstimated merge failed — other sections still ran', err); }
   // Collections merge — whole-list deletion and per-member removal are
   // both now sync-aware (see the comment above COLLECTIONS_KEY), unlike
   // the old version of this block which only ever added lists/members.
@@ -13576,6 +13671,8 @@ function mergeBackupData(data){
   if (favoritesChanged) saveFavorites();
   if (addedRead) saveRead();
   if (visitCountsChanged) saveVisitCounts();
+  if (readLogChanged) saveReadLog();
+  if (readLogEstimatedChanged) saveReadLogEstimated();
   if (listsChanged){ saveCollections(); saveCollectionMembers(); }
   return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
@@ -13941,6 +14038,9 @@ async function clearAllLocalDataAndSignOut(){
   favoriteKeys = new Set(); favoriteUpdatedAt = {}; saveFavorites();
   readKeys = new Set(); saveRead();
   visitCounts = {}; saveVisitCounts();
+  readLog = {}; saveReadLog();
+  readLogEstimated = {}; saveReadLogEstimated();
+  try { localStorage.removeItem(READ_LOG_BACKFILLED_KEY); } catch(err){ /* not fatal */ }
   earnedBadges = {}; saveBadges();
   // The hidden "Think Celestial!" secret used to be left as a permanent
   // device preference here (see this function's own top comment) — but
