@@ -930,6 +930,59 @@
     font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; color:var(--ink);
   }
   .stats-badges-link .chev{ color:var(--ink-soft); font-size:12.5px; font-weight:400; }
+  /* Idea 80 — "Your Journey": collapsed by default so the panel stays
+     short; expands to this year's numbers. */
+  .journey-toggle{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    width:100%; text-align:left; margin-top:10px;
+    padding:11px 13px; border-radius:4px; border:1px solid var(--line);
+    background:transparent; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; color:var(--ink);
+  }
+  .journey-toggle:hover{ border-color:var(--brass); }
+  .journey-toggle:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .journey-toggle .chev{ color:var(--ink-soft); font-size:14px; font-weight:400; transition:transform .15s; }
+  .journey-toggle[aria-expanded="true"] .chev{ transform:rotate(90deg); }
+  @media (prefers-reduced-motion: reduce){ .journey-toggle .chev{ transition:none; } }
+  .journey-toggle[hidden]{ display:none; }
+  /* Idea 81 — yearly reveal popup, inside .badge-celebration-modal */
+  .journey-reveal-year{
+    font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--brass); margin:0 0 4px;
+  }
+  .journey-reveal-grid{ margin:4px 0 10px; }
+  .journey-reveal-grid .stat-value small{
+    display:block; font-family:'Inter',sans-serif; font-size:9.5px; font-weight:600;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--brass); margin-bottom:2px;
+  }
+  .journey-reveal-note{ font-family:'Inter',sans-serif; font-size:11.5px; line-height:1.45; color:var(--ink-soft); margin:0 0 14px; }
+  .journey-reveal-note[hidden]{ display:none; }
+  #journeyRevealSeeBtn{ width:100%; justify-content:center; text-align:center; }
+  .journey-reveal-share{ width:100%; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .journey-reveal-share svg{ width:15px; height:15px; }
+  .journey-body{ margin-top:10px; }
+  .journey-body[hidden]{ display:none; }
+  .journey-years{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; margin:2px 0 10px; }
+  .journey-years-nav{ display:flex; align-items:center; gap:6px; }
+  .journey-year-arrow{
+    width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+    background:transparent; color:var(--ink); font-size:16px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .journey-year-arrow:hover:not(:disabled){ border-color:var(--brass); }
+  .journey-year-arrow:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .journey-year-arrow:disabled{ opacity:.3; cursor:default; }
+  .journey-year-label{ min-width:92px; text-align:center; font-family:'Lora',serif; font-weight:700; font-size:17px; color:var(--ink); }
+  .journey-year-label small{
+    display:block; margin-top:1px; font-family:'Inter',sans-serif; font-weight:600; font-size:9.5px;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--brass);
+  }
+  .journey-body .stats-context-row:last-child{ margin-bottom:0; }
+  /* 1fr | year | 1fr keeps the year centered; the share circle sits at
+     the right edge and can widen for its "Copied!" flash without shifting
+     the year. */
+  .journey-share{ justify-self:end; }
+  .journey-share[hidden]{ display:none; }
   /* Idea 75 — the trophy panel's preview strip reuses .stat-grid/.stat-cell
      verbatim (idea 73's own classes just above), so this isn't a second,
      slightly-different stat-card style to maintain. */
@@ -3879,6 +3932,38 @@
         <span class="chev">View My Badges &rsaquo;</span>
       </button>
 
+      <!-- Idea 80 — "Your Journey," this year's numbers, built on the dated
+           read log (readLog) and its estimated backfill. Collapsed by
+           default; see renderJourney(). -->
+      <button type="button" class="journey-toggle" id="journeyToggle" aria-expanded="false" aria-controls="journeyBody">
+        <span>&#129517; Your Journey</span>
+        <span class="chev" aria-hidden="true">&rsaquo;</span>
+      </button>
+      <div class="journey-body" id="journeyBody" hidden>
+        <!-- The share circle shares whichever year is showing (idea 81's
+             "Share my year," always reachable here). The empty span on the
+             left balances it so the year stays centered. -->
+        <div class="journey-years">
+          <span aria-hidden="true"></span>
+          <div class="journey-years-nav">
+            <button type="button" class="journey-year-arrow" id="journeyPrevYear" aria-label="Previous year">&lsaquo;</button>
+            <div class="journey-year-label" id="journeyYearLabel" aria-live="polite"></div>
+            <button type="button" class="journey-year-arrow" id="journeyNextYear" aria-label="Next year">&rsaquo;</button>
+          </div>
+          <button type="button" class="share-btn-icon journey-share" id="journeyShareBtn" aria-label="Share this year">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+          </button>
+        </div>
+        <div class="stats-context-row">
+          <span class="badge-icon">&#128218;</span>
+          <div class="badge-row-text"><strong id="journeyYearTalks"></strong><span id="journeyYearTalksNote"></span></div>
+        </div>
+        <div class="stats-context-row">
+          <span class="badge-icon">&#128197;</span>
+          <div class="badge-row-text"><strong id="journeyYearDays"></strong><span id="journeyYearDaysNote"></span></div>
+        </div>
+      </div>
+
       <!-- Support the App (idea 67's real replacement, see
            PROJECT_HANDOFF.md) — shown on every platform now. Native opens
            the IAPBridge tip-tier picker; web opens the same Stripe
@@ -4026,6 +4111,35 @@
       <p class="modal-copy">A quick rating helps other people find it. It only takes a moment.</p>
       <button type="button" class="btn btn-primary" id="ratingAskRateBtn">Rate FindATalk</button>
       <button type="button" class="secret-modal-later" id="ratingAskDismissBtn">Not now</button>
+    </div>
+  </div>
+
+  <!-- Idea 81 — the yearly "Check on your journey" reveal. Opened only by
+       maybeShowJourneyReveal() (Dec 31–Jan 14, 14+ days studied, once per
+       year), never by a direct tap. Same celebration chrome as the badge
+       and support-ask popups. -->
+  <div class="modal-overlay" id="journeyRevealModalOverlay" hidden>
+    <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="journeyRevealTitle">
+      <span class="secret-modal-glyph">&#129517;</span>
+      <p class="journey-reveal-year" id="journeyRevealYearTag"></p>
+      <h3 id="journeyRevealTitle"></h3>
+      <div class="stat-grid journey-reveal-grid">
+        <div class="stat-cell">
+          <p class="stat-value"><small id="journeyRevealTalksQualifier"></small><span id="journeyRevealTalks"></span></p>
+          <p class="stat-label">Talks read</p>
+        </div>
+        <div class="stat-cell">
+          <p class="stat-value"><small>&nbsp;</small><span id="journeyRevealDays"></span></p>
+          <p class="stat-label">Days studied</p>
+        </div>
+      </div>
+      <p class="journey-reveal-note" id="journeyRevealNote" hidden></p>
+      <button type="button" class="btn btn-primary" id="journeyRevealSeeBtn">See my journey</button>
+      <button type="button" class="btn btn-ghost journey-reveal-share" id="journeyRevealShareBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.7"></circle><circle cx="6" cy="12" r="2.7"></circle><circle cx="18" cy="19" r="2.7"></circle><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"></line><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"></line></svg>
+        Share my year
+      </button>
+      <button type="button" class="secret-modal-later" id="journeyRevealDismissBtn">Not now</button>
     </div>
   </div>
 
@@ -4500,7 +4614,191 @@ function renderTrophyPreview(){
   const badgeCount = Object.keys(earnedBadges).length;
   document.getElementById('statsBadgeCount').textContent =
     `\u{1F3C5} ${badgeCount} badge${badgeCount === 1 ? '' : 's'} earned`;
+  renderJourney(streak);
 }
+
+/* Idea 80 — "Your Journey," one calendar year at a time, with ‹ year ›
+   arrows reaching any year that has dated reads. Talks read = different
+   talks with at least one dated read that year (real readLog plus its
+   estimated backfill). Days studied = every distinct day with a credited
+   read that year, from streak.activeDays (last 365 days), the read log,
+   and the permanent pre-tracking day backfill — so past years don't
+   shrink as activeDays ages out. Read dates only began being recorded on
+   this device's first run of that code (READ_LOG_BACKFILLED_KEY holds
+   that day): that year's talk count is a floor ("at least"), and any
+   earlier year is wholly estimated, days included (activeDays only
+   reached 365 days back). Hidden entirely until JOURNEY_REVEAL_DAY —
+   Brad's call; data keeps collecting in the background until then. */
+const JOURNEY_OPEN_KEY = 'findATalkJourneyOpen';
+const JOURNEY_REVEAL_DAY = '2026-12-31';
+let journeyYear = null; // null = the current year; reset whenever the panel opens
+function journeyYearsWithData(streak){
+  const years = new Set([new Date().getFullYear()]);
+  const addDay = d=>{ if (typeof d === 'string' && /^\d{4}-/.test(d)) years.add(Number(d.slice(0, 4))); };
+  [readLog, readLogEstimated].forEach(log=> Object.keys(log).forEach(k=> (log[k] || []).forEach(addDay)));
+  studyDaysEstimated.forEach(addDay);
+  (streak.activeDays || []).forEach(addDay);
+  return [...years].sort((a, b)=> a - b);
+}
+// One year's numbers — shared by Your Journey and the year-end reveal
+// (idea 81), so the two can never disagree.
+function journeyYearStats(year, streak){
+  const prefix = `${year}-`;
+  const inYear = d=> typeof d === 'string' && d.startsWith(prefix);
+  const talks = new Set();
+  const days = new Set();
+  [readLog, readLogEstimated].forEach(log=>{
+    Object.keys(log).forEach(key=>{
+      (log[key] || []).forEach(d=>{ if (inYear(d)){ talks.add(key); days.add(d); } });
+    });
+  });
+  studyDaysEstimated.forEach(d=>{ if (inYear(d)) days.add(d); });
+  (streak.activeDays || []).forEach(d=>{ if (inYear(d)) days.add(d); });
+  let started = null;
+  try { started = localStorage.getItem(READ_LOG_BACKFILLED_KEY); } catch(err){ /* ignore */ }
+  const startYear = started ? Number(started.slice(0, 4)) : new Date().getFullYear();
+  return {
+    talks: talks.size,
+    days: days.size,
+    talksPartial: year < startYear || (year === startYear && started > `${year}-01-01`),
+    daysPartial: year < startYear,
+    started, startYear
+  };
+}
+function renderJourney(streak){
+  const toggle = document.getElementById('journeyToggle');
+  const body = document.getElementById('journeyBody');
+  if (localDateSeed() < JOURNEY_REVEAL_DAY){
+    toggle.hidden = true;
+    body.hidden = true;
+    return;
+  }
+  toggle.hidden = false;
+
+  const current = new Date().getFullYear();
+  const years = journeyYearsWithData(streak);
+  if (journeyYear === null || !years.includes(journeyYear)) journeyYear = current;
+  const year = journeyYear;
+  const st = journeyYearStats(year, streak);
+  const { started, startYear, talksPartial, daysPartial } = st;
+
+  const rel = year === current ? 'This year' : year === current - 1 ? 'Last year' : '';
+  const label = document.getElementById('journeyYearLabel');
+  label.textContent = String(year);
+  if (rel){ const small = document.createElement('small'); small.textContent = rel; label.appendChild(small); }
+  const i = years.indexOf(year);
+  document.getElementById('journeyPrevYear').disabled = i <= 0;
+  document.getElementById('journeyNextYear').disabled = i >= years.length - 1;
+
+  const n = st.talks;
+  document.getElementById('journeyYearTalks').textContent =
+    `${talksPartial ? 'At least ' : ''}${n} talk${n === 1 ? '' : 's'} read in ${year}`;
+  let note = year === current ? 'Different talks you\u2019ve read so far this year' : `Different talks you read in ${year}`;
+  if (year < startYear){
+    note = 'Estimated from your Talk of the Day history';
+  } else if (talksPartial){
+    const [y, m, d] = started.split('-').map(Number);
+    const since = new Date(y, m - 1, d).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    note = `Counted since ${since}; earlier ones estimated from Talk of the Day`;
+  }
+  document.getElementById('journeyYearTalksNote').textContent = note;
+
+  const dn = st.days;
+  document.getElementById('journeyYearDays').textContent =
+    `${daysPartial ? 'At least ' : ''}${dn} day${dn === 1 ? '' : 's'} studied in ${year}`;
+  document.getElementById('journeyYearDaysNote').textContent = daysPartial
+    ? 'Only the months your streak history still covered'
+    : 'Days you read at least one talk';
+
+  const shareBtn = document.getElementById('journeyShareBtn');
+  shareBtn.setAttribute('aria-label', `Share ${year}`);
+  shareBtn.hidden = st.talks === 0 && st.days === 0;
+
+  let open = false;
+  try { open = localStorage.getItem(JOURNEY_OPEN_KEY) === '1'; } catch(err){ /* ignore */ }
+  toggle.setAttribute('aria-expanded', String(open));
+  body.hidden = !open;
+}
+function stepJourneyYear(dir){
+  const years = journeyYearsWithData(loadStreak());
+  const i = years.indexOf(journeyYear === null ? new Date().getFullYear() : journeyYear);
+  const next = years[i + dir];
+  if (next === undefined) return;
+  journeyYear = next;
+  renderJourney(loadStreak());
+}
+document.getElementById('journeyPrevYear').addEventListener('click', ()=> stepJourneyYear(-1));
+document.getElementById('journeyNextYear').addEventListener('click', ()=> stepJourneyYear(1));
+
+/* Idea 81 — the yearly "Check on your journey in [YEAR]" reveal. Rules,
+   all chosen by Brad: shown from December 31 through January 14 only;
+   [YEAR] is the year of that December 31 (so on Jan 5 it's the year that
+   just ended); only for people with at least 14 days studied that year
+   (a reveal of tiny numbers would read like a report card); once per
+   year, whichever button they tap. Never stacks: if any other popup
+   already showed today, or one is open now, it waits for the next open. */
+const JOURNEY_REVEAL_SHOWN_KEY = 'findATalkJourneyRevealShownYear';
+const JOURNEY_REVEAL_MIN_DAYS = 14;
+let journeyRevealShownFor = null;
+function journeyRevealYearNow(){
+  const now = new Date();
+  if (now.getMonth() === 11 && now.getDate() === 31) return now.getFullYear();
+  if (now.getMonth() === 0 && now.getDate() <= 14) return now.getFullYear() - 1;
+  return null;
+}
+function maybeShowJourneyReveal(){
+  const year = journeyRevealYearNow();
+  if (year === null || `${year}-12-31` < JOURNEY_REVEAL_DAY) return;
+  try { if (localStorage.getItem(JOURNEY_REVEAL_SHOWN_KEY) === String(year)) return; } catch(err){ return; }
+  if (popupShownToday()) return;
+  if (document.querySelector('.modal-overlay:not([hidden])')) return;
+  const st = journeyYearStats(year, loadStreak());
+  if (st.days < JOURNEY_REVEAL_MIN_DAYS) return;
+  try { localStorage.setItem(JOURNEY_REVEAL_SHOWN_KEY, String(year)); } catch(err){ /* ignore */ }
+  journeyRevealShownFor = year;
+  document.getElementById('journeyRevealYearTag').textContent = `Your ${year}`;
+  document.getElementById('journeyRevealTitle').textContent = `Check on your journey in ${year}`;
+  document.getElementById('journeyRevealTalksQualifier').innerHTML = st.talksPartial ? 'At least' : '&nbsp;';
+  document.getElementById('journeyRevealTalks').textContent = st.talks;
+  document.getElementById('journeyRevealDays').textContent = st.days;
+  const note = document.getElementById('journeyRevealNote');
+  if (st.talksPartial && st.started && year === st.startYear){
+    const [y, m, d] = st.started.split('-').map(Number);
+    const since = new Date(y, m - 1, d).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    note.textContent = `Reading dates started being recorded ${since}, so earlier ${year} talks are estimated from your Talk of the Day history.`;
+    note.hidden = false;
+  } else {
+    note.hidden = true;
+  }
+  document.getElementById('journeyRevealModalOverlay').hidden = false;
+  notePopupShownToday(); // idea 76
+}
+function closeJourneyReveal(){
+  document.getElementById('journeyRevealModalOverlay').hidden = true;
+}
+document.getElementById('journeyRevealDismissBtn').addEventListener('click', closeJourneyReveal);
+document.getElementById('journeyRevealModalOverlay').addEventListener('click', (e)=>{
+  if (e.target === e.currentTarget) closeJourneyReveal();
+});
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !document.getElementById('journeyRevealModalOverlay').hidden) closeJourneyReveal();
+});
+// Opens Your FindATalk with Your Journey expanded on the revealed year.
+document.getElementById('journeyRevealSeeBtn').addEventListener('click', ()=>{
+  const year = journeyRevealShownFor;
+  closeJourneyReveal();
+  try { localStorage.setItem(JOURNEY_OPEN_KEY, '1'); } catch(err){ /* ignore */ }
+  openTrophyModal();
+  if (year !== null){ journeyYear = year; renderJourney(loadStreak()); }
+  document.getElementById('journeyToggle').scrollIntoView({block:'start'});
+});
+document.getElementById('journeyToggle').addEventListener('click', ()=>{
+  const btn = document.getElementById('journeyToggle');
+  const open = btn.getAttribute('aria-expanded') !== 'true';
+  btn.setAttribute('aria-expanded', String(open));
+  document.getElementById('journeyBody').hidden = !open;
+  try { localStorage.setItem(JOURNEY_OPEN_KEY, open ? '1' : '0'); } catch(err){ /* ignore */ }
+});
 document.getElementById('trophyPreviewReadsCell').addEventListener('click', ()=>{
   trophyShowRemaining = !trophyShowRemaining;
   renderTrophyPreview();
@@ -4512,6 +4810,7 @@ document.getElementById('trophyPreviewStreakCell').addEventListener('click', ()=
 function openTrophyModal(){
   trophyShowRemaining = false;
   trophyShowLongest = false;
+  journeyYear = null;
   renderTrophyPreview();
   trophyModalOverlay.hidden = false;
   // Opening the panel counts as "seen" — same moment the dot's promise
@@ -5856,6 +6155,11 @@ const READ_LOG_KEY = 'findATalkReadLog';
 // shape as readLog but kept separate so any display can say "about"
 // instead of mixing guesses into real data. See backfillReadLogEstimates().
 const READ_LOG_ESTIMATED_KEY = 'findATalkReadLogEstimated';
+// Idea 80 — every day the streak recorded as active before read dates
+// began being logged, kept permanently. streak.activeDays drops anything
+// older than 365 days, so without this a past year's "days studied" would
+// quietly shrink as time passes.
+const STUDY_DAYS_ESTIMATED_KEY = 'findATalkStudyDaysEstimated';
 const RECENT_MAX = 50;
 let recentKeys = [];
 let favoriteKeys = new Set();
@@ -5864,6 +6168,7 @@ let readKeys = new Set();
 let visitCounts = {};
 let readLog = {};
 let readLogEstimated = {};
+let studyDaysEstimated = [];
 
 /* ---------------- read/streak-credit integrity gate ----------------
    Opening a talk (recordOpened() below) still instantly updates
@@ -6047,6 +6352,11 @@ function loadRecentAndFavorites(){
     const raw = localStorage.getItem(READ_LOG_ESTIMATED_KEY);
     if (raw) readLogEstimated = JSON.parse(raw);
   } catch(err){ readLogEstimated = {}; }
+  try {
+    const raw = localStorage.getItem(STUDY_DAYS_ESTIMATED_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    studyDaysEstimated = Array.isArray(parsed) ? parsed : [];
+  } catch(err){ studyDaysEstimated = []; }
 }
 loadRecentAndFavorites();
 
@@ -6078,6 +6388,11 @@ function saveReadLog(){
 }
 function saveReadLogEstimated(){
   try { localStorage.setItem(READ_LOG_ESTIMATED_KEY, JSON.stringify(readLogEstimated)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
+}
+function saveStudyDaysEstimated(){
+  try { localStorage.setItem(STUDY_DAYS_ESTIMATED_KEY, JSON.stringify(studyDaysEstimated)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
@@ -6772,7 +7087,8 @@ function celebrationSurfaceBusy(){
   const badge = document.getElementById('badgeCelebrationModalOverlay');
   const ask = document.getElementById('supportAskModalOverlay');
   const rating = document.getElementById('ratingAskModalOverlay');
-  return !!((badge && !badge.hidden) || (ask && !ask.hidden) || (rating && !rating.hidden));
+  const reveal = document.getElementById('journeyRevealModalOverlay');
+  return !!((badge && !badge.hidden) || (ask && !ask.hidden) || (rating && !rating.hidden) || (reveal && !reveal.hidden));
 }
 
 /* Idea 76 — rating pre-ask. Native only: the store's own rating sheet
@@ -7649,6 +7965,27 @@ function backfillReadLogEstimates(){
   try { localStorage.setItem(READ_LOG_BACKFILLED_KEY, today); } catch(err){ /* not fatal */ }
 }
 backfillReadLogEstimates();
+// Companion to the above: keeps the pre-tracking active days themselves
+// (see STUDY_DAYS_ESTIMATED_KEY). Its own flag, so devices that already
+// ran the talk backfill still get this once. Cutoff is the day read-date
+// tracking started on this device (READ_LOG_BACKFILLED_KEY), not today.
+const STUDY_DAYS_BACKFILLED_KEY = 'findATalkStudyDaysBackfilled';
+function backfillStudyDays(){
+  let cutoff = null;
+  try {
+    if (localStorage.getItem(STUDY_DAYS_BACKFILLED_KEY)) return;
+    cutoff = localStorage.getItem(READ_LOG_BACKFILLED_KEY);
+  } catch(err){ return; }
+  cutoff = cutoff || localDateSeed();
+  const have = new Set(studyDaysEstimated);
+  let added = false;
+  (loadStreak().activeDays || []).forEach(day=>{
+    if (day < cutoff && !have.has(day)){ have.add(day); added = true; }
+  });
+  if (added){ studyDaysEstimated = [...have].sort(); saveStudyDaysEstimated(); }
+  try { localStorage.setItem(STUDY_DAYS_BACKFILLED_KEY, cutoff); } catch(err){ /* not fatal */ }
+}
+backfillStudyDays();
 function saveTotdHistory(){
   try { localStorage.setItem(TOTD_HISTORY_KEY, JSON.stringify(totdHistory)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
@@ -11309,6 +11646,41 @@ async function buildStatsShareCardBlob({ uniqueReads, streakCount, activeDays, w
   return canvasToPngBlob(canvas);
 }
 
+// Idea 81 — "Share my year" card: the year's two numbers, same masthead/
+// palette/footer as the stats recap card above. Numbers only, never which
+// talks. "128+" marks a floor (the year read dates began being recorded).
+async function buildYearShareCardBlob({ year, talks, days, talksPartial }){
+  await ensureShareFontsReady();
+  const s = SHARE_CARD_SCALE;
+  const W = SHARE_CARD_PX, H = SHARE_CARD_PX;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const palette = readCardPalette();
+  ctx.fillStyle = palette.paper;
+  ctx.fillRect(0, 0, W, H);
+  const padTop = 26*s, padSide = 28*s;
+  const mastBottom = drawCardMasthead(ctx, W, palette, padTop);
+  // The label + two cells are centered in the space between the masthead
+  // and the footer url, rather than hugging the masthead.
+  const gap = 10*s;
+  const cellW = (W - padSide*2 - gap) / 2;
+  const cellH = 110*s;
+  const labelToGrid = 26*s;
+  const blockH = labelToGrid + cellH;
+  const areaTop = mastBottom, areaBottom = H - 44*s;
+  const labelY = areaTop + (areaBottom - areaTop - blockH) / 2;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = palette.accentA;
+  ctx.font = `700 ${11*s}px Inter, sans-serif`;
+  ctx.fillText(`MY ${year} JOURNEY`, W/2, labelY);
+  const gridTop = labelY + labelToGrid;
+  drawStatCell(ctx, padSide, gridTop, cellW, cellH, palette, talksPartial ? `${talks}+` : talks, 'Talks Read');
+  drawStatCell(ctx, padSide + cellW + gap, gridTop, cellW, cellH, palette, days, 'Days Studied');
+  drawCardFooterUrl(ctx, W, H, palette);
+  return canvasToPngBlob(canvas);
+}
+
 /* ---------------- idea 71 — share compose modal ----------------
    Opened by shareTalk() before performShare() ever runs. Cancel closes
    with nothing sent, same as the Note modal's own Cancel. The link lives
@@ -13258,6 +13630,7 @@ function exportBackupData(){
     visitCounts: {...visitCounts}, // idea 55 — authored, non-recomputable, same category as read/favorites
     readLog: JSON.parse(JSON.stringify(readLog)), // idea 80
     readLogEstimated: JSON.parse(JSON.stringify(readLogEstimated)), // idea 80 backfill
+    studyDaysEstimated: studyDaysEstimated.slice(), // idea 80 backfill
     collections,
     collectionMembers,
     collectionUpdatedAt: {...collectionUpdatedAt},
@@ -13481,7 +13854,7 @@ function mergeBackupData(data){
   // one of which schedules a cloud push) only fires when this merge
   // actually changed that bucket — see mergeStreakData's own comment for
   // why an unconditional save here creates an infinite pull/push loop.
-  let readLogChanged = false, readLogEstimatedChanged = false;
+  let readLogChanged = false, readLogEstimatedChanged = false, studyDaysEstimatedChanged = false;
   let addedRead = false, visitCountsChanged = false, listsChanged = false, favoritesChanged = false;
   // Streak merge runs FIRST and in its own try/catch, ahead of every other
   // bucket below — it's the one thing here someone would actually be
@@ -13559,6 +13932,15 @@ function mergeBackupData(data){
   try {
     if (mergeDateLog(readLogEstimated, data.readLogEstimated)) readLogEstimatedChanged = true;
   } catch(err){ console.error('[cloud sync] readLogEstimated merge failed — other sections still ran', err); }
+  try {
+    if (Array.isArray(data.studyDaysEstimated)){
+      const have = new Set(studyDaysEstimated);
+      data.studyDaysEstimated.forEach(d=>{
+        if (typeof d === 'string' && !have.has(d)){ have.add(d); studyDaysEstimatedChanged = true; }
+      });
+      if (studyDaysEstimatedChanged) studyDaysEstimated = [...have].sort();
+    }
+  } catch(err){ console.error('[cloud sync] studyDaysEstimated merge failed — other sections still ran', err); }
   // Collections merge — whole-list deletion and per-member removal are
   // both now sync-aware (see the comment above COLLECTIONS_KEY), unlike
   // the old version of this block which only ever added lists/members.
@@ -13675,6 +14057,7 @@ function mergeBackupData(data){
   if (visitCountsChanged) saveVisitCounts();
   if (readLogChanged) saveReadLog();
   if (readLogEstimatedChanged) saveReadLogEstimated();
+  if (studyDaysEstimatedChanged) saveStudyDaysEstimated();
   if (listsChanged){ saveCollections(); saveCollectionMembers(); }
   return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
@@ -14042,7 +14425,8 @@ async function clearAllLocalDataAndSignOut(){
   visitCounts = {}; saveVisitCounts();
   readLog = {}; saveReadLog();
   readLogEstimated = {}; saveReadLogEstimated();
-  try { localStorage.removeItem(READ_LOG_BACKFILLED_KEY); } catch(err){ /* not fatal */ }
+  studyDaysEstimated = []; saveStudyDaysEstimated();
+  try { localStorage.removeItem(READ_LOG_BACKFILLED_KEY); localStorage.removeItem(STUDY_DAYS_BACKFILLED_KEY); } catch(err){ /* not fatal */ }
   earnedBadges = {}; saveBadges();
   // The hidden "Think Celestial!" secret used to be left as a permanent
   // device preference here (see this function's own top comment) — but
@@ -14794,8 +15178,28 @@ document.getElementById('trophyShareBtn').addEventListener('click', async (e)=>{
   shareText(`My FindATalk journey so far — ${readKeys.size} talks read, ${streak.count}-day streak. 📖 ${FINDATALK_URL}`, btn, imageBlob);
 });
 
+// Idea 81 — "Share my year" in the year-end reveal. Wired here for the
+// same reason as the two listeners above: shareText() only exists inside
+// initApp()'s closure.
+// The same card and message whether shared from the popup or from Your
+// Journey's own "Share YEAR" button.
+async function shareJourneyYear(year, btn){
+  const st = journeyYearStats(year, loadStreak());
+  const imageBlob = await buildYearShareCardBlob({ year, talks: st.talks, days: st.days, talksPartial: st.talksPartial });
+  const talksText = `${st.talksPartial ? 'at least ' : ''}${st.talks} talk${st.talks === 1 ? '' : 's'}`;
+  shareText(`My ${year} on FindATalk — ${talksText} read across ${st.days} day${st.days === 1 ? '' : 's'} of study. 📖 ${FINDATALK_URL}`, btn, imageBlob);
+}
+document.getElementById('journeyRevealShareBtn').addEventListener('click', (e)=>{
+  if (journeyRevealShownFor !== null) shareJourneyYear(journeyRevealShownFor, e.currentTarget);
+});
+document.getElementById('journeyShareBtn').addEventListener('click', (e)=>{
+  shareJourneyYear(journeyYear === null ? new Date().getFullYear() : journeyYear, e.currentTarget);
+});
+
 updateStreakRiskNotification(); // Phase 2 (idea 45) — also check once on startup, not just on later foregrounds, in case a streak is already at risk from before this exact code existed
 maybeShowOnboarding();
+maybeShowJourneyReveal(); // idea 81 — after onboarding, so it defers to it rather than stacking
+onForeground(maybeShowJourneyReveal);
 
 /* Phase 3 (idea 45) deep-link routing — the two real entry points a
    shared-list link can arrive through:
@@ -14873,6 +15277,7 @@ function closeTopmostModal(){
   if (!overlay('supportModalOverlay').hidden){ closeSupportModal(); return true; }
   if (!overlay('supportAskModalOverlay').hidden){ closeSupportAsk(); return true; }
   if (!overlay('ratingAskModalOverlay').hidden){ closeRatingAsk(); return true; }
+  if (!overlay('journeyRevealModalOverlay').hidden){ closeJourneyReveal(); return true; }
   if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }
   if (!overlay('secretRevealModalOverlay').hidden){ closeSecretRevealModal(); return true; }
   if (!overlay('sharedListModalOverlay').hidden){ closeSharedListModal(); return true; }
