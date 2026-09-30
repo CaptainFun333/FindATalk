@@ -477,6 +477,15 @@ served live at findatalk.com; this one should never be public.
 
 ## Debugging tooling quirks (not app bugs)
 
+- **`window.confirm()` returns `false` instantly in the Claude browser
+  pane (and some other embedded browsers) without showing anything.** A
+  button gated on `if (!confirm(...)) return;` silently does nothing
+  there — it looked like "Leave this list isn't working." Stubbing
+  `window.confirm = ()=> true` in tests hides it. New flows use an in-page
+  confirmation instead (see the shared lists' `askLiveConfirm()`); older
+  `confirm()` uses (e.g. deleting a personal list) still have this issue in
+  such browsers.
+
 - **The browser-pane JS-eval tool's context can see `window.*` bindings
   but not top-level `let`/`const` declarations from the page's own
   script.** An apparent "undefined variable" runtime error during live
