@@ -20,6 +20,7 @@ this updated.
 ### Changed
 - Topic and keyword search understand more of the words people actually type. About 110 more everyday terms (like "savior," "trials," "parenting," "come follow me," and "humble") now point to the right topic, and searching for words like "serve," "merciful," or "lonely" also finds talks that use other forms of the same word ("service," "mercy," "loneliness"). Searches for terms like "chastity" now lead to the much larger Morality topic instead of one with only a single talk, and mental-health terms like "PTSD," "OCD," or "therapy" now lead to the Healing topic instead of ones with only two or three talks; likewise "worry," "panic attacks," and "burnout" now lead to Peace, and "sadness" to Hope. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
 - The Android app is a little smaller again, from better trimming of unused images and layouts. Nothing looks different. (Android only; needs a new Android build.)
+- Opening a shared talk link now starts at the top of the page, then scrolls down on its own to the shared talk and briefly highlights it, so you don't have to scroll to find it. (Live immediately on the website; needs a new build on both iPhone/iPad and Android.)
 
 ## [1.7.6] — 2026-09-28
 

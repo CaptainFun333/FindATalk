@@ -1813,6 +1813,16 @@
     transition:opacity .45s ease, transform .45s ease;
   }
   .ticket.show{ opacity:1; transform:translateY(0) scale(1); }
+  /* One-time glow when a shared-talk link lands here — see
+     revealSharedTicket() in the JS. */
+  .ticket.shared-flash{ animation:sharedTicketFlash 1.6s ease-out; }
+  @keyframes sharedTicketFlash{
+    0%, 25%{ box-shadow:0 0 0 3px var(--burgundy), var(--shadow); }
+    100%{ box-shadow:0 0 0 3px transparent, var(--shadow); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .ticket.shared-flash{ animation:none; }
+  }
   .ticket::before{
     content:"";
     position:absolute; inset:8px;
@@ -13319,7 +13329,25 @@ function checkForSharedTalkLink(urlString){
     goToNavZone('home');
     showTicket(talk);
     updateBackBtn();
+    revealSharedTicket();
   }
+}
+
+/* Land at the top of Home first, then glide down to the shared talk's
+   ticket and pulse it once. The delay isn't cosmetic: showZone()'s own
+   smooth scrollTo(0) (and, from another tab, the ~360ms zone transition)
+   fires in the same tick as showTicket()'s scrollIntoView, and the
+   scroll-to-top won — the ticket rendered just below the fold with
+   nothing pointing at it. Waiting past both lets the page settle at the
+   top so the scroll down reads as "here's your talk." */
+function revealSharedTicket(){
+  setTimeout(()=>{
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    resultZone.scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', block:'center'});
+    ticket.classList.remove('shared-flash');
+    void ticket.offsetWidth; // restart the pulse if a second link arrives
+    ticket.classList.add('shared-flash');
+  }, 650);
 }
 
 /* Idea 46 — notification tap routing. A tap on the "New conference is
