@@ -2682,7 +2682,11 @@
   .live-confirm[hidden]{ display:none; }
   /* The confirm row sits mid-sheet, so it opts out of .modal-actions'
      sticky-bottom pin and its paper-raised backing strip. */
-  .live-confirm .modal-actions{ position:static; margin:0; padding:0; background:none; }
+  .live-confirm .modal-actions{ position:static; margin:0; padding:0; background:none; flex-wrap:wrap; }
+  /* Two real choices: stack full-width, main choice first, Cancel last. */
+  .live-confirm .modal-actions.is-stacked{ flex-direction:column; align-items:stretch; }
+  .live-confirm .modal-actions.is-stacked .btn{ width:100%; justify-content:center; text-align:center; }
+  .live-confirm .modal-actions.is-stacked #liveConfirmCancel{ order:9; }
   .live-confirm-text{ font-family:'Inter',sans-serif; font-size:13.5px; line-height:1.45; color:var(--ink); margin:0 0 10px; }
   .live-join-card{ background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:0 0 14px; }
   .live-join-card-name{ font-family:'Lora',serif; font-weight:600; font-size:16px; color:var(--ink); }
@@ -4359,9 +4363,8 @@
            which some embedded browsers suppress (it returns false instantly). -->
       <div class="live-confirm" id="liveConfirm" hidden>
         <p class="live-confirm-text" id="liveConfirmText"></p>
-        <div class="modal-actions">
+        <div class="modal-actions" id="liveConfirmActions">
           <button type="button" class="btn btn-ghost" id="liveConfirmCancel">Cancel</button>
-          <button type="button" class="btn btn-primary" id="liveConfirmGo">Leave</button>
         </div>
       </div>
     </div>
@@ -15527,41 +15530,50 @@ function renderLiveMembersModal(){
       remove.className = 'live-member-remove';
       remove.textContent = 'Remove';
       remove.addEventListener('click', ()=>{
-        askLiveConfirm(`Remove ${m.name || 'this person'} from "${list.name}"? They'll lose access to the list.`, 'Remove', async ()=>{
-          try { await cloudCallFunction('removeSharedListMember', { listId: list.id, uid }); return true; }
-          catch(err){ showLiveMembersError(err); return false; }
-        });
+        askLiveConfirm(`Remove ${m.name || 'this person'} from "${list.name}"? They'll lose access to the list.`, [
+          { label: 'Remove', primary: true, action: async ()=>{
+            try { await cloudCallFunction('removeSharedListMember', { listId: list.id, uid }); return true; }
+            catch(err){ showLiveMembersError(err); return false; }
+          } }
+        ]);
       });
       row.appendChild(remove);
     }
     rows.appendChild(row);
   });
 }
-let liveConfirmAction = null;
-function askLiveConfirm(text, goLabel, action){
-  liveConfirmAction = action;
+// In-sheet confirmation (see the markup's comment for why not confirm()).
+// `choices` is [{label, primary, action}]; each action resolves true to
+// close the box or false to keep it open (e.g. after showing an error).
+function askLiveConfirm(text, choices){
   document.getElementById('liveConfirmText').textContent = text;
-  const go = document.getElementById('liveConfirmGo');
-  go.textContent = goLabel;
-  go.disabled = false;
+  const actions = document.getElementById('liveConfirmActions');
+  actions.querySelectorAll('.live-confirm-choice').forEach(b=> b.remove());
+  const stacked = choices.length > 1;
+  actions.classList.toggle('is-stacked', stacked);
+  if (stacked) choices = choices.slice().sort((a, b)=> (b.primary ? 1 : 0) - (a.primary ? 1 : 0));
+  const buttons = choices.map(choice=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `btn ${choice.primary ? 'btn-primary' : 'btn-ghost'} live-confirm-choice`;
+    b.textContent = choice.label;
+    b.addEventListener('click', async ()=>{
+      buttons.forEach(x=> x.disabled = true);
+      const ok = await choice.action();
+      if (ok !== false) hideLiveConfirm();
+      else buttons.forEach(x=> x.disabled = false);
+    });
+    actions.appendChild(b);
+    return b;
+  });
   const box = document.getElementById('liveConfirm');
   box.hidden = false;
   box.scrollIntoView({block:'nearest'});
 }
 function hideLiveConfirm(){
-  liveConfirmAction = null;
   document.getElementById('liveConfirm').hidden = true;
 }
 document.getElementById('liveConfirmCancel').addEventListener('click', hideLiveConfirm);
-document.getElementById('liveConfirmGo').addEventListener('click', async ()=>{
-  const action = liveConfirmAction;
-  if (!action) return;
-  const go = document.getElementById('liveConfirmGo');
-  go.disabled = true;
-  const ok = await action();
-  if (ok !== false) hideLiveConfirm();
-  else go.disabled = false;
-});
 function showLiveMembersError(err){
   const el = document.getElementById('liveMembersError');
   el.textContent = liveErrorMessage(err);
@@ -15598,25 +15610,48 @@ liveInviteBtn.addEventListener('click', async ()=>{
   }
   liveInviteBtn.disabled = false;
 });
+// Leaving can keep the talks: "Make It a Normal List" (last person out) or
+// "Leave & Keep a Copy" (others stay) saves a personal list with the same
+// talks in the same order. Leave first, then copy, so a failed leave never
+// leaves a duplicate behind.
+async function leaveLiveList(list, keepCopy){
+  const keys = liveTalkKeysInOrder(list);
+  try { await cloudCallFunction('leaveSharedList', { listId: list.id }); }
+  catch(err){ showLiveMembersError(err); return false; }
+  const wasViewing = liveListId(currentCollectionId) === list.id;
+  closeLiveMembersModal();
+  if (keepCopy){
+    const id = createCollection(list.name);
+    addTalksToCollection(id, keys.map(k=> TALKS_BY_KEY[k]).filter(Boolean));
+    renderCollectionPage(id);
+    showZone('collection');
+  } else if (wasViewing){
+    currentCollectionId = null;
+    goToNavZone('collectionsIndex');
+  }
+  return true;
+}
 document.getElementById('liveMembersLeaveBtn').addEventListener('click', ()=>{
   const list = liveListsById[liveMembersListId];
   if (!list) return;
   const me = currentUser && currentUser.uid;
   const others = (list.memberUids || []).filter(u=> u !== me);
+  if (!others.length){
+    askLiveConfirm(`You're the only one in "${list.name}." Turn it back into a normal list just for you, or delete it?`, [
+      { label: 'Delete List', action: ()=> leaveLiveList(list, false) },
+      { label: 'Make It a Normal List', primary: true, action: ()=> leaveLiveList(list, true) }
+    ]);
+    return;
+  }
   let detail = '';
-  if (!others.length) detail = " You're the only one in it, so the list will be deleted.";
-  else if (list.ownerUid === me){
+  if (list.ownerUid === me){
     const next = others.slice().sort((a, b)=> ((list.members[a] || {}).joinedAt || 0) - ((list.members[b] || {}).joinedAt || 0))[0];
     detail = ` ${liveMemberName(list, next)} will take over the list.`;
   }
-  askLiveConfirm(`Leave "${list.name}"?${detail}`, others.length ? 'Leave' : 'Leave & Delete', async ()=>{
-    try {
-      await cloudCallFunction('leaveSharedList', { listId: list.id });
-      closeLiveMembersModal();
-      if (liveListId(currentCollectionId) === list.id){ currentCollectionId = null; goToNavZone('collectionsIndex'); }
-      return true;
-    } catch(err){ showLiveMembersError(err); return false; }
-  });
+  askLiveConfirm(`Leave "${list.name}"?${detail} You can keep your own copy as a normal list.`, [
+    { label: 'Leave', action: ()=> leaveLiveList(list, false) },
+    { label: 'Leave & Keep a Copy', primary: true, action: ()=> leaveLiveList(list, true) }
+  ]);
 });
 
 /* ---- Joining from an invite link (?joinList=CODE) ---- */
