@@ -15610,7 +15610,7 @@ liveInviteBtn.addEventListener('click', async ()=>{
   }
   liveInviteBtn.disabled = false;
 });
-// Leaving can keep the talks: "Make It a Normal List" (last person out) or
+// Leaving can keep the talks: "Stop Sharing" (last person out) or
 // "Leave & Keep a Copy" (others stay) saves a personal list with the same
 // talks in the same order. Leave first, then copy, so a failed leave never
 // leaves a duplicate behind.
@@ -15637,9 +15637,9 @@ document.getElementById('liveMembersLeaveBtn').addEventListener('click', ()=>{
   const me = currentUser && currentUser.uid;
   const others = (list.memberUids || []).filter(u=> u !== me);
   if (!others.length){
-    askLiveConfirm(`You're the only one in "${list.name}." Turn it back into a normal list just for you, or delete it?`, [
+    askLiveConfirm(`You're the only one in "${list.name}." Stop sharing and keep it as your own list, or delete it?`, [
       { label: 'Delete List', action: ()=> leaveLiveList(list, false) },
-      { label: 'Make It a Normal List', primary: true, action: ()=> leaveLiveList(list, true) }
+      { label: 'Stop Sharing', primary: true, action: ()=> leaveLiveList(list, true) }
     ]);
     return;
   }
