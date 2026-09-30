@@ -499,3 +499,21 @@ served live at findatalk.com; this one should never be public.
   config passed with `--config` (use a `demo-...` project id so nothing
   touches production).
 
+## Domain / DNS
+
+- **A resolver serving GoDaddy's parking-page IPs for findatalk.com does
+  not mean the DNS records changed.** On 2026-09-30 the site briefly
+  appeared as a GoDaddy "this domain is parked" page. The GoDaddy DNS
+  panel's A/CNAME records were confirmed unchanged from the 2026-09-04
+  migration setup (four GitHub Pages A records + `www` CNAME to
+  `captainfun333.github.io`) — the cause was different public resolvers
+  disagreeing at the same moment (Cloudflare/Google already correct,
+  Quad9 still serving a stale cached parking-IP answer). Diagnose with
+  `dig @1.1.1.1`, `dig @8.8.8.8`, `dig @9.9.9.9 findatalk.com A` — if
+  they disagree with each other while the registrar's own DNS panel
+  shows the right records, it's propagation/caching, not a
+  misconfiguration, and clears on its own within the record's TTL
+  (600s here). Forcing a direct connection to a known-good IP
+  (`curl --resolve findatalk.com:443:185.199.108.153 ...`) confirms the
+  origin (GitHub Pages) is unaffected either way.
+
