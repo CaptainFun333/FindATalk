@@ -21,11 +21,13 @@ under whichever group it belongs in, not just at the top.
   it — one of two nameservers serving a stale zone — is only caught by
   asking each nameserver directly, which hosted HTTP monitors don't do.
   Two failures 90 seconds apart are required before alerting, and the
-  run stays green so GitHub doesn't also email on every failed run. DNS
-  hosting is also moving from GoDaddy's nameservers to Cloudflare (free,
-  DNS-only / not proxied, so GitHub Pages keeps issuing the HTTPS
-  certificate), keeping GoDaddy as the registrar, since GoDaddy's
-  nameservers silently disagreed for about four weeks.
+  run stays green so GitHub doesn't also email on every failed run.
+  Moving DNS hosting off GoDaddy's nameservers to Cloudflare (free,
+  DNS-only / not proxied, GoDaddy staying the registrar) was considered
+  and deliberately deferred: the stale nameserver was fixed by
+  republishing the zone, and the monitor now catches a recurrence within
+  minutes. Revisit the Cloudflare move only if GoDaddy's nameservers
+  cause another problem.
 - **2026-09-14** — Monetization model is "free forever" with optional
   donations, not a paywall or subscription — a native IAP tip jar was
   added as one more way to give, not a gate on features. This reverses an
