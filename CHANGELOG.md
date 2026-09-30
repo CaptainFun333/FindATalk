@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Fixed
+- On some internet connections, findatalk.com had been showing a "this domain is parked" page instead of FindATalk since early September, which could also stop the app from picking up new talk data. Fixed, and the site is now checked automatically every 10 minutes. (Server-side fix; no new build needed.)
+
 ### Changed
 - The Android app is a little smaller again, from better trimming of unused images and layouts. Nothing looks different. (Android only; needs a new Android build.)
 

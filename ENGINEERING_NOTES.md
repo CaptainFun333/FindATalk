@@ -501,19 +501,24 @@ served live at findatalk.com; this one should never be public.
 
 ## Domain / DNS
 
-- **A resolver serving GoDaddy's parking-page IPs for findatalk.com does
-  not mean the DNS records changed.** On 2026-09-30 the site briefly
-  appeared as a GoDaddy "this domain is parked" page. The GoDaddy DNS
-  panel's A/CNAME records were confirmed unchanged from the 2026-09-04
-  migration setup (four GitHub Pages A records + `www` CNAME to
-  `captainfun333.github.io`) — the cause was different public resolvers
-  disagreeing at the same moment (Cloudflare/Google already correct,
-  Quad9 still serving a stale cached parking-IP answer). Diagnose with
-  `dig @1.1.1.1`, `dig @8.8.8.8`, `dig @9.9.9.9 findatalk.com A` — if
-  they disagree with each other while the registrar's own DNS panel
-  shows the right records, it's propagation/caching, not a
-  misconfiguration, and clears on its own within the record's TTL
-  (600s here). Forcing a direct connection to a known-good IP
-  (`curl --resolve findatalk.com:443:185.199.108.153 ...`) confirms the
-  origin (GitHub Pages) is unaffected either way.
+- **One of GoDaddy's two nameservers silently served a month-stale zone.**
+  From roughly 2026-09-04 to 2026-09-30, `ns04.domaincontrol.com` kept
+  answering with the pre-migration zone (SOA serial 2026082100, GoDaddy
+  parking IPs `15.197.148.33` / `3.33.130.190`) while `ns03` served the
+  correct one (serial 2026090302, GitHub Pages IPs). The GoDaddy DNS panel
+  showed only the correct records, and any resolver that happened to ask
+  `ns04` sent visitors to a "this domain is parked" page — so the site,
+  `data.json` refreshes, and deep-link verification files were broken on
+  some networks and fine on others. Diagnose by asking each nameserver
+  directly and comparing serials:
+  `dig @ns03.domaincontrol.com +norecurse findatalk.com SOA` vs `@ns04`.
+  Fixed by making any trivial edit in the GoDaddy DNS panel (the `www`
+  TTL), which published a new serial (2026093001) that both nameservers
+  picked up within a minute. Public resolvers can disagree with each
+  other briefly afterward while caches expire (600s TTL) — that part does
+  clear on its own; a nameserver-level mismatch does not.
+  `.github/workflows/uptime.yml` now checks every delegated nameserver
+  individually every 10 minutes and opens a GitHub issue on a mismatch.
+  `curl --resolve findatalk.com:443:185.199.108.153 https://findatalk.com/`
+  confirms GitHub Pages itself is fine regardless of DNS.
 

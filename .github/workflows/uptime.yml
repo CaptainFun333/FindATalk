@@ -1,0 +1,75 @@
+name: Uptime check
+
+# Checks findatalk.com every 10 minutes. Two failures in a row (90 seconds
+# apart) open one GitHub issue labeled "uptime" that @mentions the owner;
+# it closes itself with a comment once checks pass again. The run itself
+# stays green either way so GitHub doesn't also email a failure every run.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make sure dig is available
+        run: command -v dig >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils)
+
+      - name: Check findatalk.com (retry once before calling it down)
+        id: check
+        run: |
+          if bash .github/scripts/uptime-check.sh > report.txt 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            sleep 90
+            if bash .github/scripts/uptime-check.sh > report.txt 2>&1; then
+              echo "ok=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "ok=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          cat report.txt
+
+      - name: Open or close the outage issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OK: ${{ steps.check.outputs.ok }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create uptime --color B60205 --description "Automated findatalk.com uptime alerts" 2>/dev/null || true
+          open_issue=$(gh issue list --label uptime --state open --limit 1 --json number --jq '.[0].number // empty')
+          now=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          if [ "$OK" = "true" ]; then
+            if [ -n "$open_issue" ]; then
+              gh issue comment "$open_issue" --body "Recovered: all checks passing as of $now. [Run log]($RUN_URL)"
+              gh issue close "$open_issue"
+            fi
+            exit 0
+          fi
+
+          if [ -z "$open_issue" ]; then
+            {
+              echo "@CaptainFun333 findatalk.com failed its uptime check twice in a row, 90 seconds apart ($now)."
+              echo
+              echo '```'
+              cat report.txt
+              echo '```'
+              echo
+              echo "[Run log]($RUN_URL). This issue closes itself when checks pass again. See ENGINEERING_NOTES.md → Domain / DNS for how to diagnose."
+            } > body.md
+            gh issue create --title "findatalk.com is down or misconfigured" --label uptime --body-file body.md
+          fi

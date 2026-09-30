@@ -15,6 +15,17 @@ under whichever group it belongs in, not just at the top.
 
 ## Strategic / business
 
+- **2026-09-30** — Uptime monitoring runs as a GitHub Action in this repo
+  (every 10 minutes, alerts by opening a GitHub issue) rather than a
+  third-party service like UptimeRobot, because the failure that prompted
+  it — one of two nameservers serving a stale zone — is only caught by
+  asking each nameserver directly, which hosted HTTP monitors don't do.
+  Two failures 90 seconds apart are required before alerting, and the
+  run stays green so GitHub doesn't also email on every failed run. DNS
+  hosting is also moving from GoDaddy's nameservers to Cloudflare (free,
+  DNS-only / not proxied, so GitHub Pages keeps issuing the HTTPS
+  certificate), keeping GoDaddy as the registrar, since GoDaddy's
+  nameservers silently disagreed for about four weeks.
 - **2026-09-14** — Monetization model is "free forever" with optional
   donations, not a paywall or subscription — a native IAP tip jar was
   added as one more way to give, not a gate on features. This reverses an
