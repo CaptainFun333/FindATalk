@@ -316,6 +316,14 @@ served live at findatalk.com; this one should never be public.
 
 ## App architecture / code-organization gotchas
 
+- **`onCloudUserChanged` can run before later parts of `initApp()` exist.**
+  If auth resolved before `initApp()` reached the line that assigns the
+  slot, it's replayed immediately via `pendingCloudUser`, i.e. partway
+  through `initApp()`. Anything it calls that touches a `const`/`let`
+  declared further down in `initApp()` throws a TDZ ReferenceError and
+  aborts the rest of startup. Defer such work (`setTimeout(..., 0)`, as
+  the shared-list hook does) or keep the state top-level.
+
 - **New markup inside a Your FindATalk row inherits the shared
   `.badge-row-text strong` (display:block) and `.badge-row-text span`
   (13px, soft color, top margin) rules.** They outrank a bare class
@@ -490,6 +498,31 @@ served live at findatalk.com; this one should never be public.
   stub `HTMLAnchorElement.prototype.click` or delete the file after.
 
 ## Cloud Functions / Firebase project
+
+- **Shared lists (idea 57) are read-only to clients; all writes go through
+  callables** (`createSharedList`, `setSharedListTalk`, `renameSharedList`,
+  `setSharedListDisplayName`, `createSharedListInvite`,
+  `previewSharedListInvite`, `joinSharedList`, `leaveSharedList`,
+  `removeSharedListMember` in `functions/index.js`). Clients listen to
+  `sharedListIndex/{uid}` (which lists I'm in) and each
+  `sharedLists/{id}`. A client that loses read access to a list (removed,
+  or list deleted) must drop it from the permission-denied error on the
+  list listener — the `sharedListIndex` update is not a reliable signal:
+  in the emulator, a `set(..., {merge:true})` with `FieldValue.delete()`
+  on the index never reached the removed member's live listener, and the
+  web SDK kept the stale map until reload.
+- **Testing callables + rules end to end:** `firebase emulators:exec
+  --only functions,firestore,auth --project demo-<anything>` with a config
+  copy whose `emulators` block adds `auth` (port 9099). Run the test with
+  the system `node` by absolute path — the standalone CLI's bundled Node 20
+  can't run `.mjs`. Get ID tokens from the auth emulator's REST `signUp`,
+  call functions at `http://127.0.0.1:5001/<project>/us-central1/<name>`
+  with `{data: ...}`, and read Firestore REST with the user's bearer token
+  to exercise rules (`Bearer owner` bypasses rules). For UI, serve a
+  scratch copy of `docs/` whose Firebase module calls
+  `connectAuthEmulator/connectFirestoreEmulator/connectFunctionsEmulator`
+  with `projectId: "demo-..."`, on two origins (`127.0.0.1:PORT` and
+  `localhost:PORT`) so two signed-in users don't share storage.
 
 - **A function's Admin SDK access is per-service, not blanket.** The
   functions' runtime identity (`322287724872-compute@developer.gserviceaccount.com`)

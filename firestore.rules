@@ -30,5 +30,22 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+    // Idea 57 — shared lists. Members can read; nobody writes directly.
+    // Every change goes through the shared-list callables in
+    // functions/index.js (Admin SDK), so "Added by" can't be forged and
+    // concurrent edits are transactional.
+    match /sharedLists/{listId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.memberUids;
+      allow write: if false;
+    }
+    match /sharedListIndex/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    // Invite codes are secrets; only the functions ever read them.
+    match /sharedListInvites/{code} {
+      allow read, write: if false;
+    }
   }
 }

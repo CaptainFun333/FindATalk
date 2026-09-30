@@ -393,3 +393,272 @@ exports.ledgerStatsRefresh = onRequest({ cors: true }, async (req, res) => {
     res.status(500).json({ error: 'refresh failed' });
   }
 });
+
+/* ---------------- Shared lists (idea 57) ----------------
+   A shared list is one Firestore doc, sharedLists/{listId}, that every
+   member's app listens to. Clients can only READ it (firestore.rules);
+   every change goes through the callables below, so "Added by" can't be
+   forged (addedBy is always the caller's own uid), two people editing at
+   once can't clobber each other (each change is its own transaction), and
+   ownership hand-off on leave is atomic. Doc shape:
+     { name, ownerUid, memberUids: [uid], members: {uid: {name, joinedAt}},
+       talks: {talkKey: {addedBy, addedByName, addedAt}}, createdAt, updatedAt }
+   sharedListIndex/{uid} = { lists: {listId: true} } tells each person's app
+   which lists to listen to (a doc listener, not a collection query).
+   sharedListInvites/{code} = { listId, createdBy, createdAt, expiresAt } —
+   never client-readable; single-use and expiring, since a forwarded link
+   is the main abuse risk. */
+const { FieldValue } = require('firebase-admin/firestore');
+
+const SHARED_LIST_MAX_MEMBERS = 10;
+const SHARED_LIST_MAX_TALKS = 500;
+const SHARED_LIST_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const INVITE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
+
+function requireUid(request) {
+  const uid = request.auth && request.auth.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in to use shared lists.');
+  return uid;
+}
+function cleanText(value, max, label) {
+  const text = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+  if (!text) throw new HttpsError('invalid-argument', `${label} is required.`);
+  if (text.length > max) throw new HttpsError('invalid-argument', `${label} must be ${max} characters or fewer.`);
+  return text;
+}
+function cleanTalkKey(value) {
+  if (typeof value !== 'string' || value.length > 200 || !/^\d{4}\|\d{2}\|[^|]+$/.test(value)) {
+    throw new HttpsError('invalid-argument', 'Not a valid talk.');
+  }
+  return value;
+}
+function cleanListId(value) {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9]{10,40}$/.test(value)) {
+    throw new HttpsError('invalid-argument', 'Not a valid list.');
+  }
+  return value;
+}
+function listRef(listId) { return firestore.collection('sharedLists').doc(listId); }
+function indexRef(uid) { return firestore.collection('sharedListIndex').doc(uid); }
+function inviteRef(code) { return firestore.collection('sharedListInvites').doc(code); }
+
+async function readMemberList(tx, listId, uid) {
+  const snap = await tx.get(listRef(listId));
+  if (!snap.exists) throw new HttpsError('not-found', 'That list no longer exists.');
+  const data = snap.data();
+  if (!Array.isArray(data.memberUids) || !data.memberUids.includes(uid)) {
+    throw new HttpsError('permission-denied', "You're not a member of that list.");
+  }
+  return data;
+}
+
+exports.createSharedList = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const name = cleanText(data.name, 60, 'List name');
+  const displayName = cleanText(data.displayName, 30, 'Your name');
+  const keys = Array.isArray(data.talkKeys) ? data.talkKeys : [];
+  if (keys.length > SHARED_LIST_MAX_TALKS) {
+    throw new HttpsError('invalid-argument', `A shared list can hold up to ${SHARED_LIST_MAX_TALKS} talks.`);
+  }
+  const now = Date.now();
+  const talks = {};
+  // Staggered by index so the original "order added" survives the move.
+  keys.map(cleanTalkKey).forEach((key, i) => {
+    if (!talks[key]) talks[key] = { addedBy: uid, addedByName: displayName, addedAt: now - keys.length + i };
+  });
+  const ref = firestore.collection('sharedLists').doc();
+  const batch = firestore.batch();
+  batch.set(ref, {
+    name, ownerUid: uid, memberUids: [uid],
+    members: { [uid]: { name: displayName, joinedAt: now } },
+    talks, createdAt: now, updatedAt: now,
+  });
+  batch.set(indexRef(uid), { lists: { [ref.id]: true } }, { merge: true });
+  await batch.commit();
+  return { listId: ref.id };
+});
+
+exports.setSharedListTalk = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const listId = cleanListId(data.listId);
+  const key = cleanTalkKey(data.talkKey);
+  const present = !!data.present;
+  await firestore.runTransaction(async (tx) => {
+    const list = await readMemberList(tx, listId, uid);
+    const talks = { ...(list.talks || {}) };
+    if (present) {
+      if (talks[key]) return;
+      if (Object.keys(talks).length >= SHARED_LIST_MAX_TALKS) {
+        throw new HttpsError('resource-exhausted', `A shared list can hold up to ${SHARED_LIST_MAX_TALKS} talks.`);
+      }
+      const me = (list.members || {})[uid] || {};
+      talks[key] = { addedBy: uid, addedByName: me.name || 'Someone', addedAt: Date.now() };
+    } else {
+      if (!talks[key]) return;
+      delete talks[key];
+    }
+    tx.update(listRef(listId), { talks, updatedAt: Date.now() });
+  });
+  return { ok: true };
+});
+
+exports.renameSharedList = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const listId = cleanListId(data.listId);
+  const name = cleanText(data.name, 60, 'List name');
+  await firestore.runTransaction(async (tx) => {
+    await readMemberList(tx, listId, uid);
+    tx.update(listRef(listId), { name, updatedAt: Date.now() });
+  });
+  return { ok: true };
+});
+
+exports.setSharedListDisplayName = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const listId = cleanListId(data.listId);
+  const displayName = cleanText(data.displayName, 30, 'Your name');
+  await firestore.runTransaction(async (tx) => {
+    const list = await readMemberList(tx, listId, uid);
+    const members = { ...(list.members || {}) };
+    members[uid] = { ...(members[uid] || {}), name: displayName };
+    tx.update(listRef(listId), { members, updatedAt: Date.now() });
+  });
+  return { ok: true };
+});
+
+exports.createSharedListInvite = onCall(async (request) => {
+  const uid = requireUid(request);
+  const listId = cleanListId((request.data || {}).listId);
+  const now = Date.now();
+  let code = '';
+  await firestore.runTransaction(async (tx) => {
+    const list = await readMemberList(tx, listId, uid);
+    if ((list.memberUids || []).length >= SHARED_LIST_MAX_MEMBERS) {
+      throw new HttpsError('resource-exhausted', `A shared list can have up to ${SHARED_LIST_MAX_MEMBERS} people.`);
+    }
+    const bytes = crypto.randomBytes(8);
+    code = Array.from(bytes, (b) => INVITE_ALPHABET[b % INVITE_ALPHABET.length]).join('');
+    tx.set(inviteRef(code), { listId, createdBy: uid, createdAt: now, expiresAt: now + SHARED_LIST_INVITE_TTL_MS });
+  });
+  return { code, expiresAt: now + SHARED_LIST_INVITE_TTL_MS };
+});
+
+function cleanInviteCode(value) {
+  const code = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  if (!/^[A-Z0-9]{8}$/.test(code)) throw new HttpsError('invalid-argument', "That invite link isn't valid.");
+  return code;
+}
+function assertInviteUsable(inviteSnap) {
+  if (!inviteSnap.exists) throw new HttpsError('not-found', 'That invite link has already been used or no longer works.');
+  const invite = inviteSnap.data();
+  if (!invite.expiresAt || invite.expiresAt < Date.now()) {
+    throw new HttpsError('deadline-exceeded', 'That invite link has expired. Ask for a new one.');
+  }
+  return invite;
+}
+
+exports.previewSharedListInvite = onCall(async (request) => {
+  const uid = requireUid(request);
+  const code = cleanInviteCode((request.data || {}).code);
+  const invite = assertInviteUsable(await inviteRef(code).get());
+  const listSnap = await listRef(invite.listId).get();
+  if (!listSnap.exists) throw new HttpsError('not-found', 'That list no longer exists.');
+  const list = listSnap.data();
+  const members = list.members || {};
+  const inviter = members[invite.createdBy] || members[list.ownerUid] || {};
+  return {
+    listId: invite.listId,
+    name: list.name,
+    talkCount: Object.keys(list.talks || {}).length,
+    inviterName: inviter.name || 'Someone',
+    memberNames: (list.memberUids || []).map((m) => (members[m] || {}).name).filter(Boolean),
+    alreadyMember: (list.memberUids || []).includes(uid),
+  };
+});
+
+exports.joinSharedList = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const code = cleanInviteCode(data.code);
+  const displayName = cleanText(data.displayName, 30, 'Your name');
+  let listId = '';
+  await firestore.runTransaction(async (tx) => {
+    const inviteSnap = await tx.get(inviteRef(code));
+    const invite = assertInviteUsable(inviteSnap);
+    listId = invite.listId;
+    const listSnap = await tx.get(listRef(listId));
+    if (!listSnap.exists) throw new HttpsError('not-found', 'That list no longer exists.');
+    const list = listSnap.data();
+    const memberUids = list.memberUids || [];
+    if (memberUids.includes(uid)) return; // already in — leave the invite for whoever it was meant for
+    if (memberUids.length >= SHARED_LIST_MAX_MEMBERS) {
+      throw new HttpsError('resource-exhausted', `A shared list can have up to ${SHARED_LIST_MAX_MEMBERS} people.`);
+    }
+    const now = Date.now();
+    tx.update(listRef(listId), {
+      memberUids: [...memberUids, uid],
+      members: { ...(list.members || {}), [uid]: { name: displayName, joinedAt: now } },
+      updatedAt: now,
+    });
+    tx.set(indexRef(uid), { lists: { [listId]: true } }, { merge: true });
+    tx.delete(inviteRef(code));
+  });
+  return { listId };
+});
+
+// Removes `targetUid` from a list inside an open transaction. The earliest-
+// joined remaining member inherits ownership; the last person out deletes
+// the list itself.
+function removeMemberInTx(tx, listId, list, targetUid) {
+  const memberUids = (list.memberUids || []).filter((m) => m !== targetUid);
+  tx.set(indexRef(targetUid), { lists: { [listId]: FieldValue.delete() } }, { merge: true });
+  if (!memberUids.length) {
+    tx.delete(listRef(listId));
+    return;
+  }
+  const members = { ...(list.members || {}) };
+  delete members[targetUid];
+  let ownerUid = list.ownerUid;
+  if (ownerUid === targetUid) {
+    ownerUid = memberUids.slice().sort((a, b) => ((members[a] || {}).joinedAt || 0) - ((members[b] || {}).joinedAt || 0))[0];
+  }
+  tx.update(listRef(listId), { memberUids, members, ownerUid, updatedAt: Date.now() });
+}
+
+exports.leaveSharedList = onCall(async (request) => {
+  const uid = requireUid(request);
+  const listId = cleanListId((request.data || {}).listId);
+  await firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(listRef(listId));
+    if (!snap.exists) {
+      tx.set(indexRef(uid), { lists: { [listId]: FieldValue.delete() } }, { merge: true });
+      return;
+    }
+    const list = snap.data();
+    if (!(list.memberUids || []).includes(uid)) {
+      tx.set(indexRef(uid), { lists: { [listId]: FieldValue.delete() } }, { merge: true });
+      return;
+    }
+    removeMemberInTx(tx, listId, list, uid);
+  });
+  return { ok: true };
+});
+
+exports.removeSharedListMember = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const listId = cleanListId(data.listId);
+  const target = typeof data.uid === 'string' ? data.uid : '';
+  if (!target || target === uid) throw new HttpsError('invalid-argument', 'Use Leave to remove yourself.');
+  await firestore.runTransaction(async (tx) => {
+    const list = await readMemberList(tx, listId, uid);
+    if (list.ownerUid !== uid) throw new HttpsError('permission-denied', 'Only the person who created this list can remove members.');
+    if (!(list.memberUids || []).includes(target)) return;
+    removeMemberInTx(tx, listId, list, target);
+  });
+  return { ok: true };
+});
