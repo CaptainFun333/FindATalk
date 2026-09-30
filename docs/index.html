@@ -922,6 +922,33 @@
   }
   .stats-context-row .badge-icon{ font-size:19px; }
   .stats-context-row[hidden]{ display:none; }
+  /* Idea 82 — the Reads & Rereads row as a tap-to-cycle button. One line
+     per step, bigger than the other rows since there's no subtitle. Every
+     step's text is stacked in the same grid cell with only the current one
+     visible, so the row is always as tall as its longest step at whatever
+     width/text size it's shown — tapping through never bounces the panel,
+     even where "On pace for 1,095 a year" wraps. */
+  .stats-cycle-row{
+    width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer;
+    min-height:56px;
+  }
+  /* Scoped under .stats-cycle-row .badge-row-text so it outranks the
+     shared `.badge-row-text strong` (display:block) and `.badge-row-text
+     span` (subtitle font/color/margin) rules these elements also match. */
+  .stats-cycle-row .badge-row-text .stats-cycle-stack{ display:grid; align-items:center; }
+  .stats-cycle-row .badge-row-text .stats-cycle-stack > span{
+    grid-area:1 / 1; display:block; margin:0; font:inherit; color:inherit;
+  }
+  .stats-cycle-row .badge-row-text .stats-cycle-stack > span:not(.is-on){ visibility:hidden; }
+  .stats-cycle-row.no-cycle{ cursor:default; }
+  .stats-cycle-row:not(.no-cycle):hover{ border-color:var(--brass); }
+  .stats-cycle-row:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .stats-cycle-row .badge-row-text{ flex:1; min-width:0; }
+  .stats-cycle-row .badge-row-text strong{ font-size:17px; line-height:1.25; }
+  .stats-cycle-row .badge-icon{ font-size:22px; }
+  .stats-cycle-dots{ display:flex; gap:4px; flex-shrink:0; }
+  .stats-cycle-dots i{ width:6px; height:6px; border-radius:50%; background:var(--line); }
+  .stats-cycle-dots i.is-on{ background:var(--brass); }
   .stats-badges-link{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     width:100%; text-align:left;
@@ -3925,10 +3952,14 @@
            than a separate big number + a long second line — keeps the
            subtext short enough to never wrap, whatever the count is. -->
       <p class="stats-row-label">Reading Activity</p>
-      <div class="stats-context-row">
-        <span class="badge-icon">&#128200;</span>
-        <div class="badge-row-text"><strong id="statTotalReadsLine">0 Reads &amp; Rereads</strong><span>Every time you've opened a talk</span></div>
-      </div>
+      <!-- Idea 82 — tap to cycle: total, then average per day / week /
+           month, then a year at this pace. Opens on the first average
+           that's 1 or more. See renderReadsCycle(). -->
+      <button type="button" class="stats-context-row stats-cycle-row" id="readsCycleRow">
+        <span class="badge-icon" id="readsCycleIcon" aria-hidden="true">&#128200;</span>
+        <span class="badge-row-text"><strong class="stats-cycle-stack" id="statTotalReadsLine" aria-live="polite">0 Reads &amp; Rereads</strong></span>
+        <span class="stats-cycle-dots" id="readsCycleDots" aria-hidden="true"></span>
+      </button>
       <div class="stats-context-row" id="statsMostReadRow" hidden>
         <span class="badge-icon">&#128214;</span>
         <div class="badge-row-text"><strong id="statsMostReadTitle"></strong><span id="statsMostReadMeta"></span></div>
@@ -4577,6 +4608,74 @@ function updateTrophyDot(){
 // the rest of this panel.
 let trophyShowRemaining = false;
 let trophyShowLongest = false;
+
+/* Idea 82 — reading pace. Total reads (rereads included) divided by
+   calendar days since the first read we have a date for, counting days
+   without a read too. There's no stored first-read date, so it's the
+   earliest dated thing we have: the read log and its estimated backfill,
+   estimated study days, streak days (last 365 only), and badge / note /
+   favorite timestamps. Averages stay hidden until that span is at least
+   READS_CYCLE_MIN_DAYS, since a few days' worth would swing wildly. */
+const READS_CYCLE_MIN_DAYS = 14;
+let readsCycleIndex = null; // null = open on the friendliest step; reset each time the panel opens
+let readsCycleSteps = [];
+function firstReadDay(streak){
+  let first = null;
+  const consider = d=>{ if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && (!first || d < first)) first = d; };
+  const considerTs = ts=>{ if (typeof ts === 'number' && ts > 1577836800000) consider(localDateSeed(new Date(ts))); }; // ignore anything before 2020
+  [readLog, readLogEstimated].forEach(log=> Object.keys(log).forEach(k=> (log[k] || []).forEach(consider)));
+  studyDaysEstimated.forEach(consider);
+  (streak.activeDays || []).forEach(consider);
+  Object.values(earnedBadges).forEach(considerTs);
+  Object.values(noteUpdatedAt).forEach(considerTs);
+  Object.values(favoriteUpdatedAt).forEach(considerTs);
+  return first;
+}
+function formatPace(n){
+  return n >= 10 ? Math.round(n).toLocaleString() : String(Math.round(n * 10) / 10);
+}
+function renderReadsCycle(totalReads, streak){
+  const steps = [{ icon:'\u{1F4C8}', text:`${totalReads} Read${totalReads === 1 ? '' : 's'} & Rereads` }];
+  const first = firstReadDay(streak);
+  if (first && totalReads > 0){
+    const [y, m, d] = first.split('-').map(Number);
+    const now = new Date();
+    const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(y, m - 1, d)) / 86400000) + 1;
+    if (days >= READS_CYCLE_MIN_DAYS){
+      const perDay = totalReads / days;
+      steps.push({ icon:'\u2600\uFE0F', text:`About ${formatPace(perDay)} a day`, v:perDay });
+      steps.push({ icon:'\u{1F4C5}', text:`About ${formatPace(perDay * 7)} a week`, v:perDay * 7 });
+      steps.push({ icon:'\u{1F4C6}', text:`About ${formatPace(perDay * 30.44)} a month`, v:perDay * 30.44 });
+      steps.push({ icon:'\u2B50', text:`On pace for ${formatPace(perDay * 365)} a year`, v:perDay * 365 });
+    }
+  }
+  readsCycleSteps = steps;
+  if (readsCycleIndex === null || readsCycleIndex >= steps.length){
+    const friendly = steps.findIndex((st, i)=> i > 0 && st.v >= 1);
+    readsCycleIndex = steps.length < 2 ? 0 : (friendly === -1 ? steps.length - 1 : friendly);
+  }
+  paintReadsCycle();
+}
+function paintReadsCycle(){
+  const st = readsCycleSteps[readsCycleIndex];
+  document.getElementById('readsCycleIcon').textContent = st.icon;
+  const stack = document.getElementById('statTotalReadsLine');
+  stack.textContent = '';
+  readsCycleSteps.forEach((step, i)=>{
+    const span = document.createElement('span');
+    span.textContent = step.text;
+    if (i === readsCycleIndex) span.className = 'is-on';
+    else span.setAttribute('aria-hidden', 'true');
+    stack.appendChild(span);
+  });
+  const cycles = readsCycleSteps.length > 1;
+  const row = document.getElementById('readsCycleRow');
+  row.classList.toggle('no-cycle', !cycles);
+  row.setAttribute('aria-label', cycles ? `${st.text}. Tap to see your reading pace another way.` : st.text);
+  document.getElementById('readsCycleDots').innerHTML = cycles
+    ? readsCycleSteps.map((_, i)=> `<i class="${i === readsCycleIndex ? 'is-on' : ''}"></i>`).join('')
+    : '';
+}
 function renderTrophyPreview(){
   const streak = loadStreak();
   document.getElementById('trophyPreviewReads').textContent =
@@ -4603,8 +4702,7 @@ function renderTrophyPreview(){
     if (!readKeys.has(key)) totalReads += visitCounts[key];
   }
   readKeys.forEach(key=>{ totalReads += Math.max(visitCounts[key] || 0, 1); });
-  document.getElementById('statTotalReadsLine').textContent =
-    `${totalReads} Read${totalReads === 1 ? '' : 's'} & Rereads`;
+  renderReadsCycle(totalReads, streak);
 
   const mr = mostReadTalk();
   const mrRow = document.getElementById('statsMostReadRow');
@@ -4817,9 +4915,16 @@ document.getElementById('trophyPreviewStreakCell').addEventListener('click', ()=
   trophyShowLongest = !trophyShowLongest;
   renderTrophyPreview();
 });
+document.getElementById('readsCycleRow').addEventListener('click', ()=>{
+  if (readsCycleSteps.length < 2) return;
+  readsCycleIndex = (readsCycleIndex + 1) % readsCycleSteps.length;
+  paintReadsCycle();
+});
+
 function openTrophyModal(){
   trophyShowRemaining = false;
   trophyShowLongest = false;
+  readsCycleIndex = null;
   journeyYear = null;
   renderTrophyPreview();
   trophyModalOverlay.hidden = false;

@@ -316,6 +316,13 @@ served live at findatalk.com; this one should never be public.
 
 ## App architecture / code-organization gotchas
 
+- **New markup inside a Your FindATalk row inherits the shared
+  `.badge-row-text strong` (display:block) and `.badge-row-text span`
+  (13px, soft color, top margin) rules.** They outrank a bare class
+  selector, so a `display:grid` or a restyled span on its own silently
+  loses — scope new rules under the row's own class (idea 82 uses
+  `.stats-cycle-row .badge-row-text ...`).
+
 - **Closure-scoping trap:** several long-standing helpers (e.g.
   `CHECK_ICON_SVG`) are defined *inside* `initApp()`'s closure, not at
   top level. A new top-level function that references them directly
@@ -455,6 +462,10 @@ served live at findatalk.com; this one should never be public.
   invisible and unrecoverable to other sessions the instant it's
   discarded — commit early, or don't assume another session's uncommitted
   state will still be there.
+- **Idea numbers can collide between the brainstorm memory file and
+  `IDEAS.md`.** Two sessions each assigned "81" to different ideas on the
+  same day. Before assigning or building an idea by number, check
+  `IDEAS.md` on `origin/main` for the highest number actually in use.
 
 ## Debugging tooling quirks (not app bugs)
 
