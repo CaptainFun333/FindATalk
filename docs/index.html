@@ -2675,6 +2675,15 @@
     display:block; background:none; border:none; cursor:pointer; padding:10px 0 0;
     font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color:var(--burgundy);
   }
+  .live-confirm{
+    margin-top:12px; padding:12px 14px; border-radius:6px;
+    background:var(--tint); border:1px solid var(--line);
+  }
+  .live-confirm[hidden]{ display:none; }
+  /* The confirm row sits mid-sheet, so it opts out of .modal-actions'
+     sticky-bottom pin and its paper-raised backing strip. */
+  .live-confirm .modal-actions{ position:static; margin:0; padding:0; background:none; }
+  .live-confirm-text{ font-family:'Inter',sans-serif; font-size:13.5px; line-height:1.45; color:var(--ink); margin:0 0 10px; }
   .live-join-card{ background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:0 0 14px; }
   .live-join-card-name{ font-family:'Lora',serif; font-weight:600; font-size:16px; color:var(--ink); }
   .live-join-card-meta{ font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); }
@@ -4346,6 +4355,15 @@
       <button type="button" class="btn btn-primary" id="liveMembersInviteBtn" style="width:100%; margin-top:14px; justify-content:center; text-align:center;">Invite Someone</button>
       <p class="live-invite-note">Each invite link works once and expires in 7 days.</p>
       <button type="button" class="live-leave-btn" id="liveMembersLeaveBtn">Leave this list</button>
+      <!-- In-sheet confirmation for Leave / Remove, instead of window.confirm(),
+           which some embedded browsers suppress (it returns false instantly). -->
+      <div class="live-confirm" id="liveConfirm" hidden>
+        <p class="live-confirm-text" id="liveConfirmText"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="liveConfirmCancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="liveConfirmGo">Leave</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -15464,11 +15482,13 @@ const liveMembersOverlay = document.getElementById('liveMembersModalOverlay');
 let liveMembersListId = null;
 function openLiveMembersModal(id){
   liveMembersListId = id;
+  hideLiveConfirm();
   document.getElementById('liveMembersError').hidden = true;
   renderLiveMembersModal();
   liveMembersOverlay.hidden = false;
 }
 function closeLiveMembersModal(){
+  hideLiveConfirm();
   liveMembersOverlay.hidden = true;
   liveMembersListId = null;
 }
@@ -15506,17 +15526,42 @@ function renderLiveMembersModal(){
       remove.type = 'button';
       remove.className = 'live-member-remove';
       remove.textContent = 'Remove';
-      remove.addEventListener('click', async ()=>{
-        if (!confirm(`Remove ${m.name || 'this person'} from "${list.name}"?`)) return;
-        remove.disabled = true;
-        try { await cloudCallFunction('removeSharedListMember', { listId: list.id, uid }); }
-        catch(err){ showLiveMembersError(err); remove.disabled = false; }
+      remove.addEventListener('click', ()=>{
+        askLiveConfirm(`Remove ${m.name || 'this person'} from "${list.name}"? They'll lose access to the list.`, 'Remove', async ()=>{
+          try { await cloudCallFunction('removeSharedListMember', { listId: list.id, uid }); return true; }
+          catch(err){ showLiveMembersError(err); return false; }
+        });
       });
       row.appendChild(remove);
     }
     rows.appendChild(row);
   });
 }
+let liveConfirmAction = null;
+function askLiveConfirm(text, goLabel, action){
+  liveConfirmAction = action;
+  document.getElementById('liveConfirmText').textContent = text;
+  const go = document.getElementById('liveConfirmGo');
+  go.textContent = goLabel;
+  go.disabled = false;
+  const box = document.getElementById('liveConfirm');
+  box.hidden = false;
+  box.scrollIntoView({block:'nearest'});
+}
+function hideLiveConfirm(){
+  liveConfirmAction = null;
+  document.getElementById('liveConfirm').hidden = true;
+}
+document.getElementById('liveConfirmCancel').addEventListener('click', hideLiveConfirm);
+document.getElementById('liveConfirmGo').addEventListener('click', async ()=>{
+  const action = liveConfirmAction;
+  if (!action) return;
+  const go = document.getElementById('liveConfirmGo');
+  go.disabled = true;
+  const ok = await action();
+  if (ok !== false) hideLiveConfirm();
+  else go.disabled = false;
+});
 function showLiveMembersError(err){
   const el = document.getElementById('liveMembersError');
   el.textContent = liveErrorMessage(err);
@@ -15553,7 +15598,7 @@ liveInviteBtn.addEventListener('click', async ()=>{
   }
   liveInviteBtn.disabled = false;
 });
-document.getElementById('liveMembersLeaveBtn').addEventListener('click', async ()=>{
+document.getElementById('liveMembersLeaveBtn').addEventListener('click', ()=>{
   const list = liveListsById[liveMembersListId];
   if (!list) return;
   const me = currentUser && currentUser.uid;
@@ -15564,12 +15609,14 @@ document.getElementById('liveMembersLeaveBtn').addEventListener('click', async (
     const next = others.slice().sort((a, b)=> ((list.members[a] || {}).joinedAt || 0) - ((list.members[b] || {}).joinedAt || 0))[0];
     detail = ` ${liveMemberName(list, next)} will take over the list.`;
   }
-  if (!confirm(`Leave "${list.name}"?${detail}`)) return;
-  try {
-    await cloudCallFunction('leaveSharedList', { listId: list.id });
-    closeLiveMembersModal();
-    if (liveListId(currentCollectionId) === list.id){ currentCollectionId = null; goToNavZone('collectionsIndex'); }
-  } catch(err){ showLiveMembersError(err); }
+  askLiveConfirm(`Leave "${list.name}"?${detail}`, others.length ? 'Leave' : 'Leave & Delete', async ()=>{
+    try {
+      await cloudCallFunction('leaveSharedList', { listId: list.id });
+      closeLiveMembersModal();
+      if (liveListId(currentCollectionId) === list.id){ currentCollectionId = null; goToNavZone('collectionsIndex'); }
+      return true;
+    } catch(err){ showLiveMembersError(err); return false; }
+  });
 });
 
 /* ---- Joining from an invite link (?joinList=CODE) ---- */
