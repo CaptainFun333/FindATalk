@@ -27,6 +27,7 @@ promise of what ships next. Grouped by status, most active first:
 57. **Live/collaborative list sharing** — open, exploratory
 64. **Larger-text/accessibility view** — open
 66. **Custom Firebase Auth domain branding** — open, low priority
+83. **Shorter list-share links** — open (analysis 2026-10-01; recommended: base-62 packed talk positions, no commas, ~half the length, old links still work; optional cap on name length; a Firestore short link like findatalk.com/l/abc123 is the only way to get tiny links but adds a backend + privacy disclosure)
 
 ## Done
 
@@ -107,7 +108,7 @@ promise of what ships next. Grouped by status, most active first:
 ---
 
 **In progress:** 44, 68
-**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66
+**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66, 83
 **Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82
 **Disregarded:** 1, 2, 26, 50
 **Obsolete:** 39, 42, 43
