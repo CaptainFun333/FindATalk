@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.7.7] — 2026-10-01
+
 ### Added
 - Share a list with family or friends. Tap the people icon on any of your lists, add the name others will see, then send an invite link. Everyone in the list can add and remove talks, each talk shows who added it ("Added by Brooke"), and changes show up for everyone right away. Your notes, reading, and streak stay private. Everyone in a shared list needs to be signed in. (Requires a new build on both iPhone/iPad and Android to take effect — live on the website once the server update is deployed.)
 - In Your FindATalk, tap your Reads & Rereads count to see your reading pace — about how many talks a day, a week, and a month, and how many you're on pace for in a year. It opens on whichever reads most encouragingly, and appears once you've been reading for two weeks. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
