@@ -13291,7 +13291,9 @@ collectionReadStatusButtons.forEach(btn=>{
    someone without the app (it's a real URL, opens in a browser same as
    any other). Capped at LIST_SHARE_MAX so a huge list doesn't produce an
    unwieldy URL. */
-const LIST_SHARE_MAX = 20;
+/* Raised from 20 — a real 44-talk list was being shared as "20 talks".
+   Indices are ~4 chars each, so even 300 talks is a ~1.5k-char URL. */
+const LIST_SHARE_MAX = 300;
 
 /* Encodes a list into a real, shareable findatalk.com URL. Shortened per
    user feedback on a real device — the original version used full talk
