@@ -128,9 +128,9 @@ FindATalk
 **Short description** (80 char max — shown in search results and at the
 top of the listing)
 ```
-Find, filter, and save General Conference talks — speaker, topic, or random.
+Hear the Lord's servants each day. Pick a talk, or let the right one find you.
 ```
-(76 chars)
+(78 chars)
 
 **Full description** (4000 char max)
 ```
