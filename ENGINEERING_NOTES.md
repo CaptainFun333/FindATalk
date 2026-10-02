@@ -417,6 +417,31 @@ served live at findatalk.com; this one should never be public.
   (`.narrow-box-header .sort-toggle-btn`'s existing pattern: reduced
   padding + font-size, scoped to just the row that needs it) is needed.
 
+## Talk of the Day
+
+- **The Talk of the Day is not the same worldwide: devices east of UTC
+  show the talk U.S. devices showed the day before.** `localDayNumber()`
+  takes the device's local midnight and floors its UTC milliseconds to a
+  day number. West of UTC, local midnight is later the same UTC day, so
+  the number matches the calendar date; east of UTC, local midnight is
+  still the previous UTC day, so it's one lower. Verified by running the
+  app's own `talkForDate()` under `TZ=Europe/Berlin` vs `America/Denver`.
+  Not fixed (it would change what those users see mid-cycle); fixing it
+  means building the day number from `Date.UTC(y, m, d)` instead.
+- **`functions/totd.js` is a hand port of that algorithm** for the
+  ledger calendar and must be kept identical to the app's. To re-verify
+  after any change: extract `splitmix32` … `talkForDate` from
+  `docs/index.html` into a scratch file, `eval` it in Node with `TALKS` /
+  `TOPIC_LOOKUP` loaded from `docs/data.json`, and compare against
+  `makeTotdPicker(data)` for every day of a few years (covers every
+  curated holiday). It matched on all 1,095 days of 2025–2027 under U.S.
+  time zones.
+- **A past day's pick can't be reliably recomputed after a data update**
+  — `cyclePick()` depends on the number of talks, so adding a conference
+  re-partitions the cycle. The app protects itself with its stored
+  `totdHistory`; the ledger does the same by storing each day's pick in
+  `stats/ledger`'s `calendar` and never recomputing a stored day.
+
 ## Android widget / Doze
 
 - **`ACTION_DEVICE_IDLE_MODE_CHANGED` (Doze enter/exit) is broadcast with
@@ -528,6 +553,12 @@ served live at findatalk.com; this one should never be public.
   Firestore, so testing anything that calls `getAuth()` needs a temporary
   config passed with `--config` (use a `demo-...` project id so nothing
   touches production).
+
+- **Don't format dates with a locale in Cloud Functions code that also
+  runs under `firebase emulators:exec`.** The CLI's bundled Node has slim
+  ICU, so `new Intl.DateTimeFormat('en-CA', …).format()` returns
+  `10/2/2026` instead of `2026-10-02` there (and `Date.parse` of the
+  result is `NaN`). Use `formatToParts()` and assemble the string.
 
 ## Domain / DNS
 

@@ -141,6 +141,29 @@
   .stat .n { font-family: var(--font-serif); font-weight: 600; font-size: 24px; line-height: 1.2; }
   .stat .l { color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
   .stat .d { color: var(--accent-a); font-size: 11.5px; font-weight: 600; margin-top: 4px; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 8px; }
+  .cal-head .m { font-family: var(--font-serif); font-weight: 600; font-size: 16px; }
+  .cal-head button {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600; background: var(--paper-raised);
+    color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 12px; cursor: pointer;
+  }
+  .cal-head button:disabled { opacity: 0.35; cursor: default; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .cal-dow { text-align: center; font-size: 11px; font-weight: 600; color: var(--ink-soft); padding-bottom: 2px; }
+  .cal-day {
+    min-height: 58px; border: 1px solid var(--line); border-radius: var(--radius); padding: 3px 4px;
+    font-family: var(--font-sans); color: var(--ink); background: var(--paper-raised); text-align: left;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button.cal-day { cursor: pointer; }
+  .cal-day.empty { border-color: transparent; background: none; }
+  .cal-day.nodata { opacity: 0.45; }
+  .cal-day.sel { outline: 2px solid var(--accent-b); outline-offset: -1px; }
+  .cal-day .dn { font-size: 10.5px; color: var(--ink-soft); line-height: 1.3; }
+  .cal-day .rn { font-family: var(--font-serif); font-weight: 600; font-size: 18px; line-height: 1.2; }
+  .cal-day .tn { font-size: 9.5px; font-weight: 600; color: var(--accent-b); line-height: 1.2; white-space: nowrap; }
+  .cal-detail { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0 4px; font-size: 13px; }
+  .cal-detail .dt { font-weight: 600; margin-bottom: 4px; }
   footer { margin-top: 48px; color: var(--ink-soft); font-size: 12px; text-align: center; }
 </style>
 </head>
@@ -181,6 +204,7 @@
   <section class="panel" id="panel-stats">
     <h2>Cloud stats</h2>
     <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px" id="stats-meta">Loading…</p>
+    <div id="cal-wrap"></div>
     <div id="stats-body"></div>
     <p style="color:var(--ink-soft);font-size:12px;margin-top:20px">Aggregate counts only — never anything about an individual person, and no dollar amounts. Recalculated automatically once a day; the Refresh button recalculates on demand (at most once every 10 minutes).</p>
   </section>
@@ -470,7 +494,60 @@ function weekDelta(history, key) {
   const diff = latest[key] - base[key];
   return (diff >= 0 ? '+' : '') + fmt(diff) + ' vs. ' + (base === history[0] && new Date(base.d).getTime() > cutoff ? 'first snapshot' : '7 days ago');
 }
+let calDays = {}, calMonth = null, calSelected = null;
+const ymd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+function renderCalendar(days) {
+  if (!days || !days.length) { document.getElementById('cal-wrap').innerHTML = ''; return; }
+  calDays = {};
+  days.forEach(c => { calDays[c.d] = c; });
+  const last = days[days.length - 1].d;
+  if (!calMonth) calMonth = last.slice(0, 7);
+  if (!calSelected || !calDays[calSelected]) calSelected = last;
+  drawCalendar();
+}
+function drawCalendar() {
+  const keys = Object.keys(calDays).sort();
+  const firstMonth = keys[0].slice(0, 7), lastMonth = keys[keys.length - 1].slice(0, 7);
+  const [y, m] = calMonth.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const peak = Math.max(1, ...keys.map(k => calDays[k].readers));
+  const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many}`;
+  let cells = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+  for (let i = 0; i < new Date(y, m - 1, 1).getDay(); i++) cells += '<div class="cal-day empty"></div>';
+  let sum = 0, counted = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = ymd(y, m, d), c = calDays[key];
+    if (!c) { cells += `<div class="cal-day nodata"><span class="dn">${d}</span></div>`; continue; }
+    sum += c.readers; counted++;
+    const heat = Math.round((c.readers / peak) * 45);
+    const totd = c.totdReaders ? `<span class="tn">TOTD ${fmt(c.totdReaders)}</span>` : '';
+    cells += `<button type="button" class="cal-day${key === calSelected ? ' sel' : ''}" data-day="${key}" style="background:color-mix(in srgb, var(--accent-a) ${heat}%, var(--paper-raised))"><span class="dn">${d}</span><span class="rn">${fmt(c.readers)}</span>${totd}</button>`;
+  }
+  const monthName = new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const sel = calDays[calSelected];
+  let detail = '';
+  if (sel) {
+    const [sy, sm, sd] = sel.d.split('-').map(Number);
+    const when = new Date(sy, sm - 1, sd).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const talk = sel.talk ? `Talk of the Day: <strong>${escapeHtml(sel.talk.title)}</strong> — ${escapeHtml(sel.talk.speaker)}` : 'Talk of the Day: not recorded for this date';
+    const parts = [plural(sel.readers, 'account read a talk', 'accounts read a talk')];
+    if (sel.talk) parts.push(plural(sel.totdReaders, 'read the Talk of the Day', 'read the Talk of the Day'));
+    if (sel.reads !== null && sel.reads !== undefined) parts.push(plural(sel.reads, 'read by everyone', 'reads by everyone'));
+    detail = `<div class="cal-detail"><div class="dt">${escapeHtml(when)}</div><div>${talk}</div><div style="margin-top:4px">${parts.join(' · ')}</div></div>`;
+  }
+  const average = counted ? (sum / counted).toFixed(1) : '0';
+  document.getElementById('cal-wrap').innerHTML = '<div class="kind-label">Daily readers</div>'
+    + `<div class="cal-head"><button type="button" id="cal-prev"${calMonth <= firstMonth ? ' disabled' : ''}>Earlier</button><span class="m">${escapeHtml(monthName)}</span><button type="button" id="cal-next"${calMonth >= lastMonth ? ' disabled' : ''}>Later</button></div>`
+    + `<div class="cal-grid">${cells}</div>` + detail
+    + `<p style="font-size:12.5px;color:var(--ink-soft);margin:6px 0 4px">${escapeHtml(monthName)}: ${average} accounts reading per day on average. The large number is signed-in accounts that read any talk that day; TOTD is how many of them read that day's Talk of the Day. People who aren't signed in only appear in "reads by everyone", which is counted from 6am to 6am Mountain time. The talk shown is the one featured in U.S. time zones.</p>`;
+  const shift = (by) => { const d = new Date(y, m - 1 + by, 1); calMonth = ymd(d.getFullYear(), d.getMonth() + 1, 1).slice(0, 7); drawCalendar(); };
+  document.getElementById('cal-prev').addEventListener('click', () => shift(-1));
+  document.getElementById('cal-next').addEventListener('click', () => shift(1));
+  document.querySelectorAll('#cal-wrap button.cal-day').forEach(b => b.addEventListener('click', () => { calSelected = b.dataset.day; drawCalendar(); }));
+}
+
 function renderStats(st) {
+  renderCalendar(st.calendar);
   const a = st.accounts, r = st.activity, s = st.supporters, c = st.content, h = st.history;
   const providerNames = { 'google.com': 'Google', 'apple.com': 'Apple', 'password': 'Email' };
   const providers = Object.entries(a.providers || {}).map(([k, v]) => `${providerNames[k] || k} ${fmt(v)}`).join(' · ') || '—';

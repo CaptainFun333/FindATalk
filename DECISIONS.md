@@ -66,6 +66,19 @@ under whichever group it belongs in, not just at the top.
 
 ## Feature scope & UX tradeoffs
 
+- **2026-10-02** — The ledger's daily-readers calendar publishes raw
+  per-day counts (even 1 or 2) rather than applying the 5-person minimum
+  the "Loved by the community" stats use. That minimum exists so a small
+  group's reading taste isn't exposed; here the talk is the publicly
+  featured Talk of the Day and the count names no one, and with ~24
+  accounts a minimum would blank almost every day of a calendar whose
+  whole purpose is tracking growth. Each day's featured talk is stored
+  the first time it's computed and never recomputed, because the pick
+  depends on how many talks `data.json` holds — a data update would
+  otherwise silently rewrite which talk past days show. The counts cover
+  signed-in accounts only; an anonymous per-day counter in the app (idea
+  84) is queued for the release after 1.7.7 rather than rushed into a
+  build already in Apple review.
 - **2026-09-23** — The ledger's cloud stats are computed server-side by a
   Cloud Function (Admin SDK) into one public-read `stats/ledger` doc,
   rather than by a scheduled GitHub Action, because the Action would need

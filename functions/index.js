@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { SignedDataVerifier, Environment } = require('@apple/app-store-server-library');
+const { makeTotdPicker, talkKey } = require('./totd');
 
 initializeApp();
 const firestore = getFirestore();
@@ -285,8 +286,22 @@ const POPULAR_MIN_PEOPLE = 5;
 const OVERREAD_MIN_SUPPLY = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-async function computeLedgerStats(previous) {
+// Calendar dates are Mountain time: the daily run is 6am there, and it is
+// where most readers are.
+const denverDate = (ms) => {
+  // formatToParts, not a locale's date format: a slim-ICU Node ignores 'en-CA'.
+  const p = {};
+  for (const part of new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(ms))) p[part.type] = part.value;
+  return `${p.year}-${p.month}-${p.day}`;
+};
+const shiftDate = (ymd, days) => new Date(Date.parse(`${ymd}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+
+async function computeLedgerStats(previous, { scheduled } = {}) {
   const now = Date.now();
+  const todayLocal = denverDate(now);
+  const calendarStart = shiftDate(todayLocal, -(LEDGER_HISTORY_DAYS - 1));
+  // Per day: distinct accounts that read anything, and distinct accounts per talk.
+  const readersByDay = {}, talkReadersByDay = {};
 
   const providers = {};
   let total = 0, new7 = 0, new30 = 0, active7 = 0, active30 = 0;
@@ -312,7 +327,7 @@ async function computeLedgerStats(previous) {
   const speakerKeyReaders = []; // per-user read-key sets, resolved to speakers/topics/books below
   let studyDaysTotal = 0, studyPeople = 0;
   const sizeOf = (v) => (Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0));
-  const users = await firestore.collection('users').select('read', 'favorites', 'collections', 'collectionMembers', 'notes', 'streak', 'readLog', 'studyDaysEstimated').get();
+  const users = await firestore.collection('users').select('read', 'favorites', 'collections', 'collectionMembers', 'notes', 'streak', 'readLog', 'readLogEstimated', 'studyDaysEstimated').get();
   users.forEach((d) => {
     const x = d.data();
     const reads = sizeOf(x.read);
@@ -338,6 +353,16 @@ async function computeLedgerStats(previous) {
       (Array.isArray(x.studyDaysEstimated) ? x.studyDaysEstimated : []).forEach(addDay);
       ((x.streak && x.streak.activeDays) || []).forEach(addDay);
       if (days.size) { studyDaysTotal += days.size; studyPeople++; }
+      for (const day of days) if (day >= calendarStart) readersByDay[day] = (readersByDay[day] || 0) + 1;
+      // Estimated dates count too: they only exist where the streak recorded
+      // a real active day and that day's featured talk is marked read.
+      const talkDays = new Set();
+      for (const log of [x.readLog, x.readLogEstimated]) {
+        for (const [k, dates] of Object.entries(log || {})) {
+          if (Array.isArray(dates)) dates.forEach((day) => { if (typeof day === 'string' && day >= calendarStart) talkDays.add(`${day}|${k}`); });
+        }
+      }
+      for (const dk of talkDays) talkReadersByDay[dk] = (talkReadersByDay[dk] || 0) + 1;
     }
     for (const k of new Set(Array.isArray(x.favorites) ? x.favorites : [])) favoritersByTalk[k] = (favoritersByTalk[k] || 0) + 1;
     lists += sizeOf(x.collections);
@@ -363,10 +388,12 @@ async function computeLedgerStats(previous) {
     for (const y of (x.years || [])) supportersByYear[y] = (supportersByYear[y] || 0) + 1;
   });
 
-  let content = null, popular = null;
+  let content = null, popular = null, pickTalk = null, dataDate = null;
   try {
     const res = await fetch('https://findatalk.com/data.json');
     const data = await res.json();
+    pickTalk = makeTotdPicker(data);
+    dataDate = String(data.generatedAt).slice(0, 10);
     // Talks are [title, speaker, year, month, slug]; user docs key them "year|month|slug".
     const byKey = {};
     for (const t of data.talks) byKey[`${t[2]}|${t[3]}|${t[4]}`] = t;
@@ -463,6 +490,40 @@ async function computeLedgerStats(previous) {
   const history = ((previous && previous.history) || []).filter((h) => h.d !== today);
   history.push({ d: today, accounts: total, talksRead: globalTalksRead, supporters: supportersTotal });
 
+  // The all-users read counter as of each morning's scheduled run, so a day's
+  // reads by everyone (signed in or not) is one morning's value minus the last.
+  const morning = { ...((previous && previous.morning) || {}) };
+  if (!Object.keys(morning).length) for (const h of history) morning[h.d] = h.talksRead;
+  if (scheduled || !(todayLocal in morning)) morning[todayLocal] = globalTalksRead;
+  for (const d of Object.keys(morning)) if (d < calendarStart) delete morning[d];
+
+  // A day's featured talk is stored the first time it is computed and never
+  // recomputed: the pick depends on how many talks data.json holds, so a later
+  // data update would otherwise rewrite history. Days before the current data
+  // was generated get no talk for the same reason.
+  const stored = {};
+  for (const c of (previous && previous.calendar) || []) stored[c.d] = c;
+  let calendar = [];
+  for (let d = calendarStart; d <= todayLocal; d = shiftDate(d, 1)) {
+    let talk = (stored[d] && stored[d].talk) || null;
+    if (!talk && pickTalk && d >= dataDate) {
+      const [y, m, day] = d.split('-').map(Number);
+      const t = pickTalk(y, m, day);
+      if (t) talk = { k: talkKey(t), title: t[0], speaker: t[1] };
+    }
+    const next = shiftDate(d, 1);
+    const end = next in morning ? morning[next] : (d === todayLocal ? globalTalksRead : null);
+    calendar.push({
+      d,
+      talk,
+      readers: readersByDay[d] || 0,
+      totdReaders: talk ? (talkReadersByDay[`${d}|${talk.k}`] || 0) : 0,
+      reads: d in morning && end !== null ? Math.max(0, end - morning[d]) : null,
+    });
+  }
+  const firstActive = calendar.findIndex((c) => c.readers || c.reads);
+  calendar = firstActive < 0 ? [] : calendar.slice(firstActive);
+
   return {
     generatedAt: now,
     accounts: { total, new7, new30, active7, active30, withData: accountsWithData, providers },
@@ -471,6 +532,8 @@ async function computeLedgerStats(previous) {
     content,
     popular,
     history: history.slice(-LEDGER_HISTORY_DAYS),
+    calendar,
+    morning,
   };
 }
 
@@ -481,7 +544,7 @@ async function refreshLedgerStats({ force }) {
   if (!force && previous && Date.now() - previous.generatedAt < LEDGER_MIN_REFRESH_MS) {
     return { stats: previous, throttled: true };
   }
-  const stats = await computeLedgerStats(previous);
+  const stats = await computeLedgerStats(previous, { scheduled: force });
   await ref.set({ json: JSON.stringify(stats), updatedAt: stats.generatedAt });
   return { stats, throttled: false };
 }

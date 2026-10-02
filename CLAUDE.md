@@ -128,4 +128,11 @@ once per 10 minutes, reached through a Hosting rewrite like
 does that step (their CLI login is interactive). Keep the stats
 aggregate-only: no per-user data and no dollar amounts on this public page.
 
+The Stats tab's daily-readers calendar shows each day's Talk of the Day,
+which the function recomputes with `functions/totd.js` — a port of
+`talkForDate()` / `cyclePick()` / `CURATED_HOLIDAYS` in `docs/index.html`.
+**If the app's Talk of the Day algorithm ever changes, change
+`functions/totd.js` to match and redeploy**, or the calendar will name the
+wrong talk.
+
 See `PROJECT_HANDOFF.md` for full architecture/history detail.

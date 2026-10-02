@@ -4501,3 +4501,34 @@ returns its own `UNAUTHENTICATED` error, no errors in logs. **Not
 verified:** a real end-to-end Stripe event or Apple/Google tip purchase on
 the new runtime — worth watching the next real donation or a sandbox tip.
 
+## 2026-10-02 — Ledger daily-readers calendar
+
+The ledger's Stats tab now opens with a month calendar ("Daily readers").
+`computeLedgerStats()` adds two fields to `stats/ledger`:
+
+- `calendar`: one entry per Mountain-time day, up to 120 days, starting at
+  the first day with any activity — `{ d, talk: {k, title, speaker} | null,
+  readers, totdReaders, reads }`. `readers` = distinct signed-in accounts
+  with any read that day (union of `readLog` dates, `studyDaysEstimated`,
+  `streak.activeDays`). `totdReaders` = accounts whose `readLog` or
+  `readLogEstimated` has that day's featured talk on that date — before
+  the read-date log existed (idea 80) these are the app's own estimates.
+  `talk` comes from `functions/totd.js` and is stored once, never
+  recomputed; days before the current `data.json`'s `generatedAt` get
+  `null`.
+- `morning`: the all-users `totalTalksRead` counter as of each scheduled
+  6am run, keyed by Mountain date. A day's `reads` (everyone, signed in or
+  not) = next morning's value − that morning's; today's is "so far".
+  Seeded from the older `history` snapshots, which were taken at mixed
+  times, so `reads` for 2026-09-23 … 10-02 are approximate.
+
+`docs/ledger.html` renders it (`renderCalendar` / `drawCalendar`): heat
+tint by `readers`, month navigation, tap a day for the talk and counts.
+Deployed by name (`functions:ledgerStatsDaily,functions:ledgerStatsRefresh`)
+and verified live: 39 days back to 2026-08-25.
+
+Queued, not built: idea 84, an anonymous per-day counter written by the
+app (e.g. `stats/daily/{date}` with increment-only rules like
+`stats/global`: reads, Talk of the Day reads, and a first-read-of-the-day
+device count), so the calendar can count people who aren't signed in.
+
