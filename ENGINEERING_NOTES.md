@@ -503,6 +503,15 @@ served live at findatalk.com; this one should never be public.
   functions:<name>,...` redeploys just the named functions; a bare
   `--only functions` redeploys every function in the codebase, including
   `stripeWebhook` and `verifyIAPPurchase`.
+  **While `release-1.7.7` is unmerged this is mandatory, not just tidy**:
+  production already has the nine shared-list functions
+  (`createSharedList`, `joinSharedList`, `setSharedListTalk`, etc.) that
+  exist only on that branch, so a bare `--only functions` from `main`
+  aborts ("found in your project but do not exist in your local source
+  code") and, in an interactive terminal, offers to delete them. Never
+  confirm that deletion. Deploy by name (e.g.
+  `--only functions:ledgerStatsDaily,functions:ledgerStatsRefresh`); once
+  1.7.7 is merged to `main` this stops being an issue.
 - **Functions run on Node.js 22** (upgraded 2026-09-23; Node 20 was being
   decommissioned 2026-10-30, after which nothing can be deployed on it).
   The runtime lives in two places that must agree: `engines.node` in
