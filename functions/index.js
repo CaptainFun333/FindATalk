@@ -281,6 +281,7 @@ exports.verifyIAPPurchase = onCall(
 // ledgerStatsRefresh via a Hosting rewrite, same pattern as stripeWebhook.
 const LEDGER_MIN_REFRESH_MS = 10 * 60 * 1000;
 const LEDGER_HISTORY_DAYS = 120;
+const POPULAR_MIN_PEOPLE = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function computeLedgerStats(previous) {
@@ -306,14 +307,38 @@ async function computeLedgerStats(previous) {
 
   let accountsTalksRead = 0, favorites = 0, lists = 0, notes = 0;
   let streaksActive = 0, longestStreak = 0, accountsWithData = 0;
+  const readersByTalk = {}, favoritersByTalk = {}, listersByTalk = {};
+  const speakerKeyReaders = []; // per-user read-key sets, resolved to speakers/topics/books below
+  let studyDaysTotal = 0, studyPeople = 0;
   const sizeOf = (v) => (Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0));
-  const users = await firestore.collection('users').select('read', 'favorites', 'collections', 'notes', 'streak').get();
+  const users = await firestore.collection('users').select('read', 'favorites', 'collections', 'collectionMembers', 'notes', 'streak', 'readLog', 'studyDaysEstimated').get();
   users.forEach((d) => {
     const x = d.data();
     const reads = sizeOf(x.read);
     if (reads || sizeOf(x.favorites) || sizeOf(x.collections) || sizeOf(x.notes)) accountsWithData++;
     accountsTalksRead += reads;
     favorites += sizeOf(x.favorites);
+    // Distinct people per talk (not total reads) — one person rereading a talk
+    // 500 times shouldn't outrank 40 different readers.
+    for (const k of new Set(Array.isArray(x.read) ? x.read : [])) readersByTalk[k] = (readersByTalk[k] || 0) + 1;
+    {
+      const readSet = new Set(Array.isArray(x.read) ? x.read : []);
+      if (readSet.size) speakerKeyReaders.push(readSet);
+      // A talk counts once per person however many of their lists it is on.
+      const listed = new Set();
+      for (const members of Object.values(x.collectionMembers || {})) {
+        if (Array.isArray(members)) members.forEach((k) => listed.add(k));
+      }
+      for (const k of listed) listersByTalk[k] = (listersByTalk[k] || 0) + 1;
+      // Distinct days of study: real read dates plus the streak's own record.
+      const days = new Set();
+      const addDay = (d) => { if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) days.add(d); };
+      for (const dates of Object.values(x.readLog || {})) if (Array.isArray(dates)) dates.forEach(addDay);
+      (Array.isArray(x.studyDaysEstimated) ? x.studyDaysEstimated : []).forEach(addDay);
+      ((x.streak && x.streak.activeDays) || []).forEach(addDay);
+      if (days.size) { studyDaysTotal += days.size; studyPeople++; }
+    }
+    for (const k of new Set(Array.isArray(x.favorites) ? x.favorites : [])) favoritersByTalk[k] = (favoritersByTalk[k] || 0) + 1;
     lists += sizeOf(x.collections);
     notes += sizeOf(x.notes);
     const s = x.streak;
@@ -337,10 +362,59 @@ async function computeLedgerStats(previous) {
     for (const y of (x.years || [])) supportersByYear[y] = (supportersByYear[y] || 0) + 1;
   });
 
-  let content = null;
+  let content = null, popular = null;
   try {
     const res = await fetch('https://findatalk.com/data.json');
     const data = await res.json();
+    // Talks are [title, speaker, year, month, slug]; user docs key them "year|month|slug".
+    const byKey = {};
+    for (const t of data.talks) byKey[`${t[2]}|${t[3]}|${t[4]}`] = t;
+    const top = (counts) => {
+      let best = null;
+      for (const [k, n] of Object.entries(counts)) {
+        if (byKey[k] && (!best || n > best.n)) best = { k, n };
+      }
+      // Below the minimum, publish nothing — a handful of people shouldn't be identifiable.
+      if (!best || best.n < POPULAR_MIN_PEOPLE) return null;
+      const t = byKey[best.k];
+      return { title: t[0], speaker: t[1], year: t[2], month: t[3], people: best.n };
+    };
+    // Roll each person's read talks up to speakers, topics and scripture books,
+    // counting each person once per speaker/topic/book.
+    const peopleBy = { speaker: {}, topic: {}, book: {} };
+    const bump = (map, k) => { map[k] = (map[k] || 0) + 1; };
+    for (const readSet of speakerKeyReaders) {
+      const speakers = new Set(), topics = new Set(), books = new Set();
+      for (const k of readSet) {
+        const t = byKey[k];
+        if (!t) continue;
+        speakers.add(t[1]);
+        (data.topicLookup[k] || []).forEach((tp) => topics.add(tp));
+        for (const i of (data.citationLookup[k] || [])) {
+          const ref = data.citationRefs[i];
+          if (ref) books.add(`${ref[1]}|${ref[2]}`);
+        }
+      }
+      speakers.forEach((v) => bump(peopleBy.speaker, v));
+      topics.forEach((v) => bump(peopleBy.topic, v));
+      books.forEach((v) => bump(peopleBy.book, v));
+    }
+    const topOf = (counts, label) => {
+      let best = null;
+      for (const [k, n] of Object.entries(counts)) if (!best || n > best.n) best = { k, n };
+      if (!best || best.n < POPULAR_MIN_PEOPLE) return null;
+      return { name: label(best.k), people: best.n };
+    };
+    popular = {
+      mostRead: top(readersByTalk),
+      mostFavorited: top(favoritersByTalk),
+      mostListed: top(listersByTalk),
+      topSpeaker: topOf(peopleBy.speaker, (k) => k),
+      topTopic: topOf(peopleBy.topic, (k) => data.topicLabels[k] || k),
+      topBook: topOf(peopleBy.book, (k) => data.citationBookLabels[k] || k),
+      studyDays: studyPeople >= POPULAR_MIN_PEOPLE ? { days: studyDaysTotal, people: studyPeople } : null,
+      minPeople: POPULAR_MIN_PEOPLE,
+    };
     const conferences = new Set(data.talks.map((t) => `${t[2]}-${t[3]}`));
     content = { talks: data.talks.length, conferences: conferences.size, dataGeneratedAt: data.generatedAt };
   } catch (err) {
@@ -357,6 +431,7 @@ async function computeLedgerStats(previous) {
     activity: { globalTalksRead, accountsTalksRead, favorites, lists, notes, streaksActive, longestStreak },
     supporters: { total: supportersTotal, active: supportersActive, byYear: supportersByYear },
     content,
+    popular,
     history: history.slice(-LEDGER_HISTORY_DAYS),
   };
 }
