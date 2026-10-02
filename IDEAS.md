@@ -10,7 +10,7 @@ promise of what ships next. Grouped by status, most active first:
 ## In progress
 
 44. Siri/Google Assistant shortcuts — in progress (iOS done; Android/Google Assistant side still open, more constrained)
-68. Global "impact" counter — in progress (data collection built and writing to the shared counter; no display UI yet)
+68. Global "impact" counter — ongoing (data collection live. The ledger Stats tab now shows a trial "Loved by the community" block: most read, favorited and added-to-list talk, top speaker, topic and scripture chapter with "seek out" versions comparing reading to library share, and total study days. All counted by distinct signed-in members and hidden below 5 people. No in-app display yet)
 
 ## Open
 
