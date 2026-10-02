@@ -282,6 +282,7 @@ exports.verifyIAPPurchase = onCall(
 const LEDGER_MIN_REFRESH_MS = 10 * 60 * 1000;
 const LEDGER_HISTORY_DAYS = 120;
 const POPULAR_MIN_PEOPLE = 5;
+const OVERREAD_MIN_SUPPLY = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function computeLedgerStats(previous) {
@@ -379,25 +380,41 @@ async function computeLedgerStats(previous) {
       const t = byKey[best.k];
       return { title: t[0], speaker: t[1], year: t[2], month: t[3], people: best.n };
     };
-    // Roll each person's read talks up to speakers, topics and scripture books,
-    // counting each person once per speaker/topic/book.
-    const peopleBy = { speaker: {}, topic: {}, book: {} };
+    // Roll each person's read talks up to speakers, topics and scripture chapters.
+    // "People" counts each member once per speaker/topic/chapter; "reads" counts
+    // every member-talk pair, so it can be compared with the library's own mix
+    // (supply) to tell what people gravitate toward from what is merely common.
+    const peopleBy = { speaker: {}, topic: {}, chapter: {} };
+    const readsBy = { topic: {}, chapter: {} };
+    const supplyBy = { topic: {}, chapter: {} };
     const bump = (map, k) => { map[k] = (map[k] || 0) + 1; };
+    const chaptersOf = (k) => {
+      const out = new Set();
+      for (const i of (data.citationLookup[k] || [])) {
+        const ref = data.citationRefs[i];
+        if (ref && ref[3]) out.add(`${ref[1]}|${ref[2]}|${ref[3]}`);
+      }
+      return out;
+    };
+    for (const k of Object.keys(byKey)) {
+      (data.topicLookup[k] || []).forEach((tp) => bump(supplyBy.topic, tp));
+      chaptersOf(k).forEach((c) => bump(supplyBy.chapter, c));
+    }
+    const libraryTalks = Object.keys(byKey).length;
+    let totalReads = 0;
     for (const readSet of speakerKeyReaders) {
-      const speakers = new Set(), topics = new Set(), books = new Set();
+      const speakers = new Set(), topics = new Set(), chapters = new Set();
       for (const k of readSet) {
         const t = byKey[k];
         if (!t) continue;
+        totalReads++;
         speakers.add(t[1]);
-        (data.topicLookup[k] || []).forEach((tp) => topics.add(tp));
-        for (const i of (data.citationLookup[k] || [])) {
-          const ref = data.citationRefs[i];
-          if (ref) books.add(`${ref[1]}|${ref[2]}`);
-        }
+        for (const tp of (data.topicLookup[k] || [])) { topics.add(tp); bump(readsBy.topic, tp); }
+        for (const c of chaptersOf(k)) { chapters.add(c); bump(readsBy.chapter, c); }
       }
       speakers.forEach((v) => bump(peopleBy.speaker, v));
       topics.forEach((v) => bump(peopleBy.topic, v));
-      books.forEach((v) => bump(peopleBy.book, v));
+      chapters.forEach((v) => bump(peopleBy.chapter, v));
     }
     const topOf = (counts, label) => {
       let best = null;
@@ -405,13 +422,34 @@ async function computeLedgerStats(previous) {
       if (!best || best.n < POPULAR_MIN_PEOPLE) return null;
       return { name: label(best.k), people: best.n };
     };
+    // Popularity vs. supply: how much more of members' reading goes to this
+    // topic/chapter than its share of the library would predict. Needs the
+    // minimum number of people so a lone reader can't produce a "favorite".
+    const overRead = (kind, label) => {
+      let best = null;
+      for (const [k, people] of Object.entries(peopleBy[kind])) {
+        // Skip thinly-supplied tags: one talk read by a few people would otherwise
+        // look like a huge preference.
+        if (people < POPULAR_MIN_PEOPLE || (supplyBy[kind][k] || 0) < OVERREAD_MIN_SUPPLY || !totalReads) continue;
+        const lift = (readsBy[kind][k] / totalReads) / (supplyBy[kind][k] / libraryTalks);
+        if (!best || lift > best.lift) best = { k, people, lift };
+      }
+      return best && { name: label(best.k), people: best.people, lift: Math.round(best.lift * 10) / 10 };
+    };
+    const chapterLabel = (k) => {
+      const [vol, book, ch] = k.split('|');
+      return `${data.citationBookLabels[`${vol}|${book}`] || book} ${ch}`;
+    };
+    const topicLabel = (k) => data.topicLabels[k] || k;
     popular = {
       mostRead: top(readersByTalk),
       mostFavorited: top(favoritersByTalk),
       mostListed: top(listersByTalk),
       topSpeaker: topOf(peopleBy.speaker, (k) => k),
-      topTopic: topOf(peopleBy.topic, (k) => data.topicLabels[k] || k),
-      topBook: topOf(peopleBy.book, (k) => data.citationBookLabels[k] || k),
+      topTopic: topOf(peopleBy.topic, topicLabel),
+      topChapter: topOf(peopleBy.chapter, chapterLabel),
+      overReadTopic: overRead('topic', topicLabel),
+      overReadChapter: overRead('chapter', chapterLabel),
       studyDays: studyPeople >= POPULAR_MIN_PEOPLE ? { days: studyDaysTotal, people: studyPeople } : null,
       minPeople: POPULAR_MIN_PEOPLE,
     };

@@ -503,15 +503,18 @@ function renderStats(st) {
       ? `${escapeHtml(t.title)} — ${escapeHtml(t.speaker)} (${escapeHtml(String(t.year))}) · ${fmt(t.people)} ${noun}`
       : 'Not enough data yet (needs ' + pop.minPeople + '+ people)';
     const nameLine = (t) => t ? `${escapeHtml(t.name)} · ${fmt(t.people)} members` : 'Not enough data yet (needs ' + pop.minPeople + '+ people)';
+    const liftLine = (t) => t ? `${escapeHtml(t.name)} · ${fmt(t.people)} members · read ${t.lift}× more than its share of the library` : 'Not enough data yet (needs ' + pop.minPeople + '+ people)';
     html += '<div class="kind-label">Loved by the community</div>'
       + '<p style="font-size:13px;margin:0 0 4px"><strong>Most read:</strong> ' + popLine(pop.mostRead, 'readers') + '</p>'
       + '<p style="font-size:13px;margin:0 0 4px"><strong>Most favorited:</strong> ' + popLine(pop.mostFavorited, 'favorites') + '</p>'
       + '<p style="font-size:13px;margin:0 0 4px"><strong>Most added to lists:</strong> ' + popLine(pop.mostListed, 'members') + '</p>'
       + '<p style="font-size:13px;margin:0 0 4px"><strong>Most-read speaker:</strong> ' + nameLine(pop.topSpeaker) + '</p>'
       + '<p style="font-size:13px;margin:0 0 4px"><strong>Most-read topic:</strong> ' + nameLine(pop.topTopic) + '</p>'
-      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most-cited scripture book:</strong> ' + nameLine(pop.topBook) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Topic people seek out:</strong> ' + liftLine(pop.overReadTopic) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most-cited scripture chapter:</strong> ' + nameLine(pop.topChapter) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Scripture people seek out:</strong> ' + liftLine(pop.overReadChapter) + '</p>'
       + '<p style="font-size:13px;margin:0 0 4px"><strong>Days of study, together:</strong> ' + (pop.studyDays ? fmt(pop.studyDays.days) + ' days across ' + fmt(pop.studyDays.people) + ' members' : 'Not enough data yet') + '</p>'
-      + '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px">Counted by distinct signed-in members, not total reads; hidden until at least ' + pop.minPeople + ' people agree.</p>';
+      + '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px">Counted by distinct signed-in members, not total reads; hidden until at least ' + pop.minPeople + ' people agree. "Seek out" compares how much of members\' reading goes to a topic or chapter with how much of the library carries it, so heavily tagged topics don\'t win by default.</p>';
   }
   if (c) {
     html += '<div class="kind-label">Content</div><div class="stat-grid">'
