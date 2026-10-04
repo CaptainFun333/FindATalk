@@ -92,6 +92,7 @@ promise of what ships next. Grouped by status, most active first:
 80. ~~"Your Journey" — talks read and days studied, by year~~ — ✅ done (‹ year › switcher; hidden until Dec 31, 2026; read dates recorded + estimated backfill; other candidate stats not chosen)
 81. ~~Yearly "Check on your journey in [YEAR]" reveal~~ — ✅ done (Dec 31–Jan 14, 14+ days studied, once a year, with a "Share my year" card)
 82. ~~Reading pace in Your FindATalk~~ — ✅ done (tap Reads & Rereads: About N a day / week / month, On pace for N a year; opens on the friendliest step; after 14 days)
+85. ~~Tap your most-read talk in Your FindATalk to open it~~ — ✅ done (closes the window, lands on the talk's ticket with a pulse, Previous returns you; community lists under idea 68 should follow the same rule when built)
 
 ## Disregarded
 
@@ -110,6 +111,6 @@ promise of what ships next. Grouped by status, most active first:
 
 **In progress:** 44, 68
 **Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66, 83, 84
-**Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82
+**Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 85
 **Disregarded:** 1, 2, 26, 50
 **Obsolete:** 39, 42, 43

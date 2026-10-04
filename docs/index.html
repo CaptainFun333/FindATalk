@@ -946,6 +946,13 @@
   .stats-cycle-row .badge-row-text{ flex:1; min-width:0; }
   .stats-cycle-row .badge-row-text strong{ font-size:17px; line-height:1.25; }
   .stats-cycle-row .badge-icon{ font-size:22px; }
+  /* Idea 85 — a row that opens a talk's ticket. The chevron is what tells
+     it apart from the plain stat rows around it. */
+  .stats-talk-row{ width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; }
+  .stats-talk-row:hover{ border-color:var(--brass); }
+  .stats-talk-row:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .stats-talk-row .badge-row-text{ flex:1; min-width:0; }
+  .stats-talk-chev{ flex-shrink:0; font-size:20px; line-height:1; color:var(--ink-soft); }
   .stats-cycle-dots{ display:flex; gap:4px; flex-shrink:0; }
   .stats-cycle-dots i{ width:6px; height:6px; border-radius:50%; background:var(--line); }
   .stats-cycle-dots i.is-on{ background:var(--brass); }
@@ -3960,10 +3967,13 @@
         <span class="badge-row-text"><strong class="stats-cycle-stack" id="statTotalReadsLine" aria-live="polite">0 Reads &amp; Rereads</strong></span>
         <span class="stats-cycle-dots" id="readsCycleDots" aria-hidden="true"></span>
       </button>
-      <div class="stats-context-row" id="statsMostReadRow" hidden>
-        <span class="badge-icon">&#128214;</span>
-        <div class="badge-row-text"><strong id="statsMostReadTitle"></strong><span id="statsMostReadMeta"></span></div>
-      </div>
+      <!-- Idea 85 — a real button: tapping it closes this panel and opens
+           that talk's ticket on Home. See onOpenTalkTicket. -->
+      <button type="button" class="stats-context-row stats-talk-row" id="statsMostReadRow" hidden>
+        <span class="badge-icon" aria-hidden="true">&#128214;</span>
+        <span class="badge-row-text"><strong id="statsMostReadTitle"></strong><span id="statsMostReadMeta"></span></span>
+        <span class="stats-talk-chev" aria-hidden="true">&rsaquo;</span>
+      </button>
 
       <!-- "Read ×N" — the exact same badge text idea 55 already uses next
            to a talk's own Read checkmark (readBadgeHtml()), reused here
@@ -4710,7 +4720,9 @@ function renderTrophyPreview(){
   // not objects — talk[0]/talk[1], same lesson idea 69's note-conflict
   // modal already hit live over this exact assumption.
   mrRow.hidden = !mr;
+  trophyMostReadTalk = mr ? mr.talk : null;
   if (mr){
+    mrRow.setAttribute('aria-label', `Open ${mr.talk[0]}, your most-read talk`);
     document.getElementById('statsMostReadTitle').textContent = mr.talk[0];
     // "Read ×N" — the exact same badge text idea 55 already uses next to
     // a talk's own Read checkmark (readBadgeHtml()), reused here instead
@@ -4937,6 +4949,17 @@ function closeTrophyModal(){
   trophyModalOverlay.hidden = true;
 }
 document.getElementById('trophyBtn').addEventListener('click', openTrophyModal);
+// Idea 85 — the Most-Read Talk row opens that talk's ticket. Closes the
+// panel first (the ticket is on Home, behind it), then hands off through
+// onOpenTalkTicket rather than calling showTicket() by name — that
+// function lives inside initApp()'s closure, out of reach from here.
+let trophyMostReadTalk = null;
+document.getElementById('statsMostReadRow').addEventListener('click', ()=>{
+  const talk = trophyMostReadTalk;
+  if (!talk) return;
+  closeTrophyModal();
+  if (onOpenTalkTicket) onOpenTalkTicket(talk);
+});
 document.getElementById('trophyModalClose').addEventListener('click', closeTrophyModal);
 trophyModalOverlay.addEventListener('click', (e)=>{
   if (e.target === trophyModalOverlay) closeTrophyModal();
@@ -6373,6 +6396,10 @@ let pendingCloudUserSet = false;
 // this file is declared.
 let onClearLocalData = null;
 let onDeleteMyAccount = null;
+// Idea 85 — same indirection again: opening a talk's ticket from a
+// top-level click handler (the "Your FindATalk" panel) needs showTicket(),
+// which is inside initApp(). Assigned next to checkForSharedTalkLink().
+let onOpenTalkTicket = null;
 // Idea 67 — same indirection-slot pattern again, same real bug caught
 // live (not just reasoned about): openSupportModal() is defined inside
 // initApp()'s closure (alongside initSupportUI(), which assigns this
@@ -13439,6 +13466,20 @@ function checkForSharedTalkLink(urlString){
     revealSharedTicket();
   }
 }
+// Idea 85 — open a specific talk's ticket from elsewhere in the app (the
+// Most-Read Talk row in "Your FindATalk"). Same landing as a shared link
+// above, plus history: whatever was on the ticket goes onto pickHistory
+// first, so Previous returns to it, exactly like a fresh draw() does.
+function openTalkTicket(talk){
+  if (!talk) return;
+  const same = lastPicked && talkKey(lastPicked) === talkKey(talk);
+  if (lastPicked && !same){ pickHistory.push(lastPicked); pickFuture = []; }
+  goToNavZone('home');
+  showTicket(talk);
+  updateBackBtn();
+  revealSharedTicket();
+}
+onOpenTalkTicket = openTalkTicket;
 
 /* Land at the top of Home first, then glide down to the shared talk's
    ticket and pulse it once. The delay isn't cosmetic: showZone()'s own
