@@ -17,6 +17,7 @@ this updated.
 - Each year from December 31 through January 14, the app shows a one-time "Check on your journey" popup with how many talks you read and days you studied that year, a button to see your full journey, and an option to share a card of your year. It only appears if you studied at least 14 days that year, and never on a day another popup already showed. (Requires a new build on both iPhone/iPad and Android to take effect — live on the website on December 31.)
 
 ### Fixed
+- A saved streak (the "Missed yesterday? Read 2 talks today" offer) could drop back to Day 1 for signed-in users a moment after it worked, when syncing between devices. The saved streak now stays saved. The offer notification also no longer arrives the next morning, after the offer has already expired. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - Sharing a list with more than 20 talks only included the first 20 (and said so in the message); it now shares up to 300 talks. (Requires a new build on both iPhone/iPad and Android to take effect — live immediately on the website.)
 - On some internet connections, findatalk.com had been showing a "this domain is parked" page instead of FindATalk since early September, which could also stop the app from picking up new talk data. Fixed, and the site is now checked automatically every 10 minutes. (Server-side fix; no new build needed.)
 
