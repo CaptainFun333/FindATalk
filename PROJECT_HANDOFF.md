@@ -4532,3 +4532,60 @@ app (e.g. `stats/daily/{date}` with increment-only rules like
 `stats/global`: reads, Talk of the Day reads, and a first-read-of-the-day
 device count), so the calendar can count people who aren't signed in.
 
+
+
+## 2026-10-04 — Parts & names glossary (what we call things in the UI)
+
+Shared vocabulary so requests mean the same thing. Class names are in
+`docs/index.html`. A visual version lives in `docs/ledger.html` under
+Style Guide → "Parts & names" (keep the two in step if a part is added or
+renamed).
+
+**Small things**
+- **Chip** (`.chip`, `.topic`): small rounded tag on content (topic chips).
+  **Citation chip** (`.cite-chip`): the same for scripture references, in
+  the "Citations:" row. Tags you read, not controls.
+- **Pill buttons** (`.list-size-btn`): round buttons you press to pick one
+  value, e.g. the 5/10/25/50 "Show a List" size picker. Some older notes
+  call the citation row a "pill row"; say "chip" for the tag.
+- **Segmented control** (`.segmented`): pill buttons joined into one strip
+  (Color Palette in Settings).
+- **Switch** (`.switch`): on/off slider in Settings.
+- **Badge**: either an *achievement badge* (`.badge-row`, `.badge-icon`,
+  earned/locked) or a *label badge* (`.ticket-read-badge`, `.cite-count-badge`).
+  Always say which.
+- **Toast**: brief self-dismissing message (e.g. import summary).
+
+**Buttons and links**
+- **Primary button** `.btn-primary` (filled), **Ghost button** `.btn-ghost`
+  (outlined), **Reset link** `.reset-link` (text-only), **Sort toggle**
+  `.sort-toggle` / `.sort-toggle-btn` (with the flip arrow).
+
+**Cards and panels**
+- **Ticket** (`.ticket`): the card for one drawn talk. **Talk of the Day
+  card** (`.totd`) is the home-page version.
+- **List item / row** (`.list-item`): one talk on a list page.
+- **Narrow box** (`.narrow-box`): collapsible header + body (Stats page).
+- **Stat cell / stat grid** (`.stat-cell`, `.stat-grid`): number tiles.
+- **Streak badge** (`.streak-badge`): the streak indicator.
+
+**Filters and inputs**
+- **Multi-select** (`.ms-trigger` = the closed button, `.ms-panel` = the
+  opened list with search, options, footer).
+- **Search field** (`.search-field`): input with clear (×) button.
+- **Bulk bar** (`.list-bulk-bar`): shows when several rows are selected.
+- **Pagination** (`.list-pagination`): prev/next + page indicator.
+
+**Modal** (`.modal-overlay` = dimmed backdrop, `.modal` = the box, with
+`.modal-header`, `.modal-close`, `.modal-actions`): a popup that waits for
+an answer. About 23 exist: Settings, Sign in, Add to a List (`collection`
+in code), Note, Note conflict, Trophy, Badges, Badge celebration, Secret
+reveal, Journey reveal, Streak salvage, Support, Support ask, Rating ask,
+Onboarding, Clear data, Delete account, Shared list, TOTD calendar, CFM
+calendar, Notification permission, Share compose, Cite destination.
+
+**Pages** are full screens that aren't modals (Favorites, My Notes,
+Stats…), each with a `.page-header` and often a list.
+
+**Easy to confuse:** chip (tag) vs pill (button); toast (fades) vs modal
+(blocks).

@@ -165,6 +165,59 @@
   .cal-detail { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0 4px; font-size: 13px; }
   .cal-detail .dt { font-weight: 600; margin-bottom: 4px; }
   footer { margin-top: 48px; color: var(--ink-soft); font-size: 12px; text-align: center; }
+
+  /* Style Guide > Parts & names specimens */
+  .pt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 8px 0 20px; }
+  .pt-spec { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .pt-spec.wide { grid-column: 1 / -1; }
+  .pt-stage { background: var(--paper); border: 1px dashed var(--line); border-radius: var(--radius); padding: 12px; min-height: 56px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+  .pt-name { font-weight: 700; font-size: 13.5px; }
+  .pt-name code { margin-left: 6px; color: var(--accent-a); font-weight: 500; }
+  .pt-note { font-size: 12.5px; color: var(--ink-soft); margin: 4px 0 0; }
+  .pt-chip { font-size: 11px; color: var(--accent-b); border: 1px solid var(--chip-border); background: var(--chip-bg); padding: 4px 10px; border-radius: var(--radius-lg); }
+  .pt-chip.cite { border-style: dashed; }
+  .pt-pill { font-size: 12px; padding: 5px 12px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--paper-raised); }
+  .pt-pill.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .pt-seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .pt-seg span { padding: 6px 12px; font-size: 12px; border-left: 1px solid var(--line); }
+  .pt-seg span:first-child { border-left: 0; }
+  .pt-seg .on { background: var(--ink); color: var(--paper); }
+  .pt-sw { width: 42px; height: 24px; border-radius: 12px; background: var(--accent-a); position: relative; }
+  .pt-sw::after { content: ""; position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+  .pt-btn { font: 600 13px var(--font-sans); padding: 8px 16px; border-radius: var(--radius); border: 1px solid transparent; }
+  .pt-btn.primary { background: var(--accent-fill); color: var(--on-accent); }
+  .pt-btn.ghost { border-color: var(--line); }
+  .pt-link { font-size: 12px; color: var(--accent-b); text-decoration: underline; }
+  .pt-small { font-size: 12px; border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 10px; }
+  .pt-badge { display: flex; align-items: center; gap: 8px; font-size: 12px; border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; background: var(--paper-raised); }
+  .pt-lbl { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--accent-a); color: var(--accent-a); padding: 2px 7px; border-radius: 3px; }
+  .pt-toast { background: var(--ink); color: var(--paper); font-size: 12.5px; padding: 9px 14px; border-radius: 6px; box-shadow: var(--shadow); }
+  .pt-ticket { width: 100%; background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); }
+  .pt-ticket .t { font-family: var(--font-serif); font-weight: 600; font-size: 16px; }
+  .pt-ticket .m { font-size: 12px; color: var(--ink-soft); }
+  .pt-ticket .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pt-row { width: 100%; display: flex; gap: 10px; align-items: center; border-top: 1px solid var(--line); padding: 8px 2px; font-size: 13px; }
+  .pt-row i { width: 14px; height: 14px; border: 1.5px solid var(--ink-soft); border-radius: 3px; flex: none; }
+  .pt-nb { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper-raised); }
+  .pt-nb .h { padding: 8px 12px; font-weight: 600; font-size: 13px; background: var(--tint); display: flex; justify-content: space-between; }
+  .pt-nb .b { padding: 10px 12px; font-size: 12.5px; color: var(--ink-soft); }
+  .pt-cells { display: flex; gap: 8px; width: 100%; }
+  .pt-cell { flex: 1; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; text-align: center; background: var(--paper-raised); }
+  .pt-cell b { display: block; font-family: var(--font-serif); font-size: 20px; }
+  .pt-cell small { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; }
+  .pt-ms { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .pt-ms .trig { border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; font-size: 12.5px; display: flex; justify-content: space-between; background: var(--paper-raised); }
+  .pt-ms .panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper-raised); font-size: 12.5px; }
+  .pt-ms .panel div { padding: 6px 10px; border-top: 1px solid var(--line); }
+  .pt-ms .panel div:first-child { border-top: 0; color: var(--ink-soft); }
+  .pt-search { width: 100%; display: flex; justify-content: space-between; border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; background: var(--paper-raised); font-size: 12.5px; }
+  .pt-bulk { width: 100%; display: flex; justify-content: space-between; background: var(--ink); color: var(--paper); padding: 8px 12px; border-radius: var(--radius); font-size: 12.5px; }
+  .pt-pag { display: flex; gap: 10px; align-items: center; font-size: 12px; }
+  .pt-overlay { width: 100%; background: rgba(28,44,66,.45); border-radius: var(--radius); padding: 22px 16px; display: flex; justify-content: center; }
+  .pt-modal { width: min(300px, 100%); background: var(--paper-raised); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow); }
+  .pt-modal .hd { display: flex; justify-content: space-between; font-family: var(--font-serif); font-weight: 600; font-size: 15px; }
+  .pt-modal p { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
+  .pt-modal .act { display: flex; gap: 8px; justify-content: flex-end; }
 </style>
 </head>
 <body>
@@ -255,6 +308,50 @@
       <li>Fully-rounded pills (<code>999px</code>) mark filter chips and status badges; <code>50%</code> is reserved for circular elements.</li>
       <li>One soft shadow style only, tinted with the palette's own <code>ink</code> at low alpha (never pure black) — no second "card shadow." Use a border instead when a surface needs separation but not lift.</li>
     </ul>
+
+    <p class="kind-label">Parts &amp; names</p>
+    <p>What each piece of the app looks like and what we call it, so we mean the same thing in a request. The gray code is the class name in <code>docs/index.html</code>. These are redrawn specimens using this page's own colors, not screenshots; they follow whichever palette this page is in.</p>
+
+    <p class="kind-label">Small things</p>
+    <div class="pt-grid">
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-chip">Charity</span><span class="pt-chip">Faith</span><span class="pt-chip cite">Alma 32</span></div><div><span class="pt-name">Chip<code>.chip</code></span><p class="pt-note">A small rounded tag on content. Topic chips are solid; scripture citation chips (<code>.cite-chip</code>) are the same idea for references. You read these rather than press them to change a setting.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-pill">5</span><span class="pt-pill on">10</span><span class="pt-pill">25</span><span class="pt-pill">50</span></div><div><span class="pt-name">Pill buttons<code>.list-size-btn</code></span><p class="pt-note">Round buttons you press to choose one value, like the "Show a List" size picker.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-seg"><span>Brass</span><span class="on">Rose</span><span>Slate</span></span></div><div><span class="pt-name">Segmented control<code>.segmented</code></span><p class="pt-note">Pill buttons joined into one strip, like the Color Palette in Settings.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-sw"></span></div><div><span class="pt-name">Switch<code>.switch</code></span><p class="pt-note">On/off slider in Settings.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-badge"><b>&#127942;</b>Earned badge</span><span class="pt-lbl">Read</span></div><div><span class="pt-name">Badge<code>.badge-row</code></span><p class="pt-note">Two meanings: an achievement badge (icon and name) or a label badge like "Read" (<code>.ticket-read-badge</code>). Say which one you mean.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-toast">Imported 12 talks</span></div><div><span class="pt-name">Toast</span><p class="pt-note">A short message that appears and fades on its own. It never asks you anything.</p></div></div>
+    </div>
+
+    <p class="kind-label">Buttons and links</p>
+    <div class="pt-grid">
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-btn primary">Open This Talk</span></div><div><span class="pt-name">Primary button<code>.btn-primary</code></span><p class="pt-note">The filled main action.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-btn ghost">Cancel</span></div><div><span class="pt-name">Ghost button<code>.btn-ghost</code></span><p class="pt-note">Outlined, lower emphasis.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-link">Reset filters</span></div><div><span class="pt-name">Reset link<code>.reset-link</code></span><p class="pt-note">Text-only action that looks like a link.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-small">Date &#8645;</span><span class="pt-small">Title &#8645;</span></div><div><span class="pt-name">Sort toggle<code>.sort-toggle-btn</code></span><p class="pt-note">Sort buttons with the flip arrow.</p></div></div>
+    </div>
+
+    <p class="kind-label">Cards and panels</p>
+    <div class="pt-grid">
+      <div class="pt-spec wide"><div class="pt-stage"><div class="pt-ticket"><span class="eyebrow">Talk of the Day</span><span class="t">The Power of Everyday Faith</span><span class="m">Elder Example &middot; Apostle &middot; Apr 2024</span><div class="row"><span class="pt-chip">Faith</span><span class="pt-chip">Daily living</span><span class="pt-chip cite">Alma 32</span></div></div></div><div><span class="pt-name">Ticket<code>.ticket</code></span><p class="pt-note">The card showing one talk: title, speaker, meta, chips. The same card with a "Talk of the Day" eyebrow sits at the top of the home page (<code>.totd</code>).</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div style="width:100%"><div class="pt-row"><i></i><span>Talk title one</span></div><div class="pt-row"><i></i><span>Talk title two</span></div></div></div><div><span class="pt-name">List item / row<code>.list-item</code></span><p class="pt-note">One talk inside Favorites, My Notes or any list page.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-nb"><div class="h">Your reading <span>&#9662;</span></div><div class="b">Collapsible body text.</div></div></div><div><span class="pt-name">Narrow box<code>.narrow-box</code></span><p class="pt-note">Header plus a body that opens and closes.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-cells"><div class="pt-cell"><b>42</b><small>Read</small></div><div class="pt-cell"><b>7</b><small>Streak</small></div></div></div><div><span class="pt-name">Stat cell / grid<code>.stat-cell</code></span><p class="pt-note">Number tiles on the Stats page.</p></div></div>
+    </div>
+
+    <p class="kind-label">Filters and inputs</p>
+    <div class="pt-grid">
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-ms"><div class="trig"><span>Topic: Faith, Hope</span><span>&#9662;</span></div><div class="panel"><div>Search topics&hellip;</div><div>&#9745; Faith</div><div>&#9744; Charity</div></div></div></div><div><span class="pt-name">Multi-select<code>.ms-trigger / .ms-panel</code></span><p class="pt-note">The custom dropdown. The <strong>trigger</strong> is the closed button on top; the <strong>panel</strong> is the opened list under it.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-search"><span>Search talks&hellip;</span><span>&times;</span></div></div><div><span class="pt-name">Search field<code>.search-field</code></span><p class="pt-note">Text box with a clear (&times;) button.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-bulk"><span>3 selected</span><span>Add to list</span></div></div><div><span class="pt-name">Bulk bar<code>.list-bulk-bar</code></span><p class="pt-note">Appears when you select several rows.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-pag"><span class="pt-pill">&lsaquo; Prev</span><span>Page 2 of 5</span><span class="pt-pill">Next &rsaquo;</span></div></div><div><span class="pt-name">Pagination<code>.list-pagination</code></span><p class="pt-note">Prev/next and the page indicator at the bottom of a list.</p></div></div>
+    </div>
+
+    <p class="kind-label">Modal</p>
+    <div class="pt-grid">
+      <div class="pt-spec wide"><div class="pt-overlay"><div class="pt-modal"><div class="hd"><span>Add to a List</span><span>&#10005;</span></div><p>&#9745; Favorites &nbsp; &#9744; Sunday lesson ideas</p><div class="act"><span class="pt-btn ghost">Cancel</span><span class="pt-btn primary">Done</span></div></div></div><div><span class="pt-name">Modal<code>.modal-overlay + .modal</code></span><p class="pt-note">A popup over a dimmed backdrop that waits for you. The dim layer is the <strong>overlay</strong>; the box is the <strong>modal</strong>, with a header, a close &#10005; and action buttons. The app has about 23: Settings, Sign in, Add to a List, Note, Note conflict, Trophy, Badges, Badge celebration, Secret reveal, Journey reveal, Streak salvage, Support, Rating ask, Onboarding, Clear data, Delete account, Shared list, TOTD calendar, Notification permission, Share compose.</p></div></div>
+    </div>
+    <p class="pt-note"><strong>Easy to mix up.</strong> A <em>chip</em> is a tag on content; a <em>pill</em> is a button you press. A <em>toast</em> fades on its own; a <em>modal</em> blocks the screen until you answer. For <em>badge</em>, say "achievement badge" or "Read label".</p>
+
     <p style="font-size:12.5px;color:var(--ink-soft)">Full token values (all ten themes, gradients, chips, hairlines) live in the design-system artifact this page was built from. Ask Claude for the link if you need to hand it to someone else.</p>
   </section>
 
