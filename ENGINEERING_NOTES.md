@@ -583,3 +583,6 @@ served live at findatalk.com; this one should never be public.
   `curl --resolve findatalk.com:443:185.199.108.153 https://findatalk.com/`
   confirms GitHub Pages itself is fine regardless of DNS.
 
+
+## Streak salvage vs. cloud/backup merge
+- `mergeStreakData()` never trusts a cached `count`; it rebuilds it by walking consecutive days in `activeDays`. A streak salvage (idea 70) intentionally leaves the missed day out of `activeDays`, so any sync pull recomputed the count as 1 and silently undid the salvage for signed-in users (reported: pill showed "Day 1" after a successful save). Fix: the streak object carries `bridgedDays` (the forgiven day), unioned in merges, and `recomputeStreakFromActiveDays()` walks through bridged days without counting them. Any new code that rebuilds streak count from `activeDays` must honor `bridgedDays`.

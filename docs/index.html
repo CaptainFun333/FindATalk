@@ -6785,11 +6785,12 @@ function loadStreak(){
         count: parsed.count|0,
         longest: parsed.longest|0,
         lastDate: parsed.lastDate || null,
-        activeDays: Array.isArray(parsed.activeDays) ? parsed.activeDays.filter(d=> typeof d === 'string') : []
+        activeDays: Array.isArray(parsed.activeDays) ? parsed.activeDays.filter(d=> typeof d === 'string') : [],
+        bridgedDays: Array.isArray(parsed.bridgedDays) ? parsed.bridgedDays.filter(d=> typeof d === 'string') : []
       };
     }
   } catch(err){ /* fall through to a fresh streak below */ }
-  return {count: 0, longest: 0, lastDate: null, activeDays: []};
+  return {count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []};
 }
 function saveStreak(streak){
   try { localStorage.setItem(STREAK_KEY, JSON.stringify(streak)); }
@@ -6999,6 +7000,10 @@ function applyStreakSalvageIfEligible(creditDay, alreadyCreditedToday){
   if (streak.lastDate !== creditDay) return; // sanity guard — should always be true here
   streak.count = record.priorCount + 1;
   streak.longest = Math.max(streak.longest, streak.count);
+  // Record the forgiven day so cloud/backup merges (which rebuild `count`
+  // from activeDays) bridge the gap instead of undoing the salvage.
+  const missedDay = localDateSeed(new Date(new Date(creditDay + 'T00:00:00').getTime() - 24*60*60*1000));
+  if (!streak.bridgedDays.includes(missedDay)) streak.bridgedDays.push(missedDay);
   saveStreak(streak);
   record.usedAt = Date.now();
   saveStreakSalvage(record);
@@ -7684,13 +7689,17 @@ function watchForStreakRisk(){
 async function scheduleStreakSalvageNotification(){
   const LocalNotifications = await getGrantedLocalNotifications();
   if (!LocalNotifications) return;
+  // The offer only holds for today — if quiet hours push the delivery to
+  // tomorrow morning, it would promise a save that's already expired.
+  const at = nextQuietHoursTime(9, 20);
+  if (localDateSeed(at) !== localDateSeed()) return;
   try {
     await LocalNotifications.schedule({
       notifications: [{
         id: STREAK_SALVAGE_NOTIF_ID,
         title: 'FindATalk',
         body: 'Missed yesterday? Read 2 talks today to save your streak.',
-        schedule: { at: nextQuietHoursTime(9, 20), allowWhileIdle: true }
+        schedule: { at, allowWhileIdle: true }
       }]
     });
   } catch(err){ /* not fatal */ }
@@ -13925,17 +13934,21 @@ async function saveBackupToFile(){
    yesterday, relative to right now) is deliberately left to
    settleStreak() — this only answers "how long is the run," not "is it
    still alive." */
-function recomputeStreakFromActiveDays(activeDays, priorLongest){
-  if (!activeDays.length) return {count: 0, longest: priorLongest|0, lastDate: null, activeDays};
+function recomputeStreakFromActiveDays(activeDays, priorLongest, bridgedDays){
+  bridgedDays = bridgedDays || [];
+  if (!activeDays.length) return {count: 0, longest: priorLongest|0, lastDate: null, activeDays, bridgedDays};
   const daySet = new Set(activeDays);
+  const bridgeSet = new Set(bridgedDays);
   const lastDate = activeDays[activeDays.length - 1]; // pruneActiveDays returns a sorted copy
   let count = 0;
   let cursor = lastDate;
-  while (daySet.has(cursor)){
-    count++;
+  // A salvaged (bridged) day keeps the run unbroken but isn't itself counted,
+  // matching what applyStreakSalvageIfEligible() produced locally.
+  while (daySet.has(cursor) || bridgeSet.has(cursor)){
+    if (daySet.has(cursor)) count++;
     cursor = localDateSeed(new Date(new Date(cursor + 'T00:00:00').getTime() - 24*60*60*1000));
   }
-  return {count, longest: Math.max(priorLongest|0, count), lastDate, activeDays};
+  return {count, longest: Math.max(priorLongest|0, count), lastDate, activeDays, bridgedDays};
 }
 function mergeStreakData(incoming){
   if (!incoming || typeof incoming !== 'object') return;
@@ -13947,7 +13960,10 @@ function mergeStreakData(incoming){
     [...local.activeDays, ...(Array.isArray(incoming.activeDays) ? incoming.activeDays : [])],
     new Date()
   );
-  const merged = recomputeStreakFromActiveDays(activeDays, Math.max(local.longest|0, incoming.longest|0));
+  const cutoff = activeDays.length ? activeDays[0] : '';
+  const bridgedDays = [...new Set([...local.bridgedDays, ...(Array.isArray(incoming.bridgedDays) ? incoming.bridgedDays.filter(d=> typeof d === 'string') : [])])]
+    .filter(d=> d >= cutoff).sort();
+  const merged = recomputeStreakFromActiveDays(activeDays, Math.max(local.longest|0, incoming.longest|0), bridgedDays);
   // recomputeStreakFromActiveDays() only counts the consecutive run ending
   // at the last recorded active day — it doesn't know or care whether that
   // day was recent, so a long-expired streak still comes back with a
@@ -14623,7 +14639,7 @@ async function clearAllLocalDataAndSignOut(){
   collections = []; collectionUpdatedAt = {}; deletedCollections = {}; saveCollections();
   collectionMembers = {}; collectionMemberUpdatedAt = {}; saveCollectionMembers();
   noteMap = {}; noteUpdatedAt = {}; saveNotes();
-  saveStreak({count: 0, longest: 0, lastDate: null, activeDays: []});
+  saveStreak({count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []});
   // Same refresh list applyCloudMergeAndRefresh() uses, for the same
   // reason — every screen that could be showing now-stale data.
   renderCollectionsIndexPage();
