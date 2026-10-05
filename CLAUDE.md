@@ -144,4 +144,8 @@ which the function recomputes with `functions/totd.js` — a port of
 `functions/totd.js` to match and redeploy**, or the calendar will name the
 wrong talk.
 
+The same goes for the General Conference weekend rule (`isConferenceDay`),
+which lives in four places — the app, the iOS widget, the Android widget,
+and `functions/totd.js`. See `ENGINEERING_NOTES.md` (Talk of the Day).
+
 See `PROJECT_HANDOFF.md` for full architecture/history detail.

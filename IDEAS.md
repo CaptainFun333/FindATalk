@@ -11,6 +11,7 @@ promise of what ships next. Grouped by status, most active first:
 
 44. Siri/Google Assistant shortcuts — in progress (iOS done; Android/Google Assistant side still open, more constrained)
 86. Fix a member's streak from the ledger — in progress (built 2026-10-04: private Admin tab at `ledger.html#admin`, look up an account by email, see missed days, mark them forgiven; waiting on a Firebase deploy)
+87. General Conference weekend card — in progress (built 2026-10-04 on branch `conference-weekend`, not yet on main: on conference Saturday and Sunday in April and October the Talk of the Day gives way to "Are you participating in General Conference today?"; Yes counts toward the streak, No draws a random talk, no Talk of the Day is assigned those days; widgets, daily reminder, streak warning and the calendar all follow; needs new builds and a Firebase deploy for the ledger calendar)
 68. Global "impact" counter — ongoing (data collection live. The ledger Stats tab now shows a trial "Loved by the community" block: most read, favorited and added-to-list talk, top speaker, topic and scripture chapter with "seek out" versions comparing reading to library share, and total study days. All counted by distinct signed-in members and hidden below 5 people. No in-app display yet)
 
 ## Open
@@ -110,7 +111,7 @@ promise of what ships next. Grouped by status, most active first:
 
 ---
 
-**In progress:** 44, 68
+**In progress:** 44, 68, 86, 87
 **Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 57, 64, 66, 83, 84
 **Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 85
 **Disregarded:** 1, 2, 26, 50

@@ -64,9 +64,24 @@ const HOLIDAYS = [
   ['christmas', 12, fixed(25)],
 ];
 
+// Port of isConferenceDay() in docs/index.html — keep in sync. General
+// Conference is the first Sunday of April and of October plus the Saturday
+// before it (which can land on the last day of March or September). The app
+// shows no Talk of the Day on those days: a card asks "Are you participating
+// in General Conference today?" instead.
+function isConferenceDay(y, m, d) {
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const dow = date.getUTCDay();
+  if (dow !== 0 && dow !== 6) return false;
+  const sunday = dow === 0 ? date : new Date(Date.UTC(y, m - 1, d + 1));
+  const month = sunday.getUTCMonth() + 1;
+  return (month === 4 || month === 10) && sunday.getUTCDate() <= 7;
+}
+
 const talkKey = (t) => `${t[2]}|${t[3]}|${t[4]}`;
 
-// data is the parsed data.json. Returns (year, month, day) => talk tuple.
+// data is the parsed data.json. Returns (year, month, day) => talk tuple, or
+// null on a General Conference day.
 function makeTotdPicker(data) {
   const sorted = [...data.talks].sort((a, b) => {
     const ka = talkKey(a), kb = talkKey(b);
@@ -75,6 +90,7 @@ function makeTotdPicker(data) {
   const orders = {};
   return (y, m, d) => {
     if (!sorted.length) return null;
+    if (isConferenceDay(y, m, d)) return null;
     const utc = Date.UTC(y, m - 1, d);
     const dow = new Date(utc).getUTCDay();
     for (const [topic, month, matches] of HOLIDAYS) {
@@ -91,4 +107,4 @@ function makeTotdPicker(data) {
   };
 }
 
-module.exports = { makeTotdPicker, talkKey };
+module.exports = { makeTotdPicker, talkKey, isConferenceDay };

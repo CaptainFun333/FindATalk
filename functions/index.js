@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { SignedDataVerifier, Environment } = require('@apple/app-store-server-library');
-const { makeTotdPicker, talkKey } = require('./totd');
+const { makeTotdPicker, talkKey, isConferenceDay } = require('./totd');
 const { isDay, recomputeStreak } = require('./streak');
 
 initializeApp();
@@ -302,7 +302,7 @@ async function computeLedgerStats(previous, { scheduled } = {}) {
   const todayLocal = denverDate(now);
   const calendarStart = shiftDate(todayLocal, -(LEDGER_HISTORY_DAYS - 1));
   // Per day: distinct accounts that read anything, and distinct accounts per talk.
-  const readersByDay = {}, talkReadersByDay = {};
+  const readersByDay = {}, talkReadersByDay = {}, conferenceJoinedByDay = {};
 
   const providers = {};
   let total = 0, new7 = 0, new30 = 0, active7 = 0, active30 = 0;
@@ -364,6 +364,10 @@ async function computeLedgerStats(previous, { scheduled } = {}) {
         }
       }
       for (const dk of talkDays) talkReadersByDay[dk] = (talkReadersByDay[dk] || 0) + 1;
+      // General Conference days this person answered "Yes" on in the app.
+      for (const day of new Set(Array.isArray(x.conferenceDays) ? x.conferenceDays : [])) {
+        if (typeof day === 'string' && day >= calendarStart) conferenceJoinedByDay[day] = (conferenceJoinedByDay[day] || 0) + 1;
+      }
     }
     for (const k of new Set(Array.isArray(x.favorites) ? x.favorites : [])) favoritersByTalk[k] = (favoritersByTalk[k] || 0) + 1;
     lists += sizeOf(x.collections);
@@ -507,11 +511,14 @@ async function computeLedgerStats(previous, { scheduled } = {}) {
   let calendar = [];
   for (let d = calendarStart; d <= todayLocal; d = shiftDate(d, 1)) {
     let talk = (stored[d] && stored[d].talk) || null;
+    const [y, m, day] = d.split('-').map(Number);
     if (!talk && pickTalk && d >= dataDate) {
-      const [y, m, day] = d.split('-').map(Number);
       const t = pickTalk(y, m, day);
       if (t) talk = { k: talkKey(t), title: t[0], speaker: t[1] };
     }
+    // The app features no talk on a General Conference day. A conference day
+    // from before that began keeps the talk already stored for it.
+    const conference = !talk && isConferenceDay(y, m, day);
     const next = shiftDate(d, 1);
     const end = next in morning ? morning[next] : (d === todayLocal ? globalTalksRead : null);
     calendar.push({
@@ -519,6 +526,7 @@ async function computeLedgerStats(previous, { scheduled } = {}) {
       talk,
       readers: readersByDay[d] || 0,
       totdReaders: talk ? (talkReadersByDay[`${d}|${talk.k}`] || 0) : 0,
+      ...(conference ? { conference: true, conferenceJoined: conferenceJoinedByDay[d] || 0 } : {}),
       reads: d in morning && end !== null ? Math.max(0, end - morning[d]) : null,
     });
   }

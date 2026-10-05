@@ -442,6 +442,10 @@ served live at findatalk.com; this one should never be public.
   `totdHistory`; the ledger does the same by storing each day's pick in
   `stats/ledger`'s `calendar` and never recomputing a stored day.
 
+- **General Conference days have no Talk of the Day (idea 87).** `talkForDate()` returns null when `isConferenceDay(d)` is true, and nothing is written to the Talk of the Day history for that day. Anything that reads `talkForDate()` or the history must cope with a missing day. Days before this shipped can still have a recorded talk on a conference date; the calendar shows that talk rather than the conference marker.
+- **The conference-day rule exists in four copies that must agree:** `isConferenceDay(d)` in `docs/index.html`, `TalkStore.isConferenceDay` in `ios/App/TalkOfDayWidget/TalkModel.swift`, `ConferenceWeekend.java` (Android widget), and `isConferenceDay(y, m, d)` in `functions/totd.js` (ledger calendar). Rule: the first Sunday of April or October, plus the Saturday before it — which can fall on March 31 / September 30, so "month is April or October" alone is wrong for the Saturday. Change one, change all four, and redeploy the functions.
+- **The widgets learn about a conference "Yes" from the mirrored streak JSON**, not from their own storage: `mirrorStreakToNative()` adds `conferenceYes: "yyyy-mm-dd"` for today only. The field is not part of the saved streak and is never synced.
+
 ## Android widget / Doze
 
 - **`ACTION_DEVICE_IDLE_MODE_CHANGED` (Doze enter/exit) is broadcast with
@@ -586,3 +590,13 @@ served live at findatalk.com; this one should never be public.
 
 ## Streak salvage vs. cloud/backup merge
 - `mergeStreakData()` never trusts a cached `count`; it rebuilds it by walking consecutive days in `activeDays`. A streak salvage (idea 70) intentionally leaves the missed day out of `activeDays`, so any sync pull recomputed the count as 1 and silently undid the salvage for signed-in users (reported: pill showed "Day 1" after a successful save). Fix: the streak object carries `bridgedDays` (the forgiven day), unioned in merges, and `recomputeStreakFromActiveDays()` walks through bridged days without counting them. Any new code that rebuilds streak count from `activeDays` must honor `bridgedDays`.
+
+## Local notifications: wording can't change for one occurrence
+- Capacitor LocalNotifications fixes a notification's text when it is scheduled, and a repeating `schedule.on` trigger can't skip or reword a single occurrence. There is no "decide the text at delivery" hook on either platform. To give the daily reminder different wording on General Conference days (idea 87), `dailyReminderPlan()` swaps the single repeating reminder (id 1) for a stand-in set from 28 days before conference Saturday until the app is next opened after conference Sunday: five weekly Monday–Friday repeats (ids 22–26) plus up to 40 individually dated weekend reminders (ids 200+, running 12 weeks past conference so a long absence doesn't go silent). The plan's `signature` is compared on every foreground so it is only rescheduled when it actually changes. Any code that cancels "the daily reminder" must cancel all of these ids — use `cancelDailyReminder()`, never id 1 directly.
+- `setupDailyReminder()` used to schedule unconditionally at launch, which re-armed a reminder the user had switched off. It now checks the saved off switch first.
+
+## iOS widget layout gotchas
+- `widgetFamily` is a read-only environment value, so a widget view can't be forced into "small" from a test harness; and on iOS 17+ the system adds its own content margins (about 16pt a side), leaving a small widget roughly 110–125pt of usable width. `minimumScaleFactor` did not reliably shrink a multi-line `Text` there — it truncated instead. Size text explicitly per family. `ViewThatFits(in: .horizontal)` also did not drop a too-wide single-line `Text` in favor of an `EmptyView`; the text wrapped instead.
+
+## Fresh git worktrees can't build native until Capacitor is synced
+- A new worktree is missing the generated `capacitor-cordova-android-plugins` module and the iOS package symlinks, so `./gradlew assembleDebug` and `xcodebuild` fail with confusing missing-project errors. Run `npx cap sync android` / `npx cap sync ios` first; it changes no tracked files.

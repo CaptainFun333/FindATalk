@@ -650,7 +650,9 @@ function drawCalendar() {
     if (!c) { cells += `<div class="cal-day nodata"><span class="dn">${d}</span></div>`; continue; }
     sum += c.readers; counted++;
     const heat = Math.round((c.readers / peak) * 45);
-    const totd = c.totdReaders ? `<span class="tn">TOTD ${fmt(c.totdReaders)}</span>` : '';
+    // General Conference days have no Talk of the Day in the app.
+    const totd = c.conference ? `<span class="tn">CONF ${fmt(c.conferenceJoined || 0)}</span>`
+      : c.totdReaders ? `<span class="tn">TOTD ${fmt(c.totdReaders)}</span>` : '';
     cells += `<button type="button" class="cal-day${key === calSelected ? ' sel' : ''}" data-day="${key}" style="background:color-mix(in srgb, var(--accent-a) ${heat}%, var(--paper-raised))"><span class="dn">${d}</span><span class="rn">${fmt(c.readers)}</span>${totd}</button>`;
   }
   const monthName = new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
@@ -659,8 +661,11 @@ function drawCalendar() {
   if (sel) {
     const [sy, sm, sd] = sel.d.split('-').map(Number);
     const when = new Date(sy, sm - 1, sd).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    const talk = sel.talk ? `Talk of the Day: <strong>${escapeHtml(sel.talk.title)}</strong> — ${escapeHtml(sel.talk.speaker)}` : 'Talk of the Day: not recorded for this date';
-    const parts = [plural(sel.readers, 'account read a talk', 'accounts read a talk')];
+    const talk = sel.conference ? '<strong>General Conference</strong>: no Talk of the Day'
+      : sel.talk ? `Talk of the Day: <strong>${escapeHtml(sel.talk.title)}</strong> — ${escapeHtml(sel.talk.speaker)}` : 'Talk of the Day: not recorded for this date';
+    const parts = sel.conference
+      ? [plural(sel.readers, 'account read a talk or joined conference', 'accounts read a talk or joined conference'), plural(sel.conferenceJoined || 0, 'said they joined conference', 'said they joined conference')]
+      : [plural(sel.readers, 'account read a talk', 'accounts read a talk')];
     if (sel.talk) parts.push(plural(sel.totdReaders, 'read the Talk of the Day', 'read the Talk of the Day'));
     if (sel.reads !== null && sel.reads !== undefined) parts.push(plural(sel.reads, 'read by everyone', 'reads by everyone'));
     detail = `<div class="cal-detail"><div class="dt">${escapeHtml(when)}</div><div>${talk}</div><div style="margin-top:4px">${parts.join(' · ')}</div></div>`;
@@ -669,7 +674,7 @@ function drawCalendar() {
   document.getElementById('cal-wrap').innerHTML = '<div class="kind-label">Daily readers</div>'
     + `<div class="cal-head"><button type="button" id="cal-prev"${calMonth <= firstMonth ? ' disabled' : ''}>Earlier</button><span class="m">${escapeHtml(monthName)}</span><button type="button" id="cal-next"${calMonth >= lastMonth ? ' disabled' : ''}>Later</button></div>`
     + `<div class="cal-grid">${cells}</div>` + detail
-    + `<p style="font-size:12.5px;color:var(--ink-soft);margin:6px 0 4px">${escapeHtml(monthName)}: ${average} accounts reading per day on average. The large number is signed-in accounts that read any talk that day; TOTD is how many of them read that day's Talk of the Day. People who aren't signed in only appear in "reads by everyone", which is counted from 6am to 6am Mountain time. The talk shown is the one featured in U.S. time zones.</p>`;
+    + `<p style="font-size:12.5px;color:var(--ink-soft);margin:6px 0 4px">${escapeHtml(monthName)}: ${average} accounts reading per day on average. The large number is signed-in accounts that read any talk that day; TOTD is how many of them read that day's Talk of the Day. General Conference days have no Talk of the Day; CONF is how many accounts said they joined conference, and they count in the large number too. People who aren't signed in only appear in "reads by everyone", which is counted from 6am to 6am Mountain time. The talk shown is the one featured in U.S. time zones.</p>`;
   const shift = (by) => { const d = new Date(y, m - 1 + by, 1); calMonth = ymd(d.getFullYear(), d.getMonth() + 1, 1).slice(0, 7); drawCalendar(); };
   document.getElementById('cal-prev').addEventListener('click', () => shift(-1));
   document.getElementById('cal-next').addEventListener('click', () => shift(1));
