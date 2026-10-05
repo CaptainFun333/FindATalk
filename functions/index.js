@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const { SignedDataVerifier, Environment } = require('@apple/app-store-server-library');
 const { makeTotdPicker, talkKey } = require('./totd');
+const { isDay, recomputeStreak } = require('./streak');
 
 initializeApp();
 const firestore = getFirestore();
@@ -568,4 +569,101 @@ exports.ledgerStatsRefresh = onRequest({ cors: true }, async (req, res) => {
     logger.error('ledgerStatsRefresh failed', err);
     res.status(500).json({ error: 'refresh failed' });
   }
+});
+
+// ---- Ledger admin tools (private tab on docs/ledger.html) ----
+//
+// Unlike everything above, these read and change ONE person's data, so
+// they're callable only by a signed-in admin and never write anything to
+// the public stats/ledger doc. Every change is recorded in adminActions
+// (no Firestore rule, so no client can read or write it).
+const ADMIN_EMAILS = ['brad@smoothop.com'];
+const ADMIN_MAX_FORGIVE_DAYS = 31;
+
+function requireAdmin(request) {
+  const token = request.auth && request.auth.token;
+  if (!token) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const email = String(token.email || '').toLowerCase();
+  if (!token.email_verified || !ADMIN_EMAILS.includes(email)) {
+    throw new HttpsError('permission-denied', 'This account is not an admin.');
+  }
+  return email;
+}
+
+function streakSummary(data) {
+  const s = (data && data.streak) || {};
+  const activeDays = [...new Set((Array.isArray(s.activeDays) ? s.activeDays : []).filter(isDay))].sort();
+  const bridgedDays = [...new Set((Array.isArray(s.bridgedDays) ? s.bridgedDays : []).filter(isDay))].sort();
+  return { ...recomputeStreak(activeDays, s.longest, bridgedDays), activeDays, bridgedDays };
+}
+
+exports.adminStreakLookup = onCall(async (request) => {
+  requireAdmin(request);
+  const email = String((request.data && request.data.email) || '').trim().toLowerCase();
+  if (!email) throw new HttpsError('invalid-argument', 'Enter an email address.');
+  let user;
+  try {
+    user = await getAuth().getUserByEmail(email);
+  } catch (err) {
+    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+      throw new HttpsError('not-found', 'No account uses that email address.');
+    }
+    throw err;
+  }
+  const snap = await firestore.collection('users').doc(user.uid).get();
+  return {
+    uid: user.uid,
+    email: user.email,
+    hasData: snap.exists,
+    streak: streakSummary(snap.exists ? snap.data() : null),
+  };
+});
+
+// Marks missed days as forgiven (streak.bridgedDays): the streak runs
+// straight through them, but they are NOT added to activeDays, so "days
+// studied" stays an honest count. The app unions bridgedDays on every
+// sync and rebuilds the count from them, so this survives the person's
+// own devices pushing afterward (their pushes use merge:true).
+exports.adminStreakForgive = onCall(async (request) => {
+  const adminEmail = requireAdmin(request);
+  const { uid, days } = request.data || {};
+  if (typeof uid !== 'string' || !uid) throw new HttpsError('invalid-argument', 'Missing account.');
+  if (!Array.isArray(days) || !days.length || days.length > ADMIN_MAX_FORGIVE_DAYS || !days.every(isDay)) {
+    throw new HttpsError('invalid-argument', `Pick between 1 and ${ADMIN_MAX_FORGIVE_DAYS} valid days.`);
+  }
+  // Nobody's local "today" is later than UTC+14.
+  const latest = new Date(Date.now() + 14 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const ref = firestore.collection('users').doc(uid);
+  return firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError('not-found', 'That account has no synced data yet.');
+    const before = streakSummary(snap.data());
+    if (!before.activeDays.length) {
+      throw new HttpsError('failed-precondition', 'That account has no reading days to connect.');
+    }
+    const active = new Set(before.activeDays);
+    const first = before.activeDays[0];
+    for (const d of days) {
+      if (active.has(d)) throw new HttpsError('invalid-argument', `${d} is already a day they read.`);
+      // The app drops forgiven days older than the first day it still remembers.
+      if (d < first || d > latest) throw new HttpsError('invalid-argument', `${d} is outside their reading history.`);
+    }
+    const bridgedDays = [...new Set([...before.bridgedDays, ...days])].sort();
+    const after = recomputeStreak(before.activeDays, before.longest, bridgedDays);
+    tx.update(ref, {
+      'streak.bridgedDays': bridgedDays,
+      'streak.count': after.count,
+      'streak.longest': after.longest,
+    });
+    tx.set(firestore.collection('adminActions').doc(), {
+      action: 'streakForgive',
+      at: Date.now(),
+      admin: adminEmail,
+      uid,
+      days: [...days].sort(),
+      before: { count: before.count, longest: before.longest },
+      after: { count: after.count, longest: after.longest },
+    });
+    return { streak: { ...after, activeDays: before.activeDays, bridgedDays } };
+  });
 });

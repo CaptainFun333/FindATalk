@@ -162,6 +162,23 @@
   .cal-day .dn { font-size: 10.5px; color: var(--ink-soft); line-height: 1.3; }
   .cal-day .rn { font-family: var(--font-serif); font-weight: 600; font-size: 18px; line-height: 1.2; }
   .cal-day .tn { font-size: 9.5px; font-weight: 600; color: var(--accent-b); line-height: 1.2; white-space: nowrap; }
+  .cal-day.adm { min-height: 46px; }
+  .cal-day.adm .st { font-size: 10px; font-weight: 600; line-height: 1.3; color: var(--ink-soft); }
+  .cal-day.adm.read { background: color-mix(in srgb, var(--accent-a) 30%, var(--paper-raised)); }
+  .cal-day.adm.forgiven { border-style: dashed; border-color: var(--accent-a); }
+  .cal-day.adm.forgiven .st { color: var(--accent-a); }
+  .cal-day.adm.missed .st { color: var(--accent-b); }
+  .adm-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+  .adm-row input[type=email] {
+    flex: 1 1 220px; min-width: 0; font: inherit; color: var(--ink); background: var(--paper-raised);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px;
+  }
+  .adm-chip {
+    font: inherit; font-size: 12.5px; color: var(--ink); background: var(--chip-bg); cursor: pointer;
+    border: 1px solid var(--chip-border); border-radius: var(--radius-pill); padding: 3px 10px;
+  }
+  .adm-chip.sel { background: var(--accent-fill); color: var(--on-accent); border-color: var(--accent-fill); }
+  .adm-note { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0; }
   .cal-detail { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0 4px; font-size: 13px; }
   .cal-detail .dt { font-weight: 600; margin-bottom: 4px; }
   footer { margin-top: 48px; color: var(--ink-soft); font-size: 12px; text-align: center; }
@@ -240,6 +257,7 @@
     <button data-panel="changelog">Changelog</button>
     <button data-panel="decisions">Decisions</button>
     <button data-panel="style">Style Guide</button>
+    <button data-panel="admin" id="admin-tab" hidden>Admin</button>
   </nav>
 
   <section class="panel active" id="panel-mission">
@@ -260,6 +278,21 @@
     <div id="cal-wrap"></div>
     <div id="stats-body"></div>
     <p style="color:var(--ink-soft);font-size:12px;margin-top:20px">Aggregate counts only — never anything about an individual person, and no dollar amounts. Recalculated automatically once a day; the Refresh button recalculates on demand (at most once every 10 minutes).</p>
+  </section>
+
+  <section class="panel" id="panel-admin">
+    <h2>Admin</h2>
+    <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">Private. Works only for the signed-in admin account, and nothing here is ever published on this page's public tabs.</p>
+    <div id="admin-auth"></div>
+    <div id="admin-tools" hidden>
+      <div class="kind-label">Fix a streak</div>
+      <form class="adm-row" id="admin-lookup-form">
+        <input type="email" id="admin-email" placeholder="Account email" autocomplete="off" required>
+        <button class="refresh" type="submit" id="admin-lookup-btn">Look up</button>
+      </form>
+      <p class="adm-note" id="admin-msg"></p>
+      <div id="admin-result"></div>
+    </div>
   </section>
 
   <section class="panel" id="panel-activity">
@@ -733,6 +766,158 @@ async function refreshAll() {
   if (notes.length) document.getElementById('stats-meta').textContent += ' · ' + notes.join(' ');
 }
 document.getElementById('refresh-btn').addEventListener('click', refreshAll);
+
+/* ---- Admin tab: look up one account's streak and forgive missed days ----
+   Hidden unless the page is opened as ledger.html#admin (or this browser
+   has signed in as the admin before). The Firebase SDK is only loaded
+   when the tab is actually shown, so ordinary visitors never fetch it.
+   All the real checks live in the adminStreak* functions — this page
+   being public doesn't matter, since they refuse anyone but the admin. */
+const ADMIN_SEEN_KEY = 'ledgerAdminSeen';
+let adminFb = null, adminAccount = null, adminSelected = new Set(), adminMonth = null;
+function adminSeen() { try { return localStorage.getItem(ADMIN_SEEN_KEY) === '1'; } catch (e) { return false; } }
+async function loadAdminFirebase() {
+  if (adminFb) return adminFb;
+  const base = 'https://www.gstatic.com/firebasejs/12.6.0/firebase-';
+  const [appMod, authMod, fnMod] = await Promise.all([import(base + 'app.js'), import(base + 'auth.js'), import(base + 'functions.js')]);
+  const app = appMod.initializeApp({ apiKey: FIREBASE_API_KEY, authDomain: FIREBASE_PROJECT + '.firebaseapp.com', projectId: FIREBASE_PROJECT });
+  const auth = authMod.getAuth(app);
+  const functions = fnMod.getFunctions(app);
+  adminFb = { auth, authMod, call: async (name, data) => (await fnMod.httpsCallable(functions, name)(data)).data };
+  authMod.onAuthStateChanged(auth, renderAdminAuth);
+  return adminFb;
+}
+function renderAdminAuth(user) {
+  const box = document.getElementById('admin-auth');
+  document.getElementById('admin-tools').hidden = !user;
+  if (!user) {
+    box.innerHTML = '<div class="adm-row"><button class="refresh" type="button" id="admin-signin">Sign in with Google</button></div>';
+    document.getElementById('admin-signin').addEventListener('click', async () => {
+      try { await adminFb.authMod.signInWithPopup(adminFb.auth, new adminFb.authMod.GoogleAuthProvider()); }
+      catch (e) { box.insertAdjacentHTML('beforeend', '<p class="error">Sign-in didn\'t finish. Try again.</p>'); }
+    });
+    return;
+  }
+  try { localStorage.setItem(ADMIN_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
+  box.innerHTML = `<p class="adm-note">Signed in as ${escapeHtml(user.email || '')} · <a href="#" id="admin-signout" class="src-link">Sign out</a></p>`;
+  document.getElementById('admin-signout').addEventListener('click', (e) => { e.preventDefault(); adminFb.authMod.signOut(adminFb.auth); });
+}
+async function showAdminTab() {
+  document.getElementById('admin-tab').hidden = false;
+  try { await loadAdminFirebase(); }
+  catch (e) { document.getElementById('admin-auth').innerHTML = '<p class="error">Could not load sign-in right now.</p>'; }
+}
+const admToday = () => { const d = new Date(); return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate()); };
+const admShift = (day, by) => { const [y, m, d] = day.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d + by)).toISOString().slice(0, 10); };
+const admLabel = (day, opts) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, opts || { month: 'short', day: 'numeric' }); };
+// Same run-counting as recomputeStreakFromActiveDays() in index.html and functions/streak.js.
+function admRun(activeDays, bridgedDays) {
+  if (!activeDays.length) return 0;
+  const a = new Set(activeDays), b = new Set(bridgedDays);
+  let count = 0, cursor = activeDays[activeDays.length - 1];
+  while (a.has(cursor) || b.has(cursor)) { if (a.has(cursor)) count++; cursor = admShift(cursor, -1); }
+  return count;
+}
+// Every day between their first remembered reading day and yesterday that was neither read nor forgiven, newest first.
+function admMissedDays(st) {
+  if (!st.activeDays.length) return [];
+  const a = new Set(st.activeDays), b = new Set(st.bridgedDays), out = [];
+  for (let d = admShift(admToday(), -1); d > st.activeDays[0]; d = admShift(d, -1)) if (!a.has(d) && !b.has(d)) out.push(d);
+  return out;
+}
+function setAdminMsg(text, isError) {
+  const el = document.getElementById('admin-msg');
+  el.textContent = text || '';
+  el.className = isError ? 'error' : 'adm-note';
+}
+function renderAdminAccount() {
+  const box = document.getElementById('admin-result');
+  if (!adminAccount) { box.innerHTML = ''; return; }
+  const st = adminAccount.streak;
+  if (!adminAccount.hasData || !st.activeDays.length) {
+    box.innerHTML = `<div class="card"><strong>${escapeHtml(adminAccount.email || '')}</strong><p class="adm-note">This account hasn't synced any reading days yet, so there's no streak to fix.</p></div>`;
+    return;
+  }
+  const today = admToday(), missed = admMissedDays(st);
+  const alive = st.lastDate >= admShift(today, -1);
+  const readSet = new Set(st.activeDays), forgivenSet = new Set(st.bridgedDays), missedSet = new Set(missed);
+  const firstMonth = st.activeDays[0].slice(0, 7), lastMonth = today.slice(0, 7);
+  if (!adminMonth) adminMonth = lastMonth;
+  const [y, m] = adminMonth.split('-').map(Number);
+  let cells = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+  for (let i = 0; i < new Date(y, m - 1, 1).getDay(); i++) cells += '<div class="cal-day empty"></div>';
+  for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) {
+    const key = ymd(y, m, d);
+    if (readSet.has(key)) cells += `<div class="cal-day adm read"><span class="dn">${d}</span><span class="st">Read</span></div>`;
+    else if (forgivenSet.has(key)) cells += `<div class="cal-day adm forgiven"><span class="dn">${d}</span><span class="st">Forgiven</span></div>`;
+    else if (missedSet.has(key)) cells += `<button type="button" class="cal-day adm missed${adminSelected.has(key) ? ' sel' : ''}" data-day="${key}"><span class="dn">${d}</span><span class="st">${adminSelected.has(key) ? 'Forgive' : 'Missed'}</span></button>`;
+    else cells += `<div class="cal-day adm nodata"><span class="dn">${d}</span></div>`;
+  }
+  const monthName = new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const recent = missed.filter(d => d >= admShift(today, -60)).slice(0, 14); // long gaps are easier to read on the calendar below
+  const chips = recent.length
+    ? recent.map(d => `<button type="button" class="adm-chip${adminSelected.has(d) ? ' sel' : ''}" data-day="${d}">${escapeHtml(admLabel(d, { weekday: 'short', month: 'short', day: 'numeric' }))}</button>`).join(' ')
+    : '<span class="adm-note">None in the last 60 days.</span>';
+  const picked = [...adminSelected].sort();
+  const after = admRun(st.activeDays, [...st.bridgedDays, ...picked]);
+  let action = '<p class="adm-note">Tap a missed day to select it.</p>';
+  if (picked.length) {
+    action = `<p class="adm-note">Forgiving ${picked.length === 1 ? 'this day' : 'these ' + picked.length + ' days'} takes the streak from <strong>${fmt(st.count)}</strong> to <strong>${fmt(after)}</strong>. Forgiven days keep the streak going but don't count as days studied.</p>`
+      + `<div class="adm-row"><button class="refresh" type="button" id="admin-forgive">Forgive ${picked.length === 1 ? admLabel(picked[0]) : picked.length + ' days'}</button></div>`;
+  }
+  box.innerHTML = `<div class="card"><strong>${escapeHtml(adminAccount.email || '')}</strong>`
+    + `<div class="stat-grid" style="margin-top:10px">`
+    + `<div class="stat"><div class="n">${fmt(st.count)}</div><div class="l">${alive ? 'Current streak' : 'Streak when they last read'}</div></div>`
+    + `<div class="stat"><div class="n">${fmt(st.longest)}</div><div class="l">Longest streak</div></div>`
+    + `<div class="stat"><div class="n">${escapeHtml(admLabel(st.lastDate))}</div><div class="l">Last day read</div></div>`
+    + `<div class="stat"><div class="n">${fmt(st.activeDays.length)}</div><div class="l">Days studied, last year</div></div></div>`
+    + (alive ? '' : `<p class="adm-note">They haven't read since ${escapeHtml(admLabel(st.lastDate))}, so the app shows 0 right now. Forgiven days after their last read take effect the next time they read and sync.</p>`)
+    + `<div class="kind-label">Most recent missed days</div><div class="adm-row">${chips}</div>`
+    + `<div class="cal-head"><button type="button" id="adm-prev"${adminMonth <= firstMonth ? ' disabled' : ''}>Earlier</button><span class="m">${escapeHtml(monthName)}</span><button type="button" id="adm-next"${adminMonth >= lastMonth ? ' disabled' : ''}>Later</button></div>`
+    + `<div class="cal-grid">${cells}</div>${action}</div>`;
+  const shift = (by) => { const d = new Date(y, m - 1 + by, 1); adminMonth = ymd(d.getFullYear(), d.getMonth() + 1, 1).slice(0, 7); renderAdminAccount(); };
+  document.getElementById('adm-prev').addEventListener('click', () => shift(-1));
+  document.getElementById('adm-next').addEventListener('click', () => shift(1));
+  box.querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', () => {
+    const day = b.dataset.day;
+    if (adminSelected.has(day)) adminSelected.delete(day); else adminSelected.add(day);
+    renderAdminAccount();
+  }));
+  const forgive = document.getElementById('admin-forgive');
+  if (forgive) forgive.addEventListener('click', () => adminForgive(picked));
+}
+const adminErrorText = (e) => (e && e.message && !/^internal$/i.test(e.message)) ? e.message : 'Something went wrong. Try again.';
+async function adminLookup(e) {
+  e.preventDefault();
+  const btn = document.getElementById('admin-lookup-btn');
+  btn.disabled = true;
+  setAdminMsg('Looking up…');
+  adminAccount = null; adminSelected = new Set(); adminMonth = null;
+  renderAdminAccount();
+  try {
+    adminAccount = await adminFb.call('adminStreakLookup', { email: document.getElementById('admin-email').value });
+    setAdminMsg('');
+  } catch (err) { setAdminMsg(adminErrorText(err), true); }
+  btn.disabled = false;
+  renderAdminAccount();
+}
+async function adminForgive(days) {
+  const list = days.map(d => admLabel(d)).join(', ');
+  if (!confirm(`Forgive ${list} for ${adminAccount.email}?\n\nThis changes their saved streak and can't be undone from here.`)) return;
+  document.getElementById('admin-forgive').disabled = true;
+  setAdminMsg('Saving…');
+  try {
+    const before = adminAccount.streak.count;
+    const res = await adminFb.call('adminStreakForgive', { uid: adminAccount.uid, days });
+    adminAccount.streak = res.streak;
+    adminSelected = new Set();
+    setAdminMsg(`Done — forgave ${list}. Streak went from ${fmt(before)} to ${fmt(res.streak.count)}. They'll see it the next time their app syncs.`);
+  } catch (err) { setAdminMsg(adminErrorText(err), true); }
+  renderAdminAccount();
+}
+document.getElementById('admin-lookup-form').addEventListener('submit', adminLookup);
+if (location.hash === '#admin' || adminSeen()) showAdminTab();
+window.addEventListener('hashchange', () => { if (location.hash === '#admin') showAdminTab(); });
 
 loadCommits();
 loadChangelog();

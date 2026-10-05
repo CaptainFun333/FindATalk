@@ -6944,8 +6944,6 @@ function isStreakStale(streak, now){
    `count`/`longest` get salvaged, so that stat stays an honest record of
    which days the app was actually opened on. */
 const STREAK_SALVAGE_KEY = 'findATalkStreakSalvage';
-const STREAK_SALVAGE_LAST_USED_KEY = 'findATalkStreakSalvageLastUsed';
-const STREAK_SALVAGE_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // capped at once a week, so this stays a genuine save, not a looser "daily"
 function loadStreakSalvage(){
   try {
     const raw = localStorage.getItem(STREAK_SALVAGE_KEY);
@@ -6961,18 +6959,16 @@ function saveStreakSalvage(record){
 }
 /* Called from settleStreak() below, BEFORE it zeroes `count` — only ever
    offers a salvage for a gap of EXACTLY one missed day (never two+, per
-   the design notes), only once per real calendar day (won't overwrite an
-   existing snapshot for the same day on a later re-render), and only if
-   the weekly cooldown has actually elapsed since the last real save. */
+   the design notes) and only once per real calendar day (won't overwrite
+   an existing snapshot for the same day on a later re-render). There used
+   to be a once-a-week cap here too; it was dropped on purpose (see
+   DECISIONS.md, 2026-10-04) — any single missed day can be saved. */
 function maybeSnapshotStreakSalvage(streak, now){
   const today = localDateSeed(now);
   const existing = loadStreakSalvage();
   if (existing && existing.date === today) return; // already snapshotted today
   const twoDaysAgo = localDateSeed(new Date(now.getTime() - 2*24*60*60*1000));
   if (streak.lastDate !== twoDaysAgo) return; // not exactly a one-day gap
-  let lastUsed = 0;
-  try { lastUsed = Number(localStorage.getItem(STREAK_SALVAGE_LAST_USED_KEY)) || 0; } catch(err){ lastUsed = 0; }
-  if (now.getTime() - lastUsed < STREAK_SALVAGE_COOLDOWN_MS) return;
   saveStreakSalvage({ date: today, priorCount: streak.count, priorLongest: streak.longest, shown: false, usedAt: null });
 }
 function settleStreak(){
@@ -7007,7 +7003,6 @@ function applyStreakSalvageIfEligible(creditDay, alreadyCreditedToday){
   saveStreak(streak);
   record.usedAt = Date.now();
   saveStreakSalvage(record);
-  try { localStorage.setItem(STREAK_SALVAGE_LAST_USED_KEY, String(Date.now())); } catch(err){ /* ignore */ }
   closeStreakSalvageModal(); // in case it was still open
   cancelStreakSalvageNotification(); // the reactive nudge has done its job — nothing left to remind about today
 }

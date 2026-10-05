@@ -10,6 +10,7 @@ promise of what ships next. Grouped by status, most active first:
 ## In progress
 
 44. Siri/Google Assistant shortcuts — in progress (iOS done; Android/Google Assistant side still open, more constrained)
+86. Fix a member's streak from the ledger — in progress (built 2026-10-04: private Admin tab at `ledger.html#admin`, look up an account by email, see missed days, mark them forgiven; waiting on a Firebase deploy)
 68. Global "impact" counter — ongoing (data collection live. The ledger Stats tab now shows a trial "Loved by the community" block: most read, favorited and added-to-list talk, top speaker, topic and scripture chapter with "seek out" versions comparing reading to library share, and total study days. All counted by distinct signed-in members and hidden below 5 people. No in-app display yet)
 
 ## Open
@@ -79,7 +80,7 @@ promise of what ships next. Grouped by status, most active first:
 65. ~~Rename Home's "Find Another"/"Show a List" buttons~~ — ✅ done
 67. ~~Donation/support prompt~~ — ✅ done (checkout, native IAP, reading-milestone ask, and a Dec 18–31 Christmas ask shipped in 1.7.2)
 69. ~~Data controls for accounts (conflicts, clearing data)~~ — ✅ done
-70. ~~Streak "salvage" for one missed day~~ — ✅ done (read 2 talks, once a week, plus a reminder that day — 1.7.2)
+70. ~~Streak "salvage" for one missed day~~ — ✅ done (read 2 talks, plus a reminder that day — 1.7.2; once-a-week cap removed 2026-10-04)
 71. ~~Share a talk as a generated image card~~ — ✅ done (talk, badge, Supporter, and streak cards plus an editable message preview — 1.7.2)
 72. ~~Make the number of talks read visible~~ — ✅ done (delivered inside "Your FindATalk")
 73. ~~"Your FindATalk" stats window~~ — ✅ done (six numbers; the Home streak pill opens it)
