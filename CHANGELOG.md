@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Changed
-- The privacy policy on findatalk.com now covers optional accounts and cloud sync, shared lists (members see the display name you choose), donations, and deleting your account. (Website only; no new build needed.)
+- The privacy policy on findatalk.com now covers optional accounts and cloud sync, shared lists (members see the display name you choose), donations, and deleting your account, and a new page explains how to delete your account. (Website only; no new build needed.)
 
 ## [1.7.8] — 2026-10-04
 
