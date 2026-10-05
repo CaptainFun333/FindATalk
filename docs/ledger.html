@@ -141,7 +141,100 @@
   .stat .n { font-family: var(--font-serif); font-weight: 600; font-size: 24px; line-height: 1.2; }
   .stat .l { color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
   .stat .d { color: var(--accent-a); font-size: 11.5px; font-weight: 600; margin-top: 4px; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 8px; }
+  .cal-head .m { font-family: var(--font-serif); font-weight: 600; font-size: 16px; }
+  .cal-head button {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600; background: var(--paper-raised);
+    color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 12px; cursor: pointer;
+  }
+  .cal-head button:disabled { opacity: 0.35; cursor: default; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .cal-dow { text-align: center; font-size: 11px; font-weight: 600; color: var(--ink-soft); padding-bottom: 2px; }
+  .cal-day {
+    min-height: 58px; border: 1px solid var(--line); border-radius: var(--radius); padding: 3px 4px;
+    font-family: var(--font-sans); color: var(--ink); background: var(--paper-raised); text-align: left;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button.cal-day { cursor: pointer; }
+  .cal-day.empty { border-color: transparent; background: none; }
+  .cal-day.nodata { opacity: 0.45; }
+  .cal-day.sel { outline: 2px solid var(--accent-b); outline-offset: -1px; }
+  .cal-day .dn { font-size: 10.5px; color: var(--ink-soft); line-height: 1.3; }
+  .cal-day .rn { font-family: var(--font-serif); font-weight: 600; font-size: 18px; line-height: 1.2; }
+  .cal-day .tn { font-size: 9.5px; font-weight: 600; color: var(--accent-b); line-height: 1.2; white-space: nowrap; }
+  .cal-day.adm { min-height: 46px; }
+  .cal-day.adm .st { font-size: 10px; font-weight: 600; line-height: 1.3; color: var(--ink-soft); }
+  .cal-day.adm.read { background: color-mix(in srgb, var(--accent-a) 30%, var(--paper-raised)); }
+  .cal-day.adm.forgiven { border-style: dashed; border-color: var(--accent-a); }
+  .cal-day.adm.forgiven .st { color: var(--accent-a); }
+  .cal-day.adm.missed .st { color: var(--accent-b); }
+  .adm-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+  .adm-row input[type=email] {
+    flex: 1 1 220px; min-width: 0; font: inherit; color: var(--ink); background: var(--paper-raised);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px;
+  }
+  .adm-chip {
+    font: inherit; font-size: 12.5px; color: var(--ink); background: var(--chip-bg); cursor: pointer;
+    border: 1px solid var(--chip-border); border-radius: var(--radius-pill); padding: 3px 10px;
+  }
+  .adm-chip.sel { background: var(--accent-fill); color: var(--on-accent); border-color: var(--accent-fill); }
+  .adm-note { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0; }
+  .cal-detail { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0 4px; font-size: 13px; }
+  .cal-detail .dt { font-weight: 600; margin-bottom: 4px; }
   footer { margin-top: 48px; color: var(--ink-soft); font-size: 12px; text-align: center; }
+
+  /* Style Guide > Parts & names specimens */
+  .pt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 8px 0 20px; }
+  .pt-spec { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .pt-spec.wide { grid-column: 1 / -1; }
+  .pt-stage { background: var(--paper); border: 1px dashed var(--line); border-radius: var(--radius); padding: 12px; min-height: 56px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+  .pt-name { font-weight: 700; font-size: 13.5px; }
+  .pt-name code { margin-left: 6px; color: var(--accent-a); font-weight: 500; }
+  .pt-note { font-size: 12.5px; color: var(--ink-soft); margin: 4px 0 0; }
+  .pt-chip { font-size: 11px; color: var(--accent-b); border: 1px solid var(--chip-border); background: var(--chip-bg); padding: 4px 10px; border-radius: var(--radius-lg); }
+  .pt-chip.cite { border-style: dashed; }
+  .pt-pill { font-size: 12px; padding: 5px 12px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--paper-raised); }
+  .pt-pill.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .pt-seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .pt-seg span { padding: 6px 12px; font-size: 12px; border-left: 1px solid var(--line); }
+  .pt-seg span:first-child { border-left: 0; }
+  .pt-seg .on { background: var(--ink); color: var(--paper); }
+  .pt-sw { width: 42px; height: 24px; border-radius: 12px; background: var(--accent-a); position: relative; }
+  .pt-sw::after { content: ""; position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+  .pt-btn { font: 600 13px var(--font-sans); padding: 8px 16px; border-radius: var(--radius); border: 1px solid transparent; }
+  .pt-btn.primary { background: var(--accent-fill); color: var(--on-accent); }
+  .pt-btn.ghost { border-color: var(--line); }
+  .pt-link { font-size: 12px; color: var(--accent-b); text-decoration: underline; }
+  .pt-small { font-size: 12px; border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 10px; }
+  .pt-badge { display: flex; align-items: center; gap: 8px; font-size: 12px; border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; background: var(--paper-raised); }
+  .pt-lbl { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--accent-a); color: var(--accent-a); padding: 2px 7px; border-radius: 3px; }
+  .pt-toast { background: var(--ink); color: var(--paper); font-size: 12.5px; padding: 9px 14px; border-radius: 6px; box-shadow: var(--shadow); }
+  .pt-ticket { width: 100%; background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); }
+  .pt-ticket .t { font-family: var(--font-serif); font-weight: 600; font-size: 16px; }
+  .pt-ticket .m { font-size: 12px; color: var(--ink-soft); }
+  .pt-ticket .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pt-row { width: 100%; display: flex; gap: 10px; align-items: center; border-top: 1px solid var(--line); padding: 8px 2px; font-size: 13px; }
+  .pt-row i { width: 14px; height: 14px; border: 1.5px solid var(--ink-soft); border-radius: 3px; flex: none; }
+  .pt-nb { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper-raised); }
+  .pt-nb .h { padding: 8px 12px; font-weight: 600; font-size: 13px; background: var(--tint); display: flex; justify-content: space-between; }
+  .pt-nb .b { padding: 10px 12px; font-size: 12.5px; color: var(--ink-soft); }
+  .pt-cells { display: flex; gap: 8px; width: 100%; }
+  .pt-cell { flex: 1; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; text-align: center; background: var(--paper-raised); }
+  .pt-cell b { display: block; font-family: var(--font-serif); font-size: 20px; }
+  .pt-cell small { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; }
+  .pt-ms { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .pt-ms .trig { border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; font-size: 12.5px; display: flex; justify-content: space-between; background: var(--paper-raised); }
+  .pt-ms .panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper-raised); font-size: 12.5px; }
+  .pt-ms .panel div { padding: 6px 10px; border-top: 1px solid var(--line); }
+  .pt-ms .panel div:first-child { border-top: 0; color: var(--ink-soft); }
+  .pt-search { width: 100%; display: flex; justify-content: space-between; border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; background: var(--paper-raised); font-size: 12.5px; }
+  .pt-bulk { width: 100%; display: flex; justify-content: space-between; background: var(--ink); color: var(--paper); padding: 8px 12px; border-radius: var(--radius); font-size: 12.5px; }
+  .pt-pag { display: flex; gap: 10px; align-items: center; font-size: 12px; }
+  .pt-overlay { width: 100%; background: rgba(28,44,66,.45); border-radius: var(--radius); padding: 22px 16px; display: flex; justify-content: center; }
+  .pt-modal { width: min(300px, 100%); background: var(--paper-raised); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow); }
+  .pt-modal .hd { display: flex; justify-content: space-between; font-family: var(--font-serif); font-weight: 600; font-size: 15px; }
+  .pt-modal p { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
+  .pt-modal .act { display: flex; gap: 8px; justify-content: flex-end; }
 </style>
 </head>
 <body>
@@ -164,6 +257,7 @@
     <button data-panel="changelog">Changelog</button>
     <button data-panel="decisions">Decisions</button>
     <button data-panel="style">Style Guide</button>
+    <button data-panel="admin" id="admin-tab" hidden>Admin</button>
   </nav>
 
   <section class="panel active" id="panel-mission">
@@ -181,8 +275,24 @@
   <section class="panel" id="panel-stats">
     <h2>Cloud stats</h2>
     <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px" id="stats-meta">Loading…</p>
+    <div id="cal-wrap"></div>
     <div id="stats-body"></div>
     <p style="color:var(--ink-soft);font-size:12px;margin-top:20px">Aggregate counts only — never anything about an individual person, and no dollar amounts. Recalculated automatically once a day; the Refresh button recalculates on demand (at most once every 10 minutes).</p>
+  </section>
+
+  <section class="panel" id="panel-admin">
+    <h2>Admin</h2>
+    <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">Private. Works only for the signed-in admin account, and nothing here is ever published on this page's public tabs.</p>
+    <div id="admin-auth"></div>
+    <div id="admin-tools" hidden>
+      <div class="kind-label">Fix a streak</div>
+      <form class="adm-row" id="admin-lookup-form">
+        <input type="email" id="admin-email" placeholder="Account email" autocomplete="off" required>
+        <button class="refresh" type="submit" id="admin-lookup-btn">Look up</button>
+      </form>
+      <p class="adm-note" id="admin-msg"></p>
+      <div id="admin-result"></div>
+    </div>
   </section>
 
   <section class="panel" id="panel-activity">
@@ -231,6 +341,50 @@
       <li>Fully-rounded pills (<code>999px</code>) mark filter chips and status badges; <code>50%</code> is reserved for circular elements.</li>
       <li>One soft shadow style only, tinted with the palette's own <code>ink</code> at low alpha (never pure black) — no second "card shadow." Use a border instead when a surface needs separation but not lift.</li>
     </ul>
+
+    <p class="kind-label">Parts &amp; names</p>
+    <p>What each piece of the app looks like and what we call it, so we mean the same thing in a request. The gray code is the class name in <code>docs/index.html</code>. These are redrawn specimens using this page's own colors, not screenshots; they follow whichever palette this page is in.</p>
+
+    <p class="kind-label">Small things</p>
+    <div class="pt-grid">
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-chip">Charity</span><span class="pt-chip">Faith</span><span class="pt-chip cite">Alma 32</span></div><div><span class="pt-name">Chip<code>.chip</code></span><p class="pt-note">A small rounded tag on content. Topic chips are solid; scripture citation chips (<code>.cite-chip</code>) are the same idea for references. You read these rather than press them to change a setting.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-pill">5</span><span class="pt-pill on">10</span><span class="pt-pill">25</span><span class="pt-pill">50</span></div><div><span class="pt-name">Pill buttons<code>.list-size-btn</code></span><p class="pt-note">Round buttons you press to choose one value, like the "Show a List" size picker.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-seg"><span>Brass</span><span class="on">Rose</span><span>Slate</span></span></div><div><span class="pt-name">Segmented control<code>.segmented</code></span><p class="pt-note">Pill buttons joined into one strip, like the Color Palette in Settings.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-sw"></span></div><div><span class="pt-name">Switch<code>.switch</code></span><p class="pt-note">On/off slider in Settings.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-badge"><b>&#127942;</b>Earned badge</span><span class="pt-lbl">Read</span></div><div><span class="pt-name">Badge<code>.badge-row</code></span><p class="pt-note">Two meanings: an achievement badge (icon and name) or a label badge like "Read" (<code>.ticket-read-badge</code>). Say which one you mean.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-toast">Imported 12 talks</span></div><div><span class="pt-name">Toast</span><p class="pt-note">A short message that appears and fades on its own. It never asks you anything.</p></div></div>
+    </div>
+
+    <p class="kind-label">Buttons and links</p>
+    <div class="pt-grid">
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-btn primary">Open This Talk</span></div><div><span class="pt-name">Primary button<code>.btn-primary</code></span><p class="pt-note">The filled main action.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-btn ghost">Cancel</span></div><div><span class="pt-name">Ghost button<code>.btn-ghost</code></span><p class="pt-note">Outlined, lower emphasis.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-link">Reset filters</span></div><div><span class="pt-name">Reset link<code>.reset-link</code></span><p class="pt-note">Text-only action that looks like a link.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><span class="pt-small">Date &#8645;</span><span class="pt-small">Title &#8645;</span></div><div><span class="pt-name">Sort toggle<code>.sort-toggle-btn</code></span><p class="pt-note">Sort buttons with the flip arrow.</p></div></div>
+    </div>
+
+    <p class="kind-label">Cards and panels</p>
+    <div class="pt-grid">
+      <div class="pt-spec wide"><div class="pt-stage"><div class="pt-ticket"><span class="eyebrow">Talk of the Day</span><span class="t">The Power of Everyday Faith</span><span class="m">Elder Example &middot; Apostle &middot; Apr 2024</span><div class="row"><span class="pt-chip">Faith</span><span class="pt-chip">Daily living</span><span class="pt-chip cite">Alma 32</span></div></div></div><div><span class="pt-name">Ticket<code>.ticket</code></span><p class="pt-note">The card showing one talk: title, speaker, meta, chips. The same card with a "Talk of the Day" eyebrow sits at the top of the home page (<code>.totd</code>).</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div style="width:100%"><div class="pt-row"><i></i><span>Talk title one</span></div><div class="pt-row"><i></i><span>Talk title two</span></div></div></div><div><span class="pt-name">List item / row<code>.list-item</code></span><p class="pt-note">One talk inside Favorites, My Notes or any list page.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-nb"><div class="h">Your reading <span>&#9662;</span></div><div class="b">Collapsible body text.</div></div></div><div><span class="pt-name">Narrow box<code>.narrow-box</code></span><p class="pt-note">Header plus a body that opens and closes.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-cells"><div class="pt-cell"><b>42</b><small>Read</small></div><div class="pt-cell"><b>7</b><small>Streak</small></div></div></div><div><span class="pt-name">Stat cell / grid<code>.stat-cell</code></span><p class="pt-note">Number tiles on the Stats page.</p></div></div>
+    </div>
+
+    <p class="kind-label">Filters and inputs</p>
+    <div class="pt-grid">
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-ms"><div class="trig"><span>Topic: Faith, Hope</span><span>&#9662;</span></div><div class="panel"><div>Search topics&hellip;</div><div>&#9745; Faith</div><div>&#9744; Charity</div></div></div></div><div><span class="pt-name">Multi-select<code>.ms-trigger / .ms-panel</code></span><p class="pt-note">The custom dropdown. The <strong>trigger</strong> is the closed button on top; the <strong>panel</strong> is the opened list under it.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-search"><span>Search talks&hellip;</span><span>&times;</span></div></div><div><span class="pt-name">Search field<code>.search-field</code></span><p class="pt-note">Text box with a clear (&times;) button.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-bulk"><span>3 selected</span><span>Add to list</span></div></div><div><span class="pt-name">Bulk bar<code>.list-bulk-bar</code></span><p class="pt-note">Appears when you select several rows.</p></div></div>
+      <div class="pt-spec"><div class="pt-stage"><div class="pt-pag"><span class="pt-pill">&lsaquo; Prev</span><span>Page 2 of 5</span><span class="pt-pill">Next &rsaquo;</span></div></div><div><span class="pt-name">Pagination<code>.list-pagination</code></span><p class="pt-note">Prev/next and the page indicator at the bottom of a list.</p></div></div>
+    </div>
+
+    <p class="kind-label">Modal</p>
+    <div class="pt-grid">
+      <div class="pt-spec wide"><div class="pt-overlay"><div class="pt-modal"><div class="hd"><span>Add to a List</span><span>&#10005;</span></div><p>&#9745; Favorites &nbsp; &#9744; Sunday lesson ideas</p><div class="act"><span class="pt-btn ghost">Cancel</span><span class="pt-btn primary">Done</span></div></div></div><div><span class="pt-name">Modal<code>.modal-overlay + .modal</code></span><p class="pt-note">A popup over a dimmed backdrop that waits for you. The dim layer is the <strong>overlay</strong>; the box is the <strong>modal</strong>, with a header, a close &#10005; and action buttons. The app has about 23: Settings, Sign in, Add to a List, Note, Note conflict, Trophy, Badges, Badge celebration, Secret reveal, Journey reveal, Streak salvage, Support, Rating ask, Onboarding, Clear data, Delete account, Shared list, TOTD calendar, Notification permission, Share compose.</p></div></div>
+    </div>
+    <p class="pt-note"><strong>Easy to mix up.</strong> A <em>chip</em> is a tag on content; a <em>pill</em> is a button you press. A <em>toast</em> fades on its own; a <em>modal</em> blocks the screen until you answer. For <em>badge</em>, say "achievement badge" or "Read label".</p>
+
     <p style="font-size:12.5px;color:var(--ink-soft)">Full token values (all ten themes, gradients, chips, hairlines) live in the design-system artifact this page was built from. Ask Claude for the link if you need to hand it to someone else.</p>
   </section>
 
@@ -470,7 +624,65 @@ function weekDelta(history, key) {
   const diff = latest[key] - base[key];
   return (diff >= 0 ? '+' : '') + fmt(diff) + ' vs. ' + (base === history[0] && new Date(base.d).getTime() > cutoff ? 'first snapshot' : '7 days ago');
 }
+let calDays = {}, calMonth = null, calSelected = null;
+const ymd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+function renderCalendar(days) {
+  if (!days || !days.length) { document.getElementById('cal-wrap').innerHTML = ''; return; }
+  calDays = {};
+  days.forEach(c => { calDays[c.d] = c; });
+  const last = days[days.length - 1].d;
+  if (!calMonth) calMonth = last.slice(0, 7);
+  if (!calSelected || !calDays[calSelected]) calSelected = last;
+  drawCalendar();
+}
+function drawCalendar() {
+  const keys = Object.keys(calDays).sort();
+  const firstMonth = keys[0].slice(0, 7), lastMonth = keys[keys.length - 1].slice(0, 7);
+  const [y, m] = calMonth.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const peak = Math.max(1, ...keys.map(k => calDays[k].readers));
+  const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many}`;
+  let cells = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+  for (let i = 0; i < new Date(y, m - 1, 1).getDay(); i++) cells += '<div class="cal-day empty"></div>';
+  let sum = 0, counted = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = ymd(y, m, d), c = calDays[key];
+    if (!c) { cells += `<div class="cal-day nodata"><span class="dn">${d}</span></div>`; continue; }
+    sum += c.readers; counted++;
+    const heat = Math.round((c.readers / peak) * 45);
+    // General Conference days have no Talk of the Day in the app.
+    const totd = c.conference ? `<span class="tn">CONF ${fmt(c.conferenceJoined || 0)}</span>`
+      : c.totdReaders ? `<span class="tn">TOTD ${fmt(c.totdReaders)}</span>` : '';
+    cells += `<button type="button" class="cal-day${key === calSelected ? ' sel' : ''}" data-day="${key}" style="background:color-mix(in srgb, var(--accent-a) ${heat}%, var(--paper-raised))"><span class="dn">${d}</span><span class="rn">${fmt(c.readers)}</span>${totd}</button>`;
+  }
+  const monthName = new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const sel = calDays[calSelected];
+  let detail = '';
+  if (sel) {
+    const [sy, sm, sd] = sel.d.split('-').map(Number);
+    const when = new Date(sy, sm - 1, sd).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const talk = sel.conference ? '<strong>General Conference</strong>: no Talk of the Day'
+      : sel.talk ? `Talk of the Day: <strong>${escapeHtml(sel.talk.title)}</strong> — ${escapeHtml(sel.talk.speaker)}` : 'Talk of the Day: not recorded for this date';
+    const parts = sel.conference
+      ? [plural(sel.readers, 'account read a talk or joined conference', 'accounts read a talk or joined conference'), plural(sel.conferenceJoined || 0, 'said they joined conference', 'said they joined conference')]
+      : [plural(sel.readers, 'account read a talk', 'accounts read a talk')];
+    if (sel.talk) parts.push(plural(sel.totdReaders, 'read the Talk of the Day', 'read the Talk of the Day'));
+    if (sel.reads !== null && sel.reads !== undefined) parts.push(plural(sel.reads, 'read by everyone', 'reads by everyone'));
+    detail = `<div class="cal-detail"><div class="dt">${escapeHtml(when)}</div><div>${talk}</div><div style="margin-top:4px">${parts.join(' · ')}</div></div>`;
+  }
+  const average = counted ? (sum / counted).toFixed(1) : '0';
+  document.getElementById('cal-wrap').innerHTML = '<div class="kind-label">Daily readers</div>'
+    + `<div class="cal-head"><button type="button" id="cal-prev"${calMonth <= firstMonth ? ' disabled' : ''}>Earlier</button><span class="m">${escapeHtml(monthName)}</span><button type="button" id="cal-next"${calMonth >= lastMonth ? ' disabled' : ''}>Later</button></div>`
+    + `<div class="cal-grid">${cells}</div>` + detail
+    + `<p style="font-size:12.5px;color:var(--ink-soft);margin:6px 0 4px">${escapeHtml(monthName)}: ${average} accounts reading per day on average. The large number is signed-in accounts that read any talk that day; TOTD is how many of them read that day's Talk of the Day. General Conference days have no Talk of the Day; CONF is how many accounts said they joined conference, and they count in the large number too. People who aren't signed in only appear in "reads by everyone", which is counted from 6am to 6am Mountain time. The talk shown is the one featured in U.S. time zones.</p>`;
+  const shift = (by) => { const d = new Date(y, m - 1 + by, 1); calMonth = ymd(d.getFullYear(), d.getMonth() + 1, 1).slice(0, 7); drawCalendar(); };
+  document.getElementById('cal-prev').addEventListener('click', () => shift(-1));
+  document.getElementById('cal-next').addEventListener('click', () => shift(1));
+  document.querySelectorAll('#cal-wrap button.cal-day').forEach(b => b.addEventListener('click', () => { calSelected = b.dataset.day; drawCalendar(); }));
+}
+
 function renderStats(st) {
+  renderCalendar(st.calendar);
   const a = st.accounts, r = st.activity, s = st.supporters, c = st.content, h = st.history;
   const providerNames = { 'google.com': 'Google', 'apple.com': 'Apple', 'password': 'Email' };
   const providers = Object.entries(a.providers || {}).map(([k, v]) => `${providerNames[k] || k} ${fmt(v)}`).join(' · ') || '—';
@@ -497,6 +709,25 @@ function renderStats(st) {
     + statTile(s.total, 'Supporters, all time', weekDelta(h, 'supporters'))
     + statTile(s.active, 'Currently active')
     + '</div><p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px">Supporters by year: ' + escapeHtml(years) + '</p>';
+  const pop = st.popular;
+  if (pop) {
+    const popLine = (t, noun) => t
+      ? `${escapeHtml(t.title)} — ${escapeHtml(t.speaker)} (${escapeHtml(String(t.year))}) · ${fmt(t.people)} ${noun}`
+      : 'Not enough data yet (needs ' + pop.minPeople + '+ people)';
+    const nameLine = (t) => t ? `${escapeHtml(t.name)} · ${fmt(t.people)} members` : 'Not enough data yet (needs ' + pop.minPeople + '+ people)';
+    const liftLine = (t) => t ? `${escapeHtml(t.name)} · ${fmt(t.people)} members · read ${t.lift}× more than its share of the library` : 'Not enough data yet (needs ' + pop.minPeople + '+ people)';
+    html += '<div class="kind-label">Loved by the community</div>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most read:</strong> ' + popLine(pop.mostRead, 'readers') + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most favorited:</strong> ' + popLine(pop.mostFavorited, 'favorites') + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most added to lists:</strong> ' + popLine(pop.mostListed, 'members') + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most-read speaker:</strong> ' + nameLine(pop.topSpeaker) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most-read topic:</strong> ' + nameLine(pop.topTopic) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Topic people seek out:</strong> ' + liftLine(pop.overReadTopic) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Most-cited scripture chapter:</strong> ' + nameLine(pop.topChapter) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Scripture people seek out:</strong> ' + liftLine(pop.overReadChapter) + '</p>'
+      + '<p style="font-size:13px;margin:0 0 4px"><strong>Days of study, together:</strong> ' + (pop.studyDays ? fmt(pop.studyDays.days) + ' days across ' + fmt(pop.studyDays.people) + ' members' : 'Not enough data yet') + '</p>'
+      + '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px">Counted by distinct signed-in members, not total reads; hidden until at least ' + pop.minPeople + ' people agree. "Seek out" compares how much of members\' reading goes to a topic or chapter with how much of the library carries it, so heavily tagged topics don\'t win by default.</p>';
+  }
   if (c) {
     html += '<div class="kind-label">Content</div><div class="stat-grid">'
       + statTile(c.talks, 'Talks in the app')
@@ -540,6 +771,158 @@ async function refreshAll() {
   if (notes.length) document.getElementById('stats-meta').textContent += ' · ' + notes.join(' ');
 }
 document.getElementById('refresh-btn').addEventListener('click', refreshAll);
+
+/* ---- Admin tab: look up one account's streak and forgive missed days ----
+   Hidden unless the page is opened as ledger.html#admin (or this browser
+   has signed in as the admin before). The Firebase SDK is only loaded
+   when the tab is actually shown, so ordinary visitors never fetch it.
+   All the real checks live in the adminStreak* functions — this page
+   being public doesn't matter, since they refuse anyone but the admin. */
+const ADMIN_SEEN_KEY = 'ledgerAdminSeen';
+let adminFb = null, adminAccount = null, adminSelected = new Set(), adminMonth = null;
+function adminSeen() { try { return localStorage.getItem(ADMIN_SEEN_KEY) === '1'; } catch (e) { return false; } }
+async function loadAdminFirebase() {
+  if (adminFb) return adminFb;
+  const base = 'https://www.gstatic.com/firebasejs/12.6.0/firebase-';
+  const [appMod, authMod, fnMod] = await Promise.all([import(base + 'app.js'), import(base + 'auth.js'), import(base + 'functions.js')]);
+  const app = appMod.initializeApp({ apiKey: FIREBASE_API_KEY, authDomain: FIREBASE_PROJECT + '.firebaseapp.com', projectId: FIREBASE_PROJECT });
+  const auth = authMod.getAuth(app);
+  const functions = fnMod.getFunctions(app);
+  adminFb = { auth, authMod, call: async (name, data) => (await fnMod.httpsCallable(functions, name)(data)).data };
+  authMod.onAuthStateChanged(auth, renderAdminAuth);
+  return adminFb;
+}
+function renderAdminAuth(user) {
+  const box = document.getElementById('admin-auth');
+  document.getElementById('admin-tools').hidden = !user;
+  if (!user) {
+    box.innerHTML = '<div class="adm-row"><button class="refresh" type="button" id="admin-signin">Sign in with Google</button></div>';
+    document.getElementById('admin-signin').addEventListener('click', async () => {
+      try { await adminFb.authMod.signInWithPopup(adminFb.auth, new adminFb.authMod.GoogleAuthProvider()); }
+      catch (e) { box.insertAdjacentHTML('beforeend', '<p class="error">Sign-in didn\'t finish. Try again.</p>'); }
+    });
+    return;
+  }
+  try { localStorage.setItem(ADMIN_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
+  box.innerHTML = `<p class="adm-note">Signed in as ${escapeHtml(user.email || '')} · <a href="#" id="admin-signout" class="src-link">Sign out</a></p>`;
+  document.getElementById('admin-signout').addEventListener('click', (e) => { e.preventDefault(); adminFb.authMod.signOut(adminFb.auth); });
+}
+async function showAdminTab() {
+  document.getElementById('admin-tab').hidden = false;
+  try { await loadAdminFirebase(); }
+  catch (e) { document.getElementById('admin-auth').innerHTML = '<p class="error">Could not load sign-in right now.</p>'; }
+}
+const admToday = () => { const d = new Date(); return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate()); };
+const admShift = (day, by) => { const [y, m, d] = day.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d + by)).toISOString().slice(0, 10); };
+const admLabel = (day, opts) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, opts || { month: 'short', day: 'numeric' }); };
+// Same run-counting as recomputeStreakFromActiveDays() in index.html and functions/streak.js.
+function admRun(activeDays, bridgedDays) {
+  if (!activeDays.length) return 0;
+  const a = new Set(activeDays), b = new Set(bridgedDays);
+  let count = 0, cursor = activeDays[activeDays.length - 1];
+  while (a.has(cursor) || b.has(cursor)) { if (a.has(cursor)) count++; cursor = admShift(cursor, -1); }
+  return count;
+}
+// Every day between their first remembered reading day and yesterday that was neither read nor forgiven, newest first.
+function admMissedDays(st) {
+  if (!st.activeDays.length) return [];
+  const a = new Set(st.activeDays), b = new Set(st.bridgedDays), out = [];
+  for (let d = admShift(admToday(), -1); d > st.activeDays[0]; d = admShift(d, -1)) if (!a.has(d) && !b.has(d)) out.push(d);
+  return out;
+}
+function setAdminMsg(text, isError) {
+  const el = document.getElementById('admin-msg');
+  el.textContent = text || '';
+  el.className = isError ? 'error' : 'adm-note';
+}
+function renderAdminAccount() {
+  const box = document.getElementById('admin-result');
+  if (!adminAccount) { box.innerHTML = ''; return; }
+  const st = adminAccount.streak;
+  if (!adminAccount.hasData || !st.activeDays.length) {
+    box.innerHTML = `<div class="card"><strong>${escapeHtml(adminAccount.email || '')}</strong><p class="adm-note">This account hasn't synced any reading days yet, so there's no streak to fix.</p></div>`;
+    return;
+  }
+  const today = admToday(), missed = admMissedDays(st);
+  const alive = st.lastDate >= admShift(today, -1);
+  const readSet = new Set(st.activeDays), forgivenSet = new Set(st.bridgedDays), missedSet = new Set(missed);
+  const firstMonth = st.activeDays[0].slice(0, 7), lastMonth = today.slice(0, 7);
+  if (!adminMonth) adminMonth = lastMonth;
+  const [y, m] = adminMonth.split('-').map(Number);
+  let cells = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+  for (let i = 0; i < new Date(y, m - 1, 1).getDay(); i++) cells += '<div class="cal-day empty"></div>';
+  for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) {
+    const key = ymd(y, m, d);
+    if (readSet.has(key)) cells += `<div class="cal-day adm read"><span class="dn">${d}</span><span class="st">Read</span></div>`;
+    else if (forgivenSet.has(key)) cells += `<div class="cal-day adm forgiven"><span class="dn">${d}</span><span class="st">Forgiven</span></div>`;
+    else if (missedSet.has(key)) cells += `<button type="button" class="cal-day adm missed${adminSelected.has(key) ? ' sel' : ''}" data-day="${key}"><span class="dn">${d}</span><span class="st">${adminSelected.has(key) ? 'Forgive' : 'Missed'}</span></button>`;
+    else cells += `<div class="cal-day adm nodata"><span class="dn">${d}</span></div>`;
+  }
+  const monthName = new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const recent = missed.filter(d => d >= admShift(today, -60)).slice(0, 14); // long gaps are easier to read on the calendar below
+  const chips = recent.length
+    ? recent.map(d => `<button type="button" class="adm-chip${adminSelected.has(d) ? ' sel' : ''}" data-day="${d}">${escapeHtml(admLabel(d, { weekday: 'short', month: 'short', day: 'numeric' }))}</button>`).join(' ')
+    : '<span class="adm-note">None in the last 60 days.</span>';
+  const picked = [...adminSelected].sort();
+  const after = admRun(st.activeDays, [...st.bridgedDays, ...picked]);
+  let action = '<p class="adm-note">Tap a missed day to select it.</p>';
+  if (picked.length) {
+    action = `<p class="adm-note">Forgiving ${picked.length === 1 ? 'this day' : 'these ' + picked.length + ' days'} takes the streak from <strong>${fmt(st.count)}</strong> to <strong>${fmt(after)}</strong>. Forgiven days keep the streak going but don't count as days studied.</p>`
+      + `<div class="adm-row"><button class="refresh" type="button" id="admin-forgive">Forgive ${picked.length === 1 ? admLabel(picked[0]) : picked.length + ' days'}</button></div>`;
+  }
+  box.innerHTML = `<div class="card"><strong>${escapeHtml(adminAccount.email || '')}</strong>`
+    + `<div class="stat-grid" style="margin-top:10px">`
+    + `<div class="stat"><div class="n">${fmt(st.count)}</div><div class="l">${alive ? 'Current streak' : 'Streak when they last read'}</div></div>`
+    + `<div class="stat"><div class="n">${fmt(st.longest)}</div><div class="l">Longest streak</div></div>`
+    + `<div class="stat"><div class="n">${escapeHtml(admLabel(st.lastDate))}</div><div class="l">Last day read</div></div>`
+    + `<div class="stat"><div class="n">${fmt(st.activeDays.length)}</div><div class="l">Days studied, last year</div></div></div>`
+    + (alive ? '' : `<p class="adm-note">They haven't read since ${escapeHtml(admLabel(st.lastDate))}, so the app shows 0 right now. Forgiven days after their last read take effect the next time they read and sync.</p>`)
+    + `<div class="kind-label">Most recent missed days</div><div class="adm-row">${chips}</div>`
+    + `<div class="cal-head"><button type="button" id="adm-prev"${adminMonth <= firstMonth ? ' disabled' : ''}>Earlier</button><span class="m">${escapeHtml(monthName)}</span><button type="button" id="adm-next"${adminMonth >= lastMonth ? ' disabled' : ''}>Later</button></div>`
+    + `<div class="cal-grid">${cells}</div>${action}</div>`;
+  const shift = (by) => { const d = new Date(y, m - 1 + by, 1); adminMonth = ymd(d.getFullYear(), d.getMonth() + 1, 1).slice(0, 7); renderAdminAccount(); };
+  document.getElementById('adm-prev').addEventListener('click', () => shift(-1));
+  document.getElementById('adm-next').addEventListener('click', () => shift(1));
+  box.querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', () => {
+    const day = b.dataset.day;
+    if (adminSelected.has(day)) adminSelected.delete(day); else adminSelected.add(day);
+    renderAdminAccount();
+  }));
+  const forgive = document.getElementById('admin-forgive');
+  if (forgive) forgive.addEventListener('click', () => adminForgive(picked));
+}
+const adminErrorText = (e) => (e && e.message && !/^internal$/i.test(e.message)) ? e.message : 'Something went wrong. Try again.';
+async function adminLookup(e) {
+  e.preventDefault();
+  const btn = document.getElementById('admin-lookup-btn');
+  btn.disabled = true;
+  setAdminMsg('Looking up…');
+  adminAccount = null; adminSelected = new Set(); adminMonth = null;
+  renderAdminAccount();
+  try {
+    adminAccount = await adminFb.call('adminStreakLookup', { email: document.getElementById('admin-email').value });
+    setAdminMsg('');
+  } catch (err) { setAdminMsg(adminErrorText(err), true); }
+  btn.disabled = false;
+  renderAdminAccount();
+}
+async function adminForgive(days) {
+  const list = days.map(d => admLabel(d)).join(', ');
+  if (!confirm(`Forgive ${list} for ${adminAccount.email}?\n\nThis changes their saved streak and can't be undone from here.`)) return;
+  document.getElementById('admin-forgive').disabled = true;
+  setAdminMsg('Saving…');
+  try {
+    const before = adminAccount.streak.count;
+    const res = await adminFb.call('adminStreakForgive', { uid: adminAccount.uid, days });
+    adminAccount.streak = res.streak;
+    adminSelected = new Set();
+    setAdminMsg(`Done — forgave ${list}. Streak went from ${fmt(before)} to ${fmt(res.streak.count)}. They'll see it the next time their app syncs.`);
+  } catch (err) { setAdminMsg(adminErrorText(err), true); }
+  renderAdminAccount();
+}
+document.getElementById('admin-lookup-form').addEventListener('submit', adminLookup);
+if (location.hash === '#admin' || adminSeen()) showAdminTab();
+window.addEventListener('hashchange', () => { if (location.hash === '#admin') showAdminTab(); });
 
 loadCommits();
 loadChangelog();

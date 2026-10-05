@@ -128,4 +128,24 @@ once per 10 minutes, reached through a Hosting rewrite like
 does that step (their CLI login is interactive). Keep the stats
 aggregate-only: no per-user data and no dollar amounts on this public page.
 
+The ledger also has a private **Admin** tab (shown only at
+`ledger.html#admin`, behind Google sign-in) for looking up one account's
+streak and forgiving missed days. It calls `adminStreakLookup` /
+`adminStreakForgive` in `functions/index.js`, which only answer the
+emails in `ADMIN_EMAILS` and never write to `stats/ledger`. Per-user data
+may appear in that tab and nowhere else on the page. `functions/streak.js`
+ports `recomputeStreakFromActiveDays()` from `docs/index.html` — keep the
+two in step.
+
+The Stats tab's daily-readers calendar shows each day's Talk of the Day,
+which the function recomputes with `functions/totd.js` — a port of
+`talkForDate()` / `cyclePick()` / `CURATED_HOLIDAYS` in `docs/index.html`.
+**If the app's Talk of the Day algorithm ever changes, change
+`functions/totd.js` to match and redeploy**, or the calendar will name the
+wrong talk.
+
+The same goes for the General Conference weekend rule (`isConferenceDay`),
+which lives in four places — the app, the iOS widget, the Android widget,
+and `functions/totd.js`. See `ENGINEERING_NOTES.md` (Talk of the Day).
+
 See `PROJECT_HANDOFF.md` for full architecture/history detail.

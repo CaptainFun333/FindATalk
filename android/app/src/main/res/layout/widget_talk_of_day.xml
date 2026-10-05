@@ -59,6 +59,32 @@
         android:includeFontPadding="false"
         android:layout_marginBottom="2dp" />
 
+    <!-- Idea 87: shown in place of widget_title on a General Conference
+         day (see TalkOfDayWidgetProvider.updateWidget()). The question is
+         too long for the title's single line, so it gets two, and on a
+         narrow widget it shrinks to fit rather than being cut off —
+         autosizing needs a fixed height to work against, hence 32dp (two
+         lines at the title's own 13sp). Android 7 ignores the autoSize
+         attributes and simply uses textSize. -->
+    <TextView
+        android:id="@+id/widget_conference_question"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:text="@string/widget_conference_question"
+        android:textColor="@color/widget_ink"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:fontFamily="serif"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:includeFontPadding="false"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="10sp"
+        android:autoSizeMaxTextSize="13sp"
+        android:autoSizeStepGranularity="1px"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/widget_speaker"
         android:layout_width="match_parent"

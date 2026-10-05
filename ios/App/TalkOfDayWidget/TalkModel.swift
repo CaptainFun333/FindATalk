@@ -102,11 +102,38 @@ enum TalkStore {
         }
     }
 
+    /// Port of isConferenceDay() in docs/index.html — keep in sync (and
+    /// with ConferenceWeekend.java and functions/totd.js). General
+    /// Conference is the first Sunday of April and of October plus the
+    /// Saturday before it, which can land on the last day of March or
+    /// September. On those days there is no Talk of the Day: the app
+    /// shows a "Are you participating in General Conference today?" card
+    /// instead (idea 87), and the widget and Siri shortcut follow suit.
+    static func isConferenceDay(_ date: Date = Date()) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
+        let weekday = calendar.component(.weekday, from: date) // 1 = Sunday ... 7 = Saturday
+        let sunday: Date
+        if weekday == 1 {
+            sunday = date
+        } else if weekday == 7, let next = calendar.date(byAdding: .day, value: 1, to: date) {
+            sunday = next
+        } else {
+            return false
+        }
+        let c = calendar.dateComponents([.month, .day], from: sunday)
+        guard let month = c.month, let day = c.day else { return false }
+        return (month == 4 || month == 10) && day <= 7
+    }
+
     /// Port of talkOfTheDay() in docs/index.html — keep in sync. Checks
     /// today's curated holidays first, then falls back to the no-repeat
-    /// cycle shuffle.
+    /// cycle shuffle. Returns nil on a General Conference day (see
+    /// isConferenceDay above) — callers that need to tell that apart from
+    /// "the data didn't load" check isConferenceDay themselves.
     static func talkOfTheDay(from talks: [Talk], date: Date = Date()) -> Talk? {
         guard !talks.isEmpty else { return nil }
+        if isConferenceDay(date) { return nil }
 
         let sorted = talks.sorted { $0.key < $1.key }
         var calendar = Calendar(identifier: .gregorian)

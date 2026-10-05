@@ -10,6 +10,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { SignedDataVerifier, Environment } = require('@apple/app-store-server-library');
+const { makeTotdPicker, talkKey, isConferenceDay } = require('./totd');
+const { isDay, recomputeStreak } = require('./streak');
 
 initializeApp();
 const firestore = getFirestore();
@@ -281,10 +283,26 @@ exports.verifyIAPPurchase = onCall(
 // ledgerStatsRefresh via a Hosting rewrite, same pattern as stripeWebhook.
 const LEDGER_MIN_REFRESH_MS = 10 * 60 * 1000;
 const LEDGER_HISTORY_DAYS = 120;
+const POPULAR_MIN_PEOPLE = 5;
+const OVERREAD_MIN_SUPPLY = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-async function computeLedgerStats(previous) {
+// Calendar dates are Mountain time: the daily run is 6am there, and it is
+// where most readers are.
+const denverDate = (ms) => {
+  // formatToParts, not a locale's date format: a slim-ICU Node ignores 'en-CA'.
+  const p = {};
+  for (const part of new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(ms))) p[part.type] = part.value;
+  return `${p.year}-${p.month}-${p.day}`;
+};
+const shiftDate = (ymd, days) => new Date(Date.parse(`${ymd}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+
+async function computeLedgerStats(previous, { scheduled } = {}) {
   const now = Date.now();
+  const todayLocal = denverDate(now);
+  const calendarStart = shiftDate(todayLocal, -(LEDGER_HISTORY_DAYS - 1));
+  // Per day: distinct accounts that read anything, and distinct accounts per talk.
+  const readersByDay = {}, talkReadersByDay = {}, conferenceJoinedByDay = {};
 
   const providers = {};
   let total = 0, new7 = 0, new30 = 0, active7 = 0, active30 = 0;
@@ -306,14 +324,52 @@ async function computeLedgerStats(previous) {
 
   let accountsTalksRead = 0, favorites = 0, lists = 0, notes = 0;
   let streaksActive = 0, longestStreak = 0, accountsWithData = 0;
+  const readersByTalk = {}, favoritersByTalk = {}, listersByTalk = {};
+  const speakerKeyReaders = []; // per-user read-key sets, resolved to speakers/topics/books below
+  let studyDaysTotal = 0, studyPeople = 0;
   const sizeOf = (v) => (Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0));
-  const users = await firestore.collection('users').select('read', 'favorites', 'collections', 'notes', 'streak').get();
+  const users = await firestore.collection('users').select('read', 'favorites', 'collections', 'collectionMembers', 'notes', 'streak', 'readLog', 'readLogEstimated', 'studyDaysEstimated').get();
   users.forEach((d) => {
     const x = d.data();
     const reads = sizeOf(x.read);
     if (reads || sizeOf(x.favorites) || sizeOf(x.collections) || sizeOf(x.notes)) accountsWithData++;
     accountsTalksRead += reads;
     favorites += sizeOf(x.favorites);
+    // Distinct people per talk (not total reads) — one person rereading a talk
+    // 500 times shouldn't outrank 40 different readers.
+    for (const k of new Set(Array.isArray(x.read) ? x.read : [])) readersByTalk[k] = (readersByTalk[k] || 0) + 1;
+    {
+      const readSet = new Set(Array.isArray(x.read) ? x.read : []);
+      if (readSet.size) speakerKeyReaders.push(readSet);
+      // A talk counts once per person however many of their lists it is on.
+      const listed = new Set();
+      for (const members of Object.values(x.collectionMembers || {})) {
+        if (Array.isArray(members)) members.forEach((k) => listed.add(k));
+      }
+      for (const k of listed) listersByTalk[k] = (listersByTalk[k] || 0) + 1;
+      // Distinct days of study: real read dates plus the streak's own record.
+      const days = new Set();
+      const addDay = (d) => { if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) days.add(d); };
+      for (const dates of Object.values(x.readLog || {})) if (Array.isArray(dates)) dates.forEach(addDay);
+      (Array.isArray(x.studyDaysEstimated) ? x.studyDaysEstimated : []).forEach(addDay);
+      ((x.streak && x.streak.activeDays) || []).forEach(addDay);
+      if (days.size) { studyDaysTotal += days.size; studyPeople++; }
+      for (const day of days) if (day >= calendarStart) readersByDay[day] = (readersByDay[day] || 0) + 1;
+      // Estimated dates count too: they only exist where the streak recorded
+      // a real active day and that day's featured talk is marked read.
+      const talkDays = new Set();
+      for (const log of [x.readLog, x.readLogEstimated]) {
+        for (const [k, dates] of Object.entries(log || {})) {
+          if (Array.isArray(dates)) dates.forEach((day) => { if (typeof day === 'string' && day >= calendarStart) talkDays.add(`${day}|${k}`); });
+        }
+      }
+      for (const dk of talkDays) talkReadersByDay[dk] = (talkReadersByDay[dk] || 0) + 1;
+      // General Conference days this person answered "Yes" on in the app.
+      for (const day of new Set(Array.isArray(x.conferenceDays) ? x.conferenceDays : [])) {
+        if (typeof day === 'string' && day >= calendarStart) conferenceJoinedByDay[day] = (conferenceJoinedByDay[day] || 0) + 1;
+      }
+    }
+    for (const k of new Set(Array.isArray(x.favorites) ? x.favorites : [])) favoritersByTalk[k] = (favoritersByTalk[k] || 0) + 1;
     lists += sizeOf(x.collections);
     notes += sizeOf(x.notes);
     const s = x.streak;
@@ -337,10 +393,98 @@ async function computeLedgerStats(previous) {
     for (const y of (x.years || [])) supportersByYear[y] = (supportersByYear[y] || 0) + 1;
   });
 
-  let content = null;
+  let content = null, popular = null, pickTalk = null, dataDate = null;
   try {
     const res = await fetch('https://findatalk.com/data.json');
     const data = await res.json();
+    pickTalk = makeTotdPicker(data);
+    dataDate = String(data.generatedAt).slice(0, 10);
+    // Talks are [title, speaker, year, month, slug]; user docs key them "year|month|slug".
+    const byKey = {};
+    for (const t of data.talks) byKey[`${t[2]}|${t[3]}|${t[4]}`] = t;
+    const top = (counts) => {
+      let best = null;
+      for (const [k, n] of Object.entries(counts)) {
+        if (byKey[k] && (!best || n > best.n)) best = { k, n };
+      }
+      // Below the minimum, publish nothing — a handful of people shouldn't be identifiable.
+      if (!best || best.n < POPULAR_MIN_PEOPLE) return null;
+      const t = byKey[best.k];
+      return { title: t[0], speaker: t[1], year: t[2], month: t[3], people: best.n };
+    };
+    // Roll each person's read talks up to speakers, topics and scripture chapters.
+    // "People" counts each member once per speaker/topic/chapter; "reads" counts
+    // every member-talk pair, so it can be compared with the library's own mix
+    // (supply) to tell what people gravitate toward from what is merely common.
+    const peopleBy = { speaker: {}, topic: {}, chapter: {} };
+    const readsBy = { topic: {}, chapter: {} };
+    const supplyBy = { topic: {}, chapter: {} };
+    const bump = (map, k) => { map[k] = (map[k] || 0) + 1; };
+    const chaptersOf = (k) => {
+      const out = new Set();
+      for (const i of (data.citationLookup[k] || [])) {
+        const ref = data.citationRefs[i];
+        if (ref && ref[3]) out.add(`${ref[1]}|${ref[2]}|${ref[3]}`);
+      }
+      return out;
+    };
+    for (const k of Object.keys(byKey)) {
+      (data.topicLookup[k] || []).forEach((tp) => bump(supplyBy.topic, tp));
+      chaptersOf(k).forEach((c) => bump(supplyBy.chapter, c));
+    }
+    const libraryTalks = Object.keys(byKey).length;
+    let totalReads = 0;
+    for (const readSet of speakerKeyReaders) {
+      const speakers = new Set(), topics = new Set(), chapters = new Set();
+      for (const k of readSet) {
+        const t = byKey[k];
+        if (!t) continue;
+        totalReads++;
+        speakers.add(t[1]);
+        for (const tp of (data.topicLookup[k] || [])) { topics.add(tp); bump(readsBy.topic, tp); }
+        for (const c of chaptersOf(k)) { chapters.add(c); bump(readsBy.chapter, c); }
+      }
+      speakers.forEach((v) => bump(peopleBy.speaker, v));
+      topics.forEach((v) => bump(peopleBy.topic, v));
+      chapters.forEach((v) => bump(peopleBy.chapter, v));
+    }
+    const topOf = (counts, label) => {
+      let best = null;
+      for (const [k, n] of Object.entries(counts)) if (!best || n > best.n) best = { k, n };
+      if (!best || best.n < POPULAR_MIN_PEOPLE) return null;
+      return { name: label(best.k), people: best.n };
+    };
+    // Popularity vs. supply: how much more of members' reading goes to this
+    // topic/chapter than its share of the library would predict. Needs the
+    // minimum number of people so a lone reader can't produce a "favorite".
+    const overRead = (kind, label) => {
+      let best = null;
+      for (const [k, people] of Object.entries(peopleBy[kind])) {
+        // Skip thinly-supplied tags: one talk read by a few people would otherwise
+        // look like a huge preference.
+        if (people < POPULAR_MIN_PEOPLE || (supplyBy[kind][k] || 0) < OVERREAD_MIN_SUPPLY || !totalReads) continue;
+        const lift = (readsBy[kind][k] / totalReads) / (supplyBy[kind][k] / libraryTalks);
+        if (!best || lift > best.lift) best = { k, people, lift };
+      }
+      return best && { name: label(best.k), people: best.people, lift: Math.round(best.lift * 10) / 10 };
+    };
+    const chapterLabel = (k) => {
+      const [vol, book, ch] = k.split('|');
+      return `${data.citationBookLabels[`${vol}|${book}`] || book} ${ch}`;
+    };
+    const topicLabel = (k) => data.topicLabels[k] || k;
+    popular = {
+      mostRead: top(readersByTalk),
+      mostFavorited: top(favoritersByTalk),
+      mostListed: top(listersByTalk),
+      topSpeaker: topOf(peopleBy.speaker, (k) => k),
+      topTopic: topOf(peopleBy.topic, topicLabel),
+      topChapter: topOf(peopleBy.chapter, chapterLabel),
+      overReadTopic: overRead('topic', topicLabel),
+      overReadChapter: overRead('chapter', chapterLabel),
+      studyDays: studyPeople >= POPULAR_MIN_PEOPLE ? { days: studyDaysTotal, people: studyPeople } : null,
+      minPeople: POPULAR_MIN_PEOPLE,
+    };
     const conferences = new Set(data.talks.map((t) => `${t[2]}-${t[3]}`));
     content = { talks: data.talks.length, conferences: conferences.size, dataGeneratedAt: data.generatedAt };
   } catch (err) {
@@ -351,13 +495,54 @@ async function computeLedgerStats(previous) {
   const history = ((previous && previous.history) || []).filter((h) => h.d !== today);
   history.push({ d: today, accounts: total, talksRead: globalTalksRead, supporters: supportersTotal });
 
+  // The all-users read counter as of each morning's scheduled run, so a day's
+  // reads by everyone (signed in or not) is one morning's value minus the last.
+  const morning = { ...((previous && previous.morning) || {}) };
+  if (!Object.keys(morning).length) for (const h of history) morning[h.d] = h.talksRead;
+  if (scheduled || !(todayLocal in morning)) morning[todayLocal] = globalTalksRead;
+  for (const d of Object.keys(morning)) if (d < calendarStart) delete morning[d];
+
+  // A day's featured talk is stored the first time it is computed and never
+  // recomputed: the pick depends on how many talks data.json holds, so a later
+  // data update would otherwise rewrite history. Days before the current data
+  // was generated get no talk for the same reason.
+  const stored = {};
+  for (const c of (previous && previous.calendar) || []) stored[c.d] = c;
+  let calendar = [];
+  for (let d = calendarStart; d <= todayLocal; d = shiftDate(d, 1)) {
+    let talk = (stored[d] && stored[d].talk) || null;
+    const [y, m, day] = d.split('-').map(Number);
+    if (!talk && pickTalk && d >= dataDate) {
+      const t = pickTalk(y, m, day);
+      if (t) talk = { k: talkKey(t), title: t[0], speaker: t[1] };
+    }
+    // The app features no talk on a General Conference day. A conference day
+    // from before that began keeps the talk already stored for it.
+    const conference = !talk && isConferenceDay(y, m, day);
+    const next = shiftDate(d, 1);
+    const end = next in morning ? morning[next] : (d === todayLocal ? globalTalksRead : null);
+    calendar.push({
+      d,
+      talk,
+      readers: readersByDay[d] || 0,
+      totdReaders: talk ? (talkReadersByDay[`${d}|${talk.k}`] || 0) : 0,
+      ...(conference ? { conference: true, conferenceJoined: conferenceJoinedByDay[d] || 0 } : {}),
+      reads: d in morning && end !== null ? Math.max(0, end - morning[d]) : null,
+    });
+  }
+  const firstActive = calendar.findIndex((c) => c.readers || c.reads);
+  calendar = firstActive < 0 ? [] : calendar.slice(firstActive);
+
   return {
     generatedAt: now,
     accounts: { total, new7, new30, active7, active30, withData: accountsWithData, providers },
     activity: { globalTalksRead, accountsTalksRead, favorites, lists, notes, streaksActive, longestStreak },
     supporters: { total: supportersTotal, active: supportersActive, byYear: supportersByYear },
     content,
+    popular,
     history: history.slice(-LEDGER_HISTORY_DAYS),
+    calendar,
+    morning,
   };
 }
 
@@ -368,7 +553,7 @@ async function refreshLedgerStats({ force }) {
   if (!force && previous && Date.now() - previous.generatedAt < LEDGER_MIN_REFRESH_MS) {
     return { stats: previous, throttled: true };
   }
-  const stats = await computeLedgerStats(previous);
+  const stats = await computeLedgerStats(previous, { scheduled: force });
   await ref.set({ json: JSON.stringify(stats), updatedAt: stats.generatedAt });
   return { stats, throttled: false };
 }
@@ -661,4 +846,101 @@ exports.removeSharedListMember = onCall(async (request) => {
     removeMemberInTx(tx, listId, list, target);
   });
   return { ok: true };
+});
+
+// ---- Ledger admin tools (private tab on docs/ledger.html) ----
+//
+// Unlike everything above, these read and change ONE person's data, so
+// they're callable only by a signed-in admin and never write anything to
+// the public stats/ledger doc. Every change is recorded in adminActions
+// (no Firestore rule, so no client can read or write it).
+const ADMIN_EMAILS = ['brad@smoothop.com'];
+const ADMIN_MAX_FORGIVE_DAYS = 31;
+
+function requireAdmin(request) {
+  const token = request.auth && request.auth.token;
+  if (!token) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const email = String(token.email || '').toLowerCase();
+  if (!token.email_verified || !ADMIN_EMAILS.includes(email)) {
+    throw new HttpsError('permission-denied', 'This account is not an admin.');
+  }
+  return email;
+}
+
+function streakSummary(data) {
+  const s = (data && data.streak) || {};
+  const activeDays = [...new Set((Array.isArray(s.activeDays) ? s.activeDays : []).filter(isDay))].sort();
+  const bridgedDays = [...new Set((Array.isArray(s.bridgedDays) ? s.bridgedDays : []).filter(isDay))].sort();
+  return { ...recomputeStreak(activeDays, s.longest, bridgedDays), activeDays, bridgedDays };
+}
+
+exports.adminStreakLookup = onCall(async (request) => {
+  requireAdmin(request);
+  const email = String((request.data && request.data.email) || '').trim().toLowerCase();
+  if (!email) throw new HttpsError('invalid-argument', 'Enter an email address.');
+  let user;
+  try {
+    user = await getAuth().getUserByEmail(email);
+  } catch (err) {
+    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+      throw new HttpsError('not-found', 'No account uses that email address.');
+    }
+    throw err;
+  }
+  const snap = await firestore.collection('users').doc(user.uid).get();
+  return {
+    uid: user.uid,
+    email: user.email,
+    hasData: snap.exists,
+    streak: streakSummary(snap.exists ? snap.data() : null),
+  };
+});
+
+// Marks missed days as forgiven (streak.bridgedDays): the streak runs
+// straight through them, but they are NOT added to activeDays, so "days
+// studied" stays an honest count. The app unions bridgedDays on every
+// sync and rebuilds the count from them, so this survives the person's
+// own devices pushing afterward (their pushes use merge:true).
+exports.adminStreakForgive = onCall(async (request) => {
+  const adminEmail = requireAdmin(request);
+  const { uid, days } = request.data || {};
+  if (typeof uid !== 'string' || !uid) throw new HttpsError('invalid-argument', 'Missing account.');
+  if (!Array.isArray(days) || !days.length || days.length > ADMIN_MAX_FORGIVE_DAYS || !days.every(isDay)) {
+    throw new HttpsError('invalid-argument', `Pick between 1 and ${ADMIN_MAX_FORGIVE_DAYS} valid days.`);
+  }
+  // Nobody's local "today" is later than UTC+14.
+  const latest = new Date(Date.now() + 14 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const ref = firestore.collection('users').doc(uid);
+  return firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError('not-found', 'That account has no synced data yet.');
+    const before = streakSummary(snap.data());
+    if (!before.activeDays.length) {
+      throw new HttpsError('failed-precondition', 'That account has no reading days to connect.');
+    }
+    const active = new Set(before.activeDays);
+    const first = before.activeDays[0];
+    for (const d of days) {
+      if (active.has(d)) throw new HttpsError('invalid-argument', `${d} is already a day they read.`);
+      // The app drops forgiven days older than the first day it still remembers.
+      if (d < first || d > latest) throw new HttpsError('invalid-argument', `${d} is outside their reading history.`);
+    }
+    const bridgedDays = [...new Set([...before.bridgedDays, ...days])].sort();
+    const after = recomputeStreak(before.activeDays, before.longest, bridgedDays);
+    tx.update(ref, {
+      'streak.bridgedDays': bridgedDays,
+      'streak.count': after.count,
+      'streak.longest': after.longest,
+    });
+    tx.set(firestore.collection('adminActions').doc(), {
+      action: 'streakForgive',
+      at: Date.now(),
+      admin: adminEmail,
+      uid,
+      days: [...days].sort(),
+      before: { count: before.count, longest: before.longest },
+      after: { count: after.count, longest: after.longest },
+    });
+    return { streak: { ...after, activeDays: before.activeDays, bridgedDays } };
+  });
 });

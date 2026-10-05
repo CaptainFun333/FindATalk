@@ -247,7 +247,27 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
             views.setViewVisibility(R.id.widget_streak, android.view.View.GONE);
         }
 
-        if (pick != null) {
+        // Idea 87 — on a General Conference day there is no Talk of the
+        // Day (talkOfTheDay() returns null by design). Show the same two
+        // states, in the same words, as the card on the app's Home screen
+        // (buildConferenceCard() in docs/index.html) — keep the wording in
+        // sync with it and with TalkOfDayWidget.swift.
+        if (ConferenceWeekend.isConferenceDay(Calendar.getInstance())) {
+            views.setTextViewText(R.id.widget_eyebrow, context.getString(R.string.widget_eyebrow_conference));
+            if (joinedConferenceToday(context)) {
+                views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_conference_joined));
+                views.setTextViewText(R.id.widget_speaker, context.getString(R.string.widget_conference_joined_detail));
+            } else {
+                // The question doesn't fit on the title's single line, so
+                // it has its own two-line, shrink-to-fit view (see the
+                // layout). The title and the line under it are dropped to
+                // make the room: this card can be as short as one launcher
+                // row, and the streak row matters more here.
+                views.setViewVisibility(R.id.widget_title, android.view.View.GONE);
+                views.setViewVisibility(R.id.widget_speaker, android.view.View.GONE);
+                views.setViewVisibility(R.id.widget_conference_question, android.view.View.VISIBLE);
+            }
+        } else if (pick != null) {
             views.setTextViewText(R.id.widget_title, pick.title);
             views.setTextViewText(R.id.widget_speaker, pick.speaker);
         } else {
@@ -292,13 +312,35 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         the streak itself (that only happens when the app is actually
         opened). Returns null if there's no streak yet, so the caller can
         hide the row entirely rather than show a "0-day" default. */
+    /** The streak record the app last mirrored, or null if there isn't
+        one (or it can't be read). */
+    private JSONObject mirroredStreak(Context context) throws Exception {
+        SharedPreferences prefs = context.getSharedPreferences(STREAK_PREFS_NAME, Context.MODE_PRIVATE);
+        String raw = prefs.getString(STREAK_KEY, null);
+        return raw == null ? null : new JSONObject(raw);
+    }
+
+    /** True once the person has answered Yes on the app's General
+        Conference card today. The app tucks that day's date into the
+        mirrored streak record as `conferenceYes` (see
+        mirrorStreakToNative() in docs/index.html) — a stale value from an
+        earlier conference day simply won't match today. */
+    private boolean joinedConferenceToday(Context context) {
+        try {
+            JSONObject obj = mirroredStreak(context);
+            if (obj == null || obj.isNull("conferenceYes")) return false;
+            return dateSeed(Calendar.getInstance()).equals(obj.optString("conferenceYes", null));
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to read conference answer", e);
+            return false;
+        }
+    }
+
     private String streakText(Context context) {
         try {
-            SharedPreferences prefs = context.getSharedPreferences(STREAK_PREFS_NAME, Context.MODE_PRIVATE);
-            String raw = prefs.getString(STREAK_KEY, null);
-            if (raw == null) return null;
+            JSONObject obj = mirroredStreak(context);
+            if (obj == null) return null;
 
-            JSONObject obj = new JSONObject(raw);
             int count = obj.optInt("count", 0);
             if (count <= 0) return null;
             // Same staleness check as settleStreak() in docs/index.html:
@@ -489,6 +531,7 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         views.setInt(R.id.widget_root, "setBackgroundResource", backgroundRes);
         views.setTextColor(R.id.widget_eyebrow, accent);
         views.setTextColor(R.id.widget_title, ink);
+        views.setTextColor(R.id.widget_conference_question, ink);
         views.setTextColor(R.id.widget_speaker, inkSoft);
         views.setTextColor(R.id.widget_streak, accent2);
     }
@@ -548,6 +591,9 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         holidays first, then falls back to the no-repeat cycle shuffle. */
     private Talk talkOfTheDay(ArrayList<Talk> talks) {
         if (talks.isEmpty()) return null;
+        // No Talk of the Day on a General Conference day — see
+        // ConferenceWeekend and updateWidget() above.
+        if (ConferenceWeekend.isConferenceDay(Calendar.getInstance())) return null;
 
         ArrayList<Talk> sorted = new ArrayList<>(talks);
         Collections.sort(sorted, new Comparator<Talk>() {

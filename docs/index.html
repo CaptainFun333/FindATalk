@@ -946,6 +946,13 @@
   .stats-cycle-row .badge-row-text{ flex:1; min-width:0; }
   .stats-cycle-row .badge-row-text strong{ font-size:17px; line-height:1.25; }
   .stats-cycle-row .badge-icon{ font-size:22px; }
+  /* Idea 85 — a row that opens a talk's ticket. The chevron is what tells
+     it apart from the plain stat rows around it. */
+  .stats-talk-row{ width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; }
+  .stats-talk-row:hover{ border-color:var(--brass); }
+  .stats-talk-row:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .stats-talk-row .badge-row-text{ flex:1; min-width:0; }
+  .stats-talk-chev{ flex-shrink:0; font-size:20px; line-height:1; color:var(--ink-soft); }
   .stats-cycle-dots{ display:flex; gap:4px; flex-shrink:0; }
   .stats-cycle-dots i{ width:6px; height:6px; border-radius:50%; background:var(--line); }
   .stats-cycle-dots i.is-on{ background:var(--brass); }
@@ -2538,6 +2545,41 @@
      though a week spanning a month boundary can only show whichever
      days actually fall in the currently-viewed month's grid. */
   .totd-calendar-day.is-cfm-week{ border-color:var(--brass); }
+  /* Idea 87 — a General Conference day in the Talk of the Day calendar:
+     no talk was assigned, so it gets a tinted cell and a small brass dot
+     instead. The dot sits top-center so it never collides with the
+     bottom-right checkmark (shown here when the person joined in). */
+  .totd-calendar-day.is-conference{ background:var(--tint); }
+  .totd-calendar-day.is-conference.is-selected{ background:var(--accent-fill); }
+  .totd-calendar-day-conference{
+    position:absolute; top:3px; left:50%; margin-left:-2px;
+    width:4px; height:4px; border-radius:50%;
+    background:var(--brass); pointer-events:none;
+  }
+  .totd-calendar-day.is-selected .totd-calendar-day-conference{ background:var(--on-accent); }
+  .totd-calendar-legend{
+    display:flex; align-items:center; gap:7px;
+    font-family:'Inter',sans-serif; font-size:12px; color:var(--ink-soft);
+    margin:8px 0 0;
+  }
+  .totd-calendar-legend[hidden]{ display:none; }
+  .totd-calendar-legend .totd-calendar-day-conference{ position:static; margin:0; }
+  .totd-calendar-conference-note{
+    font-family:'Inter',sans-serif; font-size:14px; line-height:1.5; color:var(--ink-soft);
+    margin:0;
+  }
+  /* Idea 87 — the card that stands in for the Talk of the Day on General
+     Conference days. Sits inside #totdItems as a .list-item, so it gets
+     the same card chrome and padding a Talk of the Day row has. */
+  .conference-card-title{
+    font-family:'Lora',serif; font-weight:600; font-size:18px; line-height:1.3;
+    color:var(--ink); margin:0 0 6px;
+  }
+  .conference-card-sub{
+    font-family:'Inter',sans-serif; font-size:14px; line-height:1.5;
+    color:var(--ink-soft); margin:0;
+  }
+  .conference-card-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
   .cfm-page-header{ justify-content:space-between; align-items:center; }
   /* Groups "This Week" with the calendar icon so both sit together on
      the header's right side (space-between on .cfm-page-header only has
@@ -3018,7 +3060,7 @@
 
   <div class="totd-zone" id="totdZone">
     <div class="totd-header-row">
-      <div class="eyebrow totd-eyebrow">Talk of the Day</div>
+      <div class="eyebrow totd-eyebrow" id="totdEyebrow">Talk of the Day</div>
       <button type="button" class="totd-calendar-btn" id="totdCalendarBtn" aria-label="See previous days">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
       </button>
@@ -3602,6 +3644,7 @@
       </div>
       <div class="totd-calendar-grid" id="totdCalGrid"></div>
       <p class="modal-copy totd-calendar-hint" id="totdCalHint">Pick any highlighted day to see that day's Talk of the Day.</p>
+      <p class="totd-calendar-legend" id="totdCalLegend" hidden><span class="totd-calendar-day-conference" aria-hidden="true"></span>General Conference</p>
       <div id="totdCalResult"></div>
     </div>
   </div>
@@ -4029,10 +4072,13 @@
         <span class="badge-row-text"><strong class="stats-cycle-stack" id="statTotalReadsLine" aria-live="polite">0 Reads &amp; Rereads</strong></span>
         <span class="stats-cycle-dots" id="readsCycleDots" aria-hidden="true"></span>
       </button>
-      <div class="stats-context-row" id="statsMostReadRow" hidden>
-        <span class="badge-icon">&#128214;</span>
-        <div class="badge-row-text"><strong id="statsMostReadTitle"></strong><span id="statsMostReadMeta"></span></div>
-      </div>
+      <!-- Idea 85 — a real button: tapping it closes this panel and opens
+           that talk's ticket on Home. See onOpenTalkTicket. -->
+      <button type="button" class="stats-context-row stats-talk-row" id="statsMostReadRow" hidden>
+        <span class="badge-icon" aria-hidden="true">&#128214;</span>
+        <span class="badge-row-text"><strong id="statsMostReadTitle"></strong><span id="statsMostReadMeta"></span></span>
+        <span class="stats-talk-chev" aria-hidden="true">&rsaquo;</span>
+      </button>
 
       <!-- "Read ×N" — the exact same badge text idea 55 already uses next
            to a talk's own Read checkmark (readBadgeHtml()), reused here
@@ -4882,7 +4928,9 @@ function renderTrophyPreview(){
   // not objects — talk[0]/talk[1], same lesson idea 69's note-conflict
   // modal already hit live over this exact assumption.
   mrRow.hidden = !mr;
+  trophyMostReadTalk = mr ? mr.talk : null;
   if (mr){
+    mrRow.setAttribute('aria-label', `Open ${mr.talk[0]}, your most-read talk`);
     document.getElementById('statsMostReadTitle').textContent = mr.talk[0];
     // "Read ×N" — the exact same badge text idea 55 already uses next to
     // a talk's own Read checkmark (readBadgeHtml()), reused here instead
@@ -5109,6 +5157,17 @@ function closeTrophyModal(){
   trophyModalOverlay.hidden = true;
 }
 document.getElementById('trophyBtn').addEventListener('click', openTrophyModal);
+// Idea 85 — the Most-Read Talk row opens that talk's ticket. Closes the
+// panel first (the ticket is on Home, behind it), then hands off through
+// onOpenTalkTicket rather than calling showTicket() by name — that
+// function lives inside initApp()'s closure, out of reach from here.
+let trophyMostReadTalk = null;
+document.getElementById('statsMostReadRow').addEventListener('click', ()=>{
+  const talk = trophyMostReadTalk;
+  if (!talk) return;
+  closeTrophyModal();
+  if (onOpenTalkTicket) onOpenTalkTicket(talk);
+});
 document.getElementById('trophyModalClose').addEventListener('click', closeTrophyModal);
 trophyModalOverlay.addEventListener('click', (e)=>{
   if (e.target === trophyModalOverlay) closeTrophyModal();
@@ -6447,6 +6506,11 @@ const READ_LOG_ESTIMATED_KEY = 'findATalkReadLogEstimated';
 // older than 365 days, so without this a past year's "days studied" would
 // quietly shrink as time passes.
 const STUDY_DAYS_ESTIMATED_KEY = 'findATalkStudyDaysEstimated';
+// Idea 87 — the General Conference days this person answered "Yes" on
+// (see isConferenceDay()), as "yyyy-mm-dd" strings. Synced and backed up
+// like the other date records, so a Yes on one device shows as answered
+// on the others.
+const CONFERENCE_DAYS_KEY = 'findATalkConferenceDays';
 const RECENT_MAX = 50;
 let recentKeys = [];
 let favoriteKeys = new Set();
@@ -6456,6 +6520,7 @@ let visitCounts = {};
 let readLog = {};
 let readLogEstimated = {};
 let studyDaysEstimated = [];
+let conferenceDays = [];
 
 /* ---------------- read/streak-credit integrity gate ----------------
    Opening a talk (recordOpened() below) still instantly updates
@@ -6545,6 +6610,10 @@ let pendingCloudUserSet = false;
 // this file is declared.
 let onClearLocalData = null;
 let onDeleteMyAccount = null;
+// Idea 85 — same indirection again: opening a talk's ticket from a
+// top-level click handler (the "Your FindATalk" panel) needs showTicket(),
+// which is inside initApp(). Assigned next to checkForSharedTalkLink().
+let onOpenTalkTicket = null;
 // Idea 67 — same indirection-slot pattern again, same real bug caught
 // live (not just reasoned about): openSupportModal() is defined inside
 // initApp()'s closure (alongside initSupportUI(), which assigns this
@@ -6644,6 +6713,11 @@ function loadRecentAndFavorites(){
     const parsed = raw ? JSON.parse(raw) : [];
     studyDaysEstimated = Array.isArray(parsed) ? parsed : [];
   } catch(err){ studyDaysEstimated = []; }
+  try {
+    const raw = localStorage.getItem(CONFERENCE_DAYS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    conferenceDays = Array.isArray(parsed) ? parsed.filter(d=> typeof d === 'string') : [];
+  } catch(err){ conferenceDays = []; }
 }
 loadRecentAndFavorites();
 
@@ -6680,6 +6754,11 @@ function saveReadLogEstimated(){
 }
 function saveStudyDaysEstimated(){
   try { localStorage.setItem(STUDY_DAYS_ESTIMATED_KEY, JSON.stringify(studyDaysEstimated)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
+}
+function saveConferenceDays(){
+  try { localStorage.setItem(CONFERENCE_DAYS_KEY, JSON.stringify(conferenceDays)); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
@@ -6930,11 +7009,12 @@ function loadStreak(){
         count: parsed.count|0,
         longest: parsed.longest|0,
         lastDate: parsed.lastDate || null,
-        activeDays: Array.isArray(parsed.activeDays) ? parsed.activeDays.filter(d=> typeof d === 'string') : []
+        activeDays: Array.isArray(parsed.activeDays) ? parsed.activeDays.filter(d=> typeof d === 'string') : [],
+        bridgedDays: Array.isArray(parsed.bridgedDays) ? parsed.bridgedDays.filter(d=> typeof d === 'string') : []
       };
     }
   } catch(err){ /* fall through to a fresh streak below */ }
-  return {count: 0, longest: 0, lastDate: null, activeDays: []};
+  return {count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []};
 }
 function saveStreak(streak){
   try { localStorage.setItem(STREAK_KEY, JSON.stringify(streak)); }
@@ -6964,7 +7044,12 @@ async function mirrorStreakToNative(streak){
   const cap = window.Capacitor;
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const platform = cap.getPlatform ? cap.getPlatform() : '';
-  const json = JSON.stringify(streak);
+  // Idea 87 — the widgets show the conference card's "Yes" wording once
+  // today has been answered, and this mirrored copy is the only app state
+  // they can see, so today's answer rides along in it (never written back
+  // into the real streak record).
+  const today = localDateSeed();
+  const json = JSON.stringify(joinedConferenceOn(today) ? {...streak, conferenceYes: today} : streak);
   try {
     if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
       await cap.Plugins.Preferences.set({key: STREAK_KEY, value: json});
@@ -7088,8 +7173,6 @@ function isStreakStale(streak, now){
    `count`/`longest` get salvaged, so that stat stays an honest record of
    which days the app was actually opened on. */
 const STREAK_SALVAGE_KEY = 'findATalkStreakSalvage';
-const STREAK_SALVAGE_LAST_USED_KEY = 'findATalkStreakSalvageLastUsed';
-const STREAK_SALVAGE_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // capped at once a week, so this stays a genuine save, not a looser "daily"
 function loadStreakSalvage(){
   try {
     const raw = localStorage.getItem(STREAK_SALVAGE_KEY);
@@ -7105,18 +7188,16 @@ function saveStreakSalvage(record){
 }
 /* Called from settleStreak() below, BEFORE it zeroes `count` — only ever
    offers a salvage for a gap of EXACTLY one missed day (never two+, per
-   the design notes), only once per real calendar day (won't overwrite an
-   existing snapshot for the same day on a later re-render), and only if
-   the weekly cooldown has actually elapsed since the last real save. */
+   the design notes) and only once per real calendar day (won't overwrite
+   an existing snapshot for the same day on a later re-render). There used
+   to be a once-a-week cap here too; it was dropped on purpose (see
+   DECISIONS.md, 2026-10-04) — any single missed day can be saved. */
 function maybeSnapshotStreakSalvage(streak, now){
   const today = localDateSeed(now);
   const existing = loadStreakSalvage();
   if (existing && existing.date === today) return; // already snapshotted today
   const twoDaysAgo = localDateSeed(new Date(now.getTime() - 2*24*60*60*1000));
   if (streak.lastDate !== twoDaysAgo) return; // not exactly a one-day gap
-  let lastUsed = 0;
-  try { lastUsed = Number(localStorage.getItem(STREAK_SALVAGE_LAST_USED_KEY)) || 0; } catch(err){ lastUsed = 0; }
-  if (now.getTime() - lastUsed < STREAK_SALVAGE_COOLDOWN_MS) return;
   saveStreakSalvage({ date: today, priorCount: streak.count, priorLongest: streak.longest, shown: false, usedAt: null });
 }
 function settleStreak(){
@@ -7144,10 +7225,13 @@ function applyStreakSalvageIfEligible(creditDay, alreadyCreditedToday){
   if (streak.lastDate !== creditDay) return; // sanity guard — should always be true here
   streak.count = record.priorCount + 1;
   streak.longest = Math.max(streak.longest, streak.count);
+  // Record the forgiven day so cloud/backup merges (which rebuild `count`
+  // from activeDays) bridge the gap instead of undoing the salvage.
+  const missedDay = localDateSeed(new Date(new Date(creditDay + 'T00:00:00').getTime() - 24*60*60*1000));
+  if (!streak.bridgedDays.includes(missedDay)) streak.bridgedDays.push(missedDay);
   saveStreak(streak);
   record.usedAt = Date.now();
   saveStreakSalvage(record);
-  try { localStorage.setItem(STREAK_SALVAGE_LAST_USED_KEY, String(Date.now())); } catch(err){ /* ignore */ }
   closeStreakSalvageModal(); // in case it was still open
   cancelStreakSalvageNotification(); // the reactive nudge has done its job — nothing left to remind about today
 }
@@ -7194,6 +7278,48 @@ function renderStreak(){
   // Phase 3 (idea 45) — nothing worth sharing until there's a real streak.
   const shareBtnEl = document.getElementById('streakShareBtn');
   if (shareBtnEl) shareBtnEl.hidden = streak.count <= 0;
+}
+
+/* ---------------- General Conference weekend (idea 87) ----------------
+   Four days a year — the Saturday and Sunday of each General Conference —
+   Home's Talk of the Day is replaced by a card asking "Are you
+   participating in General Conference today?" Yes credits the streak for
+   the day without a talk being read; No draws a random talk. No Talk of
+   the Day is assigned or recorded on these days at all, so nobody is left
+   with a missed day to catch up on in the history calendar.
+   Conference is the first Sunday of April and of October plus the
+   Saturday before it (which can land on the last day of March or
+   September). It's worked out from the calendar alone, with no data
+   behind it, because the home-screen widgets, the Siri shortcut and the
+   ledger's server function each carry their own port of this rule: see
+   TalkStore.isConferenceDay (TalkModel.swift), ConferenceWeekend.java and
+   functions/totd.js. Keep all four in sync. */
+function isConferenceDay(d){
+  const sunday = d.getDay() === 0 ? d
+    : d.getDay() === 6 ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
+    : null;
+  return !!sunday && (sunday.getMonth() === 3 || sunday.getMonth() === 9) && sunday.getDate() <= 7;
+}
+function joinedConferenceOn(dateKey){ return conferenceDays.includes(dateKey); }
+/* "Yes" on the conference card. Credits today the way the first credited
+   read of a day does (touchStreak(), streak badges, tonight's streak
+   warning cancelled) but touches nothing read-related: readKeys, visit
+   counts, read dates and reading badges only ever move when a talk is
+   actually opened. Counts as one of the two credits a streak salvage
+   needs (idea 70), in either order with a read. */
+function creditConferenceDay(){
+  const now = new Date();
+  const today = localDateSeed(now);
+  if (!isConferenceDay(now) || joinedConferenceOn(today)) return;
+  conferenceDays.push(today);
+  conferenceDays.sort();
+  saveConferenceDays();
+  const alreadyCreditedToday = loadStreak().lastDate === today;
+  touchStreak(now);
+  applyStreakSalvageIfEligible(today, alreadyCreditedToday);
+  renderStreak();
+  checkForNewBadges();
+  updateStreakRiskNotification();
 }
 
 /* ---------------- Milestones: badges (idea 45, Phase 1) ----------------
@@ -7770,7 +7896,12 @@ async function updateStreakRiskNotification(){
       notifications: [{
         id: STREAK_RISK_NOTIF_ID,
         title: 'FindATalk',
-        body: `Don't lose your ${streak.count}-day streak — study a talk before midnight!`,
+        // Idea 87 — on a General Conference day the same warning asks
+        // about conference instead (tapping it lands on Home's card, see
+        // handleNotificationTap()).
+        body: isConferenceDay(new Date())
+          ? 'Did you watch any conference today? If so, count it toward your streak!'
+          : `Don't lose your ${streak.count}-day streak — study a talk before midnight!`,
         schedule: { at: fireAt, allowWhileIdle: true }
       }]
     });
@@ -7829,13 +7960,17 @@ function watchForStreakRisk(){
 async function scheduleStreakSalvageNotification(){
   const LocalNotifications = await getGrantedLocalNotifications();
   if (!LocalNotifications) return;
+  // The offer only holds for today — if quiet hours push the delivery to
+  // tomorrow morning, it would promise a save that's already expired.
+  const at = nextQuietHoursTime(9, 20);
+  if (localDateSeed(at) !== localDateSeed()) return;
   try {
     await LocalNotifications.schedule({
       notifications: [{
         id: STREAK_SALVAGE_NOTIF_ID,
         title: 'FindATalk',
         body: 'Missed yesterday? Read 2 talks today to save your streak.',
-        schedule: { at: nextQuietHoursTime(9, 20), allowWhileIdle: true }
+        schedule: { at, allowWhileIdle: true }
       }]
     });
   } catch(err){ /* not fatal */ }
@@ -10470,6 +10605,7 @@ function curatedHolidayPick(holiday, sorted, year){
    talkOfTheDay() itself is just this called with today's date. */
 function talkForDate(d){
   if (!TALKS.length) return null;
+  if (isConferenceDay(d)) return null; // idea 87 — no Talk of the Day is assigned on General Conference days
   const sorted = sortedTalks();
   for (const holiday of CURATED_HOLIDAYS){
     if (holiday.matches(d)){
@@ -10519,9 +10655,15 @@ let lastRenderedDayNumber = null;
 function renderTalkOfTheDay(){
   lastRenderedDayNumber = localDayNumber();
   backfillTotdHistoryIfNeeded();
-  const pick = talkOfTheDay();
   const totdItemsEl = document.getElementById('totdItems');
   totdItemsEl.innerHTML = '';
+  // Idea 87 — on a General Conference day the card stands in for the Talk
+  // of the Day: talkOfTheDay() returns null, so nothing is drawn below and
+  // nothing is written to totdHistory.
+  const conference = isConferenceDay(new Date());
+  document.getElementById('totdEyebrow').textContent = conference ? 'General Conference' : 'Talk of the Day';
+  if (conference) totdItemsEl.appendChild(buildConferenceCard());
+  const pick = talkOfTheDay();
   if (pick){
     totdItemsEl.appendChild(buildListItemRow(pick, {shareContext: 'totd'}));
     // Append-only: only ever write today's entry once, the first time
@@ -10542,6 +10684,52 @@ function renderTalkOfTheDay(){
   // start AND the day-rollover path in watchForDayRollover() below), not
   // just when the streak changes.
   refreshNativeWidget();
+}
+/* Idea 87 — the General Conference card (see isConferenceDay()). Two
+   states only: the question, or the "Yes" confirmation. "No" isn't a
+   stored answer — it just draws a talk and leaves the question up, so
+   someone who joins a later session can still say Yes. The wording here
+   is mirrored on the home-screen widgets (TalkOfDayWidget.swift,
+   TalkOfDayWidgetProvider.java) — keep them in sync. */
+function buildConferenceCard(){
+  const card = document.createElement('div');
+  card.className = 'list-item conference-card';
+  const title = document.createElement('p');
+  title.className = 'conference-card-title';
+  const sub = document.createElement('p');
+  sub.className = 'conference-card-sub';
+  card.append(title, sub);
+  if (joinedConferenceOn(localDateSeed())){
+    card.setAttribute('role', 'status');
+    title.textContent = 'Enjoy General Conference!';
+    sub.textContent = 'Today counts toward your streak.';
+    return card;
+  }
+  title.textContent = 'Are you participating in General Conference today?';
+  sub.textContent = 'Say yes and today counts toward your streak.';
+  const actions = document.createElement('div');
+  actions.className = 'conference-card-actions';
+  const yesBtn = document.createElement('button');
+  yesBtn.type = 'button';
+  yesBtn.className = 'btn btn-primary';
+  yesBtn.textContent = 'Yes';
+  yesBtn.addEventListener('click', ()=>{
+    creditConferenceDay();
+    renderTalkOfTheDay();
+  });
+  const noBtn = document.createElement('button');
+  noBtn.type = 'button';
+  noBtn.className = 'btn btn-ghost';
+  noBtn.textContent = 'No, draw me a talk';
+  noBtn.addEventListener('click', ()=>{
+    // The same draw the Find a Talk button does. If the filters currently
+    // match nothing, that button is disabled — still hand over a talk.
+    if (currentPool().length) draw();
+    else openTalkTicket(TALKS[Math.floor(Math.random() * TALKS.length)]);
+  });
+  actions.append(yesBtn, noBtn);
+  card.appendChild(actions);
+  return card;
 }
 /* Backgrounding the native app doesn't reload the WebView — Android (and
    iOS) just suspend it, so whatever was on screen at last launch stays
@@ -10605,6 +10793,21 @@ const REMINDER_ENABLED_KEY = 'findATalkReminderEnabled';
 const REMINDER_HOUR_KEY = 'findATalkReminderHour';
 const REMINDER_MINUTE_KEY = 'findATalkReminderMinute';
 const DAILY_REMINDER_ID = 1;
+// Idea 87 — ids for the stand-in schedule the daily reminder runs on
+// around General Conference (see dailyReminderPlan()): one weekly trigger
+// per weekday at DAILY_REMINDER_WEEKDAY_ID_BASE + Capacitor's weekday
+// number (2=Monday..6=Friday), and dated weekend reminders counting up
+// from DAILY_REMINDER_DATED_ID_BASE.
+const DAILY_REMINDER_WEEKDAY_ID_BASE = 20;
+const DAILY_REMINDER_DATED_ID_BASE = 200;
+const DAILY_REMINDER_DATED_ID_COUNT = 40;
+const DAILY_REMINDER_BODY = 'Your talk of the day is ready to read.';
+const CONFERENCE_REMINDER_BODY = 'General Conference is today! Tune in, then count it toward your streak in FindATalk.';
+// How long before conference Saturday the stand-in schedule takes over,
+// and how many weeks past conference Sunday its dated weekend reminders
+// keep going if the app is never opened again to switch back.
+const CONFERENCE_REMINDER_LEAD_DAYS = 28;
+const CONFERENCE_REMINDER_TAIL_WEEKS = 12;
 
 function getReminderTime(){
   let hour = 8, minute = 0;
@@ -10642,21 +10845,123 @@ function showNotifPermModal(){
   });
 }
 
-// `schedule.on` with only hour/minute set (no day/month/year) is a
-// recurring trigger, not a one-off — Capacitor fires it every day at
-// that local time. Re-scheduling the same id on a later launch (or from
-// the Settings toggle, or the Reminder Time picker) just replaces this
-// one entry. Time comes from getReminderTime() (defaults to 8:00 AM).
-async function scheduleDailyReminder(LocalNotifications){
+function isDailyReminderId(id){
+  return id === DAILY_REMINDER_ID
+    || (id >= DAILY_REMINDER_WEEKDAY_ID_BASE + 1 && id <= DAILY_REMINDER_WEEKDAY_ID_BASE + 7)
+    || (id >= DAILY_REMINDER_DATED_ID_BASE && id < DAILY_REMINDER_DATED_ID_BASE + DAILY_REMINDER_DATED_ID_COUNT);
+}
+async function cancelDailyReminder(LocalNotifications){
+  const notifications = [{ id: DAILY_REMINDER_ID }];
+  for (let weekday = 1; weekday <= 7; weekday++) notifications.push({ id: DAILY_REMINDER_WEEKDAY_ID_BASE + weekday });
+  for (let i = 0; i < DAILY_REMINDER_DATED_ID_COUNT; i++) notifications.push({ id: DAILY_REMINDER_DATED_ID_BASE + i });
+  await LocalNotifications.cancel({ notifications });
+}
+// The Daily Reminder switch in Settings — absent means on (see
+// REMINDER_ENABLED_KEY).
+function isDailyReminderOn(){
+  try { return localStorage.getItem(REMINDER_ENABLED_KEY) !== '0'; } catch(err){ return true; }
+}
+// The conference Sunday on or after `from`'s calendar day (local
+// midnight) — see isConferenceDay() for the rule.
+function nextConferenceSunday(from){
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for (let year = start.getFullYear(); ; year++){
+    for (const month of [3, 9]){
+      const sunday = new Date(year, month, 1);
+      sunday.setDate(1 + (7 - sunday.getDay()) % 7);
+      if (sunday >= start) return sunday;
+    }
+  }
+}
+/* Which notifications the daily reminder should be made of right now.
+   Normally that's one recurring trigger: `schedule.on` with only
+   hour/minute set fires every day at that local time (getReminderTime(),
+   8:00 AM by default).
+   Idea 87 — on General Conference days the reminder says something
+   different, and a notification's text can't be decided at delivery
+   time: whatever is scheduled is what fires, and one occurrence of a
+   recurring trigger can't be skipped or reworded. So from
+   CONFERENCE_REMINDER_LEAD_DAYS before conference Saturday until the app
+   is next opened after conference Sunday, the single daily trigger is
+   swapped for an equivalent set that can carry different text on those
+   two days:
+   - Monday–Friday: one weekly trigger each, same text as always. These
+     never stop on their own.
+   - Saturdays and Sundays: individually dated reminders, with the
+     conference text on the conference weekend. Dated reminders can't
+     repeat, so they're laid in through CONFERENCE_REMINDER_TAIL_WEEKS
+     after conference.
+   Someone who doesn't open the app during the lead-in just gets the
+   usual text on conference days. Someone who never opens it again after
+   the swap keeps weekday reminders indefinitely and weekend ones until
+   the tail runs out — the trade for not needing a server. `signature`
+   identifies the plan so a foreground check can tell whether anything
+   needs rescheduling. */
+function dailyReminderPlan(now){
   const { hour, minute } = getReminderTime();
-  await LocalNotifications.schedule({
-    notifications: [{
-      id: DAILY_REMINDER_ID,
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const confSunday = nextConferenceSunday(now);
+  const leadStart = new Date(confSunday.getFullYear(), confSunday.getMonth(), confSunday.getDate() - 1 - CONFERENCE_REMINDER_LEAD_DAYS);
+  if (today < leadStart){
+    return {
+      signature: `daily|${hour}:${minute}`,
+      notifications: [{
+        id: DAILY_REMINDER_ID,
+        title: 'FindATalk',
+        body: DAILY_REMINDER_BODY,
+        schedule: { on: { hour, minute }, allowWhileIdle: true }
+      }]
+    };
+  }
+  const notifications = [];
+  for (let weekday = 2; weekday <= 6; weekday++){
+    notifications.push({
+      id: DAILY_REMINDER_WEEKDAY_ID_BASE + weekday,
       title: 'FindATalk',
-      body: 'Your talk of the day is ready to read.',
-      schedule: { on: { hour, minute }, allowWhileIdle: true }
-    }]
-  });
+      body: DAILY_REMINDER_BODY,
+      schedule: { on: { weekday, hour, minute }, allowWhileIdle: true }
+    });
+  }
+  const last = new Date(confSunday.getFullYear(), confSunday.getMonth(), confSunday.getDate() + CONFERENCE_REMINDER_TAIL_WEEKS * 7);
+  let dated = 0;
+  for (let d = new Date(today); d <= last && dated < DAILY_REMINDER_DATED_ID_COUNT; d.setDate(d.getDate() + 1)){
+    if (d.getDay() !== 0 && d.getDay() !== 6) continue;
+    const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, 0, 0);
+    if (at.getTime() <= now.getTime()) continue; // today's reminder time has already gone by
+    notifications.push({
+      id: DAILY_REMINDER_DATED_ID_BASE + dated++,
+      title: 'FindATalk',
+      body: isConferenceDay(d) ? CONFERENCE_REMINDER_BODY : DAILY_REMINDER_BODY,
+      schedule: { at, allowWhileIdle: true }
+    });
+  }
+  return { signature: `conference|${hour}:${minute}|${localDateSeed(confSunday)}`, notifications };
+}
+// Clears every id either plan can use before scheduling, so switching
+// plans (or re-running the same one from a later launch, the Settings
+// toggle, or the Reminder Time picker) never leaves a stray reminder
+// behind to fire twice.
+let lastDailyReminderSignature = null;
+async function scheduleDailyReminder(LocalNotifications){
+  const plan = dailyReminderPlan(new Date());
+  await cancelDailyReminder(LocalNotifications);
+  await LocalNotifications.schedule({ notifications: plan.notifications });
+  lastDailyReminderSignature = plan.signature;
+}
+/* Backgrounding doesn't reload the page, so an app left suspended can
+   drift into (or out of) the conference stretch without a cold start.
+   Checked on every return to the foreground; reschedules only when the
+   plan itself has changed. */
+async function refreshDailyReminderPlan(){
+  if (!isDailyReminderOn()) return;
+  const LocalNotifications = await getGrantedLocalNotifications();
+  if (!LocalNotifications) return;
+  try {
+    if (dailyReminderPlan(new Date()).signature !== lastDailyReminderSignature) await scheduleDailyReminder(LocalNotifications);
+  } catch(err){ /* not fatal */ }
+}
+function watchForDailyReminderPlan(){
+  onForeground(refreshDailyReminderPlan);
 }
 
 async function setupDailyReminder(){
@@ -10678,6 +10983,13 @@ async function setupDailyReminder(){
     }
     if (perm.display !== 'granted') return;
 
+    // Turned off in Settings stays off. This used to reschedule on every
+    // launch regardless, quietly switching the reminder back on; the
+    // cancel also clears one left behind by that.
+    if (!isDailyReminderOn()){
+      await cancelDailyReminder(LocalNotifications);
+      return;
+    }
     await scheduleDailyReminder(LocalNotifications);
   } catch(err){ /* permission denied, plugin unavailable, etc. — not fatal */ }
 }
@@ -11018,7 +11330,7 @@ async function initReminderSettingsToggle(){
         await scheduleDailyReminder(LocalNotifications);
         try { localStorage.setItem(REMINDER_ENABLED_KEY, '1'); } catch(err){ /* ignore */ }
       } else {
-        await LocalNotifications.cancel({ notifications: [{ id: DAILY_REMINDER_ID }] });
+        await cancelDailyReminder(LocalNotifications);
         try { localStorage.setItem(REMINDER_ENABLED_KEY, '0'); } catch(err){ /* ignore */ }
       }
     } catch(err){ /* plugin unavailable, etc. — leave the switch as the user set it */ }
@@ -13481,7 +13793,9 @@ collectionReadStatusButtons.forEach(btn=>{
    someone without the app (it's a real URL, opens in a browser same as
    any other). Capped at LIST_SHARE_MAX so a huge list doesn't produce an
    unwieldy URL. */
-const LIST_SHARE_MAX = 20;
+/* Raised from 20 — a real 44-talk list was being shared as "20 talks".
+   Indices are ~4 chars each, so even 300 talks is a ~1.5k-char URL. */
+const LIST_SHARE_MAX = 300;
 
 /* Encodes a list into a real, shareable findatalk.com URL. Shortened per
    user feedback on a real device — the original version used full talk
@@ -13627,6 +13941,20 @@ function checkForSharedTalkLink(urlString){
     revealSharedTicket();
   }
 }
+// Idea 85 — open a specific talk's ticket from elsewhere in the app (the
+// Most-Read Talk row in "Your FindATalk"). Same landing as a shared link
+// above, plus history: whatever was on the ticket goes onto pickHistory
+// first, so Previous returns to it, exactly like a fresh draw() does.
+function openTalkTicket(talk){
+  if (!talk) return;
+  const same = lastPicked && talkKey(lastPicked) === talkKey(talk);
+  if (lastPicked && !same){ pickHistory.push(lastPicked); pickFuture = []; }
+  goToNavZone('home');
+  showTicket(talk);
+  updateBackBtn();
+  revealSharedTicket();
+}
+onOpenTalkTicket = openTalkTicket;
 
 /* Land at the top of Home first, then glide down to the shared talk's
    ticket and pulse it once. The delay isn't cosmetic: showZone()'s own
@@ -13687,6 +14015,10 @@ function openThisWeeksCfm(){
 function handleNotificationTap(notificationId){
   if (notificationId === NEW_CONFERENCE_NOTIF_ID) openNewestConferenceResults();
   else if (notificationId === WEEKLY_CFM_REMINDER_ID) openThisWeeksCfm();
+  // Idea 87 — on a General Conference day both the daily reminder and the
+  // streak warning are asking about conference, and the card that answers
+  // them is on Home.
+  else if ((isDailyReminderId(notificationId) || notificationId === STREAK_RISK_NOTIF_ID) && isConferenceDay(new Date())) goToNavZone('home');
 }
 
 function renderCollectionPage(id){
@@ -13972,6 +14304,7 @@ function exportBackupData(){
     readLog: JSON.parse(JSON.stringify(readLog)), // idea 80
     readLogEstimated: JSON.parse(JSON.stringify(readLogEstimated)), // idea 80 backfill
     studyDaysEstimated: studyDaysEstimated.slice(), // idea 80 backfill
+    conferenceDays: conferenceDays.slice(), // idea 87
     collections,
     collectionMembers,
     collectionUpdatedAt: {...collectionUpdatedAt},
@@ -14090,17 +14423,21 @@ async function saveBackupToFile(){
    yesterday, relative to right now) is deliberately left to
    settleStreak() — this only answers "how long is the run," not "is it
    still alive." */
-function recomputeStreakFromActiveDays(activeDays, priorLongest){
-  if (!activeDays.length) return {count: 0, longest: priorLongest|0, lastDate: null, activeDays};
+function recomputeStreakFromActiveDays(activeDays, priorLongest, bridgedDays){
+  bridgedDays = bridgedDays || [];
+  if (!activeDays.length) return {count: 0, longest: priorLongest|0, lastDate: null, activeDays, bridgedDays};
   const daySet = new Set(activeDays);
+  const bridgeSet = new Set(bridgedDays);
   const lastDate = activeDays[activeDays.length - 1]; // pruneActiveDays returns a sorted copy
   let count = 0;
   let cursor = lastDate;
-  while (daySet.has(cursor)){
-    count++;
+  // A salvaged (bridged) day keeps the run unbroken but isn't itself counted,
+  // matching what applyStreakSalvageIfEligible() produced locally.
+  while (daySet.has(cursor) || bridgeSet.has(cursor)){
+    if (daySet.has(cursor)) count++;
     cursor = localDateSeed(new Date(new Date(cursor + 'T00:00:00').getTime() - 24*60*60*1000));
   }
-  return {count, longest: Math.max(priorLongest|0, count), lastDate, activeDays};
+  return {count, longest: Math.max(priorLongest|0, count), lastDate, activeDays, bridgedDays};
 }
 function mergeStreakData(incoming){
   if (!incoming || typeof incoming !== 'object') return;
@@ -14112,7 +14449,10 @@ function mergeStreakData(incoming){
     [...local.activeDays, ...(Array.isArray(incoming.activeDays) ? incoming.activeDays : [])],
     new Date()
   );
-  const merged = recomputeStreakFromActiveDays(activeDays, Math.max(local.longest|0, incoming.longest|0));
+  const cutoff = activeDays.length ? activeDays[0] : '';
+  const bridgedDays = [...new Set([...local.bridgedDays, ...(Array.isArray(incoming.bridgedDays) ? incoming.bridgedDays.filter(d=> typeof d === 'string') : [])])]
+    .filter(d=> d >= cutoff).sort();
+  const merged = recomputeStreakFromActiveDays(activeDays, Math.max(local.longest|0, incoming.longest|0), bridgedDays);
   // recomputeStreakFromActiveDays() only counts the consecutive run ending
   // at the last recorded active day — it doesn't know or care whether that
   // day was recent, so a long-expired streak still comes back with a
@@ -14196,6 +14536,7 @@ function mergeBackupData(data){
   // actually changed that bucket — see mergeStreakData's own comment for
   // why an unconditional save here creates an infinite pull/push loop.
   let readLogChanged = false, readLogEstimatedChanged = false, studyDaysEstimatedChanged = false;
+  let conferenceDaysChanged = false;
   let addedRead = false, visitCountsChanged = false, listsChanged = false, favoritesChanged = false;
   // Streak merge runs FIRST and in its own try/catch, ahead of every other
   // bucket below — it's the one thing here someone would actually be
@@ -14282,6 +14623,18 @@ function mergeBackupData(data){
       if (studyDaysEstimatedChanged) studyDaysEstimated = [...have].sort();
     }
   } catch(err){ console.error('[cloud sync] studyDaysEstimated merge failed — other sections still ran', err); }
+  // Idea 87 — General Conference days answered "Yes". A plain union, same
+  // as studyDaysEstimated above: a Yes is never taken back, so there's no
+  // removal to reconcile.
+  try {
+    if (Array.isArray(data.conferenceDays)){
+      const have = new Set(conferenceDays);
+      data.conferenceDays.forEach(d=>{
+        if (typeof d === 'string' && !have.has(d)){ have.add(d); conferenceDaysChanged = true; }
+      });
+      if (conferenceDaysChanged) conferenceDays = [...have].sort();
+    }
+  } catch(err){ console.error('[cloud sync] conferenceDays merge failed — other sections still ran', err); }
   // Collections merge — whole-list deletion and per-member removal are
   // both now sync-aware (see the comment above COLLECTIONS_KEY), unlike
   // the old version of this block which only ever added lists/members.
@@ -14399,6 +14752,12 @@ function mergeBackupData(data){
   if (readLogChanged) saveReadLog();
   if (readLogEstimatedChanged) saveReadLogEstimated();
   if (studyDaysEstimatedChanged) saveStudyDaysEstimated();
+  if (conferenceDaysChanged){
+    saveConferenceDays();
+    // The streak merged (and mirrored to the widgets) before this bucket
+    // did, so its mirrored copy doesn't carry today's answer yet.
+    mirrorStreakToNative(loadStreak());
+  }
   if (listsChanged){ saveCollections(); saveCollectionMembers(); }
   return {addedFavorites, addedLists, mergedLists, addedNotes};
 }
@@ -14767,6 +15126,7 @@ async function clearAllLocalDataAndSignOut(){
   readLog = {}; saveReadLog();
   readLogEstimated = {}; saveReadLogEstimated();
   studyDaysEstimated = []; saveStudyDaysEstimated();
+  conferenceDays = []; saveConferenceDays();
   try { localStorage.removeItem(READ_LOG_BACKFILLED_KEY); localStorage.removeItem(STUDY_DAYS_BACKFILLED_KEY); } catch(err){ /* not fatal */ }
   earnedBadges = {}; saveBadges();
   // The hidden "Think Celestial!" secret used to be left as a permanent
@@ -14788,7 +15148,7 @@ async function clearAllLocalDataAndSignOut(){
   collections = []; collectionUpdatedAt = {}; deletedCollections = {}; saveCollections();
   collectionMembers = {}; collectionMemberUpdatedAt = {}; saveCollectionMembers();
   noteMap = {}; noteUpdatedAt = {}; saveNotes();
-  saveStreak({count: 0, longest: 0, lastDate: null, activeDays: []});
+  saveStreak({count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []});
   // Same refresh list applyCloudMergeAndRefresh() uses, for the same
   // reason — every screen that could be showing now-stale data.
   renderCollectionsIndexPage();
@@ -14955,6 +15315,7 @@ backupImportInput.addEventListener('change', ()=>{
     if (favoritesZone.style.display === 'block') renderFavoritesPage();
     if (notesZone.style.display === 'block') renderNotesPage();
     renderStreak();
+    renderTalkOfTheDay(); // idea 87 — a backup can carry today's conference "Yes"; also refreshes the Talk of the Day row's own icons
     maybeShowNextNoteConflict(); // idea 69
   });
 });
@@ -15894,15 +16255,25 @@ function renderTotdCalendarResult(dateKey){
   totdCalResult.innerHTML = '';
   const pickKey = totdHistory[dateKey];
   const talk = pickKey ? TALKS_BY_KEY[pickKey] : null;
-  if (!talk) return;
-  const label = document.createElement('p');
-  label.className = 'totd-calendar-result-date';
   // Parsed without a 'Z' suffix so this reads as local midnight, not UTC
   // midnight (which can otherwise display as the previous day).
   const d = new Date(dateKey + 'T00:00:00');
+  const conference = !talk && isConferenceDay(d); // idea 87
+  if (!talk && !conference) return;
+  const label = document.createElement('p');
+  label.className = 'totd-calendar-result-date';
   label.textContent = d.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric', year:'numeric'});
   totdCalResult.appendChild(label);
-  totdCalResult.appendChild(buildListItemRow(talk));
+  if (talk){
+    totdCalResult.appendChild(buildListItemRow(talk));
+    return;
+  }
+  const note = document.createElement('p');
+  note.className = 'totd-calendar-conference-note';
+  note.textContent = joinedConferenceOn(dateKey)
+    ? 'General Conference. You joined in, and it counted toward your streak.'
+    : 'General Conference. There is no Talk of the Day on conference days.';
+  totdCalResult.appendChild(note);
 }
 
 function renderTotdCalendar(){
@@ -15926,17 +16297,43 @@ function renderTotdCalendar(){
     blank.className = 'totd-calendar-day is-empty';
     totdCalGrid.appendChild(blank);
   }
+  let monthHasConference = false;
   for (let day = 1; day <= daysInMonth; day++){
-    const dateKey = localDateSeed(new Date(y, m, day));
+    const dateObj = new Date(y, m, day);
+    const dateKey = localDateSeed(dateObj);
     const pickKey = totdHistory[dateKey];
     const hasHistory = !!pickKey;
+    // Idea 87 — a General Conference day has no Talk of the Day, so it
+    // gets its own marker instead. A conference day from before this
+    // existed keeps showing the talk it actually had (hasHistory wins).
+    const conference = !hasHistory && isConferenceDay(dateObj);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'totd-calendar-day';
     if (dateKey === todayKey) btn.classList.add('is-today');
     if (dateKey === totdCalSelectedKey) btn.classList.add('is-selected');
     btn.textContent = String(day);
-    btn.disabled = !hasHistory;
+    btn.disabled = !hasHistory && !conference;
+    if (conference){
+      monthHasConference = true;
+      btn.classList.add('is-conference');
+      const dot = document.createElement('span');
+      dot.className = 'totd-calendar-day-conference';
+      dot.setAttribute('aria-hidden', 'true');
+      btn.appendChild(dot);
+      if (joinedConferenceOn(dateKey)){
+        const check = document.createElement('span');
+        check.className = 'totd-calendar-day-check';
+        check.innerHTML = CHECK_ICON_SVG;
+        btn.appendChild(check);
+      }
+      btn.setAttribute('aria-label', `General Conference, ${dateKey}`);
+      btn.addEventListener('click', ()=>{
+        totdCalSelectedKey = dateKey;
+        renderTotdCalendar();
+        renderTotdCalendarResult(dateKey);
+      });
+    }
     if (hasHistory){
       // Reuses the same isRead()/CHECK_ICON_SVG the "Read" badge already
       // uses everywhere else (Show a List, tickets, etc.) — a day's Talk
@@ -15958,6 +16355,7 @@ function renderTotdCalendar(){
     }
     totdCalGrid.appendChild(btn);
   }
+  document.getElementById('totdCalLegend').hidden = !monthHasConference;
 
   // No history exists for the future, so Next can't go past the real
   // current month; Prev has no such bound — a month with no recorded
@@ -16041,6 +16439,7 @@ maybeShowStreakSalvageOffer();
 watchForDayRollover();
 watchForPendingRead();
 watchForStreakRisk();
+watchForDailyReminderPlan();
 watchForStreakSalvage();
 // idea 67 — Dec 18-31 Christmas ask. Deliberately no direct call here at
 // cold start (unlike watchForDayRollover()'s renderTalkOfTheDay()/

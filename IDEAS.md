@@ -9,9 +9,11 @@ promise of what ships next. Grouped by status, most active first:
 
 ## In progress
 
-57. Live/collaborative list sharing — in progress (built and tested against the emulators: invite links, "Added by", members, owner hand-off; waiting on the server deploy and a native build)
+57. Live/collaborative list sharing — done (shipped in 1.7.8)
 44. Siri/Google Assistant shortcuts — in progress (iOS done; Android/Google Assistant side still open, more constrained)
-68. Global "impact" counter — in progress (data collection built and writing to the shared counter; no display UI yet)
+86. Fix a member's streak from the ledger — in progress (built 2026-10-04: private Admin tab at `ledger.html#admin`, look up an account by email, see missed days, mark them forgiven; waiting on a Firebase deploy)
+87. General Conference weekend card — in progress (built 2026-10-04 on branch `conference-weekend`, not yet on main: on conference Saturday and Sunday in April and October the Talk of the Day gives way to "Are you participating in General Conference today?"; Yes counts toward the streak, No draws a random talk, no Talk of the Day is assigned those days; widgets, daily reminder, streak warning and the calendar all follow; needs new builds and a Firebase deploy for the ledger calendar)
+68. Global "impact" counter — ongoing (data collection live. The ledger Stats tab now shows a trial "Loved by the community" block: most read, favorited and added-to-list talk, top speaker, topic and scripture chapter with "seek out" versions comparing reading to library share, and total study days. All counted by distinct signed-in members and hidden below 5 people. No in-app display yet)
 
 ## Open
 
@@ -27,6 +29,8 @@ promise of what ships next. Grouped by status, most active first:
 53. **Pre-1971 talks as an advanced filter** — open, exploratory
 64. **Larger-text/accessibility view** — open
 66. **Custom Firebase Auth domain branding** — open, low priority
+83. **Shorter list-share links** — open (analysis 2026-10-01; recommended: base-62 packed talk positions, no commas, ~half the length, old links still work; optional cap on name length; a Firestore short link like findatalk.com/l/abc123 is the only way to get tiny links but adds a backend + privacy disclosure)
+84. **Anonymous per-day Talk of the Day read counter** — open, queued for the release after 1.7.7 (lets the ledger calendar count everyone who read the day's featured talk, not only signed-in accounts; app change, needs new builds; counts start the day it ships)
 
 ## Done
 
@@ -77,7 +81,7 @@ promise of what ships next. Grouped by status, most active first:
 65. ~~Rename Home's "Find Another"/"Show a List" buttons~~ — ✅ done
 67. ~~Donation/support prompt~~ — ✅ done (checkout, native IAP, reading-milestone ask, and a Dec 18–31 Christmas ask shipped in 1.7.2)
 69. ~~Data controls for accounts (conflicts, clearing data)~~ — ✅ done
-70. ~~Streak "salvage" for one missed day~~ — ✅ done (read 2 talks, once a week, plus a reminder that day — 1.7.2)
+70. ~~Streak "salvage" for one missed day~~ — ✅ done (read 2 talks, plus a reminder that day — 1.7.2; once-a-week cap removed 2026-10-04)
 71. ~~Share a talk as a generated image card~~ — ✅ done (talk, badge, Supporter, and streak cards plus an editable message preview — 1.7.2)
 72. ~~Make the number of talks read visible~~ — ✅ done (delivered inside "Your FindATalk")
 73. ~~"Your FindATalk" stats window~~ — ✅ done (six numbers; the Home streak pill opens it)
@@ -90,6 +94,7 @@ promise of what ships next. Grouped by status, most active first:
 80. ~~"Your Journey" — talks read and days studied, by year~~ — ✅ done (‹ year › switcher; hidden until Dec 31, 2026; read dates recorded + estimated backfill; other candidate stats not chosen)
 81. ~~Yearly "Check on your journey in [YEAR]" reveal~~ — ✅ done (Dec 31–Jan 14, 14+ days studied, once a year, with a "Share my year" card)
 82. ~~Reading pace in Your FindATalk~~ — ✅ done (tap Reads & Rereads: About N a day / week / month, On pace for N a year; opens on the friendliest step; after 14 days)
+85. ~~Tap your most-read talk in Your FindATalk to open it~~ — ✅ done (closes the window, lands on the talk's ticket with a pulse, Previous returns you; community lists under idea 68 should follow the same rule when built)
 
 ## Disregarded
 
@@ -106,8 +111,8 @@ promise of what ships next. Grouped by status, most active first:
 
 ---
 
-**In progress:** 44, 57, 68
-**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 64, 66
-**Done:** 3, 4, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82
+**In progress:** 44, 68, 86, 87
+**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 64, 66, 83, 84
+**Done:** 3, 4, 57, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 85
 **Disregarded:** 1, 2, 26, 50
 **Obsolete:** 39, 42, 43

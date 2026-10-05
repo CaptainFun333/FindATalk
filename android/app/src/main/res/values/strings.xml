@@ -7,6 +7,12 @@
 
     <!-- Talk of the Day widget -->
     <string name="widget_eyebrow">Talk of the Day</string>
+    <!-- Idea 87: General Conference days. Same wording as the card on the
+         app's Home screen (buildConferenceCard() in docs/index.html). -->
+    <string name="widget_eyebrow_conference">General Conference</string>
+    <string name="widget_conference_question">Are you participating in General Conference today?</string>
+    <string name="widget_conference_joined">Enjoy General Conference!</string>
+    <string name="widget_conference_joined_detail">Today counts toward your streak.</string>
     <string name="widget_loading">Loading today\'s talk…</string>
     <string name="widget_description">Shows today\'s Talk of the Day and your streak — tap to open the app.</string>
 </resources>

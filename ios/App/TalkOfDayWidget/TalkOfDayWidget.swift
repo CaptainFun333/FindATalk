@@ -1,9 +1,23 @@
 import WidgetKit
 import SwiftUI
 
+/// What the widget shows on a General Conference day in place of the
+/// Talk of the Day (idea 87) — the same two states, in the same words, as
+/// the card on the app's Home screen (buildConferenceCard() in
+/// docs/index.html). Keep the wording in sync with it.
+enum ConferenceCard {
+    /// "Are you participating in General Conference today?"
+    case asking
+    /// The person answered Yes in the app today.
+    case joined
+}
+
 struct TalkEntry: TimelineEntry {
     let date: Date
     let talk: Talk?
+    // Non-nil only on a General Conference day, when `talk` is nil by
+    // design rather than because the data failed to load.
+    let conference: ConferenceCard?
     let streakText: String?
     // "light" / "dark" if the person made an explicit choice with the
     // in-app toggle, nil if they haven't (still following the system
@@ -57,10 +71,25 @@ private enum StreakStore {
     static let appGroupID = "group.com.captainfun333.findatalk"
     static let streakKey = "findATalkStreak"
 
-    static func currentText() -> String? {
+    private static func mirroredStreak() -> [String: Any]? {
         guard let raw = UserDefaults(suiteName: appGroupID)?.string(forKey: streakKey),
               let data = raw.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return obj
+    }
+
+    /// True once the person has answered Yes on the app's General
+    /// Conference card today. The app tucks that day's date into the
+    /// mirrored streak record as `conferenceYes` (see
+    /// mirrorStreakToNative() in docs/index.html) — a stale value from an
+    /// earlier conference day simply won't match today.
+    static func joinedConferenceToday() -> Bool {
+        guard let answered = mirroredStreak()?["conferenceYes"] as? String else { return false }
+        return answered == dateSeed(Date())
+    }
+
+    static func currentText() -> String? {
+        guard let obj = mirroredStreak() else { return nil }
 
         let count = obj["count"] as? Int ?? 0
         guard count > 0 else { return nil }
@@ -86,15 +115,24 @@ private enum StreakStore {
     private static func isStale(_ lastDate: String) -> Bool {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone.current
+
+        let today = dateSeed(Date())
+        if lastDate == today { return false }
+        let yesterday = dateSeed(calendar.date(byAdding: .day, value: -1, to: Date()) ?? Date())
+        return lastDate != yesterday
+    }
+
+    /// "yyyy-MM-dd" on the device's local calendar — same format as
+    /// localDateSeed() in docs/index.html.
+    private static func dateSeed(_ date: Date) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
         let formatter = DateFormatter()
         formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone.current
         formatter.dateFormat = "yyyy-MM-dd"
-
-        let today = formatter.string(from: Date())
-        if lastDate == today { return false }
-        let yesterday = formatter.string(from: calendar.date(byAdding: .day, value: -1, to: Date()) ?? Date())
-        return lastDate != yesterday
+        return formatter.string(from: date)
     }
 }
 
@@ -103,22 +141,31 @@ struct TalkOfDayProvider: TimelineProvider {
         TalkEntry(
             date: Date(),
             talk: Talk(title: "Why Not Now?", speaker: "Neal A. Maxwell", year: 1974, month: "10", urlSlug: "why-not-now", topics: []),
+            conference: nil,
             streakText: "🔥 122 of the last 365 — 10-day streak",
             themeOverride: ThemeStore.currentOverride(),
             paletteOverride: PaletteStore.currentOverride()
         )
     }
 
+    /// nil on an ordinary day. On a General Conference day, which of the
+    /// card's two states to show.
+    private func conferenceCard(on date: Date) -> ConferenceCard? {
+        guard TalkStore.isConferenceDay(date) else { return nil }
+        return StreakStore.joinedConferenceToday() ? .joined : .asking
+    }
+
     func getSnapshot(in context: Context, completion: @escaping (TalkEntry) -> Void) {
-        let pick = TalkStore.talkOfTheDay(from: TalkStore.loadTalks())
-        completion(TalkEntry(date: Date(), talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride(), paletteOverride: PaletteStore.currentOverride()))
+        let now = Date()
+        let pick = TalkStore.talkOfTheDay(from: TalkStore.loadTalks(), date: now)
+        completion(TalkEntry(date: now, talk: pick, conference: conferenceCard(on: now), streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride(), paletteOverride: PaletteStore.currentOverride()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TalkEntry>) -> Void) {
         let talks = TalkStore.loadTalks()
         let now = Date()
         let pick = TalkStore.talkOfTheDay(from: talks, date: now)
-        let entry = TalkEntry(date: now, talk: pick, streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride(), paletteOverride: PaletteStore.currentOverride())
+        let entry = TalkEntry(date: now, talk: pick, conference: conferenceCard(on: now), streakText: StreakStore.currentText(), themeOverride: ThemeStore.currentOverride(), paletteOverride: PaletteStore.currentOverride())
 
         // Reload right after local midnight so tomorrow's pick shows up
         // promptly, rather than waiting on WidgetKit's own daily budget.
@@ -305,17 +352,43 @@ private enum TalkPalette {
 struct TalkOfDayWidgetEntryView: View {
     var entry: TalkOfDayProvider.Entry
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.widgetFamily) private var widgetFamily
 
     var body: some View {
         let palette = TalkPalette.resolve(paletteOverride: entry.paletteOverride, themeOverride: entry.themeOverride, colorScheme: colorScheme)
 
         VStack(alignment: .leading, spacing: 4) {
-            Text("TALK OF THE DAY")
-                .font(.system(size: 11, weight: .bold))
-                .tracking(1.1)
-                .foregroundColor(palette.brass)
+            // "GENERAL CONFERENCE" is wider than "TALK OF THE DAY", and
+            // the small widget can be under 90pt across once the system's
+            // own margins come off — there it wraps to two lines and
+            // pushes the question into truncating. So the small widget
+            // leaves it out on conference days: the wording underneath
+            // names General Conference anyway.
+            let small = widgetFamily == .systemSmall
+            if entry.conference == nil || !small {
+                eyebrow(entry.conference != nil ? "GENERAL CONFERENCE" : "TALK OF THE DAY", color: palette.brass)
+            }
 
-            if let talk = entry.talk {
+            if let conference = entry.conference {
+                // Same words as the app's own conference card. The
+                // question is far longer than a talk title, so on the
+                // small widget it's set smaller and allowed to run to
+                // five lines, and "Tap to answer." is left off — all so
+                // the whole question shows instead of trailing off into
+                // an ellipsis.
+                Text(conference == .joined ? "Enjoy General Conference!" : "Are you participating in General Conference today?")
+                    .font(.system(size: small ? (conference == .joined ? 15 : 12) : 16, weight: .bold, design: .serif))
+                    .foregroundColor(palette.ink)
+                    .lineLimit(small ? 5 : 3)
+                    .minimumScaleFactor(0.8)
+                if conference == .joined || !small {
+                    Text(conference == .joined ? "Today counts toward your streak." : "Tap to answer.")
+                        .font(.system(size: small ? 10.5 : 13, design: .serif))
+                        .foregroundColor(palette.inkSoft)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                }
+            } else if let talk = entry.talk {
                 Text(talk.title)
                     .font(.system(size: 16, weight: .bold, design: .serif))
                     .foregroundColor(palette.ink)
@@ -354,6 +427,13 @@ struct TalkOfDayWidgetEntryView: View {
         .widgetURL(URL(string: "com.captainfun333.findatalk://"))
         .talkOfDayBackground(palette.paperRaised)
     }
+}
+
+private func eyebrow(_ text: String, color: Color) -> some View {
+    Text(text)
+        .font(.system(size: 11, weight: .bold))
+        .tracking(1.1)
+        .foregroundColor(color)
 }
 
 private extension View {
