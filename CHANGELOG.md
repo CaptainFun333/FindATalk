@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- October 2026 General Conference talks are now in the app (37 talks, with topics, scripture and other citations, and speaker callings). (Live immediately, no new build needed.)
+
 ### Changed
 - The privacy policy on findatalk.com now covers optional accounts and cloud sync, shared lists (members see the display name you choose), donations, and deleting your account, and a new page explains how to delete your account. (Website only; no new build needed.)
 
