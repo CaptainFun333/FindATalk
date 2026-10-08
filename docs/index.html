@@ -7038,7 +7038,8 @@ async function mirrorTalksToNative(data){
   const cap = window.Capacitor;
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   if (!data || !Array.isArray(data.talks) || !data.talks.length) return;
-  const stamp = String(data.generatedAt || '') + '|' + data.talks.length;
+  const held = totdHoldActive();
+  const stamp = String(data.generatedAt || '') + '|' + data.talks.length + '|' + (held ? 'held' : 'all');
   try { if (localStorage.getItem('findATalkTalksMirrored') === stamp) return; } catch(err){ /* mirror anyway */ }
   const platform = cap.getPlatform ? cap.getPlatform() : '';
   const lookup = {};
@@ -7047,7 +7048,10 @@ async function mirrorTalksToNative(data){
     const hit = (full[k] || []).filter(t => WIDGET_HOLIDAY_TOPICS.indexOf(t) !== -1);
     if (hit.length) lookup[k] = hit;
   }
-  const json = JSON.stringify({talks: data.talks.map(t => t.slice(0, 5)), topicLookup: lookup});
+  // While the Talk of the Day hold is active (see TOTD_HELD_BACK) the
+  // widgets must see the same pool the app picks from.
+  const rows = data.talks.filter(t => !(held && (t[2] + '|' + t[3] + '|' + t[4]).startsWith(TOTD_HELD_BACK.prefix)));
+  const json = JSON.stringify({talks: rows.map(t => t.slice(0, 5)), topicLookup: lookup});
   try {
     if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
       await cap.Plugins.Preferences.set({key: 'findATalkTalks', value: json});
@@ -10632,6 +10636,23 @@ function curatedHolidayPick(holiday, sorted, year){
   if (!eligible.length) return null;
   return eligible[splitmix32(year ^ 0x5a5a5a5a) % eligible.length];
 }
+/* TEMPORARY BANDAGE — remove once the iOS/Android builds that mirror the
+   live talk list to the widgets (mirrorTalksToNative()) are live. Talk of
+   the Day picks depend on the NUMBER of talks (cyclePick() re-partitions
+   whenever it changes), and the already-installed widgets only know the
+   talk list bundled at their build, which lacks the October 2026
+   conference. Until `until`, the Talk of the Day pool leaves those talks
+   out so the app picks exactly what those widgets pick. The talks are
+   still fully browsable/searchable — only the daily pick ignores them.
+   Mirrored in functions/totd.js; see DECISIONS.md. */
+const TOTD_HELD_BACK = { prefix: '2026|10|', until: '2027-01-08' };
+function totdHoldActive(d){
+  return localDateSeed(d || new Date()) < TOTD_HELD_BACK.until;
+}
+function totdPool(d){
+  const sorted = sortedTalks();
+  return totdHoldActive(d) ? sorted.filter(t=> !talkKey(t).startsWith(TOTD_HELD_BACK.prefix)) : sorted;
+}
 /* Deterministic, seeded by a given calendar date (not the person's
    current filters — this is meant to be a stable "come back tomorrow for
    a new one" hook, same for everyone on a given day, not a filtered
@@ -10644,7 +10665,7 @@ function curatedHolidayPick(holiday, sorted, year){
 function talkForDate(d){
   if (!TALKS.length) return null;
   if (isConferenceDay(d)) return null; // idea 87 — no Talk of the Day is assigned on General Conference days
-  const sorted = sortedTalks();
+  const sorted = totdPool(d);
   for (const holiday of CURATED_HOLIDAYS){
     if (holiday.matches(d)){
       const pick = curatedHolidayPick(holiday, sorted, d.getFullYear());
@@ -10676,6 +10697,17 @@ function talkOfTheDay(){
 const TOTD_BACKFILL_DAYS = 30;
 function backfillTotdHistoryIfNeeded(){
   if (!TALKS.length) return;
+  // One-time: picks recorded since the October 2026 talks landed (Oct 6)
+  // came from the full list and disagree with the widgets (see
+  // TOTD_HELD_BACK). Drop them so they're recomputed from the held-back
+  // pool; the backfill below only reaches back 30 days, plenty here.
+  try {
+    if (!localStorage.getItem('findATalkTotdHeldBackFix')){
+      Object.keys(totdHistory).forEach(k=>{ if (k >= '2026-10-06') delete totdHistory[k]; });
+      localStorage.setItem('findATalkTotdHeldBackFix', '1');
+      saveTotdHistory();
+    }
+  } catch(err){ /* not fatal */ }
   const now = new Date();
   let changed = false;
   for (let i = 0; i < TOTD_BACKFILL_DAYS; i++){

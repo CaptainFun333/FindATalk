@@ -78,19 +78,28 @@ function isConferenceDay(y, m, d) {
   return (month === 4 || month === 10) && sunday.getUTCDate() <= 7;
 }
 
+// TEMPORARY — mirror of TOTD_HELD_BACK in docs/index.html. Until `until`,
+// the October 2026 conference is left out of the Talk of the Day pool so
+// picks match the not-yet-updated widgets. Remove with the app's copy.
+const HELD_BACK_PREFIX = '2026|10|';
+const HELD_BACK_UNTIL = '2027-01-08';
+
 const talkKey = (t) => `${t[2]}|${t[3]}|${t[4]}`;
 
 // data is the parsed data.json. Returns (year, month, day) => talk tuple, or
 // null on a General Conference day.
 function makeTotdPicker(data) {
-  const sorted = [...data.talks].sort((a, b) => {
+  const full = [...data.talks].sort((a, b) => {
     const ka = talkKey(a), kb = talkKey(b);
     return ka < kb ? -1 : ka > kb ? 1 : 0;
   });
+  const held = full.filter((t) => !talkKey(t).startsWith(HELD_BACK_PREFIX));
   const orders = {};
   return (y, m, d) => {
-    if (!sorted.length) return null;
+    if (!full.length) return null;
     if (isConferenceDay(y, m, d)) return null;
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const sorted = dateStr < HELD_BACK_UNTIL ? held : full;
     const utc = Date.UTC(y, m - 1, d);
     const dow = new Date(utc).getUTCDay();
     for (const [topic, month, matches] of HOLIDAYS) {
@@ -102,7 +111,8 @@ function makeTotdPicker(data) {
     }
     const dayNumber = Math.floor(utc / 86400000);
     const cycle = Math.floor(dayNumber / sorted.length);
-    const order = orders[cycle] || (orders[cycle] = seededShuffledIndices(sorted.length, splitmix32(cycle)));
+    const ck = sorted.length + ':' + cycle;
+    const order = orders[ck] || (orders[ck] = seededShuffledIndices(sorted.length, splitmix32(cycle)));
     return sorted[order[dayNumber % sorted.length]];
   };
 }
