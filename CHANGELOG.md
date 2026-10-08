@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Fixed
+- Home-screen widgets (and the Siri shortcut) now show the same Talk of the Day as the app after a new conference is added, instead of waiting for the next app update. (Needs new iOS and Android builds.)
+
 ### Added
 - October 2026 General Conference talks are now in the app (37 talks, with topics, scripture and other citations, and speaker callings). (Live immediately, no new build needed.)
 

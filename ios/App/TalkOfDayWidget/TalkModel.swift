@@ -71,13 +71,39 @@ enum TalkStore {
         return ((day - 1) / 7) + 1 == n
     }
 
+    /// The bundled copy only changes with an App Store build, so the app
+    /// also mirrors the live talk list into the App Group (see
+    /// StreakBridgePlugin.setTalks). Adding a conference changes the talk
+    /// count, which re-partitions cyclePick(), so a stale list here makes
+    /// the widget disagree with the app. Whichever list has more talks is
+    /// the newer one (talks are only ever added).
     static func loadTalks() -> [Talk] {
+        let bundled = bundledTalks()
+        let mirrored = mirroredTalks()
+        return mirrored.count > bundled.count ? mirrored : bundled
+    }
+
+    static func bundledTalks() -> [Talk] {
         guard let url = Bundle.main.url(forResource: "data", withExtension: "json"),
               let data = try? Data(contentsOf: url),
-              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let talksRaw = root["talks"] as? [[Any]] else {
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return []
         }
+        return parseTalks(root)
+    }
+
+    /// Must match StreakBridgePlugin.appGroupID / .talksFileName.
+    static func mirroredTalks() -> [Talk] {
+        guard let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.captainfun333.findatalk"),
+              let data = try? Data(contentsOf: dir.appendingPathComponent("talks.json")),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return []
+        }
+        return parseTalks(root)
+    }
+
+    static func parseTalks(_ root: [String: Any]) -> [Talk] {
+        guard let talksRaw = root["talks"] as? [[Any]] else { return [] }
 
         let topicLookup = root["topicLookup"] as? [String: [String]] ?? [:]
 

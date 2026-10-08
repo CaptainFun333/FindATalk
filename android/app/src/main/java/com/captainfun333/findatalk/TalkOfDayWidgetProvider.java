@@ -536,19 +536,45 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         views.setTextColor(R.id.widget_streak, accent2);
     }
 
-    /** Reads talks and topicLookup ("year|month|slug" -> topic slugs, same
-        shape as TOPIC_LOOKUP in docs/index.html) out of the one bundled
-        data.json, in a single parse. */
+    private static final String TALKS_KEY = "findATalkTalks";
+
+    /** The bundled data.json only changes with a Play Store build, so the
+        app also mirrors the live talk list into the same preferences file
+        as the streak (mirrorTalksToNative() in docs/index.html). Adding a
+        conference changes the talk count, which re-partitions cyclePick(),
+        so a stale list makes the widget disagree with the app. Whichever
+        list has more talks is the newer one (talks are only ever added). */
     private ArrayList<Talk> loadTalks(Context context) throws Exception {
-        ArrayList<Talk> talks = new ArrayList<>();
+        ArrayList<Talk> bundled = parseTalks(readBundledJson(context));
+        ArrayList<Talk> mirrored = new ArrayList<>();
+        try {
+            String raw = context.getSharedPreferences(STREAK_PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(TALKS_KEY, null);
+            if (raw != null) mirrored = parseTalks(raw);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to read mirrored talks", e);
+        }
+        return mirrored.size() > bundled.size() ? mirrored : bundled;
+    }
+
+    private String readBundledJson(Context context) throws Exception {
         try (InputStream is = context.getAssets().open("public/data.json");
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             char[] buf = new char[8192];
             int n;
             while ((n = reader.read(buf)) != -1) sb.append(buf, 0, n);
+            return sb.toString();
+        }
+    }
 
-            JSONObject root = new JSONObject(sb.toString());
+    /** Reads talks and topicLookup ("year|month|slug" -> topic slugs, same
+        shape as TOPIC_LOOKUP in docs/index.html) out of one data.json-shaped
+        string, in a single parse. */
+    private ArrayList<Talk> parseTalks(String json) throws Exception {
+        ArrayList<Talk> talks = new ArrayList<>();
+        {
+            JSONObject root = new JSONObject(json);
 
             Map<String, Set<String>> topicLookup = new HashMap<>();
             JSONObject topicLookupJson = root.optJSONObject("topicLookup");

@@ -5,6 +5,8 @@ export interface StreakBridgePlugin {
    * No-op on platforms other than iOS (there's no widget to mirror to).
    */
   setStreak(options: { json: string }): Promise<void>;
+  /** Mirrors the live talk list (compact JSON) for the widget and Siri shortcut. */
+  setTalks(options: { json: string }): Promise<void>;
   /** Mirrors an explicit light/dark theme choice the same way. */
   setThemePreference(options: { theme: string }): Promise<void>;
   /** Mirrors a Color Palette choice the same way. */

@@ -112,7 +112,9 @@ struct TalkOfTheDayIntent: AppIntent {
             let streakClause = currentStreakClause() ?? ""
             return .result(dialog: "It's General Conference today, so there's no Talk of the Day. Are you participating? Open FindATalk to count it toward your streak.\(streakClause)")
         }
-        let talks = loadBundledTalkData()
+        let bundled = loadBundledTalkData()
+        let mirrored = TalkStore.mirroredTalks()
+        let talks = mirrored.count > bundled.count ? mirrored : bundled
         guard let pick = TalkStore.talkOfTheDay(from: talks) else {
             return .result(dialog: "I couldn't load today's Talk of the Day — try opening FindATalk directly.")
         }

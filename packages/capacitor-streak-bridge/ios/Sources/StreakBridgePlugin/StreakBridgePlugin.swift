@@ -36,6 +36,7 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setStreak", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setThemePreference", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setPalettePreference", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setTalks", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "refreshWidget", returnType: CAPPluginReturnPromise)
     ]
 
@@ -51,6 +52,9 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     // Must match the native-mirror key mirrorPaletteToNative() writes to
     // in docs/index.html.
     static let paletteKey = "findATalkPalette"
+
+    // Must match TalkStore.mirroredTalks() in TalkModel.swift.
+    static let talksFileName = "talks.json"
 
     // Must match the `kind` in TalkOfDayWidget.swift.
     static let widgetKind = "TalkOfDayWidget"
@@ -71,6 +75,28 @@ public class StreakBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         // refresh calls on the Android side (Preferences.set() then
         // WidgetRefresh.refresh()).
         call.resolve()
+    }
+
+    /// Mirrors the live talk list (compact: talk rows plus the holiday-topic
+    /// lookups) as a file in the App Group container, so the widget and Siri
+    /// shortcut pick the same Talk of the Day as the app after a conference
+    /// is added without waiting for a new App Store build. A file rather
+    /// than UserDefaults because the payload is several hundred KB.
+    @objc func setTalks(_ call: CAPPluginCall) {
+        guard let json = call.getString("json") else {
+            call.reject("Missing json")
+            return
+        }
+        guard let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: StreakBridgePlugin.appGroupID) else {
+            call.resolve() // App Group not set up — nothing to write to
+            return
+        }
+        do {
+            try json.write(to: dir.appendingPathComponent(StreakBridgePlugin.talksFileName), atomically: true, encoding: .utf8)
+            call.resolve()
+        } catch {
+            call.reject("Could not write talks: \(error.localizedDescription)")
+        }
     }
 
     /// Mirrors an explicit light/dark choice from the in-app toggle so the

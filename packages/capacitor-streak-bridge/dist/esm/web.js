@@ -8,6 +8,9 @@ export class StreakBridgeWeb extends WebPlugin {
     async setStreak(_options) {
         // no-op on web
     }
+    async setTalks(_options) {
+        // no-op on web
+    }
     async setThemePreference(_options) {
         // no-op on web
     }

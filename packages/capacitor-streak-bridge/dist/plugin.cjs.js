@@ -5,6 +5,9 @@ class StreakBridgeWeb extends core.WebPlugin {
     async setStreak(_options) {
         // no-op on web — see dist/esm/web.js for the full explanation
     }
+    async setTalks(_options) {
+        // no-op on web
+    }
     async setThemePreference(_options) {
         // no-op on web
     }

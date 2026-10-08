@@ -7022,6 +7022,44 @@ function saveStreak(streak){
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
   mirrorStreakToNative(streak);
 }
+/* Copies the live talk list into native storage so the home-screen widgets
+   (and the iOS Siri shortcut) pick the same Talk of the Day as this app.
+   They otherwise only know the data.json bundled at the last store build,
+   and cyclePick() depends on the talk count — so the moment a new
+   conference lands in the live data, a stale widget picks a different
+   talk. The payload is just the talk rows plus the topic lookups for the
+   curated-holiday topics (all the widgets use topics for), ~400KB. Same
+   two native paths as mirrorStreakToNative(): Android writes a
+   Preferences key the widget reads from the shared "CapacitorStorage"
+   file, iOS writes a file into the App Group via StreakBridge.setTalks.
+   Skipped when this generatedAt was already mirrored. */
+const WIDGET_HOLIDAY_TOPICS = ['hope','love','relief-society','easter','restoration','motherhood','priesthood','fatherhood','freedom','pioneers','gratitude','christmas'];
+async function mirrorTalksToNative(data){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  if (!data || !Array.isArray(data.talks) || !data.talks.length) return;
+  const stamp = String(data.generatedAt || '') + '|' + data.talks.length;
+  try { if (localStorage.getItem('findATalkTalksMirrored') === stamp) return; } catch(err){ /* mirror anyway */ }
+  const platform = cap.getPlatform ? cap.getPlatform() : '';
+  const lookup = {};
+  const full = data.topicLookup || {};
+  for (const k in full){
+    const hit = (full[k] || []).filter(t => WIDGET_HOLIDAY_TOPICS.indexOf(t) !== -1);
+    if (hit.length) lookup[k] = hit;
+  }
+  const json = JSON.stringify({talks: data.talks.map(t => t.slice(0, 5)), topicLookup: lookup});
+  try {
+    if (platform === 'android' && cap.Plugins && cap.Plugins.Preferences){
+      await cap.Plugins.Preferences.set({key: 'findATalkTalks', value: json});
+    } else if (platform === 'ios' && cap.Plugins && cap.Plugins.StreakBridge && cap.Plugins.StreakBridge.setTalks){
+      await cap.Plugins.StreakBridge.setTalks({json});
+    } else {
+      return; // plugin not available (older build) — try again next launch
+    }
+    try { localStorage.setItem('findATalkTalksMirrored', stamp); } catch(err){ /* ignore */ }
+    await refreshNativeWidget();
+  } catch(err){ /* widget keeps its bundled list — not fatal */ }
+}
 /* Copies the streak into native storage the home-screen widgets can read
    directly — they run in a separate process from this WebView and can't
    see localStorage at all. Two different native paths, since the two
@@ -16889,6 +16927,8 @@ async function loadData(){
   }
 
   initApp();
+  // Widgets know only the bundled talk list; hand them the cached live one.
+  if (cacheIsCurrent) mirrorTalksToNative(cached);
 
   // Check for a fresher copy in the background (new conferences, fixes).
   // If found, just cache it silently — it's picked up on the NEXT launch
@@ -16911,6 +16951,7 @@ async function loadData(){
       .then(data => {
         if (data.generatedAt === currentGeneratedAt) return;
         cacheData(data);
+        mirrorTalksToNative(data);
         // Phase 2 (idea 45) — "New conference is live!" A real new
         // conference is the only thing that grows the talk count (a data
         // correction/fix to existing talks wouldn't), so this is a cheap,
