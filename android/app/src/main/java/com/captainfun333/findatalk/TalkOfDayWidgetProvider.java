@@ -621,7 +621,18 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         // ConferenceWeekend and updateWidget() above.
         if (ConferenceWeekend.isConferenceDay(Calendar.getInstance())) return null;
 
-        ArrayList<Talk> sorted = new ArrayList<>(talks);
+        // TEMPORARY hold — mirror of TOTD_HELD_BACK in docs/index.html (see
+        // DECISIONS.md, 2026-10-08): until Jan 8 2027 the October 2026
+        // conference stays out of the daily pool so every installed
+        // widget/app build agrees. Remove together with the JS copy.
+        Calendar nowCal = Calendar.getInstance();
+        int ymd = nowCal.get(Calendar.YEAR) * 10000 + (nowCal.get(Calendar.MONTH) + 1) * 100
+            + nowCal.get(Calendar.DAY_OF_MONTH);
+        boolean held = ymd < 20270108;
+        ArrayList<Talk> sorted = new ArrayList<>();
+        for (Talk t : talks) {
+            if (!(held && t.key().startsWith("2026|10|"))) sorted.add(t);
+        }
         Collections.sort(sorted, new Comparator<Talk>() {
             @Override
             public int compare(Talk a, Talk b) {

@@ -161,9 +161,18 @@ enum TalkStore {
         guard !talks.isEmpty else { return nil }
         if isConferenceDay(date) { return nil }
 
-        let sorted = talks.sorted { $0.key < $1.key }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone.current
+
+        // TEMPORARY hold — mirror of TOTD_HELD_BACK in docs/index.html (see
+        // DECISIONS.md, 2026-10-08): until Jan 8 2027 the October 2026
+        // conference stays out of the daily pool so every installed
+        // widget/app build agrees. Remove together with the JS copy.
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        let held = (c.year ?? 0, c.month ?? 0, c.day ?? 0) < (2027, 1, 8)
+        let sorted = talks
+            .filter { !(held && $0.key.hasPrefix("2026|10|")) }
+            .sorted { $0.key < $1.key }
 
         for holiday in curatedHolidays where holiday.matches(date, calendar) {
             let year = calendar.component(.year, from: date)
