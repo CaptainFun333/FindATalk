@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.7.9] — 2026-10-09
+
 ### Fixed
 - Home-screen widgets (and the Siri shortcut) now show the same Talk of the Day as the app after a new conference is added, instead of waiting for the next app update. (Needs new iOS and Android builds.)
 - Talk of the Day now matches the home-screen widgets again through early January: the new October 2026 talks are left out of the daily pick until widgets have caught up (they stay fully searchable). (Website live immediately; the app needs a new build.)
