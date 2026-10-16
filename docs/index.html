@@ -12386,7 +12386,12 @@ function openShareComposeModal({ title, totd, previewTitle, previewSubtitle, bod
   shareComposeEyebrow.hidden = !totd;
   shareComposePreviewTitle.textContent = previewTitle;
   shareComposePreviewSubtitle.textContent = previewSubtitle;
-  shareComposeTextarea.value = bodyText;
+  // The suggestion is a grey placeholder, not real text: it vanishes on
+  // the first keystroke so nobody has to delete it before writing their
+  // own, and an empty box sends just the link. No auto-focus below, or
+  // the keyboard would cover the suggestion the moment the modal opens.
+  shareComposeTextarea.value = '';
+  shareComposeTextarea.placeholder = bodyText;
   shareComposeLinkText.textContent = linkUrl.replace(/^https?:\/\//, '');
   if (shareComposeThumb.dataset.objectUrl) URL.revokeObjectURL(shareComposeThumb.dataset.objectUrl);
   const objectUrl = URL.createObjectURL(imageBlob);
@@ -12394,7 +12399,6 @@ function openShareComposeModal({ title, totd, previewTitle, previewSubtitle, bod
   shareComposeThumb.dataset.objectUrl = objectUrl;
   shareComposeState = { linkUrl, imageBlob, shareTitle, btnEl };
   shareComposeModalOverlay.hidden = false;
-  shareComposeTextarea.focus();
 }
 function closeShareComposeModal(){
   shareComposeModalOverlay.hidden = true;

@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+- The suggested message when sharing a talk now shows as grey hint text that disappears as soon as you start typing, so you no longer have to delete it to write your own. Sharing with the box empty sends just the link. (Website live immediately; the app needs a new build.)
 
 ## [1.7.9] — 2026-10-09
 
