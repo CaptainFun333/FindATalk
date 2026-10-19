@@ -13,6 +13,7 @@ this updated.
 ### Added
 - Your lists can now be put in any order you like: pick **My order** on a list, then drag the handle (or use the arrows) to rearrange. The order syncs between your devices, and on a shared list the owner sets the order for everyone. (Website live immediately; the app needs a new build. Shared-list ordering also needs the cloud functions deployed.)
 - Study plans: turn any list into a plan with a finish date or a pace. Talks you finish as part of the plan get a separate "Plan" mark (your Read counts are unchanged), the next talk is highlighted as "Up next", and Home shows a slim card for each plan with a check when you've done today's reading. If you add talks to a plan, you choose whether to keep your finish date or your pace. (Website live immediately; the app needs a new build.)
+- Finishing a study plan earns a badge on that list's page, with a button to share it as a card and another to start the plan again. (Website live immediately; the app needs a new build.)
 
 ### Changed
 - The suggested message when sharing a talk now shows as grey hint text that disappears as soon as you start typing, so you no longer have to delete it to write your own. Sharing with the box empty sends just the link. (Website live immediately; the app needs a new build.)
