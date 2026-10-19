@@ -2165,6 +2165,24 @@
     margin-left:8px;
   }
   .list-item-read-badge[hidden]{ display:none; }
+  /* Idea 88 — My order: position number, grip, and move buttons. */
+  .order-hint{ font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); margin:4px 0 10px; }
+  .order-hint[hidden]{ display:none; }
+  .order-pos{
+    flex-shrink:0; min-width:22px; margin-right:8px;
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:700;
+    color:var(--brass); text-align:right; align-self:center;
+  }
+  .order-tools{ display:inline-flex; align-items:center; gap:2px; flex-shrink:0; margin-left:6px; align-self:center; }
+  .order-grip, .order-step{
+    width:30px; height:30px; padding:0; display:inline-flex; align-items:center; justify-content:center;
+    background:transparent; border:none; border-radius:8px; color:var(--ink-soft); cursor:pointer;
+  }
+  .order-grip{ cursor:grab; touch-action:none; }
+  .order-grip svg, .order-step svg{ width:16px; height:16px; }
+  .order-step:disabled{ opacity:.3; cursor:default; }
+  .order-step:hover:not(:disabled), .order-grip:hover{ color:var(--burgundy); }
+  .list-item.is-dragging{ background:var(--paper-raised); box-shadow:0 6px 18px rgba(0,0,0,.18); position:relative; z-index:2; }
   .list-item-read-badge svg{ width:12px; height:12px; }
   .ticket-read-badge{
     display:inline-flex; align-items:center; gap:4px;
@@ -3460,8 +3478,10 @@
       <div class="sort-toggle" id="collectionSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default" data-recent-label="Recently Added" data-oldest-label="Oldest Added">Recently Added</button>
         <button type="button" class="sort-toggle-btn" data-sort="conference">Conference Date<span class="sort-flip-arrow" aria-hidden="true">▼</span></button>
+        <button type="button" class="sort-toggle-btn" data-sort="order">My order</button>
       </div>
     </div>
+    <div class="order-hint" id="collectionOrderHint" hidden></div>
     <!-- Superseded by the live header count above — kept only because
          renderSubsetList() (shared with Recently Viewed/Favorites/My
          Notes, which still show this text) writes to it unconditionally. -->
@@ -8140,6 +8160,8 @@ const COLLECTION_MEMBERS_KEY = 'findATalkCollectionMembers';
 const COLLECTION_ACTIVITY_META_KEY = 'findATalkCollectionActivityMeta';
 const COLLECTION_MEMBER_META_KEY = 'findATalkCollectionMemberMeta';
 const DELETED_COLLECTIONS_KEY = 'findATalkDeletedCollections';
+// Idea 88 — when a list's "My order" was last rearranged. mergeBackupData()'s member merge is a set union and loses order, so order has its own timestamp.
+const COLLECTION_ORDER_META_KEY = 'findATalkCollectionOrderMeta';
 let collections = [];
 // Idea 57 — shared (live) lists, keyed by Firestore list id. Filled only by
 // the listeners in initApp()'s shared-list block; top-level so
@@ -8157,6 +8179,7 @@ let collectionMembers = {};
 let collectionUpdatedAt = {};
 let collectionMemberUpdatedAt = {};
 let deletedCollections = {};
+let collectionOrderUpdatedAt = {};
 
 function loadCollections(){
   try {
@@ -8179,6 +8202,10 @@ function loadCollections(){
     const raw = localStorage.getItem(DELETED_COLLECTIONS_KEY);
     if (raw) deletedCollections = JSON.parse(raw);
   } catch(err){ deletedCollections = {}; }
+  try {
+    const raw = localStorage.getItem(COLLECTION_ORDER_META_KEY);
+    if (raw) collectionOrderUpdatedAt = JSON.parse(raw);
+  } catch(err){ collectionOrderUpdatedAt = {}; }
 }
 loadCollections();
 
@@ -8196,6 +8223,8 @@ function saveCollectionMembers(){
   catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
   try { localStorage.setItem(COLLECTION_MEMBER_META_KEY, JSON.stringify(collectionMemberUpdatedAt)); }
   catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(COLLECTION_ORDER_META_KEY, JSON.stringify(collectionOrderUpdatedAt)); }
+  catch(err){ /* storage unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
 function createCollection(name){
@@ -8212,6 +8241,7 @@ function deleteCollection(id){
   delete collectionMembers[id];
   delete collectionUpdatedAt[id];
   delete collectionMemberUpdatedAt[id];
+  delete collectionOrderUpdatedAt[id];
   deletedCollections[id] = Date.now(); // tombstone — see the comment above COLLECTIONS_KEY
   saveCollections();
   saveCollectionMembers();
@@ -12824,7 +12854,11 @@ function createSortToggle(containerEl, onChange){
     });
   });
   sync();
-  return { get mode(){ return mode; }, get dir(){ return dir; } };
+  return {
+    get mode(){ return mode; }, get dir(){ return dir; },
+    // Idea 88 — lets a page pick its starting chip (a study plan opens on My order).
+    set(newMode, newDir='desc'){ mode = newMode; dir = newDir; sync(); }
+  };
 }
 
 /* Wires a search box (input + clear button, same search-field markup as
@@ -14095,6 +14129,118 @@ function handleNotificationTap(notificationId){
   else if ((isDailyReminderId(notificationId) || notificationId === STREAK_RISK_NOTIF_ID) && isConferenceDay(new Date())) goToNavZone('home');
 }
 
+/* ---- Idea 88: My order ---- */
+const GRIP_ICON_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+const CHEVRON_UP_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>';
+const CHEVRON_DOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+function renderOrderHint(orderMode, canReorder, live){
+  const el = document.getElementById('collectionOrderHint');
+  if (!el) return;
+  el.hidden = !orderMode;
+  if (!orderMode) return;
+  el.textContent = canReorder ? 'Drag the handle, or use the arrows, to put these in your order.'
+    : (live ? 'Order set by the list owner.' : 'Clear the search and filters to rearrange.');
+}
+
+// Called for every row in My order mode: position number, and (when the
+// list can be rearranged) a grip plus up/down buttons.
+function decorateOrderRow(row, pick, position, canReorder, listId, total){
+  const group = row.querySelector('.list-item-title-group');
+  if (!group) return;
+  const pos = document.createElement('span');
+  pos.className = 'order-pos';
+  pos.textContent = String(position);
+  group.insertBefore(pos, group.firstChild);
+  if (!canReorder) return;
+  const key = talkKey(pick);
+  const tools = document.createElement('span');
+  tools.className = 'order-tools';
+  const up = document.createElement('button');
+  up.type = 'button'; up.className = 'order-step'; up.innerHTML = CHEVRON_UP_SVG;
+  up.setAttribute('aria-label', `Move "${pick[0]}" up`); up.disabled = position === 1;
+  up.addEventListener('click', ()=> moveListTalk(listId, key, position - 2));
+  const down = document.createElement('button');
+  down.type = 'button'; down.className = 'order-step'; down.innerHTML = CHEVRON_DOWN_SVG;
+  down.setAttribute('aria-label', `Move "${pick[0]}" down`); down.disabled = position === total;
+  down.addEventListener('click', ()=> moveListTalk(listId, key, position));
+  const grip = document.createElement('button');
+  grip.type = 'button'; grip.className = 'order-grip'; grip.innerHTML = GRIP_ICON_SVG;
+  grip.setAttribute('aria-label', `Drag to reorder "${pick[0]}"`);
+  wireOrderDrag(grip, row, listId);
+  tools.appendChild(up); tools.appendChild(down); tools.appendChild(grip);
+  group.appendChild(tools);
+}
+
+// The full current order of a list as keys (personal or shared).
+function currentListOrderKeys(listId){
+  const live = liveListsById[liveListId(listId)];
+  return live ? liveTalkKeysInOrder(live) : (collectionMembers[listId] || []).slice();
+}
+function moveListTalk(listId, key, toIndex){
+  const order = currentListOrderKeys(listId);
+  const from = order.indexOf(key);
+  if (from === -1 || toIndex < 0 || toIndex >= order.length || toIndex === from) return;
+  order.splice(from, 1);
+  order.splice(toIndex, 0, key);
+  commitListOrder(listId, order);
+}
+function commitListOrder(listId, order){
+  const live = liveListsById[liveListId(listId)];
+  if (live){
+    live.order = order.slice(); // optimistic; the listener replaces it with the server's copy
+    renderCollectionPage(listId);
+    cloudCallFunction('setSharedListOrder', { listId: live.id, order }).catch(err=>{
+      console.error('[idea 88] setSharedListOrder failed', err);
+      alert(liveErrorMessage(err));
+    });
+    return;
+  }
+  const have = new Set(order);
+  collectionMembers[listId] = order.concat((collectionMembers[listId] || []).filter(k=> !have.has(k)));
+  collectionOrderUpdatedAt[listId] = Date.now();
+  collectionUpdatedAt[listId] = Date.now();
+  saveCollections();
+  saveCollectionMembers();
+  renderCollectionPage(listId);
+}
+// Pointer-driven drag on the grip. touch-action:none on the grip means a
+// finger on the grip drags while a finger anywhere else still scrolls.
+function wireOrderDrag(grip, row, listId){
+  grip.addEventListener('pointerdown', (e)=>{
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    const container = row.parentElement;
+    grip.setPointerCapture(e.pointerId);
+    row.classList.add('is-dragging');
+    let moved = false;
+    const onMove = (ev)=>{
+      moved = true;
+      const siblings = [...container.children].filter(el=> el !== row);
+      let before = null;
+      for (const el of siblings){
+        const r = el.getBoundingClientRect();
+        if (ev.clientY < r.top + r.height / 2){ before = el; break; }
+      }
+      if (before) container.insertBefore(row, before); else container.appendChild(row);
+      if (ev.clientY < 70) window.scrollBy(0, -14);
+      else if (ev.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
+    };
+    const finish = ()=>{
+      grip.removeEventListener('pointermove', onMove);
+      grip.removeEventListener('pointerup', finish);
+      grip.removeEventListener('pointercancel', finish);
+      row.classList.remove('is-dragging');
+      if (!moved) return;
+      const domOrder = [...container.children].map(el=> el.dataset.talkKey).filter(Boolean);
+      commitListOrder(listId, domOrder);
+    };
+    grip.addEventListener('pointermove', onMove);
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', finish);
+  });
+}
+
 function renderCollectionPage(id){
   currentCollectionId = id;
   const col = collections.find(c=> c.id === id);
@@ -14108,7 +14254,13 @@ function renderCollectionPage(id){
   // A shared list has no array; its talks sort by when each was added.
   const keys = live ? liveTalkKeysInOrder(live) : (collectionMembers[id] || []).slice();
   let picks = keys.map(k=>TALKS_BY_KEY[k]).filter(Boolean);
-  if (collectionSortToggle.mode === 'conference') picks = sortByConferenceDate(picks, collectionSortToggle.dir);
+  // Idea 88 — My order shows the list exactly as arranged (and as stored),
+  // never reversed; its position numbers are positions in the whole list.
+  const orderMode = collectionSortToggle.mode === 'order';
+  const positions = {};
+  if (orderMode) picks.forEach((t, i)=>{ positions[talkKey(t)] = i + 1; });
+  if (orderMode){ /* as arranged */ }
+  else if (collectionSortToggle.mode === 'conference') picks = sortByConferenceDate(picks, collectionSortToggle.dir);
   else if (collectionSortToggle.dir === 'desc') picks.reverse();
   // Idea 49: applied before handing off to renderSubsetList() — becomes
   // that function's own "total" baseline, so "no talks in this list yet"
@@ -14120,13 +14272,20 @@ function renderCollectionPage(id){
   const readScope = collectionReadStatus[0] === 'unread' ? 'unread talks'
     : collectionReadStatus[0] === 'read' ? 'read talks'
     : 'talks';
+  // Idea 88 — dragging only makes sense on the whole, unfiltered list, and
+  // on a shared list only for its owner.
+  const canReorder = orderMode && !q.trim() && !collectionReadStatus[0] && (!live || (currentUser && live.ownerUid === currentUser.uid));
   const filtered = renderSubsetList(
     collectionItemsEl, collectionEmptyEl, collectionFilterCountEl, [collectionSearchFieldEl, collectionSortRowEl],
     picks, q, matchesSubsetSearch,
     `No ${readScope} in this list yet.`,
     `No ${readScope} in this list match "${q.trim()}".`,
-    live ? { decorate: (row, pick)=> decorateLiveRow(row, pick, live) } : {}
+    { decorate: (row, pick)=>{
+      if (live) decorateLiveRow(row, pick, live); // idea 57
+      if (orderMode) decorateOrderRow(row, pick, positions[talkKey(pick)], canReorder, id, picks.length); // idea 88
+    } }
   );
+  renderOrderHint(orderMode, canReorder, live);
   // Idea 49: header mirrors Home/CFM's live count, but "N talks" instead
   // of "N matches" — this is a list someone curated themselves, not a
   // search/filter result, so "matches" doesn't read naturally here.
@@ -14384,6 +14543,7 @@ function exportBackupData(){
     collectionUpdatedAt: {...collectionUpdatedAt},
     collectionMemberUpdatedAt: JSON.parse(JSON.stringify(collectionMemberUpdatedAt)),
     deletedCollections: {...deletedCollections},
+    collectionOrderUpdatedAt: {...collectionOrderUpdatedAt}, // idea 88
     notes: noteMap,
     noteUpdatedAt: {...noteUpdatedAt},
     streak: loadStreak()
@@ -14716,6 +14876,7 @@ function mergeBackupData(data){
     const incomingDeletedCollections = (data.deletedCollections && typeof data.deletedCollections === 'object') ? data.deletedCollections : {};
     const incomingCollectionMeta = (data.collectionUpdatedAt && typeof data.collectionUpdatedAt === 'object') ? data.collectionUpdatedAt : {};
     const incomingMemberMeta = (data.collectionMemberUpdatedAt && typeof data.collectionMemberUpdatedAt === 'object') ? data.collectionMemberUpdatedAt : {};
+    const incomingOrderMeta = (data.collectionOrderUpdatedAt && typeof data.collectionOrderUpdatedAt === 'object') ? data.collectionOrderUpdatedAt : {};
     (data.collections || []).forEach(col=>{
       if (!col || typeof col.id !== 'string' || typeof col.name !== 'string') return;
       const incomingMembers = (data.collectionMembers && data.collectionMembers[col.id]) || [];
@@ -14734,6 +14895,7 @@ function mergeBackupData(data){
         collectionMembers[col.id] = [...incomingMembers];
         collectionUpdatedAt[col.id] = incomingActivityAt || Date.now();
         collectionMemberUpdatedAt[col.id] = {...(incomingMemberMeta[col.id] || {})};
+        if (typeof incomingOrderMeta[col.id] === 'number') collectionOrderUpdatedAt[col.id] = incomingOrderMeta[col.id];
         delete deletedCollections[col.id];
         addedLists++;
         listsChanged = true;
@@ -14748,6 +14910,7 @@ function mergeBackupData(data){
         delete collectionMembers[col.id];
         delete collectionUpdatedAt[col.id];
         delete collectionMemberUpdatedAt[col.id];
+        delete collectionOrderUpdatedAt[col.id];
         deletedCollections[col.id] = incomingDeletedAt;
         listsChanged = true;
         return;
@@ -14759,6 +14922,21 @@ function mergeBackupData(data){
       if (result.changed){
         collectionMembers[col.id] = [...memberSet];
         if (result.added) touchCollection(col.id); // preserve "Recently Updated"'s own add-only semantics — see touchCollection()'s comment
+        listsChanged = true;
+      }
+      // Idea 88 — the union above can't carry order. If the other side
+      // rearranged this list more recently, take its order, then append any
+      // talks only this device has in their local order; otherwise the Set
+      // already kept local order with incoming-only talks appended.
+      const incomingOrderAt = typeof incomingOrderMeta[col.id] === 'number' ? incomingOrderMeta[col.id] : 0;
+      if (incomingOrderAt > (collectionOrderUpdatedAt[col.id] || 0)){
+        const cur = collectionMembers[col.id];
+        const curSet = new Set(cur);
+        const fromIncoming = incomingMembers.filter(k=> curSet.has(k));
+        const placed = new Set(fromIncoming);
+        const next = fromIncoming.concat(cur.filter(k=> !placed.has(k)));
+        if (next.join('|') !== cur.join('|')){ collectionMembers[col.id] = next; listsChanged = true; }
+        collectionOrderUpdatedAt[col.id] = incomingOrderAt;
         listsChanged = true;
       }
       mergedLists++;
@@ -15220,7 +15398,7 @@ async function clearAllLocalDataAndSignOut(){
   // signs back in (e.g. a stale deletedCollections entry blocking a list
   // that's still very much alive in the cloud from ever coming back down).
   collections = []; collectionUpdatedAt = {}; deletedCollections = {}; saveCollections();
-  collectionMembers = {}; collectionMemberUpdatedAt = {}; saveCollectionMembers();
+  collectionMembers = {}; collectionMemberUpdatedAt = {}; collectionOrderUpdatedAt = {}; saveCollectionMembers();
   noteMap = {}; noteUpdatedAt = {}; saveNotes();
   saveStreak({count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []});
   // Same refresh list applyCloudMergeAndRefresh() uses, for the same
@@ -15671,7 +15849,12 @@ function liveMemberNamesText(list){
 }
 function liveTalkKeysInOrder(list){
   const talks = list.talks || {};
-  return Object.keys(talks).sort((a, b)=> (talks[a].addedAt || 0) - (talks[b].addedAt || 0));
+  const byAdded = Object.keys(talks).sort((a, b)=> (talks[a].addedAt || 0) - (talks[b].addedAt || 0));
+  // Idea 88 — the owner's order first, everything not in it after by added-at.
+  if (!Array.isArray(list.order) || !list.order.length) return byAdded;
+  const first = list.order.filter(k=> talks[k]);
+  const placed = new Set(first);
+  return first.concat(byAdded.filter(k=> !placed.has(k)));
 }
 function liveShortDate(ms){
   const d = new Date(ms);

@@ -689,6 +689,35 @@ exports.setSharedListTalk = onCall(async (request) => {
   return { ok: true };
 });
 
+// Study plans (idea 88) — only the owner sets the order everyone follows.
+// Keys not in `order` fall back to added-at order on the client, so the
+// array may be shorter than `talks` but may never name a talk that isn't in it.
+exports.setSharedListOrder = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const listId = cleanListId(data.listId);
+  if (!Array.isArray(data.order) || data.order.length > SHARED_LIST_MAX_TALKS) {
+    throw new HttpsError('invalid-argument', 'Not a valid order.');
+  }
+  const order = [];
+  const seen = new Set();
+  data.order.map(cleanTalkKey).forEach((key) => {
+    if (!seen.has(key)) { seen.add(key); order.push(key); }
+  });
+  await firestore.runTransaction(async (tx) => {
+    const list = await readMemberList(tx, listId, uid);
+    if (list.ownerUid !== uid) {
+      throw new HttpsError('permission-denied', 'Only the list owner can change the order.');
+    }
+    const talks = list.talks || {};
+    if (!order.every((key) => talks[key])) {
+      throw new HttpsError('invalid-argument', 'That order includes a talk that is not on the list.');
+    }
+    tx.update(listRef(listId), { order, updatedAt: Date.now() });
+  });
+  return { ok: true };
+});
+
 exports.renameSharedList = onCall(async (request) => {
   const uid = requireUid(request);
   const data = request.data || {};

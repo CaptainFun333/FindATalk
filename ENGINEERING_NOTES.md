@@ -643,3 +643,14 @@ served live at findatalk.com; this one should never be public.
 
 ## Fresh git worktrees can't build native until Capacitor is synced
 - A new worktree is missing the generated `capacitor-cordova-android-plugins` module and the iOS package symlinks, so `./gradlew assembleDebug` and `xcodebuild` fail with confusing missing-project errors. Run `npx cap sync android` / `npx cap sync ios` first; it changes no tracked files.
+
+## Study plans / list order (idea 88)
+
+- **`mergeBackupData()`'s member merge is a set union and silently drops
+  order.** `collectionMembers[id]` is an ordered array, but the merge
+  rebuilds it from a `Set`, so a reorder on one device never reached
+  another. Order therefore has its own LWW timestamp,
+  `collectionOrderUpdatedAt[id]`, bumped only by an explicit reorder
+  (adds append and don't touch it). On merge: newer incoming order wins,
+  with local-only talks appended in their local order; otherwise local
+  order stands with incoming-only talks appended.
