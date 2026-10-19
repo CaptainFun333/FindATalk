@@ -2166,6 +2166,74 @@
   }
   .list-item-read-badge[hidden]{ display:none; }
   /* Idea 88 — My order: position number, grip, and move buttons. */
+  /* Idea 88 — study plans */
+  .plans-zone{ max-width:620px; margin:18px auto 20px; padding:0 4px; }
+  .plans-zone[hidden]{ display:none; }
+  .plans-zone-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .plans-see-all{ background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink-soft); padding:4px 2px; }
+  .plans-see-all:hover{ color:var(--burgundy); }
+  .plans-cards{ display:flex; flex-direction:column; gap:8px; }
+  .plan-card{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:10px 14px;
+    font-family:'Inter',sans-serif; color:var(--ink);
+  }
+  .plan-card:hover{ border-color:var(--brass); }
+  .plan-card-ring{ flex-shrink:0; width:38px; height:38px; position:relative; }
+  .plan-card-ring svg{ width:38px; height:38px; transform:rotate(-90deg); }
+  .plan-card-ring .ring-bg{ stroke:var(--line); }
+  .plan-card-ring .ring-fg{ stroke:var(--brass); }
+  .plan-card-ring span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; }
+  .plan-card-text{ flex:1 1 auto; min-width:0; }
+  .plan-card-name, .plan-card-next{ display:block; }
+  .plan-card-name{ font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plan-card-next{ font-size:12.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plan-card-side{ flex-shrink:0; font-size:12px; font-weight:600; color:var(--ink-soft); }
+  .plan-card-check{
+    width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    background:var(--brass); color:var(--paper-raised);
+  }
+  .plan-card-check svg{ width:15px; height:15px; }
+  .plan-header-slot{ margin:6px 0 14px; }
+  .plan-header-slot[hidden]{ display:none; }
+  .plan-make-btn{ background:none; border:1px dashed var(--line); border-radius:10px; width:100%; padding:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color:var(--ink-soft); }
+  .plan-make-btn:hover{ border-color:var(--brass); color:var(--burgundy); }
+  .plan-header{ background:var(--paper-raised); border:1px solid var(--line); border-radius:12px; padding:14px 16px; font-family:'Inter',sans-serif; }
+  .plan-header-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .plan-header-count{ font-weight:700; font-size:15px; color:var(--ink); }
+  .plan-edit-btn, .plan-link-btn{ background:none; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink-soft); padding:2px 0; }
+  .plan-edit-btn:hover, .plan-link-btn:hover{ color:var(--burgundy); }
+  .plan-bar{ height:6px; border-radius:3px; background:var(--line); margin:10px 0 8px; overflow:hidden; }
+  .plan-bar > span{ display:block; height:100%; background:var(--brass); border-radius:3px; }
+  .plan-meta{ font-size:12.5px; color:var(--ink-soft); display:flex; flex-wrap:wrap; gap:4px 12px; align-items:center; }
+  .plan-onpace{ color:var(--brass); font-weight:700; }
+  .plan-ask{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+  .plan-ask strong{ display:block; font-size:13.5px; color:var(--ink); }
+  .plan-ask p{ margin:2px 0 10px; font-size:12.5px; color:var(--ink-soft); }
+  .plan-ask-btns{ display:flex; flex-direction:column; gap:6px; }
+  .plan-ask-btns .btn{ text-align:center; }
+  .plan-chip{
+    display:inline-flex; align-items:center; gap:3px; flex-shrink:0; margin-left:6px;
+    font-family:'Inter',sans-serif; font-size:11px; font-weight:700; color:var(--brass);
+    border:1px solid var(--brass); border-radius:999px; padding:1px 7px 1px 5px;
+  }
+  .plan-chip svg{ width:11px; height:11px; }
+  .plan-new-tag{ flex-shrink:0; margin-left:6px; font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
+  .list-item.plan-up-next{ background:color-mix(in srgb, var(--brass) 9%, transparent); }
+  .plan-up-eyebrow{ font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.08em; color:var(--brass); margin-bottom:4px; }
+  .plan-marker{ margin-left:8px; font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--brass); }
+  .plan-mode-toggle{ margin:6px 0 12px; }
+  .plan-fields{ margin-bottom:4px; }
+  .plan-fields[hidden]{ display:none; }
+  .plan-pace-row{ display:flex; gap:8px; }
+  .plan-pace-row input, .plan-pace-row select, #planFinishInput{
+    font-family:'Inter',sans-serif; font-size:15px; padding:8px 10px; border:1px solid var(--line);
+    border-radius:8px; background:var(--paper); color:var(--ink);
+  }
+  .plan-pace-row input{ width:80px; }
+  .plan-preview{ font-family:'Inter',sans-serif; font-size:13px; color:var(--ink-soft); margin:4px 0 12px; min-height:1.3em; }
+  .plan-toggle-row{ display:flex; align-items:center; gap:8px; font-family:'Inter',sans-serif; font-size:13.5px; color:var(--ink); margin-bottom:14px; }
+  .plan-toggle-row[hidden]{ display:none; }
   .order-hint{ font-family:'Inter',sans-serif; font-size:12.5px; color:var(--ink-soft); margin:4px 0 10px; }
   .order-hint[hidden]{ display:none; }
   .order-pos{
@@ -3101,6 +3169,15 @@
     </div>
   </div>
 
+  <!-- Idea 88 — study plan cards, hidden when there are no active plans. -->
+  <div class="plans-zone" id="plansZone" hidden>
+    <div class="plans-zone-head">
+      <div class="eyebrow">Your study plans</div>
+      <button type="button" class="plans-see-all" id="plansSeeAll">See all</button>
+    </div>
+    <div class="plans-cards" id="plansCards"></div>
+  </div>
+
   <!-- A single drawn talk is the direct answer to the "Find Another"
        button right below it, not something being browsed or filtered
        further, so it sits right above that button rather than below the
@@ -3446,6 +3523,8 @@
     </div>
     <!-- Idea 57 — members strip, shown only for a shared list. -->
     <div class="live-list-bar" id="liveListBar" hidden></div>
+    <!-- Idea 88 — study plan header (or the "make this a plan" link). -->
+    <div class="plan-header-slot" id="planHeader" hidden></div>
     <!-- Idea 49, extended a third time: same box treatment as Home/CFM —
          icon + live count + All/Unread/Read toggle in the header, with
          "Search this list" moved inside the body (where a filter field
@@ -4376,6 +4455,42 @@
 
   <!-- Idea 57 — shared (live) lists: turning a list into a shared one,
        its Members sheet, and joining from an invite link. -->
+  <!-- Idea 88 — study plan setup / edit. -->
+  <div class="modal-overlay" id="planModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
+      <div class="modal-header">
+        <h3 id="planModalTitle">Make this a study plan</h3>
+        <button type="button" class="modal-close" id="planModalClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-copy" id="planModalIntro">Put the talks in the order you want and choose a goal. We'll keep track of what you finish.</p>
+      <div class="sort-toggle plan-mode-toggle" role="group" aria-label="Goal type">
+        <button type="button" class="sort-toggle-btn is-active" data-plan-mode="date">Finish by a date</button>
+        <button type="button" class="sort-toggle-btn" data-plan-mode="pace">Set a pace</button>
+      </div>
+      <div id="planDateFields" class="plan-fields">
+        <label class="live-field"><span class="settings-label">Finish by</span>
+          <input type="date" id="planFinishInput"></label>
+      </div>
+      <div id="planPaceFields" class="plan-fields" hidden>
+        <label class="live-field"><span class="settings-label">Talks</span>
+          <span class="plan-pace-row">
+            <input type="number" id="planPaceCount" min="1" max="50" step="1" inputmode="numeric">
+            <select id="planPacePer" aria-label="Per"><option value="day">a day</option><option value="week">a week</option></select>
+          </span></label>
+      </div>
+      <p class="plan-preview" id="planPreview"></p>
+      <label class="plan-toggle-row" id="planReminderRow">
+        <input type="checkbox" id="planReminderInput"><span>Use this plan for my daily reminder</span>
+      </label>
+      <p class="auth-error" id="planModalError" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="planStopBtn" hidden>Stop plan</button>
+        <button type="button" class="btn btn-ghost" id="planCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="planSaveBtn">Start plan</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="liveShareModalOverlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="liveShareTitle">
       <div class="modal-header">
@@ -6593,6 +6708,8 @@ let onNeedCfmRefresh = null;
 // is currently open, since unlike Home/CFM there's no single "current
 // pool" to refresh without knowing which list that is.
 let onNeedCollectionRefresh = null;
+// Idea 88 — Home's plan cards and a plan list's header, nested in initApp() like the rest.
+let onNeedPlansRefresh = null;
 // Idea 55 — same reason again: the actual readBadgeHtml() (needs
 // CHECK_ICON_SVG, which — like syncReadBadge()'s needs — only exists
 // inside initApp()'s closure) is nested there too; top-level
@@ -6905,6 +7022,7 @@ function checkPendingRead(){
   if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
   markRead(talk);
   incrementVisitCount(talk, new Date(departedAt)); // idea 55 — keeps counting past the first credited read, unlike markRead() above. Idea 80: dated by the day the talk was opened, same rule as touchStreak() below
+  creditPlansForRead(talk, new Date(departedAt)); // idea 88 — study plans: the separate "Plan" chip
   refreshReadBadgesFor(talk); // list-row "Read" badges (Show a List, Recently Viewed, Favorites, My Lists, TOTD, CFM) — the ticket's own badge is handled separately below via onTicketReadBadgeSync
   // Idea 49: Read/Unread filter — a talk just marked read needs to drop
   // out of an active "Unread" filter (or appear under "Read") without
@@ -8242,6 +8360,7 @@ function deleteCollection(id){
   delete collectionUpdatedAt[id];
   delete collectionMemberUpdatedAt[id];
   delete collectionOrderUpdatedAt[id];
+  delete collectionPlans[id]; delete planCredits[id]; delete planBadges[id]; savePlans(); // idea 88 — a plan and its badges belong to the list
   deletedCollections[id] = Date.now(); // tombstone — see the comment above COLLECTIONS_KEY
   saveCollections();
   saveCollectionMembers();
@@ -8312,6 +8431,199 @@ function removeTalksFromCollection(id, talks){
   talks.forEach(t=> removeTalkFromCollection(id, t));
   saveCollections();
   saveCollectionMembers();
+}
+
+/* ---------------------------------------------------------------
+   Idea 88 — study plans. Any list can become a plan: its talks in an
+   order the person chose, a goal (finish date or pace), and progress.
+   Stored separately from the list so a list that is not a plan is
+   untouched:
+   - `collectionPlans`: {listId: {mode, finishBy, pace, startedAt, anchor,
+     reminder, round, updatedAt, stopped?}}, last-write-wins on merge. A
+     stopped plan stays as a small `stopped` stub (keeping `round`) so
+     the stop syncs and old credits can't come back to life.
+   - `planCredits`: {planId: {round, talks: {talkKey: 'yyyy-mm-dd'}}} — the
+     talks finished AS PART OF the plan this round (only reads made after
+     the talk was in the plan and after the plan started). Not Read ×N.
+   - `planBadges`: {planId: [{round, name, talkCount, startedAt, finishedAt}]}.
+   `planId` is the list id (a shared list's would be `live:<id>`).
+   All dates are local yyyy-mm-dd (localDateSeed). The math below is pure
+   (plan object + dates in, numbers out) and exposed on window.__planMath
+   for checking in a console. ----------------------------------- */
+const COLLECTION_PLANS_KEY = 'findATalkCollectionPlans';
+const PLAN_CREDITS_KEY = 'findATalkPlanCredits';
+const PLAN_BADGES_KEY = 'findATalkPlanBadges';
+let collectionPlans = {};
+let planCredits = {};
+let planBadges = {};
+(function loadPlans(){
+  const read = (key, fallback)=>{ try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch(err){ return fallback; } };
+  collectionPlans = read(COLLECTION_PLANS_KEY, {});
+  planCredits = read(PLAN_CREDITS_KEY, {});
+  planBadges = read(PLAN_BADGES_KEY, {});
+})();
+function savePlans(){
+  try { localStorage.setItem(COLLECTION_PLANS_KEY, JSON.stringify(collectionPlans)); } catch(err){ /* not fatal */ }
+  try { localStorage.setItem(PLAN_CREDITS_KEY, JSON.stringify(planCredits)); } catch(err){ /* not fatal */ }
+  try { localStorage.setItem(PLAN_BADGES_KEY, JSON.stringify(planBadges)); } catch(err){ /* not fatal */ }
+  if (onLocalDataChanged) onLocalDataChanged();
+}
+
+const PLAN_WEEK_START = 0; // Sunday — matches the Sabbath-week feel of Come Follow Me (see DECISIONS.md)
+function planDayNum(day){ const [y, m, d] = day.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); }
+function planAddDays(day, n){
+  const dt = new Date((planDayNum(day) + n) * 86400000);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+}
+function planWeekStart(day){
+  const dow = new Date(planDayNum(day) * 86400000).getUTCDay();
+  return planAddDays(day, -((dow - PLAN_WEEK_START + 7) % 7));
+}
+function planDateText(day){
+  const [y, m, d] = day.split('-').map(Number);
+  const opts = { month: 'short', day: 'numeric' };
+  if (y !== new Date().getFullYear()) opts.year = 'numeric';
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', opts);
+}
+// How many talks should be done through the end of `day` (date mode and
+// per-day pace). Both ends of the span are inclusive, so on the day a plan
+// starts today's reading is already expected.
+function planExpectedThrough(plan, day, total){
+  const a = plan.anchor;
+  const elapsed = planDayNum(day) - planDayNum(a.date) + 1;
+  if (elapsed <= 0) return Math.min(a.done, total);
+  if (plan.mode === 'pace'){
+    const perDay = plan.pace.per === 'week' ? plan.pace.count / 7 : plan.pace.count;
+    return Math.min(total, a.done + Math.ceil(perDay * elapsed - 1e-9));
+  }
+  const span = planDayNum(plan.finishBy) - planDayNum(a.date) + 1;
+  if (span < 1) return total;
+  return Math.min(total, a.done + Math.ceil((total - a.done) * Math.min(elapsed, span) / span - 1e-9));
+}
+function planWeekCredits(creditDays, today){
+  const start = planWeekStart(today);
+  return creditDays.filter(d=> d >= start).length;
+}
+function planWeekly(plan){ return plan.mode === 'pace' && plan.pace.per === 'week'; }
+function planNeedsReadToday(plan, done, total, today, creditDays){
+  if (total <= 0 || done >= total) return false;
+  if (planWeekly(plan)) return planWeekCredits(creditDays, today) < plan.pace.count;
+  return done < planExpectedThrough(plan, today, total);
+}
+function planOnPace(plan, done, total, today){
+  if (planWeekly(plan)){
+    const weeks = Math.max(0, Math.round((planDayNum(planWeekStart(today)) - planDayNum(planWeekStart(plan.anchor.date))) / 7));
+    return done >= Math.min(total, plan.anchor.done + plan.pace.count * weeks);
+  }
+  return done >= planExpectedThrough(plan, planAddDays(today, -1), total);
+}
+// Talks per day still needed to hit a date goal, or the chosen pace.
+function planRatePerDay(plan, done, total, today){
+  if (plan.mode === 'pace') return plan.pace.per === 'week' ? plan.pace.count / 7 : plan.pace.count;
+  const daysLeft = Math.max(1, planDayNum(plan.finishBy) - planDayNum(today) + 1);
+  return Math.max(0, total - done) / daysLeft;
+}
+// Idea 82's wording: the smallest unit where the number is at least 1.
+function planPaceText(perDay){
+  if (!(perDay > 0)) return '';
+  if (perDay >= 1 - 1e-9) return `About ${formatPace(perDay)} a day`; // epsilon: 4 talks over 28 days is exactly 1 a week, not 0.99999
+  if (perDay * 7 >= 1 - 1e-9) return `About ${formatPace(perDay * 7)} a week`;
+  return `About ${formatPace(perDay * 30.44)} a month`;
+}
+function planProjectedFinish(plan, done, total, today){
+  const remaining = total - done;
+  const perDay = planRatePerDay(plan, done, total, today);
+  if (remaining <= 0 || !(perDay > 0)) return today;
+  return planAddDays(today, Math.ceil(remaining / perDay - 1e-9));
+}
+window.__planMath = { planDayNum, planAddDays, planWeekStart, planExpectedThrough, planNeedsReadToday, planOnPace, planRatePerDay, planPaceText, planProjectedFinish };
+
+function activePlan(planId){
+  const plan = collectionPlans[planId];
+  return plan && !plan.stopped ? plan : null;
+}
+function planListKeys(planId){ return collectionMembers[planId] || []; }
+function planCreditMap(planId){
+  const plan = activePlan(planId);
+  const pc = planCredits[planId];
+  return plan && pc && pc.round === plan.round ? pc.talks : {};
+}
+// Everything the UI needs to know about one plan, as of `today`.
+function planStatus(planId, today){
+  const plan = activePlan(planId);
+  if (!plan) return null;
+  today = today || localDateSeed();
+  const keys = planListKeys(planId);
+  const credits = planCreditMap(planId);
+  const total = keys.length;
+  const done = keys.filter(k=> credits[k]).length;
+  const creditDays = keys.filter(k=> credits[k]).map(k=> credits[k]);
+  const lastCredit = creditDays.reduce((a, b)=> a > b ? a : b, '');
+  const weekly = planWeekly(plan);
+  const weekCount = weekly ? planWeekCredits(creditDays, today) : 0;
+  return {
+    plan, keys, total, done, credits, lastCredit, weekly, weekCount,
+    upNextKey: keys.find(k=> !credits[k]) || null,
+    finished: total > 0 && done === total,
+    needsRead: planNeedsReadToday(plan, done, total, today, creditDays),
+    onPace: planOnPace(plan, done, total, today),
+    creditedToday: weekly ? weekCount >= plan.pace.count : creditDays.includes(today),
+    perDay: planRatePerDay(plan, done, total, today)
+  };
+}
+function makePlan(mode, finishBy, pace, reminder, done, total, prev){
+  const today = localDateSeed();
+  const now = Date.now();
+  return {
+    mode, finishBy: mode === 'date' ? finishBy : null, pace: mode === 'pace' ? pace : null,
+    startedAt: prev && !prev.stopped ? prev.startedAt : today,
+    anchor: { date: today, done, total, at: now },
+    reminder: !!reminder,
+    round: prev ? (prev.round || 1) + (prev.stopped ? 1 : 0) : 1,
+    updatedAt: now
+  };
+}
+function startOrEditPlan(planId, mode, finishBy, pace, reminder){
+  const prev = collectionPlans[planId] || null;
+  const editing = !!(prev && !prev.stopped);
+  const st = editing ? planStatus(planId) : null;
+  collectionPlans[planId] = makePlan(mode, finishBy, pace, reminder, st ? st.done : 0, planListKeys(planId).length, prev);
+  if (!editing) planCredits[planId] = { round: collectionPlans[planId].round, talks: {} };
+  collectionUpdatedAt[planId] = Date.now();
+  savePlans();
+}
+function stopPlan(planId){
+  const prev = collectionPlans[planId];
+  if (!prev) return;
+  collectionPlans[planId] = { stopped: true, round: prev.round || 1, updatedAt: Date.now() };
+  delete planCredits[planId];
+  savePlans();
+}
+// Called from checkPendingRead() right after a read is credited. A talk
+// counts toward a plan only if it was already in the plan, and the plan
+// already started, when it was opened — earlier reads simply aren't
+// credited until the talk is read again (the decided rule).
+function creditPlansForRead(talk, creditDate){
+  const key = talkKey(talk);
+  const openedAt = creditDate instanceof Date ? creditDate : new Date();
+  const day = localDateSeed(openedAt);
+  let changed = false;
+  Object.keys(collectionPlans).forEach(planId=>{
+    const plan = activePlan(planId);
+    if (!plan || !planListKeys(planId).includes(key)) return;
+    if (day < plan.startedAt) return;
+    const addedAt = (collectionMemberUpdatedAt[planId] || {})[key];
+    if (typeof addedAt === 'number' && openedAt.getTime() < addedAt) return;
+    let pc = planCredits[planId];
+    if (!pc || pc.round !== plan.round) pc = planCredits[planId] = { round: plan.round, talks: {} };
+    if (pc.talks[key]) return;
+    pc.talks[key] = day;
+    changed = true;
+  });
+  if (changed){
+    savePlans();
+    if (onNeedPlansRefresh) onNeedPlansRefresh();
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -12663,6 +12975,7 @@ function showZone(name){
   collectionZone.style.display = name==='collection' ? 'block' : 'none';
   cfmZone.style.display = name==='cfm' ? 'block' : 'none';
   renderNavBars(name);
+  if (name === 'home') renderPlansHome(); // idea 88 — a new day can change a card's check
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -13865,6 +14178,7 @@ cfmCalNextBtn.addEventListener('click', ()=>{
 // does for its own star. Also read by the search/sort controls below so
 // they know which collection to re-render.
 let currentCollectionId = null;
+let lastRenderedCollectionId = null; // idea 88 — lets a plan's page open on My order once, not on every re-render
 
 const collectionFilterCountEl = document.getElementById('collectionFilterCount');
 const collectionNarrowBoxHeaderTextEl = document.getElementById('collectionNarrowBoxHeaderText');
@@ -14129,6 +14443,280 @@ function handleNotificationTap(notificationId){
   else if ((isDailyReminderId(notificationId) || notificationId === STREAK_RISK_NOTIF_ID) && isConferenceDay(new Date())) goToNavZone('home');
 }
 
+/* ---- Idea 88: study plans (UI) ---- */
+const planOverlay = document.getElementById('planModalOverlay');
+let planModalListId = null;
+let planModalMode = 'date';
+const PLAN_BOOK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4.5 8.5 4.5 12 6c3.5-1.5 6.5-1.5 9-.5V19c-2.5-1-5.5-1-9 .5-3.5-1.5-6.5-1.5-9-.5z"/><path d="M12 6v13.5"/></svg>';
+const PLAN_CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+function planListName(planId){
+  const col = collections.find(c=> c.id === planId);
+  return col ? col.name : 'Study plan';
+}
+function planTalkTitle(key){ const t = TALKS_BY_KEY[key]; return t ? t[0] : ''; }
+
+/* An added-talks question is only worth asking when the pace label would
+   change; otherwise (and when talks were removed) the plan quietly
+   re-anchors to the new total. Returns the pending question, or null. */
+function reconcilePlanAnchor(planId){
+  const st = planStatus(planId);
+  if (!st) return null;
+  const plan = st.plan, today = localDateSeed();
+  const reanchor = ()=>{
+    plan.anchor = { date: today, done: st.done, total: st.total, at: Date.now() };
+    plan.updatedAt = Date.now();
+    savePlans();
+  };
+  if (plan.mode !== 'date' || st.total === plan.anchor.total) return null;
+  if (st.total < plan.anchor.total){ reanchor(); return null; }
+  const daysLeft = Math.max(1, planDayNum(plan.finishBy) - planDayNum(today) + 1);
+  const before = planPaceText(Math.max(0, plan.anchor.total - st.done) / daysLeft);
+  const after = planPaceText(Math.max(0, st.total - st.done) / daysLeft);
+  if (before === after){ reanchor(); return null; }
+  // What "keep my pace" means: the daily rate the plan had at its anchor.
+  const rate0 = Math.max(0.0001, (plan.anchor.total - plan.anchor.done) / (planDayNum(plan.finishBy) - planDayNum(plan.anchor.date) + 1));
+  const days = Math.max(1, Math.ceil(Math.max(0, st.total - st.done) / rate0 - 1e-9));
+  return { added: st.total - plan.anchor.total, keepDatePace: after, keepPaceDate: planAddDays(today, days - 1), reanchor, plan };
+}
+
+function renderPlanHeader(id, live){
+  const planHeaderEl = document.getElementById('planHeader');
+  planHeaderEl.innerHTML = '';
+  planHeaderEl.hidden = true;
+  if (live) return; // shared plans arrive in a later stage
+  const pending = reconcilePlanAnchor(id);
+  const st = planStatus(id);
+  if (!st){
+    if (!(collectionMembers[id] || []).length) return;
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'plan-make-btn';
+    btn.textContent = 'Make this a study plan';
+    btn.addEventListener('click', ()=> openPlanModal(id));
+    planHeaderEl.appendChild(btn);
+    planHeaderEl.hidden = false;
+    return;
+  }
+  const today = localDateSeed();
+  const box = document.createElement('div');
+  box.className = 'plan-header';
+  const top = document.createElement('div');
+  top.className = 'plan-header-top';
+  const count = document.createElement('span');
+  count.className = 'plan-header-count';
+  count.textContent = `${st.done} of ${st.total} in this plan`;
+  const edit = document.createElement('button');
+  edit.type = 'button'; edit.className = 'plan-edit-btn'; edit.textContent = 'Edit plan';
+  edit.addEventListener('click', ()=> openPlanModal(id));
+  top.appendChild(count); top.appendChild(edit);
+  box.appendChild(top);
+  const bar = document.createElement('div');
+  bar.className = 'plan-bar';
+  const fill = document.createElement('span');
+  fill.style.width = st.total ? `${Math.round(100 * st.done / st.total)}%` : '0%';
+  bar.appendChild(fill);
+  box.appendChild(bar);
+  const meta = document.createElement('div');
+  meta.className = 'plan-meta';
+  if (st.onPace){
+    const on = document.createElement('span');
+    on.className = 'plan-onpace'; on.textContent = 'On pace';
+    meta.appendChild(on);
+  } else {
+    const adj = document.createElement('button');
+    adj.type = 'button'; adj.className = 'plan-link-btn'; adj.textContent = 'Adjust your pace?';
+    adj.addEventListener('click', ()=> openPlanModal(id));
+    meta.appendChild(adj);
+  }
+  const goal = document.createElement('span');
+  goal.textContent = st.plan.mode === 'date'
+    ? `Finish by ${planDateText(st.plan.finishBy)} · ${planPaceText(st.perDay)}`
+    : `${planPaceText(st.perDay)} · Done around ${planDateText(planProjectedFinish(st.plan, st.done, st.total, today))}`;
+  meta.appendChild(goal);
+  box.appendChild(meta);
+  if (pending){
+    const ask = document.createElement('div');
+    ask.className = 'plan-ask';
+    ask.innerHTML = '<strong></strong><p>Keep your finish date, or keep your pace?</p><div class="plan-ask-btns"></div>';
+    ask.querySelector('strong').textContent = `You added ${pending.added} talk${pending.added === 1 ? '' : 's'} to this plan.`;
+    const btns = ask.querySelector('.plan-ask-btns');
+    const keepDate = document.createElement('button');
+    keepDate.type = 'button'; keepDate.className = 'btn btn-primary';
+    keepDate.textContent = `Keep ${planDateText(pending.plan.finishBy)} · ${pending.keepDatePace}`;
+    keepDate.addEventListener('click', ()=>{ pending.reanchor(); renderCollectionPage(id); renderPlansHome(); });
+    const keepPace = document.createElement('button');
+    keepPace.type = 'button'; keepPace.className = 'btn btn-ghost';
+    keepPace.textContent = `Keep my pace · Done around ${planDateText(pending.keepPaceDate)}`;
+    keepPace.addEventListener('click', ()=>{ pending.plan.finishBy = pending.keepPaceDate; pending.reanchor(); renderCollectionPage(id); renderPlansHome(); });
+    btns.appendChild(keepDate); btns.appendChild(keepPace);
+    box.appendChild(ask);
+  }
+  planHeaderEl.appendChild(box);
+  planHeaderEl.hidden = false;
+  return pending;
+}
+
+// Chips on rows of a plan's own list page: Plan (finished as part of it),
+// New (added, question not yet answered), and the Up next tint.
+function decoratePlanRow(row, pick, st, pending){
+  const key = talkKey(pick);
+  const group = row.querySelector('.list-item-title-group');
+  if (st.credits[key] && group){
+    const chip = document.createElement('span');
+    chip.className = 'plan-chip';
+    chip.innerHTML = PLAN_CHECK_SVG + '<span>Plan</span>';
+    chip.title = 'Finished as part of this study plan';
+    const readBadge = group.querySelector('.list-item-read-badge');
+    group.insertBefore(chip, readBadge ? readBadge.nextSibling : null);
+  }
+  if (pending && group){
+    const added = (collectionMemberUpdatedAt[currentCollectionId] || {})[key];
+    if (typeof added === 'number' && added > st.plan.anchor.at && !st.credits[key]){
+      const tag = document.createElement('span');
+      tag.className = 'plan-new-tag'; tag.textContent = 'New';
+      group.appendChild(tag);
+    }
+  }
+  if (key === st.upNextKey){
+    row.classList.add('plan-up-next');
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'plan-up-eyebrow'; eyebrow.textContent = 'UP NEXT';
+    row.insertBefore(eyebrow, row.firstChild);
+  }
+}
+
+/* ---- setup / edit modal ---- */
+function planModalPreview(){
+  const out = document.getElementById('planPreview');
+  const id = planModalListId;
+  const total = (collectionMembers[id] || []).length;
+  const existing = planStatus(id);
+  const done = existing ? existing.done : 0;
+  const today = localDateSeed();
+  out.textContent = '';
+  if (planModalMode === 'date'){
+    const date = document.getElementById('planFinishInput').value;
+    if (!date || date < planAddDays(today, 1)) return;
+    const days = planDayNum(date) - planDayNum(today) + 1;
+    const rate = Math.max(0, total - done) / days;
+    const span = days < 14 ? `${days} days` : `${Math.round(days / 7)} weeks`;
+    out.textContent = `${planPaceText(rate)} · ${total - done} talk${total - done === 1 ? '' : 's'} over ${span}`;
+  } else {
+    const count = parseInt(document.getElementById('planPaceCount').value, 10);
+    if (!(count >= 1)) return;
+    const fake = { mode: 'pace', pace: { count, per: document.getElementById('planPacePer').value }, anchor: { date: today, done, total } };
+    out.textContent = `Done around ${planDateText(planProjectedFinish(fake, done, total, today))}`;
+  }
+}
+function setPlanModalMode(mode){
+  planModalMode = mode;
+  document.querySelectorAll('[data-plan-mode]').forEach(b=> b.classList.toggle('is-active', b.dataset.planMode === mode));
+  document.getElementById('planDateFields').hidden = mode !== 'date';
+  document.getElementById('planPaceFields').hidden = mode !== 'pace';
+  planModalPreview();
+}
+function planRemindersAvailable(){
+  const cap = window.Capacitor;
+  return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+}
+function openPlanModal(listId){
+  planModalListId = listId;
+  const today = localDateSeed();
+  const existing = activePlan(listId);
+  document.getElementById('planModalTitle').textContent = existing ? 'Edit plan' : 'Make this a study plan';
+  document.getElementById('planSaveBtn').textContent = existing ? 'Save' : 'Start plan';
+  document.getElementById('planStopBtn').hidden = !existing;
+  document.getElementById('planModalError').hidden = true;
+  const dateInput = document.getElementById('planFinishInput');
+  dateInput.min = planAddDays(today, 1);
+  dateInput.value = existing && existing.mode === 'date' && existing.finishBy >= dateInput.min ? existing.finishBy : planAddDays(today, 28);
+  document.getElementById('planPaceCount').value = existing && existing.mode === 'pace' ? existing.pace.count : 2;
+  document.getElementById('planPacePer').value = existing && existing.mode === 'pace' ? existing.pace.per : 'week';
+  const remindRow = document.getElementById('planReminderRow');
+  remindRow.hidden = !planRemindersAvailable();
+  const othersRemind = Object.keys(collectionPlans).some(id=> id !== listId && activePlan(id) && collectionPlans[id].reminder);
+  document.getElementById('planReminderInput').checked = existing ? !!existing.reminder : !othersRemind;
+  setPlanModalMode(existing ? existing.mode : 'date');
+  planOverlay.hidden = false;
+}
+function closePlanModal(){ planOverlay.hidden = true; planModalListId = null; }
+document.getElementById('planModalClose').addEventListener('click', closePlanModal);
+document.getElementById('planCancelBtn').addEventListener('click', closePlanModal);
+planOverlay.addEventListener('click', (e)=>{ if (e.target === planOverlay) closePlanModal(); });
+document.querySelectorAll('[data-plan-mode]').forEach(b=> b.addEventListener('click', ()=> setPlanModalMode(b.dataset.planMode)));
+['planFinishInput', 'planPaceCount', 'planPacePer'].forEach(elId=>{
+  const el = document.getElementById(elId);
+  el.addEventListener('input', planModalPreview);
+  el.addEventListener('change', planModalPreview);
+});
+document.getElementById('planStopBtn').addEventListener('click', ()=>{
+  const id = planModalListId;
+  if (!id || !confirm('Stop this study plan? The list stays; its plan progress is cleared.')) return;
+  stopPlan(id);
+  closePlanModal();
+  if (currentCollectionId === id) renderCollectionPage(id);
+  renderPlansHome();
+});
+document.getElementById('planSaveBtn').addEventListener('click', ()=>{
+  const id = planModalListId;
+  if (!id) return;
+  const err = document.getElementById('planModalError');
+  const today = localDateSeed();
+  let finishBy = null, pace = null;
+  if (planModalMode === 'date'){
+    finishBy = document.getElementById('planFinishInput').value;
+    if (!finishBy || finishBy < planAddDays(today, 1)){ err.textContent = 'Pick a finish date after today.'; err.hidden = false; return; }
+  } else {
+    const count = parseInt(document.getElementById('planPaceCount').value, 10);
+    if (!(count >= 1 && count <= 50)){ err.textContent = 'Choose between 1 and 50 talks.'; err.hidden = false; return; }
+    pace = { count, per: document.getElementById('planPacePer').value };
+  }
+  const reminder = planRemindersAvailable() && document.getElementById('planReminderInput').checked;
+  const wasPlan = !!activePlan(id);
+  startOrEditPlan(id, planModalMode, finishBy, pace, reminder);
+  closePlanModal();
+  if (!wasPlan) collectionSortToggle.set('order');
+  renderCollectionPage(id);
+  renderPlansHome();
+});
+
+/* ---- Home: slender cards ---- */
+function renderPlansHome(){
+  const plansZoneEl = document.getElementById('plansZone');
+  const plansCardsEl = document.getElementById('plansCards');
+  const today = localDateSeed();
+  const all = Object.keys(collectionPlans).map(id=> ({ id, st: planStatus(id, today) })).filter(x=> x.st && x.st.total > 0);
+  const live = all.filter(x=> !x.st.finished);
+  live.sort((a, b)=> (b.st.lastCredit > a.st.lastCredit ? 1 : b.st.lastCredit < a.st.lastCredit ? -1 : 0)
+    || (a.st.plan.mode === 'date' && b.st.plan.mode === 'date' ? (a.st.plan.finishBy < b.st.plan.finishBy ? -1 : 1) : 0));
+  plansCardsEl.innerHTML = '';
+  plansZoneEl.hidden = !live.length;
+  document.getElementById('plansSeeAll').hidden = live.length <= 2;
+  live.slice(0, 2).forEach(({ id, st })=>{
+    const card = document.createElement('button');
+    card.type = 'button'; card.className = 'plan-card';
+    const frac = st.total ? st.done / st.total : 0;
+    const r = 16, c = 2 * Math.PI * r;
+    card.innerHTML = `<span class="plan-card-ring"><svg viewBox="0 0 38 38"><circle class="ring-bg" cx="19" cy="19" r="${r}" fill="none" stroke-width="3.5"/><circle class="ring-fg" cx="19" cy="19" r="${r}" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${(c * frac).toFixed(1)} ${c.toFixed(1)}"/></svg><span></span></span><span class="plan-card-text"><span class="plan-card-name"></span><span class="plan-card-next"></span></span><span class="plan-card-side"></span>`;
+    card.querySelector('.plan-card-ring > span').textContent = `${st.done}/${st.total}`;
+    card.querySelector('.plan-card-name').textContent = planListName(id);
+    card.querySelector('.plan-card-next').textContent = st.upNextKey ? `Next: ${planTalkTitle(st.upNextKey)}` : '';
+    const side = card.querySelector('.plan-card-side');
+    if (st.creditedToday){
+      side.innerHTML = `<span class="plan-card-check" aria-label="Done for today">${PLAN_CHECK_SVG}</span>`;
+    } else if (st.weekly){
+      side.textContent = `${st.weekCount} of ${st.plan.pace.count} this week`;
+    }
+    card.addEventListener('click', ()=>{
+      renderCollectionPage(id); showZone('collection');
+      setTimeout(()=>{ const el = collectionItemsEl.querySelector('.plan-up-next'); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 400);
+    });
+    plansCardsEl.appendChild(card);
+  });
+}
+document.getElementById('plansSeeAll').addEventListener('click', ()=> goToNavZone('collectionsIndex'));
+onNeedPlansRefresh = ()=>{ renderPlansHome(); if (currentCollectionId) renderCollectionPage(currentCollectionId); };
+renderPlansHome();
+
 /* ---- Idea 88: My order ---- */
 const GRIP_ICON_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
 const CHEVRON_UP_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>';
@@ -14243,10 +14831,17 @@ function wireOrderDrag(grip, row, listId){
 
 function renderCollectionPage(id){
   currentCollectionId = id;
+  // Idea 88 — a study plan opens on My order, its natural sort.
+  if (id !== lastRenderedCollectionId){
+    lastRenderedCollectionId = id;
+    if (activePlan(id)) collectionSortToggle.set('order');
+  }
   const col = collections.find(c=> c.id === id);
   const live = liveListsById[liveListId(id)] || null; // idea 57
   document.getElementById('collectionTitle').textContent = live ? live.name : (col ? col.name : 'List');
   renderLiveListBar(live);
+  const planPending = renderPlanHeader(id, live);
+  const planSt = live ? null : planStatus(id);
   // Membership array is in the order talks were added (oldest-added
   // first); reversed gives most-recently-added first, the default
   // 'desc', same "recent first" default as Favorites/Recently Viewed
@@ -14283,6 +14878,7 @@ function renderCollectionPage(id){
     { decorate: (row, pick)=>{
       if (live) decorateLiveRow(row, pick, live); // idea 57
       if (orderMode) decorateOrderRow(row, pick, positions[talkKey(pick)], canReorder, id, picks.length); // idea 88
+      if (planSt) decoratePlanRow(row, pick, planSt, planPending);
     } }
   );
   renderOrderHint(orderMode, canReorder, live);
@@ -14411,6 +15007,11 @@ function renderCollectionsIndexPage(){
     const countEl = document.createElement('span');
     countEl.className = 'collection-row-count';
     countEl.textContent = `${count} talk${count===1?'':'s'}`;
+    if (activePlan(col.id)){
+      const marker = document.createElement('span');
+      marker.className = 'plan-marker'; marker.textContent = 'Plan';
+      nameEl.appendChild(marker);
+    }
     main.appendChild(nameEl);
     main.appendChild(countEl);
     main.addEventListener('click', ()=>{ renderCollectionPage(col.id); showZone('collection'); });
@@ -14544,6 +15145,9 @@ function exportBackupData(){
     collectionMemberUpdatedAt: JSON.parse(JSON.stringify(collectionMemberUpdatedAt)),
     deletedCollections: {...deletedCollections},
     collectionOrderUpdatedAt: {...collectionOrderUpdatedAt}, // idea 88
+    collectionPlans: JSON.parse(JSON.stringify(collectionPlans)), // idea 88
+    planCredits: JSON.parse(JSON.stringify(planCredits)),
+    planBadges: JSON.parse(JSON.stringify(planBadges)),
     notes: noteMap,
     noteUpdatedAt: {...noteUpdatedAt},
     streak: loadStreak()
@@ -14771,6 +15375,7 @@ function mergeBackupData(data){
   // why an unconditional save here creates an infinite pull/push loop.
   let readLogChanged = false, readLogEstimatedChanged = false, studyDaysEstimatedChanged = false;
   let conferenceDaysChanged = false;
+  let plansChanged = false;
   let addedRead = false, visitCountsChanged = false, listsChanged = false, favoritesChanged = false;
   // Streak merge runs FIRST and in its own try/catch, ahead of every other
   // bucket below — it's the one thing here someone would actually be
@@ -14911,6 +15516,7 @@ function mergeBackupData(data){
         delete collectionUpdatedAt[col.id];
         delete collectionMemberUpdatedAt[col.id];
         delete collectionOrderUpdatedAt[col.id];
+        delete collectionPlans[col.id]; delete planCredits[col.id]; delete planBadges[col.id]; plansChanged = true;
         deletedCollections[col.id] = incomingDeletedAt;
         listsChanged = true;
         return;
@@ -14951,6 +15557,39 @@ function mergeBackupData(data){
       }
     });
   } catch(err){ console.error('[cloud sync] collections merge failed — other sections still ran', err); }
+  // Idea 88 — study plans. Settings are last-write-wins by updatedAt (a
+  // stopped plan is a stub so the stop wins too); credits union with the
+  // earliest date kept, and a higher round replaces a lower one (a plan that
+  // was stopped or started again); finish badges union by round.
+  try {
+    const listExists = id=> collections.some(c=> c.id === id) || id.indexOf(LIVE_LIST_PREFIX) === 0;
+    const inPlans = (data.collectionPlans && typeof data.collectionPlans === 'object') ? data.collectionPlans : {};
+    Object.keys(inPlans).forEach(id=>{
+      const inc = inPlans[id];
+      if (!inc || typeof inc.updatedAt !== 'number' || !listExists(id)) return;
+      const cur = collectionPlans[id];
+      if (!cur || inc.updatedAt > (cur.updatedAt || 0)){ collectionPlans[id] = inc; plansChanged = true; }
+    });
+    const inCredits = (data.planCredits && typeof data.planCredits === 'object') ? data.planCredits : {};
+    Object.keys(inCredits).forEach(id=>{
+      const inc = inCredits[id];
+      if (!inc || typeof inc.round !== 'number' || !inc.talks || !activePlan(id) || inc.round < collectionPlans[id].round) return;
+      let cur = planCredits[id];
+      if (!cur || inc.round > cur.round){ planCredits[id] = { round: inc.round, talks: { ...inc.talks } }; plansChanged = true; return; }
+      Object.keys(inc.talks).forEach(k=>{
+        if (!cur.talks[k] || inc.talks[k] < cur.talks[k]){ cur.talks[k] = inc.talks[k]; plansChanged = true; }
+      });
+    });
+    const inBadges = (data.planBadges && typeof data.planBadges === 'object') ? data.planBadges : {};
+    Object.keys(inBadges).forEach(id=>{
+      if (!Array.isArray(inBadges[id]) || !listExists(id)) return;
+      const cur = planBadges[id] || (planBadges[id] = []);
+      inBadges[id].forEach(b=>{
+        if (b && typeof b.round === 'number' && !cur.some(x=> x.round === b.round)){ cur.push(b); plansChanged = true; }
+      });
+    });
+    if (plansChanged) savePlans();
+  } catch(err){ console.error('[cloud sync] study plans merge failed — other sections still ran', err); }
   // Notes merge — timestamp-aware, same rationale as favorites (see
   // NOTES_META_KEY's comment): a note cleared on this device (or another)
   // used to come back on the next merge because the old logic could only
@@ -15269,6 +15908,8 @@ function applyCloudMergeAndRefresh(data){
   mergeBackupData(data);
   silentlyBackfillBadgesFromMerge(); // idea 45 fix — a new device's own earnedBadges starts empty, so without this the next read/streak update treats every threshold this merge just cleared as freshly earned and re-celebrates it
   renderCollectionsIndexPage();
+  renderPlansHome(); // idea 88
+  if (currentCollectionId && collectionZone.style.display === 'block') renderCollectionPage(currentCollectionId);
   // Always repaint, not just when the zone happens to be the one currently
   // shown — mergeBackupData already updated favoriteKeys/noteMap regardless
   // of what's on screen, so skipping the repaint here just left a stale
@@ -15399,6 +16040,7 @@ async function clearAllLocalDataAndSignOut(){
   // that's still very much alive in the cloud from ever coming back down).
   collections = []; collectionUpdatedAt = {}; deletedCollections = {}; saveCollections();
   collectionMembers = {}; collectionMemberUpdatedAt = {}; collectionOrderUpdatedAt = {}; saveCollectionMembers();
+  collectionPlans = {}; planCredits = {}; planBadges = {}; savePlans();
   noteMap = {}; noteUpdatedAt = {}; saveNotes();
   saveStreak({count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []});
   // Same refresh list applyCloudMergeAndRefresh() uses, for the same
