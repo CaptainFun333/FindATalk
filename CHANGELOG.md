@@ -16,6 +16,7 @@ this updated.
 - Finishing a study plan earns a badge on that list's page, with a button to share it as a card and another to start the plan again. (Website live immediately; the app needs a new build.)
 - A study plan can now use your daily reminder: instead of the Talk of the Day, it names the next talk in the plan that's waiting for you (and how many other plans have one). (App only; needs a new build.)
 - Shared study plans: the owner of a shared list can make it a study plan with an order and a finish date or pace. Everyone follows it with their own progress, and the list shows one combined "Together" number. If you leave a shared plan and keep a copy, it becomes your own study plan with your progress. (Website live immediately; the app needs a new build. Needs the cloud functions deployed.)
+- Your My Lists page now has a **My order** sort: drag the handle (or use the arrows) to put your lists in the order you like. It syncs between your devices, new lists land at the end, and shared lists stay grouped at the top. (Website live immediately; the app needs a new build.)
 
 ### Changed
 - The suggested message when sharing a talk now shows as grey hint text that disappears as soon as you start typing, so you no longer have to delete it to write your own. Sharing with the box empty sends just the link. (Website live immediately; the app needs a new build.)

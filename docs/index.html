@@ -2260,7 +2260,7 @@
   .order-grip svg, .order-step svg{ width:16px; height:16px; }
   .order-step:disabled{ opacity:.3; cursor:default; }
   .order-step:hover:not(:disabled), .order-grip:hover{ color:var(--burgundy); }
-  .list-item.is-dragging{ background:var(--paper-raised); box-shadow:0 6px 18px rgba(0,0,0,.18); position:relative; z-index:2; }
+  .collection-row.is-dragging, .list-item.is-dragging{ background:var(--paper-raised); box-shadow:0 6px 18px rgba(0,0,0,.18); position:relative; z-index:2; }
   .list-item-read-badge svg{ width:12px; height:12px; }
   .ticket-read-badge{
     display:inline-flex; align-items:center; gap:4px;
@@ -3520,6 +3520,7 @@
       <div class="sort-toggle" id="collectionsSortToggle" role="group" aria-label="Sort order">
         <button type="button" class="sort-toggle-btn" data-sort="default">Recently Updated</button>
         <button type="button" class="sort-toggle-btn" data-sort="alpha">Alphabetical</button>
+        <button type="button" class="sort-toggle-btn" data-sort="order">My order</button>
       </div>
     </div>
     <div class="collections-index-list" id="collectionsIndexList"></div>
@@ -8319,6 +8320,21 @@ let collectionUpdatedAt = {};
 let collectionMemberUpdatedAt = {};
 let deletedCollections = {};
 let collectionOrderUpdatedAt = {};
+// Idea 88 — the order of the My Lists page itself ("My order" sort): personal
+// list ids, with one timestamp for the whole arrangement (last-write-wins on
+// merge). Lists missing from it (new ones) sort after it, in creation order.
+const COLLECTIONS_ORDER_KEY = 'findATalkCollectionsOrder';
+let collectionsOrder = { ids: [], at: 0 };
+(function loadCollectionsOrder(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(COLLECTIONS_ORDER_KEY));
+    if (raw && Array.isArray(raw.ids) && typeof raw.at === 'number') collectionsOrder = raw;
+  } catch(err){ /* keep the empty default */ }
+})();
+function saveCollectionsOrder(){
+  try { localStorage.setItem(COLLECTIONS_ORDER_KEY, JSON.stringify(collectionsOrder)); } catch(err){ /* not fatal */ }
+  if (onLocalDataChanged) onLocalDataChanged();
+}
 
 function loadCollections(){
   try {
@@ -15155,7 +15171,9 @@ function commitListOrder(listId, order){
 }
 // Pointer-driven drag on the grip. touch-action:none on the grip means a
 // finger on the grip drags while a finger anywhere else still scrolls.
-function wireOrderDrag(grip, row, listId){
+function wireOrderDrag(grip, row, listId, opts){
+  const keyOf = (opts && opts.keyOf) || (el=> el.dataset.talkKey);
+  const onCommit = (opts && opts.onCommit) || (order=> commitListOrder(listId, order));
   grip.addEventListener('pointerdown', (e)=>{
     if (e.button !== undefined && e.button !== 0) return;
     e.preventDefault();
@@ -15181,8 +15199,8 @@ function wireOrderDrag(grip, row, listId){
       grip.removeEventListener('pointercancel', finish);
       row.classList.remove('is-dragging');
       if (!moved) return;
-      const domOrder = [...container.children].map(el=> el.dataset.talkKey).filter(Boolean);
-      commitListOrder(listId, domOrder);
+      const domOrder = [...container.children].map(keyOf).filter(Boolean);
+      onCommit(domOrder);
     };
     grip.addEventListener('pointermove', onMove);
     grip.addEventListener('pointerup', finish);
@@ -15257,10 +15275,32 @@ onNeedCollectionRefresh = ()=>{ if (currentCollectionId) renderCollectionPage(cu
 // for). Same plain-substring approach as Notes search: this is a handful
 // of short, on-device strings, no index needed.
 let collectionsQuery = '';
+// "My order": the saved arrangement first, then any list not in it yet
+// (newly made) at the end in the order they were made.
+function orderedCollections(list){
+  const pos = new Map(collectionsOrder.ids.map((id, i)=> [id, i]));
+  const known = list.filter(c=> pos.has(c.id)).sort((a, b)=> pos.get(a.id) - pos.get(b.id));
+  return known.concat(list.filter(c=> !pos.has(c.id)));
+}
+function moveListRow(id, toIndex){
+  const ids = orderedCollections(collections).map(c=> c.id);
+  const from = ids.indexOf(id);
+  if (from === -1 || toIndex < 0 || toIndex >= ids.length || toIndex === from) return;
+  ids.splice(from, 1);
+  ids.splice(toIndex, 0, id);
+  commitCollectionsOrder(ids);
+}
+function commitCollectionsOrder(ids){
+  const have = new Set(ids);
+  collectionsOrder = { ids: ids.concat(collections.map(c=> c.id).filter(id=> !have.has(id))), at: Date.now() };
+  saveCollectionsOrder();
+  renderCollectionsIndexPage();
+}
 function visibleCollections(){
   const q = collectionsQuery.trim().toLowerCase();
   const list = q ? collections.filter(c=> c.name.toLowerCase().includes(q)) : collections.slice();
   if (collectionsSortToggle.mode === 'alpha') list.sort((a,b)=> a.name.localeCompare(b.name));
+  else if (collectionsSortToggle.mode === 'order') return orderedCollections(list);
   else list.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0)); // 'default' = most recently added to
   return list;
 }
@@ -15308,9 +15348,12 @@ function renderCollectionsIndexPage(){
   listEl.style.display = '';
   emptyEl.style.display = 'none';
   visibleLive.forEach(list=> listEl.appendChild(buildLiveListIndexRow(list)));
-  visible.forEach(col=>{
+  // Rearranging only makes sense on the whole, unfiltered list.
+  const canReorderLists = collectionsSortToggle.mode === 'order' && !collectionsQuery.trim();
+  visible.forEach((col, rowIndex)=>{
     const row = document.createElement('div');
     row.className = 'collection-row';
+    row.dataset.listId = col.id;
 
     if (editingCollectionId === col.id){
       const editWrap = document.createElement('div');
@@ -15383,6 +15426,25 @@ function renderCollectionsIndexPage(){
     const actions = document.createElement('div');
     actions.className = 'collection-row-actions';
 
+    if (canReorderLists){
+      const tools = document.createElement('span');
+      tools.className = 'order-tools';
+      const up = document.createElement('button');
+      up.type = 'button'; up.className = 'order-step'; up.innerHTML = CHEVRON_UP_SVG;
+      up.setAttribute('aria-label', `Move "${col.name}" up`); up.disabled = rowIndex === 0;
+      up.addEventListener('click', (e)=>{ e.stopPropagation(); moveListRow(col.id, rowIndex - 1); });
+      const down = document.createElement('button');
+      down.type = 'button'; down.className = 'order-step'; down.innerHTML = CHEVRON_DOWN_SVG;
+      down.setAttribute('aria-label', `Move "${col.name}" down`); down.disabled = rowIndex === visible.length - 1;
+      down.addEventListener('click', (e)=>{ e.stopPropagation(); moveListRow(col.id, rowIndex + 1); });
+      const grip = document.createElement('button');
+      grip.type = 'button'; grip.className = 'order-grip'; grip.innerHTML = GRIP_ICON_SVG;
+      grip.setAttribute('aria-label', `Drag to reorder "${col.name}"`);
+      wireOrderDrag(grip, row, null, { keyOf: el=> el.dataset.listId, onCommit: commitCollectionsOrder });
+      tools.appendChild(up); tools.appendChild(down); tools.appendChild(grip);
+      actions.appendChild(tools);
+    }
+
     const renameBtn = document.createElement('button');
     renameBtn.type = 'button';
     renameBtn.className = 'share-btn-icon collection-row-rename';
@@ -15439,7 +15501,17 @@ function renderCollectionsIndexPage(){
   });
 }
 
-const collectionsSortToggle = createSortToggle(document.getElementById('collectionsSortToggle'), renderCollectionsIndexPage);
+// Remembered, so someone who picks My order keeps seeing it; everyone else
+// stays on the default until they choose it.
+const COLLECTIONS_SORT_KEY = 'findATalkCollectionsSort';
+const collectionsSortToggle = createSortToggle(document.getElementById('collectionsSortToggle'), ()=>{
+  try { localStorage.setItem(COLLECTIONS_SORT_KEY, collectionsSortToggle.mode); } catch(err){ /* not fatal */ }
+  renderCollectionsIndexPage();
+});
+try {
+  const savedSort = localStorage.getItem(COLLECTIONS_SORT_KEY);
+  if (savedSort === 'alpha' || savedSort === 'order') collectionsSortToggle.set(savedSort);
+} catch(err){ /* not fatal */ }
 const collectionsQueryEl = document.getElementById('collectionsQuery');
 const collectionsQueryClearBtn = document.getElementById('collectionsQueryClear');
 collectionsQueryEl.addEventListener('input', ()=>{
@@ -15506,6 +15578,7 @@ function exportBackupData(){
     collectionMemberUpdatedAt: JSON.parse(JSON.stringify(collectionMemberUpdatedAt)),
     deletedCollections: {...deletedCollections},
     collectionOrderUpdatedAt: {...collectionOrderUpdatedAt}, // idea 88
+    collectionsOrder: { ids: collectionsOrder.ids.slice(), at: collectionsOrder.at }, // idea 88 — My Lists page order
     collectionPlans: JSON.parse(JSON.stringify(collectionPlans)), // idea 88
     planCredits: JSON.parse(JSON.stringify(planCredits)),
     planBadges: JSON.parse(JSON.stringify(planBadges)),
@@ -15918,6 +15991,18 @@ function mergeBackupData(data){
       }
     });
   } catch(err){ console.error('[cloud sync] collections merge failed — other sections still ran', err); }
+  // Idea 88 — the My Lists page's own order: newer arrangement wins whole,
+  // then ids only this device knows follow in their local order.
+  try {
+    const inOrder = data.collectionsOrder;
+    if (inOrder && Array.isArray(inOrder.ids) && typeof inOrder.at === 'number' && inOrder.at > collectionsOrder.at){
+      const have = new Set(collections.map(c=> c.id));
+      const fromIncoming = inOrder.ids.filter(id=> have.has(id));
+      const placed = new Set(fromIncoming);
+      collectionsOrder = { ids: fromIncoming.concat(collectionsOrder.ids.filter(id=> have.has(id) && !placed.has(id))), at: inOrder.at };
+      saveCollectionsOrder();
+    }
+  } catch(err){ console.error('[cloud sync] list order merge failed — other sections still ran', err); }
   // Idea 88 — study plans. Settings are last-write-wins by updatedAt (a
   // stopped plan is a stub so the stop wins too); credits union with the
   // earliest date kept, and a higher round replaces a lower one (a plan that
@@ -16404,6 +16489,7 @@ async function clearAllLocalDataAndSignOut(){
   collections = []; collectionUpdatedAt = {}; deletedCollections = {}; saveCollections();
   collectionMembers = {}; collectionMemberUpdatedAt = {}; collectionOrderUpdatedAt = {}; saveCollectionMembers();
   collectionPlans = {}; planCredits = {}; planBadges = {}; savePlans();
+  collectionsOrder = { ids: [], at: 0 }; saveCollectionsOrder();
   noteMap = {}; noteUpdatedAt = {}; saveNotes();
   saveStreak({count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []});
   // Same refresh list applyCloudMergeAndRefresh() uses, for the same
