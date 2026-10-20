@@ -17,6 +17,7 @@ this updated.
 - A study plan can now use your daily reminder: instead of the Talk of the Day, it names the next talk in the plan that's waiting for you (and how many other plans have one). (App only; needs a new build.)
 - Shared study plans: the owner of a shared list can make it a study plan with an order and a finish date or pace. Everyone follows it with their own progress, and the list shows one combined "Together" number. If you leave a shared plan and keep a copy, it becomes your own study plan with your progress. (Website live immediately; the app needs a new build. Needs the cloud functions deployed.)
 - Your My Lists page now has a **My order** sort: drag the handle (or use the arrows) to put your lists in the order you like. It syncs between your devices, new lists land at the end, and shared lists stay grouped at the top. (Website live immediately; the app needs a new build.)
+- A small **Make it a plan** button on each list in My Lists starts a study plan in one tap, and the move/drag controls now sit at the top right of each list card. (Website live immediately; the app needs a new build.)
 
 ### Fixed
 - Dragging to reorder a list (or the My Lists page) now works in desktop web browsers; it used to stop after the first step. (Website live immediately; the app needs a new build.)

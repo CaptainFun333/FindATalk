@@ -2746,7 +2746,23 @@
     border-radius:6px;
     margin-bottom:10px;
     overflow:hidden;
+    position:relative;
   }
+  /* Idea 88 — move up / down / drag handle sit top right, level with the name. */
+  .collection-row-order-tools{ position:absolute; top:12px; right:12px; display:flex; align-items:center; gap:2px; }
+  .collection-row-order-tools .order-tools{ margin-left:0; }
+  .collection-row.has-order-tools .collection-row-main{ padding-right:112px; }
+  /* "Make it a plan", at the left of the icon row. */
+  .plan-pill{
+    margin-right:auto; flex-shrink:0; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:5px;
+    height:26px; padding:0 10px;
+    border:1px solid var(--brass); border-radius:13px;
+    background:transparent; color:var(--brass);
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .plan-pill svg{ width:14px; height:14px; }
+  .plan-pill:hover{ background:var(--tint); }
   .collection-row-main{
     display:flex; flex-direction:column; align-items:flex-start;
     gap:2px;
@@ -15006,6 +15022,7 @@ document.getElementById('planStopBtn').addEventListener('click', ()=>{
   if (liveList) saveLivePlan(id, null);
   else stopPlan(id);
   closePlanModal();
+  renderCollectionsIndexPage();
   if (currentCollectionId === id) renderCollectionPage(id);
   renderPlansHome();
 });
@@ -15042,6 +15059,7 @@ document.getElementById('planSaveBtn').addEventListener('click', ()=>{
     saveLivePlan(id, livePlanPayload(shell, today, planListKeys(id).length));
   } else startOrEditPlan(id, planModalMode, finishBy, pace, reminder);
   closePlanModal();
+  renderCollectionsIndexPage();
   if (!wasPlan) collectionSortToggle.set('order');
   renderCollectionPage(id);
   renderPlansHome();
@@ -15294,6 +15312,13 @@ onNeedCollectionRefresh = ()=>{ if (currentCollectionId) renderCollectionPage(cu
 // for). Same plain-substring approach as Notes search: this is a handful
 // of short, on-device strings, no index needed.
 let collectionsQuery = '';
+function buildMakePlanPill(planId){
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'plan-pill';
+  btn.innerHTML = PLAN_BOOK_SVG + '<span>Make it a plan</span>';
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); openPlanModal(planId); });
+  return btn;
+}
 // "My order": the saved arrangement first, then any list not in it yet
 // (newly made) at the end in the order they were made.
 function orderedCollections(list){
@@ -15461,8 +15486,13 @@ function renderCollectionsIndexPage(){
       grip.setAttribute('aria-label', `Drag to reorder "${col.name}"`);
       wireOrderDrag(grip, row, null, { keyOf: el=> el.dataset.listId, onCommit: commitCollectionsOrder });
       tools.appendChild(up); tools.appendChild(down); tools.appendChild(grip);
-      actions.appendChild(tools);
+      const toolsWrap = document.createElement('div');
+      toolsWrap.className = 'collection-row-order-tools';
+      toolsWrap.appendChild(tools);
+      row.classList.add('has-order-tools');
+      row.appendChild(toolsWrap);
     }
+    if (count > 0 && !activePlan(col.id)) actions.appendChild(buildMakePlanPill(col.id));
 
     const renameBtn = document.createElement('button');
     renameBtn.type = 'button';
@@ -17137,6 +17167,7 @@ function buildLiveListIndexRow(list){
   row.appendChild(main);
   const actions = document.createElement('div');
   actions.className = 'collection-row-actions';
+  if (liveIsOwner(list) && count > 0 && !list.plan) actions.appendChild(buildMakePlanPill(LIVE_LIST_PREFIX + list.id));
   const membersBtn = document.createElement('button');
   membersBtn.type = 'button';
   membersBtn.className = 'share-btn-icon';
