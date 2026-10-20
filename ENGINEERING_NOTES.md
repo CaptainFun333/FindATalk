@@ -683,3 +683,10 @@ served live at findatalk.com; this one should never be public.
   transactions require every read before any write, so callers
   `await tx.get(progressRef(listId))` and pass the snapshot in; the leaver's
   count is dropped and `planTogether` recomputed in the same transaction.
+
+- **Don't move the dragged row's element in the DOM during a pointer
+  drag.** `wireOrderDrag()` first reordered rows with `insertBefore()` while
+  dragging; re-parenting the grip's ancestor drops its pointer capture in
+  desktop browsers, so the drag died after one step (worked in no real
+  browser test until Brad tried it). It now drags with `transform` and
+  only reorders on release.

@@ -15171,6 +15171,10 @@ function commitListOrder(listId, order){
 }
 // Pointer-driven drag on the grip. touch-action:none on the grip means a
 // finger on the grip drags while a finger anywhere else still scrolls.
+// The row is moved with a transform while dragging and the DOM is only
+// reordered (by re-rendering) on release: moving the dragged row's own
+// element in the DOM mid-drag drops the pointer capture, which is what made
+// the first version stop after a single step in desktop browsers.
 function wireOrderDrag(grip, row, listId, opts){
   const keyOf = (opts && opts.keyOf) || (el=> el.dataset.talkKey);
   const onCommit = (opts && opts.onCommit) || (order=> commitListOrder(listId, order));
@@ -15178,29 +15182,44 @@ function wireOrderDrag(grip, row, listId, opts){
     if (e.button !== undefined && e.button !== 0) return;
     e.preventDefault();
     const container = row.parentElement;
+    const rows = [...container.children].filter(el=> keyOf(el));
+    const from = rows.indexOf(row);
+    if (from === -1) return;
+    const tops = rows.map(el=>{ const r = el.getBoundingClientRect(); return { top: r.top + window.scrollY, h: r.height }; });
+    const startY = e.clientY, startScroll = window.scrollY;
+    const gap = rows.length > 1 ? Math.abs(tops[1].top - tops[0].top) : tops[0].h;
+    let to = from, moved = false, lastY = startY;
     grip.setPointerCapture(e.pointerId);
     row.classList.add('is-dragging');
-    let moved = false;
+    const place = ()=>{
+      const dy = lastY - startY + (window.scrollY - startScroll);
+      row.style.transform = `translateY(${dy}px)`;
+      const center = tops[from].top + tops[from].h / 2 + dy;
+      to = tops.filter((t, i)=> i !== from && t.top + t.h / 2 < center).length; // insertion index among the other rows
+      // Rows above the drop point (when dragging up) or below it (down) make room.
+      tops.forEach((t, i)=>{
+        if (i === from) return;
+        const el = rows[i];
+        const shift = (from < to && i > from && i <= to) ? -gap : (from > to && i < from && i >= to) ? gap : 0;
+        el.style.transition = 'transform .12s'; el.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
     const onMove = (ev)=>{
-      moved = true;
-      const siblings = [...container.children].filter(el=> el !== row);
-      let before = null;
-      for (const el of siblings){
-        const r = el.getBoundingClientRect();
-        if (ev.clientY < r.top + r.height / 2){ before = el; break; }
-      }
-      if (before) container.insertBefore(row, before); else container.appendChild(row);
+      moved = true; lastY = ev.clientY;
       if (ev.clientY < 70) window.scrollBy(0, -14);
       else if (ev.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
+      place();
     };
     const finish = ()=>{
       grip.removeEventListener('pointermove', onMove);
       grip.removeEventListener('pointerup', finish);
       grip.removeEventListener('pointercancel', finish);
       row.classList.remove('is-dragging');
-      if (!moved) return;
-      const domOrder = [...container.children].map(keyOf).filter(Boolean);
-      onCommit(domOrder);
+      rows.forEach(el=>{ el.style.transform = ''; el.style.transition = ''; });
+      if (!moved || to === from) return;
+      const order = rows.map(keyOf);
+      order.splice(to, 0, order.splice(from, 1)[0]);
+      onCommit(order);
     };
     grip.addEventListener('pointermove', onMove);
     grip.addEventListener('pointerup', finish);

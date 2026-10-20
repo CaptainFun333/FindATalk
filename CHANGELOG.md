@@ -18,6 +18,9 @@ this updated.
 - Shared study plans: the owner of a shared list can make it a study plan with an order and a finish date or pace. Everyone follows it with their own progress, and the list shows one combined "Together" number. If you leave a shared plan and keep a copy, it becomes your own study plan with your progress. (Website live immediately; the app needs a new build. Needs the cloud functions deployed.)
 - Your My Lists page now has a **My order** sort: drag the handle (or use the arrows) to put your lists in the order you like. It syncs between your devices, new lists land at the end, and shared lists stay grouped at the top. (Website live immediately; the app needs a new build.)
 
+### Fixed
+- Dragging to reorder a list (or the My Lists page) now works in desktop web browsers; it used to stop after the first step. (Website live immediately; the app needs a new build.)
+
 ### Changed
 - The suggested message when sharing a talk now shows as grey hint text that disappears as soon as you start typing, so you no longer have to delete it to write your own. Sharing with the box empty sends just the link. (Website live immediately; the app needs a new build.)
 
