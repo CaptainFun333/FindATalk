@@ -11251,6 +11251,10 @@ const DAILY_REMINDER_ID = 1;
 const DAILY_REMINDER_WEEKDAY_ID_BASE = 20;
 const DAILY_REMINDER_DATED_ID_BASE = 200;
 const DAILY_REMINDER_DATED_ID_COUNT = 40;
+// Idea 88 — dated reminders that carry a study plan's next talk, one per
+// day for the next PLAN_REMINDER_ID_COUNT days (see planReminderBodies()).
+const PLAN_REMINDER_ID_BASE = 300;
+const PLAN_REMINDER_ID_COUNT = 40;
 const DAILY_REMINDER_BODY = 'Your talk of the day is ready to read.';
 const CONFERENCE_REMINDER_BODY = 'General Conference is today! Tune in, then count it toward your streak in FindATalk.';
 // How long before conference Saturday the stand-in schedule takes over,
@@ -11298,12 +11302,14 @@ function showNotifPermModal(){
 function isDailyReminderId(id){
   return id === DAILY_REMINDER_ID
     || (id >= DAILY_REMINDER_WEEKDAY_ID_BASE + 1 && id <= DAILY_REMINDER_WEEKDAY_ID_BASE + 7)
-    || (id >= DAILY_REMINDER_DATED_ID_BASE && id < DAILY_REMINDER_DATED_ID_BASE + DAILY_REMINDER_DATED_ID_COUNT);
+    || (id >= DAILY_REMINDER_DATED_ID_BASE && id < DAILY_REMINDER_DATED_ID_BASE + DAILY_REMINDER_DATED_ID_COUNT)
+    || (id >= PLAN_REMINDER_ID_BASE && id < PLAN_REMINDER_ID_BASE + PLAN_REMINDER_ID_COUNT);
 }
 async function cancelDailyReminder(LocalNotifications){
   const notifications = [{ id: DAILY_REMINDER_ID }];
   for (let weekday = 1; weekday <= 7; weekday++) notifications.push({ id: DAILY_REMINDER_WEEKDAY_ID_BASE + weekday });
   for (let i = 0; i < DAILY_REMINDER_DATED_ID_COUNT; i++) notifications.push({ id: DAILY_REMINDER_DATED_ID_BASE + i });
+  for (let i = 0; i < PLAN_REMINDER_ID_COUNT; i++) notifications.push({ id: PLAN_REMINDER_ID_BASE + i });
   await LocalNotifications.cancel({ notifications });
 }
 // The Daily Reminder switch in Settings — absent means on (see
@@ -11347,8 +11353,71 @@ function nextConferenceSunday(from){
    the tail runs out — the trade for not needing a server. `signature`
    identifies the plan so a foreground check can tell whether anything
    needs rescheduling. */
+/* Idea 88 — what each of the next PLAN_REMINDER_ID_COUNT days' reminder
+   should say while any plan has its reminder switched on, or null when none
+   does (the ordinary schedule then applies). A notification's text can't be
+   chosen at delivery time, so each day is worded now, assuming no further
+   reads: the next talk can't change unless something is read, and a read
+   (or a plan edit, or a sync merge) reschedules. A day where a plan needs a
+   read names the plan furthest from its pace (largest expected-minus-done;
+   a tie goes to the soonest finish) and counts the others; any other day
+   keeps the Talk of the Day text, and conference days keep the conference
+   text. */
+function planReminderBodies(now){
+  const today = localDateSeed(now);
+  const entries = [];
+  Object.keys(collectionPlans).forEach(planId=>{
+    const plan = activePlan(planId);
+    if (!plan || !plan.reminder) return;
+    const st = planStatus(planId, today);
+    if (!st || st.finished || !st.upNextKey) return;
+    const talk = TALKS_BY_KEY[st.upNextKey];
+    if (!talk) return;
+    entries.push({
+      st, plan, name: planListName(planId), talk,
+      creditDays: st.keys.filter(k=> st.credits[k]).map(k=> st.credits[k]),
+      finish: plan.mode === 'date' ? plan.finishBy : planProjectedFinish(plan, st.done, st.total, today)
+    });
+  });
+  if (!entries.length) return null;
+  const bodies = [];
+  for (let i = 0; i < PLAN_REMINDER_ID_COUNT; i++){
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const day = localDateSeed(d);
+    const due = [];
+    entries.forEach(e=>{
+      if (!planNeedsReadToday(e.plan, e.st.done, e.st.total, day, e.creditDays)) return;
+      const gap = e.st.weekly
+        ? e.plan.pace.count - planWeekCredits(e.creditDays, day)
+        : planExpectedThrough(e.plan, day, e.st.total) - e.st.done;
+      due.push({ e, gap });
+    });
+    due.sort((a, b)=> b.gap - a.gap || (a.e.finish < b.e.finish ? -1 : a.e.finish > b.e.finish ? 1 : 0));
+    let body;
+    if (isConferenceDay(d)) body = CONFERENCE_REMINDER_BODY;
+    else if (!due.length) body = DAILY_REMINDER_BODY;
+    else {
+      const top = due[0].e;
+      body = `Up next in ${top.name}\n\u201C${top.talk[0]}\u201D \u00B7 ${top.talk[1]}`;
+      if (due.length > 1) body += `\nPlus ${due.length - 1} more plan${due.length > 2 ? 's' : ''} with a talk waiting.`;
+    }
+    bodies.push({ date: d, body });
+  }
+  return bodies;
+}
 function dailyReminderPlan(now){
   const { hour, minute } = getReminderTime();
+  const planBodies = planReminderBodies(now);
+  if (planBodies){
+    const notifications = [];
+    planBodies.forEach(({ date, body })=>{
+      const at = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute, 0, 0);
+      if (at.getTime() <= now.getTime()) return; // that day's reminder time has already gone by
+      notifications.push({ id: PLAN_REMINDER_ID_BASE + notifications.length, title: 'FindATalk', body, schedule: { at, allowWhileIdle: true } });
+    });
+    // The bodies carry every plan's done/next/pace, so they are the plan state.
+    return { signature: `plans|${hour}:${minute}|${localDateSeed(now)}|${notifications.map(n=> n.body).join('\u0001')}`, notifications };
+  }
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const confSunday = nextConferenceSunday(now);
   const leadStart = new Date(confSunday.getFullYear(), confSunday.getMonth(), confSunday.getDate() - 1 - CONFERENCE_REMINDER_LEAD_DAYS);
@@ -11412,6 +11481,17 @@ async function refreshDailyReminderPlan(){
 }
 function watchForDailyReminderPlan(){
   onForeground(refreshDailyReminderPlan);
+}
+// Idea 88 — a read, a plan edit, a list edit or a sync merge can change what
+// the plan reminder should say. Every one of those saves through
+// onLocalDataChanged(), so it is the one place that re-checks; the
+// signature comparison in refreshDailyReminderPlan() makes a no-op cheap.
+window.__dailyReminderPlan = dailyReminderPlan; // for checking in a console
+let reminderRefreshTimer = null;
+function scheduleReminderRefresh(){
+  if (!window.Capacitor) return;
+  clearTimeout(reminderRefreshTimer);
+  reminderRefreshTimer = setTimeout(refreshDailyReminderPlan, 800);
 }
 
 async function setupDailyReminder(){
@@ -16279,7 +16359,7 @@ onCloudUserChanged = (user)=>{
   // before initApp() has reached the shared-list block's own setup.
   setTimeout(()=> onLiveAuthResolved(user), 0);
 };
-onLocalDataChanged = scheduleCloudPush;
+onLocalDataChanged = ()=>{ scheduleCloudPush(); scheduleReminderRefresh(); };
 // Replays whatever auth state already arrived before this point registered
 // the two slots above — see pendingCloudUser/pendingCloudUserSet's own
 // comment for why that race is real and not just theoretical.

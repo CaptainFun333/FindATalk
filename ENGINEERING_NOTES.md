@@ -654,3 +654,19 @@ served live at findatalk.com; this one should never be public.
   (adds append and don't touch it). On merge: newer incoming order wins,
   with local-only talks appended in their local order; otherwise local
   order stands with incoming-only talks appended.
+
+- **Plan reminders can't keep a generic daily fallback without
+  double-firing on iOS.** Plan reminders are dated one-shot
+  notifications (ids 300-339, one per day for the next 40 days, each
+  worded assuming no further reads), so after the window they stop until
+  the app is opened. Checked @capacitor/local-notifications for a
+  recurring generic fallback that starts *after* the window: on iOS a
+  repeating trigger is either `on` (a calendar trigger that begins
+  matching immediately, so it would fire alongside the dated ones) or
+  `at` (converted to a time-interval trigger; `every` is ignored, so it
+  can't repeat daily). Only Android's `at` + `every: 'day'` would start
+  late, and one platform-only fallback isn't worth the divergence. Same
+  trade idea 87 accepted; the window is refilled on every foreground
+  (`refreshDailyReminderPlan()` compares a signature of the bodies) and
+  after every local save (`scheduleReminderRefresh()` off
+  `onLocalDataChanged`).
