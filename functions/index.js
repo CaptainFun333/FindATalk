@@ -626,6 +626,13 @@ function cleanListId(value) {
 function listRef(listId) { return firestore.collection('sharedLists').doc(listId); }
 function indexRef(uid) { return firestore.collection('sharedListIndex').doc(uid); }
 function inviteRef(code) { return firestore.collection('sharedListInvites').doc(code); }
+// Idea 88 — per-member plan progress counts. Rules deny every client read
+// and write, so nobody can see another member's number; only the callables
+// (Admin SDK) touch it, and only the combined total reaches the list doc.
+function progressRef(listId) { return firestore.collection('sharedListProgress').doc(listId); }
+function sumMemberCounts(counts, memberUids) {
+  return memberUids.reduce((sum, m) => sum + (Number(counts && counts[m]) || 0), 0);
+}
 
 async function readMemberList(tx, listId, uid) {
   const snap = await tx.get(listRef(listId));
@@ -714,6 +721,103 @@ exports.setSharedListOrder = onCall(async (request) => {
       throw new HttpsError('invalid-argument', 'That order includes a talk that is not on the list.');
     }
     tx.update(listRef(listId), { order, updatedAt: Date.now() });
+  });
+  return { ok: true };
+});
+
+// Study plans (idea 88) — the owner sets the goal everyone follows. Pass
+// plan:null to stop it, or restart:true (with a fresh plan) for "Start it
+// again", which bumps the round for the whole list and clears the group
+// count. The client works out the dates in its own local time; this only
+// checks shape and ownership.
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+function cleanDay(value, label) {
+  if (typeof value !== 'string' || !DAY_RE.test(value) || Number.isNaN(Date.parse(value + 'T00:00:00Z'))) {
+    throw new HttpsError('invalid-argument', `${label} is not a valid date.`);
+  }
+  return value;
+}
+function cleanPlan(raw) {
+  if (!raw || typeof raw !== 'object') throw new HttpsError('invalid-argument', 'Not a valid plan.');
+  const mode = raw.mode;
+  if (mode !== 'date' && mode !== 'pace') throw new HttpsError('invalid-argument', 'Not a valid plan.');
+  const anchor = raw.anchor || {};
+  const total = Number(anchor.total);
+  if (!Number.isInteger(total) || total < 0 || total > SHARED_LIST_MAX_TALKS) {
+    throw new HttpsError('invalid-argument', 'Not a valid plan.');
+  }
+  const plan = {
+    mode,
+    finishBy: null,
+    pace: null,
+    startedAt: cleanDay(raw.startedAt, 'The start date'),
+    anchor: { date: cleanDay(anchor.date, 'The plan date'), total, at: Date.now() },
+  };
+  if (mode === 'date') {
+    plan.finishBy = cleanDay(raw.finishBy, 'The finish date');
+  } else {
+    const pace = raw.pace || {};
+    const count = Number(pace.count);
+    if (!Number.isInteger(count) || count < 1 || count > 50 || (pace.per !== 'day' && pace.per !== 'week')) {
+      throw new HttpsError('invalid-argument', 'Not a valid pace.');
+    }
+    plan.pace = { count, per: pace.per };
+  }
+  return plan;
+}
+
+exports.setSharedListPlan = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const listId = cleanListId(data.listId);
+  const stopping = data.plan === null;
+  const plan = stopping ? null : cleanPlan(data.plan);
+  const restart = !!data.restart;
+  await firestore.runTransaction(async (tx) => {
+    const list = await readMemberList(tx, listId, uid);
+    if (list.ownerUid !== uid) {
+      throw new HttpsError('permission-denied', 'Only the list owner can change the study plan.');
+    }
+    const now = Date.now();
+    if (stopping) {
+      tx.update(listRef(listId), { plan: FieldValue.delete(), planTogether: FieldValue.delete(), updatedAt: now });
+      tx.delete(progressRef(listId));
+      return;
+    }
+    const prev = list.plan || null;
+    const fresh = !prev || restart;
+    const round = fresh ? (prev ? (prev.round || 1) + 1 : 1) : (prev.round || 1);
+    const update = { plan: { ...plan, round, updatedAt: now }, updatedAt: now };
+    if (fresh) {
+      update.planTogether = { round, reads: 0 };
+      tx.set(progressRef(listId), { round, counts: {} });
+    }
+    tx.update(listRef(listId), update);
+  });
+  return { ok: true };
+});
+
+// Each member reports their own finished-talk count for the current round.
+// The count lives in sharedListProgress (unreadable by clients); the list
+// doc only ever gets the sum, so there is no per-person number to show.
+exports.setSharedPlanProgress = onCall(async (request) => {
+  const uid = requireUid(request);
+  const data = request.data || {};
+  const listId = cleanListId(data.listId);
+  const round = Number(data.round);
+  const count = Number(data.count);
+  if (!Number.isInteger(round) || round < 1 || !Number.isInteger(count) || count < 0 || count > SHARED_LIST_MAX_TALKS) {
+    throw new HttpsError('invalid-argument', 'Not a valid progress count.');
+  }
+  await firestore.runTransaction(async (tx) => {
+    const list = await readMemberList(tx, listId, uid);
+    const progSnap = await tx.get(progressRef(listId));
+    if (!list.plan || (list.plan.round || 1) !== round) return; // the plan changed under them; their next sync uses the new round
+    const prog = progSnap.exists ? progSnap.data() : {};
+    const counts = prog.round === round ? { ...(prog.counts || {}) } : {};
+    counts[uid] = count;
+    tx.set(progressRef(listId), { round, counts });
+    tx.update(listRef(listId), { planTogether: { round, reads: sumMemberCounts(counts, list.memberUids || []) } });
   });
   return { ok: true };
 });
@@ -826,12 +930,15 @@ exports.joinSharedList = onCall(async (request) => {
 
 // Removes `targetUid` from a list inside an open transaction. The earliest-
 // joined remaining member inherits ownership; the last person out deletes
-// the list itself.
-function removeMemberInTx(tx, listId, list, targetUid) {
+// the list itself. `progSnap` (the list's sharedListProgress doc) must be
+// read by the caller before any write: the leaver's plan count goes with
+// them and the group total is recomputed.
+function removeMemberInTx(tx, listId, list, targetUid, progSnap) {
   const memberUids = (list.memberUids || []).filter((m) => m !== targetUid);
   tx.set(indexRef(targetUid), { lists: { [listId]: FieldValue.delete() } }, { merge: true });
   if (!memberUids.length) {
     tx.delete(listRef(listId));
+    tx.delete(progressRef(listId));
     return;
   }
   const members = { ...(list.members || {}) };
@@ -840,7 +947,15 @@ function removeMemberInTx(tx, listId, list, targetUid) {
   if (ownerUid === targetUid) {
     ownerUid = memberUids.slice().sort((a, b) => ((members[a] || {}).joinedAt || 0) - ((members[b] || {}).joinedAt || 0))[0];
   }
-  tx.update(listRef(listId), { memberUids, members, ownerUid, updatedAt: Date.now() });
+  const update = { memberUids, members, ownerUid, updatedAt: Date.now() };
+  if (progSnap && progSnap.exists) {
+    const prog = progSnap.data();
+    const counts = { ...(prog.counts || {}) };
+    delete counts[targetUid];
+    tx.set(progressRef(listId), { round: prog.round, counts });
+    if (list.plan) update.planTogether = { round: prog.round, reads: sumMemberCounts(counts, memberUids) };
+  }
+  tx.update(listRef(listId), update);
 }
 
 exports.leaveSharedList = onCall(async (request) => {
@@ -857,7 +972,7 @@ exports.leaveSharedList = onCall(async (request) => {
       tx.set(indexRef(uid), { lists: { [listId]: FieldValue.delete() } }, { merge: true });
       return;
     }
-    removeMemberInTx(tx, listId, list, uid);
+    removeMemberInTx(tx, listId, list, uid, await tx.get(progressRef(listId)));
   });
   return { ok: true };
 });
@@ -872,7 +987,7 @@ exports.removeSharedListMember = onCall(async (request) => {
     const list = await readMemberList(tx, listId, uid);
     if (list.ownerUid !== uid) throw new HttpsError('permission-denied', 'Only the person who created this list can remove members.');
     if (!(list.memberUids || []).includes(target)) return;
-    removeMemberInTx(tx, listId, list, target);
+    removeMemberInTx(tx, listId, list, target, await tx.get(progressRef(listId)));
   });
   return { ok: true };
 });

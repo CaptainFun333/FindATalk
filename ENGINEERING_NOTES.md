@@ -670,3 +670,16 @@ served live at findatalk.com; this one should never be public.
   (`refreshDailyReminderPlan()` compares a signature of the bodies) and
   after every local save (`scheduleReminderRefresh()` off
   `onLocalDataChanged`).
+
+- **A shared plan's per-member anchor is derived, not stored.** Date-plan
+  math needs "talks done when the goal was set", which differs per member.
+  `activePlan('live:<id>')` builds it from the owner's anchor date/total plus
+  how many of *that member's* `planCredits` carry a date before the anchor
+  date, so owner edits never make anyone behind. Only the member's reminder
+  choice is kept in `collectionPlans['live:<id>']`. Because shared lists load
+  asynchronously, `mergeBackupData()` accepts `live:` credits without needing
+  the list loaded (it only rejects an older round).
+- **`removeMemberInTx` needs the progress doc read first.** Firestore
+  transactions require every read before any write, so callers
+  `await tx.get(progressRef(listId))` and pass the snapshot in; the leaver's
+  count is dropped and `planTogether` recomputed in the same transaction.

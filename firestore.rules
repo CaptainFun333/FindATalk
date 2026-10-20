@@ -43,6 +43,13 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+    // Idea 88 — per-member study-plan progress counts. Denied to every
+    // client on purpose (the default would deny it too): only the callables
+    // read it, and members only ever see the combined planTogether number
+    // on the list doc, never anyone's own count.
+    match /sharedListProgress/{listId} {
+      allow read, write: if false;
+    }
     // Invite codes are secrets; only the functions ever read them.
     match /sharedListInvites/{code} {
       allow read, write: if false;

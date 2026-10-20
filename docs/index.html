@@ -8299,6 +8299,17 @@ let liveListsById = {};
 // nothing that renders early can hit them before they're initialized.
 const LIVE_LIST_PREFIX = 'live:';
 const LIVE_LIST_NAME_KEY = 'findATalkSharedListName';
+// Top-level (not in the shared-list block) because the study-plan math below needs it.
+function liveTalkKeysInOrder(list){
+  const talks = list.talks || {};
+  const byAdded = Object.keys(talks).sort((a, b)=> (talks[a].addedAt || 0) - (talks[b].addedAt || 0));
+  // Idea 88 — the owner's order first, everything not in it after by added-at.
+  if (!Array.isArray(list.order) || !list.order.length) return byAdded;
+  const first = list.order.filter(k=> talks[k]);
+  const placed = new Set(first);
+  return first.concat(byAdded.filter(k=> !placed.has(k)));
+}
+
 const PEOPLE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 13.6c2.6.2 4.5 2.2 4.5 5"/></svg>';
 // Identity colors for member initials. Deliberately fixed, not palette
 // tokens: they have to tell people apart, and there are only two accents.
@@ -8548,11 +8559,38 @@ function planProjectedFinish(plan, done, total, today){
 }
 window.__planMath = { planDayNum, planAddDays, planWeekStart, planExpectedThrough, planNeedsReadToday, planOnPace, planRatePerDay, planPaceText, planProjectedFinish };
 
+/* A shared list's plan lives on the list itself (set by its owner through
+   setSharedListPlan) and is the same for everyone; each member's progress is
+   personal, kept under planId `live:<listId>`. What this device keeps in
+   collectionPlans['live:<id>'] is only that member's own reminder choice
+   ({reminder, updatedAt}). The derived plan below gets a personal anchor:
+   the owner's anchor date and total, with "done" being how many of THIS
+   member's credits predate that date, so a goal change never makes anyone
+   retroactively behind. */
+function isLivePlanId(planId){ return typeof planId === 'string' && planId.startsWith(LIVE_LIST_PREFIX); }
+function livePlanList(planId){ return isLivePlanId(planId) ? (liveListsById[planId.slice(LIVE_LIST_PREFIX.length)] || null) : null; }
+function allPlanIds(){
+  const ids = Object.keys(collectionPlans).filter(id=> !isLivePlanId(id));
+  Object.values(liveListsById).forEach(l=>{ if (l.plan) ids.push(LIVE_LIST_PREFIX + l.id); });
+  return ids;
+}
 function activePlan(planId){
+  if (isLivePlanId(planId)){
+    const list = livePlanList(planId);
+    const lp = list && list.plan;
+    if (!lp || !lp.anchor) return null;
+    const pc = planCredits[planId];
+    const before = pc && pc.round === lp.round ? Object.values(pc.talks).filter(d=> d < lp.anchor.date).length : 0;
+    const pref = collectionPlans[planId];
+    return { ...lp, reminder: !!(pref && pref.reminder), anchor: { date: lp.anchor.date, done: Math.min(before, lp.anchor.total), total: lp.anchor.total, at: lp.anchor.at || 0 } };
+  }
   const plan = collectionPlans[planId];
   return plan && !plan.stopped ? plan : null;
 }
-function planListKeys(planId){ return collectionMembers[planId] || []; }
+function planListKeys(planId){
+  const live = livePlanList(planId);
+  return live ? liveTalkKeysInOrder(live) : (collectionMembers[planId] || []);
+}
 function planCreditMap(planId){
   const plan = activePlan(planId);
   const pc = planCredits[planId];
@@ -8617,7 +8655,8 @@ function recordPlanFinish(planId, day){
   const list = planBadges[planId] || (planBadges[planId] = []);
   if (list.some(b=> b.round === st.plan.round)) return;
   const col = collections.find(c=> c.id === planId);
-  list.push({ round: st.plan.round, name: col ? col.name : 'Study plan', talkCount: st.total, startedAt: st.plan.startedAt, finishedAt: day });
+  const liveList = livePlanList(planId);
+  list.push({ round: st.plan.round, name: liveList ? liveList.name : (col ? col.name : 'Study plan'), talkCount: st.total, startedAt: st.plan.startedAt, finishedAt: day });
 }
 // "Start it again": a new round — only this plan's chips reset (Read ×N is
 // untouched). A date plan keeps its length, counted from today.
@@ -8645,11 +8684,12 @@ function creditPlansForRead(talk, creditDate){
   const openedAt = creditDate instanceof Date ? creditDate : new Date();
   const day = localDateSeed(openedAt);
   let changed = false;
-  Object.keys(collectionPlans).forEach(planId=>{
+  allPlanIds().forEach(planId=>{
     const plan = activePlan(planId);
     if (!plan || !planListKeys(planId).includes(key)) return;
     if (day < plan.startedAt) return;
-    const addedAt = (collectionMemberUpdatedAt[planId] || {})[key];
+    const liveList = livePlanList(planId);
+    const addedAt = liveList ? ((liveList.talks || {})[key] || {}).addedAt : (collectionMemberUpdatedAt[planId] || {})[key];
     if (typeof addedAt === 'number' && openedAt.getTime() < addedAt) return;
     let pc = planCredits[planId];
     if (!pc || pc.round !== plan.round) pc = planCredits[planId] = { round: plan.round, talks: {} };
@@ -11366,7 +11406,7 @@ function nextConferenceSunday(from){
 function planReminderBodies(now){
   const today = localDateSeed(now);
   const entries = [];
-  Object.keys(collectionPlans).forEach(planId=>{
+  allPlanIds().forEach(planId=>{
     const plan = activePlan(planId);
     if (!plan || !plan.reminder) return;
     const st = planStatus(planId, today);
@@ -14568,6 +14608,8 @@ let planModalMode = 'date';
 const PLAN_BOOK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C5.5 4.5 8.5 4.5 12 6c3.5-1.5 6.5-1.5 9-.5V19c-2.5-1-5.5-1-9 .5-3.5-1.5-6.5-1.5-9-.5z"/><path d="M12 6v13.5"/></svg>';
 const PLAN_CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 function planListName(planId){
+  const live = livePlanList(planId);
+  if (live) return live.name || 'Study plan';
   const col = collections.find(c=> c.id === planId);
   return col ? col.name : 'Study plan';
 }
@@ -14576,11 +14618,71 @@ function planTalkTitle(key){ const t = TALKS_BY_KEY[key]; return t ? t[0] : ''; 
 /* An added-talks question is only worth asking when the pace label would
    change; otherwise (and when talks were removed) the plan quietly
    re-anchors to the new total. Returns the pending question, or null. */
+const liveReanchorSent = {}; // planId -> the total already sent to the server, so a re-render before the snapshot returns doesn't send it twice
+function liveIsOwner(list){ return !!(list && currentUser && list.ownerUid === currentUser.uid); }
+// What the server stores of a plan (it works the rest out per member).
+function livePlanPayload(plan, anchorDate, total){
+  return { mode: plan.mode, finishBy: plan.mode === 'date' ? plan.finishBy : null, pace: plan.mode === 'pace' ? plan.pace : null, startedAt: plan.startedAt, anchor: { date: anchorDate, total } };
+}
+// Owner-only. `restart` is "Start it again" (new round for everyone); a null
+// plan stops it. The change shows at once and is rolled back if refused.
+async function saveLivePlan(planId, plan, restart){
+  const list = livePlanList(planId);
+  if (!list) return false;
+  const prev = list.plan, prevTogether = list.planTogether;
+  if (plan){
+    const round = restart ? (prev ? (prev.round || 1) + 1 : 1) : (prev ? prev.round || 1 : 1);
+    list.plan = { ...plan, anchor: { ...plan.anchor, at: Date.now() }, round, updatedAt: Date.now() };
+    if (!prev || restart) list.planTogether = { round, reads: 0 };
+  } else { delete list.plan; delete list.planTogether; }
+  try {
+    await cloudCallFunction('setSharedListPlan', { listId: list.id, plan, restart: !!restart });
+    return true;
+  } catch(err){
+    console.error('[idea 88] setSharedListPlan failed', err);
+    list.plan = prev; list.planTogether = prevTogether;
+    if (!prev) delete list.plan;
+    if (!prevTogether) delete list.planTogether;
+    alert(liveErrorMessage(err));
+    return false;
+  } finally {
+    if (currentCollectionId === planId) renderCollectionPage(planId);
+    renderPlansHome();
+  }
+}
+// Tells the server how many talks this member has finished in the current
+// round (it only ever shows the group's total). Re-sent only when the number
+// or round changes, and again after a failure.
+const liveProgressSent = {};
+function syncLivePlanProgress(){
+  if (!currentUser) return;
+  Object.values(liveListsById).forEach(list=>{
+    if (!list.plan) return;
+    const planId = LIVE_LIST_PREFIX + list.id;
+    const st = planStatus(planId);
+    if (!st) return;
+    const stamp = `${st.plan.round}:${st.done}`;
+    if (liveProgressSent[planId] === stamp) return;
+    liveProgressSent[planId] = stamp;
+    cloudCallFunction('setSharedPlanProgress', { listId: list.id, round: st.plan.round, count: st.done }).catch(err=>{
+      console.error('[idea 88] setSharedPlanProgress failed', err);
+      // Retry later, not on the very next list update (e.g. before the functions are deployed).
+      setTimeout(()=>{ if (liveProgressSent[planId] === stamp) delete liveProgressSent[planId]; }, 60000);
+    });
+  });
+}
 function reconcilePlanAnchor(planId){
   const st = planStatus(planId);
   if (!st) return null;
   const plan = st.plan, today = localDateSeed();
-  const reanchor = ()=>{
+  const liveList = livePlanList(planId);
+  if (liveList && !liveIsOwner(liveList)) return null; // members just see the new total
+  if (liveList && st.total === plan.anchor.total) delete liveReanchorSent[planId];
+  const reanchor = liveList ? ()=>{
+    if (liveReanchorSent[planId] === st.total) return;
+    liveReanchorSent[planId] = st.total;
+    saveLivePlan(planId, livePlanPayload(plan, today, st.total));
+  } : ()=>{
     plan.anchor = { date: today, done: st.done, total: st.total, at: Date.now() };
     plan.updatedAt = Date.now();
     savePlans();
@@ -14601,11 +14703,11 @@ function renderPlanHeader(id, live){
   const planHeaderEl = document.getElementById('planHeader');
   planHeaderEl.innerHTML = '';
   planHeaderEl.hidden = true;
-  if (live) return; // shared plans arrive in a later stage
+  const owner = !live || liveIsOwner(live); // a shared plan is edited by its owner only
   const pending = reconcilePlanAnchor(id);
   const st = planStatus(id);
   if (!st){
-    if (!(collectionMembers[id] || []).length) return;
+    if (!owner || !planListKeys(id).length) return;
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'plan-make-btn';
     btn.textContent = 'Make this a study plan';
@@ -14622,9 +14724,9 @@ function renderPlanHeader(id, live){
   top.className = 'plan-header-top';
   const count = document.createElement('span');
   count.className = 'plan-header-count';
-  count.textContent = `${st.done} of ${st.total} in this plan`;
+  count.textContent = live ? `You: ${st.done} of ${st.total}` : `${st.done} of ${st.total} in this plan`;
   const edit = document.createElement('button');
-  edit.type = 'button'; edit.className = 'plan-edit-btn'; edit.textContent = 'Edit plan';
+  edit.type = 'button'; edit.className = 'plan-edit-btn'; edit.textContent = owner ? 'Edit plan' : 'Reminder';
   edit.addEventListener('click', ()=> openPlanModal(id));
   top.appendChild(count); top.appendChild(edit);
   box.appendChild(top);
@@ -14652,6 +14754,23 @@ function renderPlanHeader(id, live){
     : `${planPaceText(st.perDay)} · Done around ${planDateText(planProjectedFinish(st.plan, st.done, st.total, today))}`;
   meta.appendChild(goal);
   box.appendChild(meta);
+  if (live){
+    // One combined number and who's studying; never a per-person breakdown.
+    const together = live.planTogether && live.planTogether.round === st.plan.round ? live.planTogether.reads : 0;
+    const people = (live.memberUids || []).length;
+    const pace = planPaceText(st.perDay);
+    const group = document.createElement('div');
+    group.className = 'plan-meta plan-together';
+    group.innerHTML = '<span></span><span></span>';
+    group.children[0].textContent = `Together: ${together} read${together === 1 ? '' : 's'} this plan so far`;
+    group.children[1].textContent = `Studying together \u00B7 ${people} ${people === 1 ? 'person' : 'people'}${pace ? ' \u00B7 ' + pace : ''}`;
+    box.appendChild(group);
+    if (!owner){
+      const lock = document.createElement('div');
+      lock.className = 'plan-meta'; lock.textContent = 'Order and pace set by the list owner';
+      box.appendChild(lock);
+    }
+  }
   if (pending){
     const ask = document.createElement('div');
     ask.className = 'plan-ask';
@@ -14705,14 +14824,31 @@ function renderFinishedPlanHeader(id, st, planHeaderEl){
   share.addEventListener('click', ()=> sharePlanBadge(badge, share));
   const again = document.createElement('button');
   again.type = 'button'; again.className = 'btn btn-ghost'; again.textContent = 'Start it again';
-  again.addEventListener('click', ()=>{ startPlanAgain(id); renderCollectionPage(id); renderPlansHome(); });
-  btns.appendChild(share); btns.appendChild(again);
-  const edit = document.createElement('button');
-  edit.type = 'button'; edit.className = 'plan-edit-btn plan-badge-edit'; edit.textContent = 'Edit plan';
-  edit.addEventListener('click', ()=> openPlanModal(id));
-  box.appendChild(edit);
+  const liveList = livePlanList(id);
+  const owner = !liveList || liveIsOwner(liveList);
+  again.addEventListener('click', ()=>{
+    if (liveList) startLivePlanAgain(id);
+    else { startPlanAgain(id); renderCollectionPage(id); renderPlansHome(); }
+  });
+  btns.appendChild(share);
+  if (owner) btns.appendChild(again); // in a shared plan only the owner starts a new round
+  if (owner){
+    const edit = document.createElement('button');
+    edit.type = 'button'; edit.className = 'plan-edit-btn plan-badge-edit'; edit.textContent = 'Edit plan';
+    edit.addEventListener('click', ()=> openPlanModal(id));
+    box.appendChild(edit);
+  }
   planHeaderEl.appendChild(box);
   planHeaderEl.hidden = false;
+}
+// A new round of a shared plan for everyone; a date plan keeps its length, counted from today.
+function startLivePlanAgain(planId){
+  const plan = activePlan(planId);
+  if (!plan) return;
+  const today = localDateSeed();
+  const span = plan.mode === 'date' ? Math.max(7, planDayNum(plan.finishBy) - planDayNum(plan.startedAt)) : 0;
+  const next = { ...plan, startedAt: today, finishBy: plan.mode === 'date' ? planAddDays(today, span) : null };
+  saveLivePlan(planId, livePlanPayload(next, today, planListKeys(planId).length), true);
 }
 // A brass medal with an open book, drawn on the share card.
 function drawPlanMedal(ctx, cx, topY, s){
@@ -14761,7 +14897,8 @@ function decoratePlanRow(row, pick, st, pending){
     group.insertBefore(chip, readBadge ? readBadge.nextSibling : null);
   }
   if (pending && group){
-    const added = (collectionMemberUpdatedAt[currentCollectionId] || {})[key];
+    const liveList = livePlanList(currentCollectionId);
+    const added = liveList ? ((liveList.talks || {})[key] || {}).addedAt : (collectionMemberUpdatedAt[currentCollectionId] || {})[key];
     if (typeof added === 'number' && added > st.plan.anchor.at && !st.credits[key]){
       const tag = document.createElement('span');
       tag.className = 'plan-new-tag'; tag.textContent = 'New';
@@ -14780,7 +14917,7 @@ function decoratePlanRow(row, pick, st, pending){
 function planModalPreview(){
   const out = document.getElementById('planPreview');
   const id = planModalListId;
-  const total = (collectionMembers[id] || []).length;
+  const total = planListKeys(id).length;
   const existing = planStatus(id);
   const done = existing ? existing.done : 0;
   const today = localDateSeed();
@@ -14801,9 +14938,10 @@ function planModalPreview(){
 }
 function setPlanModalMode(mode){
   planModalMode = mode;
+  const memberOnly = !!planOverlay.dataset.memberOnly;
   document.querySelectorAll('[data-plan-mode]').forEach(b=> b.classList.toggle('is-active', b.dataset.planMode === mode));
-  document.getElementById('planDateFields').hidden = mode !== 'date';
-  document.getElementById('planPaceFields').hidden = mode !== 'pace';
+  document.getElementById('planDateFields').hidden = memberOnly || mode !== 'date';
+  document.getElementById('planPaceFields').hidden = memberOnly || mode !== 'pace';
   planModalPreview();
 }
 function planRemindersAvailable(){
@@ -14814,9 +14952,14 @@ function openPlanModal(listId){
   planModalListId = listId;
   const today = localDateSeed();
   const existing = activePlan(listId);
-  document.getElementById('planModalTitle').textContent = existing ? 'Edit plan' : 'Make this a study plan';
+  // A member of a shared plan can only choose whether it drives their own reminder.
+  const memberOnly = !!(existing && livePlanList(listId) && !liveIsOwner(livePlanList(listId)));
+  document.getElementById('planModalTitle').textContent = memberOnly ? 'Plan reminder' : existing ? 'Edit plan' : 'Make this a study plan';
   document.getElementById('planSaveBtn').textContent = existing ? 'Save' : 'Start plan';
-  document.getElementById('planStopBtn').hidden = !existing;
+  document.getElementById('planStopBtn').hidden = !existing || memberOnly;
+  document.getElementById('planModalIntro').hidden = memberOnly;
+  document.querySelector('.plan-mode-toggle').hidden = memberOnly;
+  planOverlay.dataset.memberOnly = memberOnly ? '1' : '';
   document.getElementById('planModalError').hidden = true;
   const dateInput = document.getElementById('planFinishInput');
   dateInput.min = planAddDays(today, 1);
@@ -14825,7 +14968,7 @@ function openPlanModal(listId){
   document.getElementById('planPacePer').value = existing && existing.mode === 'pace' ? existing.pace.per : 'week';
   const remindRow = document.getElementById('planReminderRow');
   remindRow.hidden = !planRemindersAvailable();
-  const othersRemind = Object.keys(collectionPlans).some(id=> id !== listId && activePlan(id) && collectionPlans[id].reminder);
+  const othersRemind = allPlanIds().some(id=> id !== listId && activePlan(id) && activePlan(id).reminder);
   document.getElementById('planReminderInput').checked = existing ? !!existing.reminder : !othersRemind;
   setPlanModalMode(existing ? existing.mode : 'date');
   planOverlay.hidden = false;
@@ -14842,8 +14985,10 @@ document.querySelectorAll('[data-plan-mode]').forEach(b=> b.addEventListener('cl
 });
 document.getElementById('planStopBtn').addEventListener('click', ()=>{
   const id = planModalListId;
-  if (!id || !confirm('Stop this study plan? The list stays; its plan progress is cleared.')) return;
-  stopPlan(id);
+  const liveList = livePlanList(id);
+  if (!id || !confirm(liveList ? 'Stop this study plan for everyone? The list stays; each person\u2019s plan progress is cleared.' : 'Stop this study plan? The list stays; its plan progress is cleared.')) return;
+  if (liveList) saveLivePlan(id, null);
+  else stopPlan(id);
   closePlanModal();
   if (currentCollectionId === id) renderCollectionPage(id);
   renderPlansHome();
@@ -14853,6 +14998,15 @@ document.getElementById('planSaveBtn').addEventListener('click', ()=>{
   if (!id) return;
   const err = document.getElementById('planModalError');
   const today = localDateSeed();
+  const liveList = livePlanList(id);
+  if (planOverlay.dataset.memberOnly){
+    // Just my own reminder choice for this shared plan.
+    collectionPlans[id] = { reminder: planRemindersAvailable() && document.getElementById('planReminderInput').checked, updatedAt: Date.now() };
+    savePlans();
+    closePlanModal();
+    renderCollectionPage(id);
+    return;
+  }
   let finishBy = null, pace = null;
   if (planModalMode === 'date'){
     finishBy = document.getElementById('planFinishInput').value;
@@ -14864,7 +15018,13 @@ document.getElementById('planSaveBtn').addEventListener('click', ()=>{
   }
   const reminder = planRemindersAvailable() && document.getElementById('planReminderInput').checked;
   const wasPlan = !!activePlan(id);
-  startOrEditPlan(id, planModalMode, finishBy, pace, reminder);
+  if (liveList){
+    const prev = activePlan(id);
+    const shell = { mode: planModalMode, finishBy, pace, startedAt: prev ? prev.startedAt : today };
+    collectionPlans[id] = { reminder, updatedAt: Date.now() };
+    savePlans();
+    saveLivePlan(id, livePlanPayload(shell, today, planListKeys(id).length));
+  } else startOrEditPlan(id, planModalMode, finishBy, pace, reminder);
   closePlanModal();
   if (!wasPlan) collectionSortToggle.set('order');
   renderCollectionPage(id);
@@ -14876,7 +15036,7 @@ function renderPlansHome(){
   const plansZoneEl = document.getElementById('plansZone');
   const plansCardsEl = document.getElementById('plansCards');
   const today = localDateSeed();
-  const all = Object.keys(collectionPlans).map(id=> ({ id, st: planStatus(id, today) })).filter(x=> x.st && x.st.total > 0);
+  const all = allPlanIds().map(id=> ({ id, st: planStatus(id, today) })).filter(x=> x.st && x.st.total > 0);
   // A finished plan keeps its card ("Finished ✓") for the rest of that day, then leaves Home.
   const live = all.filter(x=> !x.st.finished || x.st.lastCredit === today);
   live.sort((a, b)=> (b.st.lastCredit > a.st.lastCredit ? 1 : b.st.lastCredit < a.st.lastCredit ? -1 : 0)
@@ -14891,7 +15051,13 @@ function renderPlansHome(){
     const r = 16, c = 2 * Math.PI * r;
     card.innerHTML = `<span class="plan-card-ring"><svg viewBox="0 0 38 38"><circle class="ring-bg" cx="19" cy="19" r="${r}" fill="none" stroke-width="3.5"/><circle class="ring-fg" cx="19" cy="19" r="${r}" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${(c * frac).toFixed(1)} ${c.toFixed(1)}"/></svg><span></span></span><span class="plan-card-text"><span class="plan-card-name"></span><span class="plan-card-next"></span></span><span class="plan-card-side"></span>`;
     card.querySelector('.plan-card-ring > span').textContent = `${st.done}/${st.total}`;
-    card.querySelector('.plan-card-name').textContent = planListName(id);
+    const nameEl = card.querySelector('.plan-card-name');
+    nameEl.textContent = planListName(id);
+    if (isLivePlanId(id)){
+      const tag = document.createElement('span');
+      tag.className = 'plan-marker'; tag.textContent = 'Shared';
+      nameEl.appendChild(tag);
+    }
     card.querySelector('.plan-card-next').textContent = st.finished ? 'Plan finished' : (st.upNextKey ? `Next: ${planTalkTitle(st.upNextKey)}` : '');
     const side = card.querySelector('.plan-card-side');
     if (st.finished){
@@ -14909,7 +15075,7 @@ function renderPlansHome(){
   });
 }
 document.getElementById('plansSeeAll').addEventListener('click', ()=> goToNavZone('collectionsIndex'));
-onNeedPlansRefresh = ()=>{ renderPlansHome(); if (currentCollectionId) renderCollectionPage(currentCollectionId); };
+onNeedPlansRefresh = ()=>{ renderPlansHome(); if (currentCollectionId) renderCollectionPage(currentCollectionId); syncLivePlanProgress(); };
 renderPlansHome();
 
 /* ---- Idea 88: My order ---- */
@@ -14923,7 +15089,7 @@ function renderOrderHint(orderMode, canReorder, live){
   el.hidden = !orderMode;
   if (!orderMode) return;
   el.textContent = canReorder ? 'Drag the handle, or use the arrows, to put these in your order.'
-    : (live ? 'Order set by the list owner.' : 'Clear the search and filters to rearrange.');
+    : (live ? (live.plan ? 'Order and pace set by the list owner.' : 'Order set by the list owner.') : 'Clear the search and filters to rearrange.');
 }
 
 // Called for every row in My order mode: position number, and (when the
@@ -15036,7 +15202,7 @@ function renderCollectionPage(id){
   document.getElementById('collectionTitle').textContent = live ? live.name : (col ? col.name : 'List');
   renderLiveListBar(live);
   const planPending = renderPlanHeader(id, live);
-  const planSt = live ? null : planStatus(id);
+  const planSt = planStatus(id);
   // Membership array is in the order talks were added (oldest-added
   // first); reversed gives most-recently-added first, the default
   // 'desc', same "recent first" default as Favorites/Recently Viewed
@@ -15768,7 +15934,9 @@ function mergeBackupData(data){
     const inCredits = (data.planCredits && typeof data.planCredits === 'object') ? data.planCredits : {};
     Object.keys(inCredits).forEach(id=>{
       const inc = inCredits[id];
-      if (!inc || typeof inc.round !== 'number' || !inc.talks || !activePlan(id) || inc.round < collectionPlans[id].round) return;
+      // A shared plan's settings aren't in collectionPlans (and its list may not have loaded yet), so its credits are accepted as long as the round isn't older than the one we have.
+      const known = isLivePlanId(id) ? ((livePlanList(id) || {}).plan || {}).round || 0 : (activePlan(id) ? collectionPlans[id].round : Infinity);
+      if (!inc || typeof inc.round !== 'number' || !inc.talks || inc.round < known) return;
       let cur = planCredits[id];
       if (!cur || inc.round > cur.round){ planCredits[id] = { round: inc.round, talks: { ...inc.talks } }; plansChanged = true; return; }
       Object.keys(inc.talks).forEach(k=>{
@@ -16684,15 +16852,6 @@ function liveMemberNamesText(list){
   if (names.length === 3) return `${names[0]}, ${names[1]} & ${names[2]}`;
   return `${names[0]}, ${names[1]} & ${names.length - 2} others`;
 }
-function liveTalkKeysInOrder(list){
-  const talks = list.talks || {};
-  const byAdded = Object.keys(talks).sort((a, b)=> (talks[a].addedAt || 0) - (talks[b].addedAt || 0));
-  // Idea 88 — the owner's order first, everything not in it after by added-at.
-  if (!Array.isArray(list.order) || !list.order.length) return byAdded;
-  const first = list.order.filter(k=> talks[k]);
-  const placed = new Set(first);
-  return first.concat(byAdded.filter(k=> !placed.has(k)));
-}
 function liveShortDate(ms){
   const d = new Date(ms);
   const opts = {month:'short', day:'numeric'};
@@ -16769,6 +16928,8 @@ function stopLiveListSync(){
 }
 
 function onLiveListsChanged(){
+  renderPlansHome(); // idea 88 — a shared plan can appear, change or go
+  syncLivePlanProgress();
   if (collectionsIndexZone.style.display === 'block') renderCollectionsIndexPage();
   const viewingId = liveListId(currentCollectionId);
   if (viewingId){
@@ -16852,6 +17013,11 @@ function buildLiveListIndexRow(list){
   nameText.textContent = list.name;
   nameEl.appendChild(icon);
   nameEl.appendChild(nameText);
+  if (list.plan){ // idea 88
+    const marker = document.createElement('span');
+    marker.className = 'plan-marker'; marker.textContent = 'Plan';
+    nameEl.appendChild(marker);
+  }
   const count = Object.keys(list.talks || {}).length;
   const countEl = document.createElement('span');
   countEl.className = 'collection-row-count';
@@ -17071,18 +17237,42 @@ liveInviteBtn.addEventListener('click', async ()=>{
 // leaves a duplicate behind.
 async function leaveLiveList(list, keepCopy){
   const keys = liveTalkKeysInOrder(list);
+  // Idea 88 — captured before leaving, while the list (and so the plan) is still loaded.
+  const planId = LIVE_LIST_PREFIX + list.id;
+  const carried = activePlan(planId);
+  const carriedCredits = carried ? { ...planCreditMap(planId) } : {};
+  const carriedBadges = (planBadges[planId] || []).map(b=> ({ ...b }));
   try { await cloudCallFunction('leaveSharedList', { listId: list.id }); }
   catch(err){ showLiveMembersError(err); return false; }
   const wasViewing = liveListId(currentCollectionId) === list.id;
   closeLiveMembersModal();
+  delete liveProgressSent[planId];
+  delete collectionPlans[planId]; delete planCredits[planId]; delete planBadges[planId];
   if (keepCopy){
     const id = createCollection(list.name);
     addTalksToCollection(id, keys.map(k=> TALKS_BY_KEY[k]).filter(Boolean));
+    // The order comes across with the talks; the plan comes with it as a personal plan: same goal, reminder as it was, and the talks already finished.
+    if (carried){
+      collectionPlans[id] = {
+        mode: carried.mode, finishBy: carried.finishBy, pace: carried.pace, startedAt: carried.startedAt,
+        anchor: { ...carried.anchor }, reminder: carried.reminder, round: carried.round, updatedAt: Date.now()
+      };
+      const kept = {};
+      keys.forEach(k=>{ if (carriedCredits[k]) kept[k] = carriedCredits[k]; });
+      planCredits[id] = { round: carried.round, talks: kept };
+    }
+    if (carriedBadges.length) planBadges[id] = carriedBadges;
+    savePlans();
+    renderPlansHome();
     renderCollectionPage(id);
     showZone('collection');
-  } else if (wasViewing){
-    currentCollectionId = null;
-    goToNavZone('collectionsIndex');
+  } else {
+    savePlans();
+    renderPlansHome();
+    if (wasViewing){
+      currentCollectionId = null;
+      goToNavZone('collectionsIndex');
+    }
   }
   return true;
 }
@@ -17103,7 +17293,11 @@ document.getElementById('liveMembersLeaveBtn').addEventListener('click', ()=>{
     const next = others.slice().sort((a, b)=> ((list.members[a] || {}).joinedAt || 0) - ((list.members[b] || {}).joinedAt || 0))[0];
     detail = ` ${liveMemberName(list, next)} will take over the list.`;
   }
-  askLiveConfirm(`Leave "${list.name}"?${detail} You can keep your own copy as a normal list.`, [
+  const myPlan = planStatus(LIVE_LIST_PREFIX + list.id);
+  const keepText = myPlan
+    ? `You can keep your own copy as a study plan, with the same order and ${myPlan.plan.mode === 'date' ? 'finish date' : 'pace'}, and the ${myPlan.done} talk${myPlan.done === 1 ? '' : 's'} you've already finished.`
+    : 'You can keep your own copy as a normal list.';
+  askLiveConfirm(`Leave "${list.name}"?${detail} ${keepText}`, [
     { label: 'Leave', action: ()=> leaveLiveList(list, false) },
     { label: 'Leave & Keep a Copy', primary: true, action: ()=> leaveLiveList(list, true) }
   ]);
