@@ -1,6 +1,6 @@
 # Idea 89 — Progress sharing / accountability buddy (spec, not built)
 
-Status: **spec only — not started.** Written 2026-10-23 from a conversation
+Status: **TABLED 2026-10-23 — not being built.** Brad decided study plans stop at shared-list-level sharing (the combined Together number). Kept for reference if this is revisited; the age/consent research and a 13+-only simplification are in `specs/89-build-plan.md` and the lawyer reply summary in DECISIONS.md. Original status: spec only — not started. Written 2026-10-23 from a conversation
 with Brad. This is **Part 2** of study plans. Part 1 (idea 88) is built
 and ships first, on its own (see `specs/89-build-plan.md` section 2); it is
 currently switched off (`STUDY_PLANS_ENABLED = false` in `docs/index.html`).
