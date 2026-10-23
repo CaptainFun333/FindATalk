@@ -102,6 +102,20 @@ enum TalkStore {
         return parseTalks(root)
     }
 
+    /// The published Talk of the Day schedule ("yyyy-mm-dd" -> talk key)
+    /// the app mirrors alongside the talk list. The app, widget and Siri
+    /// shortcut all look the day up here so they can't disagree however
+    /// the talk list changes; the algorithm below only fills dates it
+    /// doesn't cover. Empty until the app has run once.
+    static func mirroredSchedule() -> [String: String] {
+        guard let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.captainfun333.findatalk"),
+              let data = try? Data(contentsOf: dir.appendingPathComponent("talks.json")),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return [:]
+        }
+        return root["totdSchedule"] as? [String: String] ?? [:]
+    }
+
     static func parseTalks(_ root: [String: Any]) -> [Talk] {
         guard let talksRaw = root["talks"] as? [[Any]] else { return [] }
 
@@ -169,6 +183,15 @@ enum TalkStore {
         // conference stays out of the daily pool so every installed
         // widget/app build agrees. Remove together with the JS copy.
         let c = calendar.dateComponents([.year, .month, .day], from: date)
+
+        // The published schedule wins over the algorithm (see
+        // mirroredSchedule above).
+        let dateKey = String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+        if let scheduledKey = mirroredSchedule()[dateKey],
+           let scheduled = talks.first(where: { $0.key == scheduledKey }) {
+            return scheduled
+        }
+
         let held = (c.year ?? 0, c.month ?? 0, c.day ?? 0) < (2027, 1, 8)
         let sorted = talks
             .filter { !(held && $0.key.hasPrefix("2026|10|")) }

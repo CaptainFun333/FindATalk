@@ -10,6 +10,9 @@ this updated.
 
 ## [Unreleased]
 
+### Fixed
+- The Talk of the Day on the home-screen widgets, the Siri shortcut and in the app now always match, including right after a new General Conference is added, with no app update needed to keep them in step. (Website live immediately; the app and widgets need a new build.)
+
 ### Added
 - The website now shows a **Download on the App Store** button now that FindATalk is live on the App Store, and the app's Rate button opens the App Store review page. (Website live immediately; the app needs a new build for the Rate change.)
 - Your lists can now be put in any order you like: pick **My order** on a list, then drag the handle (or use the arrows) to rearrange. The order syncs between your devices, and on a shared list the owner sets the order for everyone. (Website live immediately; the app needs a new build. Shared-list ordering also needs the cloud functions deployed.)

@@ -234,7 +234,7 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_talk_of_day);
         Talk pick = null;
         try {
-            pick = talkOfTheDay(loadTalks(context));
+            pick = talkOfTheDay(context, loadTalks(context));
         } catch (Exception e) {
             Log.e(TAG, "Failed to compute Talk of the Day", e);
         }
@@ -557,6 +557,26 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
         return mirrored.size() > bundled.size() ? mirrored : bundled;
     }
 
+    /** Today's talk key from the published schedule the app mirrored
+        ("yyyy-mm-dd" -> "year|month|slug"), or null when the app hasn't
+        mirrored one yet or the schedule doesn't cover this date. */
+    private String loadScheduledKey(Context context, Calendar day) {
+        try {
+            String raw = context.getSharedPreferences(STREAK_PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(TALKS_KEY, null);
+            if (raw == null) return null;
+            JSONObject schedule = new JSONObject(raw).optJSONObject("totdSchedule");
+            if (schedule == null) return null;
+            String date = String.format(java.util.Locale.US, "%04d-%02d-%02d",
+                day.get(Calendar.YEAR), day.get(Calendar.MONTH) + 1, day.get(Calendar.DAY_OF_MONTH));
+            String key = schedule.optString(date, "");
+            return key.isEmpty() ? null : key;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to read mirrored schedule", e);
+            return null;
+        }
+    }
+
     private String readBundledJson(Context context) throws Exception {
         try (InputStream is = context.getAssets().open("public/data.json");
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
@@ -615,17 +635,29 @@ public class TalkOfDayWidgetProvider extends AppWidgetProvider {
     /** Port of talkOfTheDay()/cyclePick()/CURATED_HOLIDAYS/splitmix32()
         from docs/index.html — keep in sync. Checks today's curated
         holidays first, then falls back to the no-repeat cycle shuffle. */
-    private Talk talkOfTheDay(ArrayList<Talk> talks) {
+    private Talk talkOfTheDay(Context context, ArrayList<Talk> talks) {
         if (talks.isEmpty()) return null;
         // No Talk of the Day on a General Conference day — see
         // ConferenceWeekend and updateWidget() above.
         if (ConferenceWeekend.isConferenceDay(Calendar.getInstance())) return null;
 
+        // The published schedule wins over the algorithm: the app mirrors
+        // data.json's totdSchedule next to the talk list (see
+        // mirrorTalksToNative() in docs/index.html), and the app itself
+        // reads the same one, so they can't disagree however the talk list
+        // changes. Dates it doesn't cover fall through to the algorithm.
+        Calendar nowCal = Calendar.getInstance();
+        String scheduledKey = loadScheduledKey(context, nowCal);
+        if (scheduledKey != null) {
+            for (Talk t : talks) {
+                if (t.key().equals(scheduledKey)) return t;
+            }
+        }
+
         // TEMPORARY hold — mirror of TOTD_HELD_BACK in docs/index.html (see
         // DECISIONS.md, 2026-10-08): until Jan 8 2027 the October 2026
         // conference stays out of the daily pool so every installed
         // widget/app build agrees. Remove together with the JS copy.
-        Calendar nowCal = Calendar.getInstance();
         int ymd = nowCal.get(Calendar.YEAR) * 10000 + (nowCal.get(Calendar.MONTH) + 1) * 100
             + nowCal.get(Calendar.DAY_OF_MONTH);
         boolean held = ymd < 20270108;
