@@ -140,6 +140,12 @@ two in step.
 The Stats tab's daily-readers calendar shows each day's Talk of the Day,
 which the function recomputes with `functions/totd.js` — a port of
 `talkForDate()` / `cyclePick()` / `CURATED_HOLIDAYS` in `docs/index.html`.
+**Any time talks are added to `docs/data.json` (a new conference), run
+`node scripts/generate-totd-schedule.js` and commit the result** — Talk of
+the Day is a published schedule (`totdSchedule`) that the app, widgets, Siri
+and the ledger all read, and a stale one means they drift apart. Then
+redeploy functions. See `ENGINEERING_NOTES.md` (Talk of the Day).
+
 **If the app's Talk of the Day algorithm ever changes, change
 `functions/totd.js` to match and redeploy**, or the calendar will name the
 wrong talk.
