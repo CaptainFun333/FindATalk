@@ -8603,8 +8603,8 @@ window.__planMath = { planDayNum, planAddDays, planWeekStart, planExpectedThroug
 // Idea 88 — master switch. false hides every study-plan surface (Home cards,
 // plan headers, Make it a plan, the Plan marker, reminders) while leaving
 // saved plan data, syncing and My order untouched, so flipping it back on
-// restores everything. Off for now while the feature is developed further.
-const STUDY_PLANS_ENABLED = false;
+// restores everything. On for the Part 1 release (see specs/89-build-plan.md).
+const STUDY_PLANS_ENABLED = true;
 function isLivePlanId(planId){ return typeof planId === 'string' && planId.startsWith(LIVE_LIST_PREFIX); }
 function livePlanList(planId){ return isLivePlanId(planId) ? (liveListsById[planId.slice(LIVE_LIST_PREFIX.length)] || null) : null; }
 function allPlanIds(){
