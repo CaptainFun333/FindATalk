@@ -16767,7 +16767,7 @@ initMigrationBanner();
    Store isn't public yet, so until APP_STORE_URL is filled in it shows
    plain "coming soon" text — deliberately not a lookalike Apple badge.
    The App Store is live (approved 2026-10-23); the badge is Apple's
-   official one, hotlinked from their badge service. Both constants are also used by
+   official one, saved as docs/app-store-badge.svg. Both constants are also used by
    the rating ask's Rate button (idea 76) to open the store listing. */
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.captainfun333.findatalk';
 const APP_STORE_URL = 'https://apps.apple.com/us/app/findatalk/id6807210681';
@@ -16782,7 +16782,7 @@ function initStoreBadges(){
   const isIos = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
   const play = `<a class="store-badge" href="${PLAY_STORE_URL}" target="_blank" rel="noopener"><img src="play-badge.png" alt="Get it on Google Play"></a>`;
   const apple = APP_STORE_URL
-    ? `<a class="store-badge" href="${APP_STORE_URL}" target="_blank" rel="noopener"><img class="apple" src="https://tools.applemediaservices.apple.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" alt="Download on the App Store"></a>`
+    ? `<a class="store-badge" href="${APP_STORE_URL}" target="_blank" rel="noopener"><img class="apple" src="app-store-badge.svg" alt="Download on the App Store"></a>`
     : null;
   let html = '';
   if (isAndroid) html = play;
