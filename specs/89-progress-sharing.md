@@ -39,24 +39,52 @@ sharer's choice, and a leader never sees who has *not* shared.
 | No ranking | Rosters are in join order or alphabetical. No sort-by-progress, no "behind" / "needs encouragement" label, no red, for leaders too. |
 | Framing | Wording is "accountability buddy" / "help me stay on course". The control lives in the plan's own settings, so it reads as the member's own choice. |
 
-## 3. Open questions for Brad (decide before building)
+## 3. Age model (decided 2026-10-23 after the children's-privacy research)
 
-1. **Children.** Does the app allow under-13 or under-18 accounts at all
-   today, and what do the Terms / `docs/privacy.html` say? A parent flow
-   for young children raises age-gating and parental-consent questions.
-   **Recommendation:** build for accounts that already exist (13+ teens
-   and adults) first, where the teen consents like anyone else; decide the
-   under-13 design separately, with a privacy review.
-2. **Class rosters.** Should a leader be able to send one request to a
-   whole shared list ("ask everyone"), or only individual requests?
-   Recommendation: individual or "invite all", but every member answers
-   individually and a leader never sees who ignored it.
-3. **Nudges.** Out of scope for v1 (a "send encouragement" button is an
-   outward message and edges toward pressure). Revisit later.
-4. **Who can be a viewer.** Any member of the same shared list, or any
-   FindATalk user by invite link? Recommendation for v1: members of the
-   same shared list only (the relationship already exists and is visible
-   to both people).
+Research summary (full sources in `specs/89-build-plan.md` section 1): COPPA
+applies to us for any user we have *actual knowledge* is under 13 (Brad's
+own two children count); disclosing a child's data to anyone other than the
+parent needs verifiable parental consent; Apple (not Kids Category,
+guideline 5.1.4(b)) and Google Play (Families policy, if the declared
+audience includes under-13s) both require an accurate privacy policy and
+honest store forms, and Play adds a neutral age screen and adult controls
+for social features.
+
+| Group | What's allowed |
+|---|---|
+| **13+ (teens and adults)** | Full feature: opt-in buddy sharing with any member of the same shared list, including seminary teachers and church leaders. |
+| **Under 13, with a parent** | Parent-initiated only. The parent invites the child; the parent's own signed-in account is the consent record. The parent sees only done / total and the last-read day. The child's account is *supervised*: no leader sharing, no joining shared lists unless the parent allows it. |
+| **Under 13, with a leader** | **Not in v1.** It is a disclosure to a third party and needs real verifiable parental consent per child. Revisit only with legal advice. |
+
+Rules that follow from this:
+- A **neutral age screen** (a plain birth-year/month question, no hint of
+  the "right" answer, shown once when someone first signs in) records
+  `ageBand: 'under13' | '13plus'` on the account. Under-13 answers create a
+  supervised account only through a parent (see build plan stage 2); a child
+  who answers under 13 alone is told a parent needs to help and gets the
+  no-account experience (the app works fully without an account).
+- We keep **no analytics, ads or tracking** (already true; keep it true).
+- Children's data is **never used for anything but running the app**, and a
+  parent can see and delete it (Settings → Delete My Account already
+  deletes; add "delete my child's data" for the parent).
+- The privacy policy's children's section is rewritten before any release
+  (draft in `specs/89-privacy-children-draft.md`).
+
+### Still open (needs Brad / a lawyer)
+1. Is "the parent signs in with their own account and approves" enough as
+   verifiable parental consent, or does it need one of the FTC's listed
+   methods (card transaction, signed form, ID check)? **Ask a privacy
+   lawyer before building the under-13 parent flow (stage 5).** Stages 1–4
+   (13+ only) do not depend on the answer.
+2. Are Firebase Authentication and Cloud Firestore acceptable for a
+   mixed-audience app under Google Play's Families policy? Firebase's own
+   pages say nothing on children; check Google's approved-SDK list in Play
+   Console / ask Play support before declaring under-13s as part of the
+   audience.
+3. International: the EU/UK treat children under 13–16 differently. Until
+   decided, supervised under-13 accounts are US-only or off for other
+   regions.
+4. Nudges ("send encouragement") stay out of v1.
 
 ## 4. User experience
 
