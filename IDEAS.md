@@ -32,6 +32,7 @@ promise of what ships next. Grouped by status, most active first:
 83. **Shorter list-share links** — open (analysis 2026-10-01; recommended: base-62 packed talk positions, no commas, ~half the length, old links still work; optional cap on name length; a Firestore short link like findatalk.com/l/abc123 is the only way to get tiny links but adds a backend + privacy disclosure)
 84. **Anonymous per-day Talk of the Day read counter** — open, queued for the release after 1.7.7 (lets the ledger calendar count everyone who read the day's featured talk, not only signed-in accounts; app change, needs new builds; counts start the day it ships)
 88. **Study plans** — in progress on the `study-plans` branch (2026-10-19): My order, personal plans, the finish badge, plan reminders and shared plans are all built; waiting on a `firebase deploy` and new app builds. Any list can become a plan: your own order, a finish date or a pace, a "Plan" check separate from Read ×N, slender cards on Home, a daily reminder that names the next talk in place of the Talk of the Day reminder, shared family/ward plans with one combined "Together" number, and a shareable finish badge on the list's page (not in the trophy drawer). Full spec: `specs/88-study-plans.md`; mockup: https://claude.ai/artifact/Q3SgCFkNB39FqxbdQpZmdr
+89. **Progress sharing / accountability buddy** — open, spec written 2026-10-23 (`specs/89-progress-sharing.md`). Opt-in, one-to-one "help me stay on course" sharing of plan progress (done/total and last-read day) for parents and seminary/church leaders, never a leaderboard. Open question: under-13 accounts. Builds on 88.
 
 ## Done
 
@@ -113,7 +114,7 @@ promise of what ships next. Grouped by status, most active first:
 ---
 
 **In progress:** 44, 68, 86, 87
-**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 64, 66, 83, 84, 88
+**Open:** 5, 6, 13, 17, 21, 29, 38, 47, 52, 53, 64, 66, 83, 84, 88, 89
 **Done:** 3, 4, 57, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 45, 46, 48, 49, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 65, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 85
 **Disregarded:** 1, 2, 26, 50
 **Obsolete:** 39, 42, 43

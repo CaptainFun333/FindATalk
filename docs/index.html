@@ -8600,14 +8600,21 @@ window.__planMath = { planDayNum, planAddDays, planWeekStart, planExpectedThroug
    the owner's anchor date and total, with "done" being how many of THIS
    member's credits predate that date, so a goal change never makes anyone
    retroactively behind. */
+// Idea 88 — master switch. false hides every study-plan surface (Home cards,
+// plan headers, Make it a plan, the Plan marker, reminders) while leaving
+// saved plan data, syncing and My order untouched, so flipping it back on
+// restores everything. Off for now while the feature is developed further.
+const STUDY_PLANS_ENABLED = false;
 function isLivePlanId(planId){ return typeof planId === 'string' && planId.startsWith(LIVE_LIST_PREFIX); }
 function livePlanList(planId){ return isLivePlanId(planId) ? (liveListsById[planId.slice(LIVE_LIST_PREFIX.length)] || null) : null; }
 function allPlanIds(){
+  if (!STUDY_PLANS_ENABLED) return [];
   const ids = Object.keys(collectionPlans).filter(id=> !isLivePlanId(id));
   Object.values(liveListsById).forEach(l=>{ if (l.plan) ids.push(LIVE_LIST_PREFIX + l.id); });
   return ids;
 }
 function activePlan(planId){
+  if (!STUDY_PLANS_ENABLED) return null;
   if (isLivePlanId(planId)){
     const list = livePlanList(planId);
     const lp = list && list.plan;
@@ -14736,6 +14743,7 @@ function renderPlanHeader(id, live){
   const planHeaderEl = document.getElementById('planHeader');
   planHeaderEl.innerHTML = '';
   planHeaderEl.hidden = true;
+  if (!STUDY_PLANS_ENABLED) return;
   const owner = !live || liveIsOwner(live); // a shared plan is edited by its owner only
   const pending = reconcilePlanAnchor(id);
   const st = planStatus(id);
@@ -14982,6 +14990,7 @@ function planRemindersAvailable(){
   return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
 }
 function openPlanModal(listId){
+  if (!STUDY_PLANS_ENABLED) return;
   planModalListId = listId;
   const today = localDateSeed();
   const existing = activePlan(listId);
@@ -15124,7 +15133,7 @@ function renderOrderHint(orderMode, canReorder, live){
   el.hidden = !orderMode;
   if (!orderMode) return;
   el.textContent = canReorder ? 'Drag the handle, or use the arrows, to put these in your order.'
-    : (live ? (live.plan ? 'Order and pace set by the list owner.' : 'Order set by the list owner.') : 'Clear the search and filters to rearrange.');
+    : (live ? (STUDY_PLANS_ENABLED && live.plan ? 'Order and pace set by the list owner.' : 'Order set by the list owner.') : 'Clear the search and filters to rearrange.');
 }
 
 // Called for every row in My order mode: position number, and (when the
@@ -15314,6 +15323,7 @@ onNeedCollectionRefresh = ()=>{ if (currentCollectionId) renderCollectionPage(cu
 // of short, on-device strings, no index needed.
 let collectionsQuery = '';
 function buildMakePlanPill(planId){
+  if (!STUDY_PLANS_ENABLED) return document.createDocumentFragment();
   const btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'plan-pill';
   btn.innerHTML = PLAN_BOOK_SVG + '<span>Make it a plan</span>';
@@ -17148,7 +17158,7 @@ function buildLiveListIndexRow(list){
   nameText.textContent = list.name;
   nameEl.appendChild(icon);
   nameEl.appendChild(nameText);
-  if (list.plan){ // idea 88
+  if (STUDY_PLANS_ENABLED && list.plan){ // idea 88
     const marker = document.createElement('span');
     marker.className = 'plan-marker'; marker.textContent = 'Plan';
     nameEl.appendChild(marker);

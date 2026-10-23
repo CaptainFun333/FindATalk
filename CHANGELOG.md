@@ -24,6 +24,7 @@ this updated.
 - Dragging to reorder a list (or the My Lists page) now works in desktop web browsers; it used to stop after the first step. (Website live immediately; the app needs a new build.)
 
 ### Changed
+- Study plans are hidden for now while the feature is developed further; your lists and the My order sort are unaffected, and any plans you set up are kept for when it returns. (Website live immediately; the app needs a new build.)
 - The suggested message when sharing a talk now shows as grey hint text that disappears as soon as you start typing, so you no longer have to delete it to write your own. Sharing with the box empty sends just the link. (Website live immediately; the app needs a new build.)
 
 ## [1.7.9] — 2026-10-09
