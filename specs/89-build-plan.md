@@ -8,9 +8,15 @@ stage 0.
 
 Keep this file out of `docs/` (that folder is the public site).
 
-Study plans (idea 88) are currently switched off
-(`STUDY_PLANS_ENABLED = false` in `docs/index.html`). Idea 89 builds on
-them; the switch comes back on only at stage 7, in the same release.
+**Study plans ship in two parts** (decided 2026-10-23):
+- **Part 1 — study plans (idea 88), already built.** My order, personal
+  plans, finish badge, reminders, shared plans with the combined Together
+  number. Currently switched off (`STUDY_PLANS_ENABLED = false` in
+  `docs/index.html`). Does not depend on the age questions, so it ships
+  first: see section 2.
+- **Part 2 — opt-in oversight (idea 89).** Watching someone else's
+  progress, with the age model. Ships in a later build once the age
+  permissions plan is settled: see section 3.
 
 ---
 
@@ -55,11 +61,60 @@ them; the switch comes back on only at stage 7, in the same release.
   children's information — untrue now that Brad's two under-13 children
   have accounts.
 
-## 2. Build in one release, in this order
+---
 
-Release target: the next minor version (Android `versionCode` 28 /
-`versionName "1.7.9"` are current — bump to 1.8.0 / 29+ at stage 7; iOS
-build number likewise).
+## 2. Part 1 release — study plans (idea 88)
+
+Everything is built and merged on `main`. What's left is testing, the
+privacy text, and the switch.
+
+1. **Test shared plans with two real accounts** (Brad's account plus an
+   adult or teen test account — **not** the under-13 children's). Cover:
+   owner sets order/pace and a member sees the lock line; a member's
+   progress updates the Together number and nobody sees a per-person
+   number (check devtools/Firestore directly too); leave & keep a copy
+   carries plan settings, chips and order; owner leaves → the earliest-
+   joined member gets control; Start it again (owner only) bumps the
+   round. These were not run in the original build.
+2. **Re-test the device-to-device order merge** (reorder on one device, add
+   a talk on the website, both end with the same order + the new talk at
+   the end). Only read-checked so far.
+3. **Privacy text (small, Part 1 only)** in `docs/privacy.html`: your
+   account also stores study-plan settings, which talks you finished as
+   part of a plan, and finished-plan badges; and, for shared plans, each
+   member's finished count is stored on our servers and only the combined
+   total is shown to the group. Do **not** include the children's section
+   or the progress-sharing section (Part 2). The existing "Children's
+   privacy" sentence stays as it is (accurate while no child has an
+   account — Brad's two have deleted theirs).
+4. **Switch on:** set `STUDY_PLANS_ENABLED = true`. Pushing `main`
+   publishes the website immediately, so either flip it for everyone on
+   release day, or gate it to the native apps first
+   (`Capacitor.isNativePlatform()`) and open the web later.
+5. **Functions/rules:** the study-plan callables and `sharedListProgress`
+   rules are already deployed; confirm with `firebase deploy --only
+   functions,firestore:rules` if anything in `functions/` or
+   `firestore.rules` changed since.
+6. **Changelog:** the Added bullets already exist; remove the "Study plans
+   are hidden for now" Changed bullet when the switch goes on. Add
+   a DECISIONS line if anything about the plan changes.
+7. **Build:** bump versions (Android `versionCode`/`versionName`, iOS
+   build), sync Capacitor, build, upload to Play Console and App Store
+   Connect. Store forms for Part 1: no new data types beyond what the
+   Data safety / App Privacy answers already cover for accounts and
+   shared lists — add "app activity: reading progress" if not already
+   declared. Rename `## [Unreleased]` → the version in `CHANGELOG.md`.
+8. **Keep the audience honest:** do not market the app or plans as for
+   children (Apple 5.1.4(b), Play target-audience declaration).
+
+## 3. Part 2 build — opt-in oversight and age permissions (idea 89), in this order
+
+Targets the build after Part 1. Part 2 builds on the Part 1 code, which is
+already live behind the same switch.
+
+Versions: Android `versionCode` 28 / `versionName "1.7.9"` were current
+when this was written; Part 1 takes the next version and Part 2 the one
+after.
 
 ### Stage 0 — decisions and checks (Brad; blocks stage 5 only)
 1. Book a short consult with a privacy lawyer. Questions: (a) is a parent's
@@ -93,7 +148,7 @@ Stages 1–4 proceed in parallel and only cover 13+.
 - Tests: age screen shows once; no threshold hint; under-13 blocked
   cleanly; `ageBand` unreadable/unwritable by other users.
 
-### Stage 2 — privacy policy and store forms (can ship early)
+### Stage 2 — privacy policy and store forms (Part 2)
 - Apply `specs/89-privacy-children-draft.md` to `docs/privacy.html` after
   lawyer review, **in the same release as the build** (decided 2026-10-23).
   Until then the current policy stays accurate because Brad's two
@@ -167,12 +222,12 @@ In `docs/index.html`, inside the same `STUDY_PLANS_ENABLED` gating:
 - Walk the spec's test checklist (section 7) with real accounts, including
   a teen account and a supervised account.
 
-### Stage 7 — release into a build
-1. Merge to `main` only after tests pass (note: pushing `main` publishes
-   the website immediately; keep `STUDY_PLANS_ENABLED = false` on the web
-   until Brad is ready for plans to go public — either gate it by
-   platform, e.g. `true` only when `Capacitor.isNativePlatform()`, or flip
-   it for everyone on release day).
+### Stage 7 — release into a build (Part 2)
+1. Merge to `main` only after tests pass (pushing `main` publishes the
+   website immediately; the Part 2 UI sits behind the same
+   `STUDY_PLANS_ENABLED` switch, which is already on by then — consider a
+   separate `PROGRESS_SHARING_ENABLED` flag so the website can lag the
+   build).
 2. Brad: `firebase deploy --only functions,firestore:rules`.
 3. Bump versions (Android `build.gradle`, iOS project/`Info.plist`), sync
    Capacitor, build the Android bundle, build iOS.
@@ -181,10 +236,10 @@ In `docs/index.html`, inside the same `STUDY_PLANS_ENABLED` gating:
 5. Brad uploads to Play Console / App Store Connect with updated Data
    safety, target audience, App Privacy and age rating answers (privacy
    draft, "Store forms").
-6. Flip `STUDY_PLANS_ENABLED` to `true` in the shipped build (and on the
-   web when ready). Do not market the app or feature as for children.
+6. Turn on the Part 2 flag in the shipped build (and on the web when
+   ready). Do not market the app or feature as for children.
 
-## 3. What is deliberately not in this release
+## 4. What is deliberately not in Part 2
 - Under-13 sharing with teachers/leaders (needs verifiable parental
   consent per child).
 - "Send encouragement" nudges.

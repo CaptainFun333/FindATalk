@@ -1,9 +1,10 @@
 # Idea 89 — Progress sharing / accountability buddy (spec, not built)
 
 Status: **spec only — not started.** Written 2026-10-23 from a conversation
-with Brad. Depends on idea 88 (study plans), which is built but currently
-**switched off** (`STUDY_PLANS_ENABLED = false` in `docs/index.html`); this
-should be built and released together with plans coming back on.
+with Brad. This is **Part 2** of study plans. Part 1 (idea 88) is built
+and ships first, on its own (see `specs/89-build-plan.md` section 2); it is
+currently switched off (`STUDY_PLANS_ENABLED = false` in `docs/index.html`).
+This spec builds on it and waits for the age-permissions plan to be settled.
 
 Keep this file out of `docs/` (that folder is the public site).
 
