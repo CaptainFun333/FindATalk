@@ -95,9 +95,12 @@ Stages 1–4 proceed in parallel and only cover 13+.
 
 ### Stage 2 — privacy policy and store forms (can ship early)
 - Apply `specs/89-privacy-children-draft.md` to `docs/privacy.html` after
-  lawyer review. This can go live before the build, since the draft is
-  accurate about *today's* parent-set-up accounts too — **publish this one
-  first**, because the current policy is already inaccurate.
+  lawyer review, **in the same release as the build** (decided 2026-10-23).
+  Until then the current policy stays accurate because Brad's two
+  under-13 children have deleted their accounts and will not sign in again
+  until the age screen and parent flow exist. Do not publish the draft
+  early: it says under-13s can have a parent-approved account, which
+  would raise Play audience / Data safety questions before stage 5 exists.
 - Update `docs/delete-account.html` if the parent "delete my child's data"
   path is added (stage 5).
 - Prepare answers for Play Data safety / target audience and App Store
