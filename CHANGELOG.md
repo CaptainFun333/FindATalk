@@ -19,6 +19,7 @@ this updated.
 - Shared study plans: the owner of a shared list can make it a study plan with an order and a finish date or pace. Everyone follows it with their own progress, and the list shows one combined "Together" number. If you leave a shared plan and keep a copy, it becomes your own study plan with your progress. (Website live immediately; the app needs a new build. Needs the cloud functions deployed.)
 - Your My Lists page now has a **My order** sort: drag the handle (or use the arrows) to put your lists in the order you like. It syncs between your devices, new lists land at the end, and shared lists stay grouped at the top. (Website live immediately; the app needs a new build.)
 - A small **Make it a plan** button on each list in My Lists starts a study plan in one tap, and the move/drag controls now sit at the top right of each list card. (Website live immediately; the app needs a new build.)
+- If you aren't signed in, FindATalk now occasionally invites you to sign in so your favorites, notes, lists, badges, and streak are backed up and on all your devices. It shows up at most once a month and three times in all, inside a Talks Read badge celebration or after your first list or note, and you can tell it not to ask again. (Website live immediately; the app needs a new build.)
 
 ### Fixed
 - Dragging to reorder a list (or the My Lists page) now works in desktop web browsers; it used to stop after the first step. (Website live immediately; the app needs a new build.)

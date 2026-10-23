@@ -1055,6 +1055,76 @@
     padding:6px; margin-top:2px; text-decoration:underline;
   }
   .badge-celebration-modal .btn-primary{ margin-top:8px; }
+  /* Idea 90 — sign-in ask: perks list (stand-alone pop-up and the box
+     attached to a Talks Read badge), the reminder row in Your FindATalk,
+     and the opt-out toast. */
+  .sign-in-ask-perks{
+    list-style:none; margin:0 0 14px; padding:12px 14px; text-align:left;
+    display:flex; flex-direction:column; gap:9px;
+    background:var(--tint); border-radius:6px;
+  }
+  .sign-in-ask-perks li{
+    display:flex; gap:9px; align-items:flex-start;
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.4; color:var(--ink);
+  }
+  .sign-in-ask-perks svg{ flex-shrink:0; width:16px; height:16px; color:var(--brass); margin-top:1px; }
+  .sign-in-ask-perks.slim{ background:none; padding:0; margin:0 0 4px; gap:6px; }
+  .sign-in-ask-perks.slim li{ font-size:12.5px; }
+  .sign-in-ask-attach{
+    background:var(--tint); border-radius:6px; padding:12px 12px 6px; margin:0 0 4px; text-align:left;
+  }
+  .sign-in-ask-attach[hidden]{ display:none; }
+  .sign-in-ask-attach-h{
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:700; color:var(--ink); margin:0 0 8px;
+  }
+  .sign-in-ask-attach .btn-ghost{ margin-top:8px; background:var(--paper-raised); }
+  .sign-in-ask-attach .sign-in-ask-never{ margin-top:2px; }
+  .sign-in-ask-fine{
+    font-family:'Inter',sans-serif; font-size:12px; color:var(--ink-soft); margin:0 0 4px;
+  }
+  .sign-in-ask-never{
+    display:block; width:100%; background:none; border:none; cursor:pointer; text-align:center;
+    font-family:'Inter',sans-serif; font-size:11.5px; color:var(--ink-soft); opacity:.85;
+    padding:4px 6px; text-decoration:underline;
+  }
+  .sign-in-ask-never[hidden]{ display:none; }
+  .sign-in-nudge-row{
+    display:flex; align-items:center; gap:9px; padding:10px; margin-bottom:12px;
+    border:1px dashed var(--brass); border-radius:6px; background:var(--chip-bg);
+  }
+  .sign-in-nudge-row[hidden]{ display:none; }
+  .sign-in-nudge-icon{
+    flex-shrink:0; width:28px; height:28px; border-radius:50%;
+    display:grid; place-items:center;
+    background:var(--paper-raised); border:1px solid var(--line); color:var(--brass);
+  }
+  .sign-in-nudge-icon svg{ width:16px; height:16px; }
+  .sign-in-nudge-text{ min-width:0; flex:1; }
+  .sign-in-nudge-text strong{
+    display:block; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color:var(--ink);
+  }
+  .sign-in-nudge-text span{
+    display:block; font-family:'Inter',sans-serif; font-size:11.5px; color:var(--ink-soft); margin-top:1px;
+  }
+  .sign-in-nudge-go{
+    flex-shrink:0; background:none; border:none; cursor:pointer; padding:6px 2px;
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700; color:var(--burgundy); white-space:nowrap;
+  }
+  .sign-in-nudge-go:hover{ text-decoration:underline; }
+  .sign-in-nudge-x{
+    flex-shrink:0; background:none; border:none; cursor:pointer;
+    font-size:20px; line-height:1; color:var(--ink-soft); padding:2px 4px;
+  }
+  .sign-in-nudge-x:hover{ color:var(--burgundy); }
+  .sign-in-ask-toast{
+    position:fixed; left:50%; transform:translateX(-50%); z-index:400;
+    bottom:calc(24px + env(safe-area-inset-bottom, 0px));
+    width:max-content; max-width:calc(100vw - 32px);
+    background:var(--ink); color:var(--paper);
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:500; text-align:center;
+    padding:11px 16px; border-radius:8px; box-shadow:var(--shadow);
+  }
+  .sign-in-ask-toast[hidden]{ display:none; }
   .switch-track::before{
     content:"";
     position:absolute; top:3px; left:3px;
@@ -2441,6 +2511,18 @@
   }
   .auth-divider::before, .auth-divider::after{ content:""; flex:1; height:1px; background:var(--line); }
   #authAppleBtn, #authGoogleBtn{ margin-top:10px; }
+  /* Idea 90 — opened from a sign-in ask, Apple/Google come before the
+     email form. Same buttons, reordered with CSS (see openSignInModal()). */
+  .modal.auth-social-first{ display:flex; flex-direction:column; }
+  .auth-social-first > .modal-header{ order:0; }
+  .auth-social-first > #signInModalCopy{ order:1; }
+  .auth-social-first > #authErrorMsg{ order:2; }
+  .auth-social-first > #authAppleBtn{ order:3; margin-top:0; }
+  .auth-social-first > #authGoogleBtn{ order:4; }
+  .auth-social-first > .auth-divider{ order:5; }
+  .auth-social-first > #signInForm{ order:6; }
+  .auth-social-first > #authForgotPasswordBtn{ order:7; }
+  .auth-social-first > #authToggleModeBtn{ order:8; }
   .modal-copy{
     font-family:'Inter',sans-serif; font-size:14.5px; line-height:1.5; color:var(--ink-soft);
     margin:0 0 20px;
@@ -4051,7 +4133,7 @@
       <button type="button" class="auth-link-btn" id="authForgotPasswordBtn">Forgot password?</button>
       <button type="button" class="auth-link-btn" id="authToggleModeBtn">Don't have an account? Create one</button>
 
-      <div class="auth-divider"><span>or</span></div>
+      <div class="auth-divider"><span id="authDividerLabel">or</span></div>
 
       <button type="button" class="btn btn-ghost full-width" id="authAppleBtn">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.437 2.13-1.31 2.97-.996.96-2.13 1.44-3.24 1.35-.033-1.1.45-2.19 1.32-3.03.93-.9 2.13-1.41 3.22-1.29.007.003.01.003.01 0Zm3.24 16.67c-.56 1.28-.83 1.85-1.55 2.98-1 1.58-2.42 3.55-4.17 3.57-1.56.02-1.96-1.02-4.08-1.01-2.12.01-2.56 1.03-4.12 1.01-1.75-.02-3.1-1.8-4.1-3.38C-1.6 17.43-.46 11.6 3.06 8.5c1.62-1.43 3.4-1.5 4.6-.86 1.05.56 1.92.86 2.75.86.78 0 1.83-.34 3.14-.94 1.6-.72 3.55-.5 5.06.86-2.6 1.6-3.86 3.83-3.86 6.7 0 3.3 1.7 5.3 4.5 5.94-.16.4-.33.79-.5 1.13Z"/></svg>
@@ -4162,6 +4244,14 @@
            <div>s, so Enter/Space/click all work natively — no manual
            role="button"/keydown wiring needed, unlike the streak pill's
            own <div>-based workaround. -->
+      <!-- Idea 90 — the quiet reminder row, only after the first sign-in
+           ask. See renderSignInNudgeRow(). -->
+      <div class="sign-in-nudge-row" id="signInNudgeRow" hidden>
+        <span class="sign-in-nudge-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1-.5 9.5z"/><polyline points="9.5,13.5 12,11 14.5,13.5"/><line x1="12" y1="11" x2="12" y2="17"/></svg></span>
+        <span class="sign-in-nudge-text"><strong>Back up your progress</strong><span>Free &middot; on every device</span></span>
+        <button type="button" class="sign-in-nudge-go" id="signInNudgeGoBtn">Sign in &rsaquo;</button>
+        <button type="button" class="sign-in-nudge-x" id="signInNudgeDismissBtn" aria-label="Don't show this again">&times;</button>
+      </div>
       <div class="stat-grid">
         <button type="button" class="stat-cell stat-cell-toggle" id="trophyPreviewReadsCell">
           <p class="stat-value" id="trophyPreviewReads">0</p>
@@ -4333,6 +4423,19 @@
     <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="badgeCelebrationTitle">
       <h3 id="badgeCelebrationTitle"></h3>
       <p class="modal-copy" id="badgeCelebrationDesc"></p>
+      <!-- Idea 90 — the sign-in pitch, attached to a Talks Read badge
+           (never its own pop-up here). Shown/hidden per badge by
+           showNextBadgeCelebration(); see the idea 90 block in the script. -->
+      <div class="sign-in-ask-attach" id="badgeSignInAsk" hidden>
+        <p class="sign-in-ask-attach-h">&#128272; Keep this badge safe</p>
+        <ul class="sign-in-ask-perks slim">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>Your badges, streak, notes, and lists, backed up</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>Pick up on your phone, tablet, or computer</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>Share lists with family, friends, or your ward</li>
+        </ul>
+        <button type="button" class="btn btn-ghost full-width" id="badgeSignInAskBtn">Sign In &middot; it's free</button>
+        <button type="button" class="sign-in-ask-never" id="badgeSignInAskNeverBtn" hidden>Don't ask again</button>
+      </div>
       <button type="button" class="btn btn-primary" id="badgeCelebrationOkBtn">Nice!</button>
     </div>
   </div>
@@ -4396,6 +4499,29 @@
       <button type="button" class="secret-modal-later" id="ratingAskDismissBtn">Not now</button>
     </div>
   </div>
+
+  <!-- Idea 90 — "Keep your progress safe," the stand-alone form of the
+       sign-in ask, after someone's first list or first note. Opened only
+       by maybeShowSignInAsk(); same chrome as the rating ask above. -->
+  <div class="modal-overlay" id="signInAskModalOverlay" hidden>
+    <div class="modal badge-celebration-modal" role="dialog" aria-modal="true" aria-labelledby="signInAskTitle">
+      <span class="secret-modal-glyph">&#128272;</span>
+      <h3 id="signInAskTitle">Keep your progress safe</h3>
+      <p class="modal-copy" id="signInAskCopy"></p>
+      <ul class="sign-in-ask-perks">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>Your streak, favorites, notes, and lists, backed up</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>Phone, tablet, and computer stay in sync</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,12.5 9.5,18 20,5.5"/></svg>Share lists with family, friends, or your ward</li>
+      </ul>
+      <p class="sign-in-ask-fine">It's free, and your notes and reading stay private.</p>
+      <button type="button" class="btn btn-primary" id="signInAskSignInBtn">Sign In</button>
+      <button type="button" class="secret-modal-later" id="signInAskDismissBtn">Not now</button>
+      <button type="button" class="sign-in-ask-never" id="signInAskNeverBtn" hidden>Don't ask again</button>
+    </div>
+  </div>
+
+  <!-- Idea 90 — confirmation after opting out of the sign-in asks. -->
+  <div class="sign-in-ask-toast" id="signInAskToast" role="status" aria-live="polite" hidden>Got it. You can sign in anytime from Settings.</div>
 
   <!-- Idea 81 — the yearly "Check on your journey" reveal. Opened only by
        maybeShowJourneyReveal() (Dec 31–Jan 14, 14+ days studied, once per
@@ -5310,6 +5436,7 @@ function openTrophyModal(){
   readsCycleIndex = null;
   journeyYear = null;
   renderTrophyPreview();
+  renderSignInNudgeRow(); // idea 90
   trophyModalOverlay.hidden = false;
   // Opening the panel counts as "seen" — same moment the dot's promise
   // (something new since you last looked) is fulfilled.
@@ -5434,17 +5561,27 @@ authToggleModeBtn.addEventListener('click', ()=>{
   renderSignInMode();
 });
 
-function openSignInModal(){
-  authMode = 'signin';
+// Idea 90 — opts.mode 'signup' opens on Create Account; opts.socialFirst
+// puts Apple/Google above the email form (CSS order, see
+// .auth-social-first). Both are only used by the sign-in asks; every other
+// caller keeps the plain Sign In, email-first default.
+function openSignInModal(opts){
+  const o = opts || {};
+  authMode = o.mode === 'signup' ? 'signup' : 'signin';
   renderSignInMode();
+  signInModalOverlay.querySelector('.modal').classList.toggle('auth-social-first', !!o.socialFirst);
+  document.getElementById('authDividerLabel').textContent = o.socialFirst ? 'or use email' : 'or';
   authEmailInput.value = '';
   authPasswordInput.value = '';
   signInModalOverlay.hidden = false;
 }
 function closeSignInModal(){
   signInModalOverlay.hidden = true;
+  signInModalOverlay.querySelector('.modal').classList.remove('auth-social-first');
+  document.getElementById('authDividerLabel').textContent = 'or';
+  resumeBadgeCelebrationsAfterSignIn(); // idea 90
 }
-accountSignInBtn.addEventListener('click', openSignInModal);
+accountSignInBtn.addEventListener('click', ()=> openSignInModal());
 document.getElementById('signInModalClose').addEventListener('click', closeSignInModal);
 signInModalOverlay.addEventListener('click', (e)=>{
   if (e.target === signInModalOverlay) closeSignInModal();
@@ -5476,6 +5613,7 @@ function renderAccountRow(){
 function updateAccountUI(user){
   currentUser = user;
   renderAccountRow();
+  renderSignInNudgeRow(); // idea 90
   if (onCloudUserChanged) onCloudUserChanged(user);
   else { pendingCloudUser = user; pendingCloudUserSet = true; }
 }
@@ -5569,6 +5707,158 @@ document.getElementById('authGoogleBtn').addEventListener('click', async ()=>{
     showAuthError(err);
   }
 });
+
+/* ---------------------------------------------------------------
+   Idea 90 — "Keep your progress safe": a rare invitation to sign in for
+   people who aren't. Two forms: a box attached inside a Talks Read badge
+   celebration that's already open (never a pop-up of its own), and a
+   stand-alone pop-up after someone's first list or first note. Plus a
+   quiet reminder row in Your FindATalk once they've seen one ask. See
+   specs/90-sign-in-nudge.md and DECISIONS.md (2026-10-23).
+
+   State is per device (there's no account to sync it to), and survives
+   sign-in/sign-out on purpose; only Clear Data resets it. Top-level, not
+   inside initApp(), so showNextBadgeCelebration()/openTrophyModal()/
+   updateAccountUI() (all top-level) can reach it; the list and note
+   handlers inside initApp() call down into it, which is fine. */
+const SIGN_IN_ASK_KEY = 'findATalkSignInAsk';
+const SIGN_IN_ASK_MAX = 3;
+const SIGN_IN_ASK_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+function loadSignInAsk(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(SIGN_IN_ASK_KEY) || 'null');
+    if (raw && typeof raw === 'object') return { count: raw.count|0, last: Number(raw.last)||0, optedOut: !!raw.optedOut };
+  } catch(err){ /* fall through */ }
+  return { count: 0, last: 0, optedOut: false };
+}
+function saveSignInAsk(state){
+  try { localStorage.setItem(SIGN_IN_ASK_KEY, JSON.stringify(state)); } catch(err){ /* ignore */ }
+}
+function signInAskEligible(){
+  if (currentUser) return false;
+  const s = loadSignInAsk();
+  if (s.optedOut || s.count >= SIGN_IN_ASK_MAX) return false;
+  if (s.last && Date.now() - s.last < SIGN_IN_ASK_COOLDOWN_MS) return false;
+  // Not on their first day of use — they're still finding their way.
+  const first = firstReadDay(loadStreak());
+  if (!first || first === localDateSeed()) return false;
+  return true;
+}
+// Records a shown ask (either form). Returns whether "Don't ask again"
+// should appear — only from the second ask on.
+function recordSignInAsk(){
+  const s = loadSignInAsk();
+  saveSignInAsk({ count: s.count + 1, last: Date.now(), optedOut: s.optedOut });
+  return s.count >= 1;
+}
+function optOutOfSignInAsks(){
+  const s = loadSignInAsk();
+  saveSignInAsk({ count: s.count, last: s.last, optedOut: true });
+  renderSignInNudgeRow();
+  showSignInAskToast();
+}
+let signInAskToastTimer = null;
+function showSignInAskToast(){
+  const toast = document.getElementById('signInAskToast');
+  if (!toast) return;
+  toast.hidden = false;
+  clearTimeout(signInAskToastTimer);
+  signInAskToastTimer = setTimeout(()=>{ toast.hidden = true; }, 3000);
+}
+function openSignInFromAsk(){
+  openSignInModal({ mode: 'signup', socialFirst: true });
+}
+
+/* Reminder row — no cap or cooldown (it isn't a pop-up). Re-checked when
+   Your FindATalk opens and whenever auth state changes. */
+function renderSignInNudgeRow(){
+  const row = document.getElementById('signInNudgeRow');
+  if (!row) return;
+  const s = loadSignInAsk();
+  row.hidden = !(!currentUser && s.count >= 1 && !s.optedOut);
+}
+document.getElementById('signInNudgeGoBtn').addEventListener('click', ()=>{
+  // The sign-in modal sits earlier in the DOM than this panel (same
+  // z-index), so close the panel first or it would cover the modal.
+  closeTrophyModal();
+  openSignInFromAsk();
+});
+document.getElementById('signInNudgeDismissBtn').addEventListener('click', optOutOfSignInAsks);
+
+/* Form B — first list / first note. Never queued: if today's pop-up is
+   used up or another celebration is open, it just doesn't show (later
+   reading badges are the backstop). */
+const signInAskModalOverlay = document.getElementById('signInAskModalOverlay');
+function maybeShowSignInAsk(trigger, listName){
+  if (!signInAskEligible() || popupShownToday() || celebrationSurfaceBusy()) return;
+  const copy = document.getElementById('signInAskCopy');
+  copy.textContent = '';
+  if (trigger === 'list'){
+    copy.append('You just made your first list, ');
+    const name = document.createElement('strong');
+    name.textContent = `“${listName}.”`;
+    copy.append(name, ' Sign in to back it up and open it on any device.');
+  } else {
+    copy.textContent = 'You just wrote your first note. Sign in to back up your notes and read them on any device.';
+  }
+  document.getElementById('signInAskNeverBtn').hidden = !recordSignInAsk();
+  signInAskModalOverlay.hidden = false;
+  notePopupShownToday();
+}
+function closeSignInAsk(){ signInAskModalOverlay.hidden = true; }
+document.getElementById('signInAskSignInBtn').addEventListener('click', ()=>{ closeSignInAsk(); openSignInFromAsk(); });
+document.getElementById('signInAskDismissBtn').addEventListener('click', closeSignInAsk);
+document.getElementById('signInAskNeverBtn').addEventListener('click', ()=>{ closeSignInAsk(); optOutOfSignInAsks(); });
+signInAskModalOverlay.addEventListener('click', (e)=>{ if (e.target === signInAskModalOverlay) closeSignInAsk(); });
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape' && !signInAskModalOverlay.hidden) closeSignInAsk();
+});
+
+/* Form A — the box inside a Talks Read badge celebration. Decided per
+   badge in showNextBadgeCelebration() via renderBadgeSignInAsk().
+   badgeSignInAskFor remembers which badge it was shown for, so a
+   re-render of that same badge (checkForNewBadges() re-calls
+   showNextBadgeCelebration() while one is open) keeps it, and a second
+   tier crossed in the same sitting doesn't show it again (the cooldown
+   would stop that anyway). */
+let badgeSignInAskFor = null;
+let resumeBadgesAfterSignIn = false; // set when Sign In left badges still queued
+let skipSupportAskOnDrain = false;  // one-shot — see showNextBadgeCelebration()
+function renderBadgeSignInAsk(badge){
+  const box = document.getElementById('badgeSignInAsk');
+  if (!box) return;
+  if (badgeSignInAskFor !== badge){
+    if (badge.kind === 'reading' && !badgeSignInAskFor && signInAskEligible()){
+      badgeSignInAskFor = badge;
+      document.getElementById('badgeSignInAskNeverBtn').hidden = !recordSignInAsk();
+    } else {
+      box.hidden = true;
+      return;
+    }
+  }
+  box.hidden = loadSignInAsk().optedOut;
+}
+document.getElementById('badgeSignInAskBtn').addEventListener('click', ()=>{
+  // This badge has been seen; close the celebration and go to sign-in.
+  // Any badges still queued wait for the sign-in modal to close, and the
+  // support ask is skipped this time so it can't stack on top of it
+  // (it's only recorded when shown, so it just comes at a later milestone).
+  badgeCelebrationQueue.shift();
+  document.getElementById('badgeCelebrationModalOverlay').hidden = true;
+  resumeBadgesAfterSignIn = badgeCelebrationQueue.length > 0;
+  if (!resumeBadgesAfterSignIn) badgeSignInAskFor = null;
+  openSignInFromAsk();
+});
+document.getElementById('badgeSignInAskNeverBtn').addEventListener('click', ()=>{
+  document.getElementById('badgeSignInAsk').hidden = true;
+  optOutOfSignInAsks(); // the celebration itself stays open
+});
+function resumeBadgeCelebrationsAfterSignIn(){
+  if (!resumeBadgesAfterSignIn) return;
+  resumeBadgesAfterSignIn = false;
+  skipSupportAskOnDrain = true;
+  showNextBadgeCelebration();
+}
 
 /* Idea 69 — Clear Data from This Device / Delete My Account. Same open/
    close shape as the Sign In modal above (plain hidden toggle, no
@@ -7585,12 +7875,17 @@ function showNextBadgeCelebration(){
   if (!overlay) return; // web build — no modal in the DOM to show
   if (!badgeCelebrationQueue.length){
     overlay.hidden = true;
+    badgeSignInAskFor = null; // idea 90 — this queue run is over
+    // Idea 90 — skipped once after the badge's Sign In button, so it can't
+    // stack on the sign-in flow; it comes at a later milestone instead.
+    if (skipSupportAskOnDrain){ skipSupportAskOnDrain = false; return; }
     maybeShowSupportMilestoneAsk(); // idea 67 — only once badge celebrations (if any) have fully drained, so the two overlays never stack
     return;
   }
   const badge = badgeCelebrationQueue[0];
   document.getElementById('badgeCelebrationTitle').textContent = `${badge.emoji || '🎉'} ${badge.label}`;
   document.getElementById('badgeCelebrationDesc').textContent = badge.desc;
+  renderBadgeSignInAsk(badge); // idea 90
   overlay.hidden = false;
   notePopupShownToday(); // idea 76
 }
@@ -7709,7 +8004,8 @@ function celebrationSurfaceBusy(){
   const ask = document.getElementById('supportAskModalOverlay');
   const rating = document.getElementById('ratingAskModalOverlay');
   const reveal = document.getElementById('journeyRevealModalOverlay');
-  return !!((badge && !badge.hidden) || (ask && !ask.hidden) || (rating && !rating.hidden) || (reveal && !reveal.hidden));
+  const signInAsk = document.getElementById('signInAskModalOverlay'); // idea 90
+  return !!((badge && !badge.hidden) || (ask && !ask.hidden) || (rating && !rating.hidden) || (reveal && !reveal.hidden) || (signInAsk && !signInAsk.hidden));
 }
 
 /* Idea 76 — rating pre-ask. Native only: the store's own rating sheet
@@ -15594,6 +15890,7 @@ document.getElementById('collectionsIndexNewBtn').addEventListener('click', ()=>
   createCollection(name);
   collectionsIndexNewInput.value = '';
   renderCollectionsIndexPage();
+  if (collections.length === 1) maybeShowSignInAsk('list', name); // idea 90 — their first list on this device
 });
 collectionsIndexNewInput.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') document.getElementById('collectionsIndexNewBtn').click();
@@ -16551,6 +16848,7 @@ async function clearAllLocalDataAndSignOut(){
   collectionPlans = {}; planCredits = {}; planBadges = {}; savePlans();
   collectionsOrder = { ids: [], at: 0 }; saveCollectionsOrder();
   noteMap = {}; noteUpdatedAt = {}; saveNotes();
+  try { localStorage.removeItem(SIGN_IN_ASK_KEY); } catch(err){ /* not fatal */ } // idea 90 — the sign-in asks start over too
   saveStreak({count: 0, longest: 0, lastDate: null, activeDays: [], bridgedDays: []});
   // Same refresh list applyCloudMergeAndRefresh() uses, for the same
   // reason — every screen that could be showing now-stale data.
@@ -16948,6 +17246,7 @@ newCollectionBtn.addEventListener('click', ()=>{
   // button already uses elsewhere, so it's unambiguous the click worked.
   const n = collectionModalTalks.length;
   flashShareButton(newCollectionBtn, `✓ Added ${n} talk${n === 1 ? '' : 's'}!`);
+  if (collections.length === 1) maybeShowSignInAsk('list', name); // idea 90 — their first list on this device
 });
 newCollectionInput.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') newCollectionBtn.click();
@@ -17641,7 +17940,9 @@ document.getElementById('noteModalSaveBtn').addEventListener('click', ()=>{
   setNote(noteModalTalk, noteModalTextarea.value);
   refreshNoteBadgesFor(noteModalTalk);
   if (notesZone.style.display === 'block') renderNotesPage();
+  const firstNote = noteModalTextarea.value.trim() && Object.keys(noteMap).length === 1; // idea 90
   closeNoteModal();
+  if (firstNote) maybeShowSignInAsk('note');
 });
 noteModalDeleteBtn.addEventListener('click', ()=>{
   if (!noteModalTalk) return;
@@ -18059,6 +18360,7 @@ function closeTopmostModal(){
   if (!overlay('supportModalOverlay').hidden){ closeSupportModal(); return true; }
   if (!overlay('supportAskModalOverlay').hidden){ closeSupportAsk(); return true; }
   if (!overlay('ratingAskModalOverlay').hidden){ closeRatingAsk(); return true; }
+  if (!overlay('signInAskModalOverlay').hidden){ closeSignInAsk(); return true; } // idea 90
   if (!overlay('journeyRevealModalOverlay').hidden){ closeJourneyReveal(); return true; }
   if (!overlay('onboardingModalOverlay').hidden){ closeOnboardingModal(); return true; }
   if (!overlay('secretRevealModalOverlay').hidden){ closeSecretRevealModal(); return true; }
