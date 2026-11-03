@@ -2352,6 +2352,40 @@
     font-family:'Inter',sans-serif; font-size:13.5px; color:var(--ink-soft);
     padding:10px 6px;
   }
+  /* Add-to-List search + Recent/A–Z sort. Only shown once there are enough
+     lists to need it (LIST_TOOLS_MIN_LISTS). Pinned under the header the
+     same way the header and the New-list row are pinned; its `top` is set
+     from the header's real height in openCollectionModalFor(). */
+  .modal-list-tools{
+    position:sticky; top:20px; z-index:1;
+    background:var(--paper-raised);
+    margin:-8px 0 6px; padding:0 0 8px;
+  }
+  .modal-list-tools[hidden]{ display:none; }
+  .modal-list-search{
+    width:100%; box-sizing:border-box;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+    font-family:'Inter',sans-serif; font-size:16px; color:var(--ink); /* see #querySearch's comment */
+  }
+  .modal-sort-row{ display:flex; align-items:center; gap:6px; margin-top:10px; }
+  .modal-sort-label{ font-family:'Inter',sans-serif; font-size:12px; color:var(--ink-soft); margin-right:2px; }
+  .modal-sort-pill{
+    font-family:'Inter',sans-serif; font-size:12.5px;
+    padding:4px 12px; border-radius:99px; cursor:pointer;
+    background:none; color:var(--ink); border:1px solid var(--line);
+  }
+  .modal-sort-pill[aria-pressed="true"]{
+    background:var(--accent-fill); color:var(--on-accent); border-color:var(--accent-fill);
+  }
+  .modal-group-label{
+    font-family:'Inter',sans-serif; font-size:11.5px; letter-spacing:.02em;
+    color:var(--ink-soft); padding:10px 6px 2px;
+  }
+  .modal-option-name{ flex:1; min-width:0; }
+  .modal-option-name mark{ background:var(--tint); color:inherit; border-radius:2px; font-weight:600; }
   .modal-new-collection{
     display:flex; gap:8px;
     margin-top:16px; padding-top:16px;
@@ -3797,6 +3831,14 @@
       <div class="modal-header">
         <h3 id="collectionModalTitle">Add to a List</h3>
         <button type="button" class="modal-close" id="collectionModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-list-tools" id="collectionModalTools" hidden>
+        <input type="text" class="modal-list-search" id="collectionModalSearch" placeholder="Search your lists…" autocomplete="off" aria-label="Search your lists">
+        <div class="modal-sort-row">
+          <span class="modal-sort-label">Sort</span>
+          <button type="button" class="modal-sort-pill" id="collectionSortRecent" aria-pressed="true">Recent</button>
+          <button type="button" class="modal-sort-pill" id="collectionSortAlpha" aria-pressed="false">A–Z</button>
+        </div>
       </div>
       <div class="modal-body" id="collectionModalList"></div>
       <div class="modal-new-collection">
@@ -16840,72 +16882,181 @@ function syncCollectionModalTitle(){
     : 'Add to a List';
 }
 
-function renderCollectionModalList(){
-  collectionModalList.innerHTML = '';
-  // Idea 57 — shared lists first. Toggling calls the server; the live
-  // listener re-renders this modal once the change lands.
-  liveListsSorted().forEach(list=>{
-    const row = document.createElement('label');
-    row.className = 'modal-option';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = collectionModalTalks.every(t=> !!(list.talks || {})[talkKey(t)]);
-    cb.addEventListener('change', async ()=>{
-      const want = cb.checked;
-      cb.disabled = true;
-      try { await setLiveListTalks(list.id, collectionModalTalks, want); }
-      catch(err){
-        cb.checked = !want;
-        alert(liveErrorMessage(err));
-      }
-      cb.disabled = false;
-    });
-    const icon = document.createElement('span');
-    icon.className = 'live-people-icon';
-    icon.innerHTML = PEOPLE_ICON_SVG;
-    const span = document.createElement('span');
-    span.textContent = `${list.name} (${Object.keys(list.talks || {}).length})`;
-    row.appendChild(cb);
-    row.appendChild(icon);
-    row.appendChild(span);
-    collectionModalList.appendChild(row);
+/* Search + sort for the picker. Below LIST_TOOLS_MIN_LISTS the modal is the
+   plain checklist it always was; from there up it grows a search box and a
+   Recent / A–Z toggle. "Recent" is each list's `updatedAt` — bumped only
+   when a talk is added (see touchCollection()) — so it needs no new data
+   and syncs already. Shared lists keep their own group, same sorting. */
+const LIST_TOOLS_MIN_LISTS = 6;
+const LIST_PICKER_SORT_KEY = 'findATalkListPickerSort';
+let collectionModalSort = 'recent';
+try { if (localStorage.getItem(LIST_PICKER_SORT_KEY) === 'alpha') collectionModalSort = 'alpha'; } catch(err){ /* default */ }
+const collectionModalTools = document.getElementById('collectionModalTools');
+const collectionModalSearch = document.getElementById('collectionModalSearch');
+const collectionSortRecent = document.getElementById('collectionSortRecent');
+const collectionSortAlpha = document.getElementById('collectionSortAlpha');
+
+function listSearchFold(str){
+  return String(str || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+// Name with the matched part wrapped in <mark>, built with text nodes only —
+// shared-list names are typed by other people.
+function fillListName(el, name, query){
+  const at = query ? listSearchFold(name).indexOf(query) : -1;
+  // Folding can change length (rare ligatures); fall back to plain text then.
+  if (at < 0 || listSearchFold(name).length !== name.length){ el.textContent = name; return; }
+  el.appendChild(document.createTextNode(name.slice(0, at)));
+  const mark = document.createElement('mark');
+  mark.textContent = name.slice(at, at + query.length);
+  el.appendChild(mark);
+  el.appendChild(document.createTextNode(name.slice(at + query.length)));
+}
+function syncSortPills(){
+  collectionSortRecent.setAttribute('aria-pressed', collectionModalSort === 'recent' ? 'true' : 'false');
+  collectionSortAlpha.setAttribute('aria-pressed', collectionModalSort === 'alpha' ? 'true' : 'false');
+}
+function setCollectionModalSort(mode){
+  collectionModalSort = mode;
+  try { localStorage.setItem(LIST_PICKER_SORT_KEY, mode); } catch(err){ /* not fatal */ }
+  syncSortPills();
+  renderCollectionModalList();
+}
+function collectionModalSortCompare(a, b){
+  if (collectionModalSort === 'alpha') return a.name.localeCompare(b.name, undefined, {sensitivity:'base'});
+  return (b.updatedAt || 0) - (a.updatedAt || 0);
+}
+
+function buildLiveListRow(list, query){
+  const row = document.createElement('label');
+  row.className = 'modal-option';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.checked = collectionModalTalks.every(t=> !!(list.talks || {})[talkKey(t)]);
+  cb.addEventListener('change', async ()=>{
+    const want = cb.checked;
+    cb.disabled = true;
+    try { await setLiveListTalks(list.id, collectionModalTalks, want); }
+    catch(err){
+      cb.checked = !want;
+      alert(liveErrorMessage(err));
+    }
+    cb.disabled = false;
   });
-  if (!collections.length && Object.keys(liveListsById).length) return;
-  if (!collections.length){
-    const empty = document.createElement('p');
-    empty.className = 'modal-empty';
-    empty.textContent = 'No lists yet — create one below.';
-    collectionModalList.appendChild(empty);
+  const icon = document.createElement('span');
+  icon.className = 'live-people-icon';
+  icon.innerHTML = PEOPLE_ICON_SVG;
+  const span = document.createElement('span');
+  span.className = 'modal-option-name';
+  fillListName(span, list.name, query);
+  const count = document.createElement('span');
+  count.textContent = `(${Object.keys(list.talks || {}).length})`;
+  row.appendChild(cb);
+  row.appendChild(icon);
+  row.appendChild(span);
+  row.appendChild(count);
+  return row;
+}
+function buildPersonalListRow(col, query){
+  const row = document.createElement('label');
+  row.className = 'modal-option';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.checked = collectionModalTalks.every(t=> isInCollection(col.id, t));
+  cb.addEventListener('change', ()=>{
+    if (cb.checked) addTalksToCollection(col.id, collectionModalTalks);
+    else removeTalksFromCollection(col.id, collectionModalTalks);
+    if (currentCollectionId === col.id) renderCollectionPage(col.id);
+    // My Lists (the collectionsIndex page) shows each list's talk count
+    // too — refresh it live if it's the page sitting behind this modal,
+    // same reasoning as currentCollectionId above, otherwise it's stuck
+    // showing the pre-change count until the user leaves and returns.
+    if (collectionsIndexZone.style.display === 'block') renderCollectionsIndexPage();
+    collectionModalTalks.forEach(t=> refreshCollectionBadgesFor(t));
+    // Re-render so the "(count)" after each list name reflects the
+    // membership change we just made.
+    renderCollectionModalList();
+  });
+  const span = document.createElement('span');
+  span.className = 'modal-option-name';
+  fillListName(span, col.name, query);
+  const count = document.createElement('span');
+  count.textContent = `(${(collectionMembers[col.id] || []).length})`;
+  row.appendChild(cb);
+  row.appendChild(span);
+  row.appendChild(count);
+  return row;
+}
+function modalGroupLabel(text){
+  const el = document.createElement('div');
+  el.className = 'modal-group-label';
+  el.textContent = text;
+  return el;
+}
+
+function renderCollectionModalList(){
+  const scrollEl = collectionModalList.closest('.modal');
+  const keepScroll = scrollEl ? scrollEl.scrollTop : 0;
+  collectionModalList.innerHTML = '';
+  const live = liveListsSorted();
+  const totalLists = live.length + collections.length;
+  const useTools = totalLists >= LIST_TOOLS_MIN_LISTS;
+  collectionModalTools.hidden = !useTools;
+
+  if (!useTools){
+    // Few lists: the plain checklist, shared first then creation order.
+    live.forEach(list=> collectionModalList.appendChild(buildLiveListRow(list, '')));
+    if (!collections.length && live.length) return;
+    if (!collections.length){
+      const empty = document.createElement('p');
+      empty.className = 'modal-empty';
+      empty.textContent = 'No lists yet — create one below.';
+      collectionModalList.appendChild(empty);
+      return;
+    }
+    collections.forEach(col=> collectionModalList.appendChild(buildPersonalListRow(col, '')));
     return;
   }
-  collections.forEach(col=>{
-    const row = document.createElement('label');
-    row.className = 'modal-option';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = collectionModalTalks.every(t=> isInCollection(col.id, t));
-    cb.addEventListener('change', ()=>{
-      if (cb.checked) addTalksToCollection(col.id, collectionModalTalks);
-      else removeTalksFromCollection(col.id, collectionModalTalks);
-      if (currentCollectionId === col.id) renderCollectionPage(col.id);
-      // My Lists (the collectionsIndex page) shows each list's talk count
-      // too — refresh it live if it's the page sitting behind this modal,
-      // same reasoning as currentCollectionId above, otherwise it's stuck
-      // showing the pre-change count until the user leaves and returns.
-      if (collectionsIndexZone.style.display === 'block') renderCollectionsIndexPage();
-      collectionModalTalks.forEach(t=> refreshCollectionBadgesFor(t));
-      // Re-render so the "(count)" after each list name reflects the
-      // membership change we just made.
-      renderCollectionModalList();
-    });
-    const span = document.createElement('span');
-    const count = (collectionMembers[col.id] || []).length;
-    span.textContent = `${col.name} (${count})`;
-    row.appendChild(cb);
-    row.appendChild(span);
-    collectionModalList.appendChild(row);
-  });
+
+  const query = listSearchFold(collectionModalSearch.value.trim());
+  const matches = name=> !query || listSearchFold(name).includes(query);
+  const sharedRows = live.filter(l=> matches(l.name)).sort(collectionModalSortCompare);
+  const personal = collections.filter(c=> matches(c.name)).sort(collectionModalSortCompare);
+  const inRows = personal.filter(c=> collectionModalTalks.every(t=> isInCollection(c.id, t)));
+  const restRows = personal.filter(c=> !inRows.includes(c));
+
+  if (!sharedRows.length && !personal.length){
+    const empty = document.createElement('p');
+    empty.className = 'modal-empty';
+    empty.textContent = `No lists match "${collectionModalSearch.value.trim()}". Create it below?`;
+    collectionModalList.appendChild(empty);
+    newCollectionInput.placeholder = `Create "${collectionModalSearch.value.trim()}"`;
+  } else {
+    newCollectionInput.placeholder = 'New list name…';
+    if (sharedRows.length){
+      collectionModalList.appendChild(modalGroupLabel('Shared'));
+      sharedRows.forEach(l=> collectionModalList.appendChild(buildLiveListRow(l, query)));
+    }
+    if (inRows.length){
+      collectionModalList.appendChild(modalGroupLabel(collectionModalTalks.length > 1 ? 'These talks are in' : 'This talk is in'));
+      inRows.forEach(c=> collectionModalList.appendChild(buildPersonalListRow(c, query)));
+    }
+    if (restRows.length){
+      collectionModalList.appendChild(modalGroupLabel(collectionModalSort === 'alpha' ? 'All lists, A–Z' : 'Recently used'));
+      restRows.forEach(c=> collectionModalList.appendChild(buildPersonalListRow(c, query)));
+    }
+  }
+  if (scrollEl) scrollEl.scrollTop = keepScroll;
 }
+collectionSortRecent.addEventListener('click', ()=> setCollectionModalSort('recent'));
+collectionSortAlpha.addEventListener('click', ()=> setCollectionModalSort('alpha'));
+collectionModalSearch.addEventListener('input', renderCollectionModalList);
+// Enter toggles the top match, so "type, Enter" files the talk without a tap.
+collectionModalSearch.addEventListener('keydown', (e)=>{
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const first = collectionModalList.querySelector('.modal-option input');
+  if (first && !first.disabled) first.click();
+});
 function openCollectionModal(talk){
   openCollectionModalFor([talk]);
 }
@@ -16919,9 +17070,15 @@ function openCollectionModalFor(talks, onClose){
   collectionModalTalks = talks;
   collectionModalBulkClose = onClose || null;
   syncCollectionModalTitle();
+  collectionModalSearch.value = '';
+  syncSortPills();
   renderCollectionModalList();
   newCollectionInput.value = '';
   collectionModalOverlay.hidden = false;
+  const header = collectionModalOverlay.querySelector('.modal-header');
+  collectionModalTools.style.top = (header.offsetHeight - 24) + 'px';
+  // Desktop only: on a phone the keyboard would cover half the list.
+  if (!collectionModalTools.hidden && window.matchMedia('(hover:hover)').matches) collectionModalSearch.focus();
 }
 function closeCollectionModal(){
   collectionModalOverlay.hidden = true;
@@ -16939,11 +17096,14 @@ document.addEventListener('keydown', (e)=>{
 });
 const newCollectionBtn = document.getElementById('newCollectionBtn');
 newCollectionBtn.addEventListener('click', ()=>{
-  const name = newCollectionInput.value.trim();
+  let name = newCollectionInput.value.trim();
+  // Searched for a list that doesn't exist and hit Create: use what was typed.
+  if (!name && newCollectionInput.placeholder.startsWith('Create "')) name = collectionModalSearch.value.trim();
   if (!name || !collectionModalTalks.length) return;
   const id = createCollection(name);
   addTalksToCollection(id, collectionModalTalks);
   newCollectionInput.value = '';
+  collectionModalSearch.value = '';
   renderCollectionModalList();
   // My Lists (collectionsIndex) doesn't otherwise learn a brand-new list
   // exists until its next full render — most visible from the shared-list
