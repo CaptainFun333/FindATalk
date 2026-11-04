@@ -10,7 +10,12 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.8.0] — 2026-11-04
+
 ### Fixed
+- Dragging to reorder a list (or the My Lists page) now works in desktop web browsers; it used to stop after the first step. (Website live immediately; the app needs a new build.)
 - The Talk of the Day on the home-screen widgets, the Siri shortcut and in the app now always match, including right after a new General Conference is added, with no app update needed to keep them in step. (Website live immediately; the app and widgets need a new build.)
 
 ### Added
@@ -24,9 +29,6 @@ this updated.
 - Your My Lists page now has a **My order** sort: drag the handle (or use the arrows) to put your lists in the order you like. It syncs between your devices, new lists land at the end, and shared lists stay grouped at the top. (Website live immediately; the app needs a new build.)
 - A small **Make it a plan** button on each list in My Lists starts a study plan in one tap, and the move/drag controls now sit at the top right of each list card. (Website live immediately; the app needs a new build.)
 - If you aren't signed in, FindATalk now occasionally invites you to sign in so your favorites, notes, lists, badges, and streak are backed up and on all your devices. It shows up at most once a month and three times in all, inside a Talks Read badge celebration or after your first list or note, and you can tell it not to ask again. (Website live immediately; the app needs a new build.)
-
-### Fixed
-- Dragging to reorder a list (or the My Lists page) now works in desktop web browsers; it used to stop after the first step. (Website live immediately; the app needs a new build.)
 
 ### Changed
 - The suggested message when sharing a talk now shows as grey hint text that disappears as soon as you start typing, so you no longer have to delete it to write your own. Sharing with the box empty sends just the link. (Website live immediately; the app needs a new build.)
