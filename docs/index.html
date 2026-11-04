@@ -2321,6 +2321,10 @@
     font-family:'Inter',sans-serif; font-size:12px; font-weight:700;
     color:var(--brass); text-align:right; align-self:center;
   }
+  /* A single long word (e.g. "Introduction") can't wrap, so on a narrow screen it used to spill under the Read/Plan chips. Let the chips and tools drop to a second line instead. */
+  .list-item-title-group:has(.order-tools){ flex-wrap:wrap; row-gap:4px; }
+  .list-item-title-group:has(.order-tools) .list-item-title{ flex:1 1 0; min-width:min-content; }
+  .list-item-title-group:has(.order-tools) .order-tools{ margin-left:auto; }
   .order-tools{ display:inline-flex; align-items:center; gap:2px; flex-shrink:0; margin-left:6px; align-self:center; }
   .order-grip, .order-step{
     width:30px; height:30px; padding:0; display:inline-flex; align-items:center; justify-content:center;
@@ -2879,6 +2883,7 @@
   }
   .plan-pill svg{ width:14px; height:14px; }
   .plan-pill:hover{ background:var(--tint); }
+  .plan-pill.is-plan{ background:var(--tint); }
   .collection-row-main{
     display:flex; flex-direction:column; align-items:flex-start;
     gap:2px;
@@ -14731,7 +14736,27 @@ const collectionFilterCountEl = document.getElementById('collectionFilterCount')
 const collectionNarrowBoxHeaderTextEl = document.getElementById('collectionNarrowBoxHeaderText');
 const collectionSearchFieldEl = document.getElementById('collectionSearchField');
 const collectionSortRowEl = document.getElementById('collectionSortToggle').closest('.filters-actions');
-const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=> renderCollectionPage(currentCollectionId));
+const collectionSortToggle = createSortToggle(document.getElementById('collectionSortToggle'), ()=>{
+  adoptSortAsPlanOrder(currentCollectionId);
+  renderCollectionPage(currentCollectionId);
+});
+// Choosing Recently Added or Conference Date (either direction) on a plan's
+// page offers to save that arrangement as the plan's order, so "up next"
+// matches. Declining leaves it a view. Shared lists only for their owner.
+function adoptSortAsPlanOrder(listId){
+  const mode = collectionSortToggle.mode;
+  if (mode === 'order' || !activePlan(listId)) return;
+  const live = liveListsById[liveListId(listId)];
+  if (live && !(currentUser && live.ownerUid === currentUser.uid)) return;
+  let picks = currentListOrderKeys(listId).map(k=> TALKS_BY_KEY[k]).filter(Boolean);
+  if (mode === 'conference') picks = sortByConferenceDate(picks, collectionSortToggle.dir);
+  else if (collectionSortToggle.dir === 'desc') picks.reverse();
+  const order = picks.map(talkKey);
+  const cur = currentListOrderKeys(listId);
+  if (order.length === cur.length && order.every((k, i)=> k === cur[i])) return;
+  if (!confirm('Make this the order of your study plan? \u201CUp next\u201D will follow it.')) return;
+  commitListOrder(listId, order);
+}
 const collectionSearch = createSearchBox(document.getElementById('collectionQuery'), document.getElementById('collectionQueryClear'), ()=> renderCollectionPage(currentCollectionId));
 /* Idea 49, extended a third time — same single-select All/Unread/Read
    toggle as Home/CFM, scoped to just this one list. Single module-level
@@ -15671,11 +15696,12 @@ onNeedCollectionRefresh = ()=>{ if (currentCollectionId) renderCollectionPage(cu
 // for). Same plain-substring approach as Notes search: this is a handful
 // of short, on-device strings, no index needed.
 let collectionsQuery = '';
-function buildMakePlanPill(planId){
+// `isPlan`: the list already is a plan, so the same spot shows a filled "Study Plan" pill (opens the plan's settings) instead of the offer.
+function buildMakePlanPill(planId, isPlan){
   if (!STUDY_PLANS_ENABLED) return document.createDocumentFragment();
   const btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'plan-pill';
-  btn.innerHTML = PLAN_BOOK_SVG + '<span>Make it a plan</span>';
+  btn.type = 'button'; btn.className = 'plan-pill' + (isPlan ? ' is-plan' : '');
+  btn.innerHTML = PLAN_BOOK_SVG + `<span>${isPlan ? 'Study Plan' : 'Make it a plan'}</span>`;
   btn.addEventListener('click', (e)=>{ e.stopPropagation(); openPlanModal(planId); });
   return btn;
 }
@@ -15815,11 +15841,6 @@ function renderCollectionsIndexPage(){
     const countEl = document.createElement('span');
     countEl.className = 'collection-row-count';
     countEl.textContent = `${count} talk${count===1?'':'s'}`;
-    if (activePlan(col.id)){
-      const marker = document.createElement('span');
-      marker.className = 'plan-marker'; marker.textContent = 'Plan';
-      nameEl.appendChild(marker);
-    }
     main.appendChild(nameEl);
     main.appendChild(countEl);
     main.addEventListener('click', ()=>{ renderCollectionPage(col.id); showZone('collection'); });
@@ -15852,7 +15873,8 @@ function renderCollectionsIndexPage(){
       row.classList.add('has-order-tools');
       row.appendChild(toolsWrap);
     }
-    if (count > 0 && !activePlan(col.id)) actions.appendChild(buildMakePlanPill(col.id));
+    if (activePlan(col.id)) actions.appendChild(buildMakePlanPill(col.id, true));
+    else if (count > 0) actions.appendChild(buildMakePlanPill(col.id));
 
     const renameBtn = document.createElement('button');
     renameBtn.type = 'button';
@@ -17628,11 +17650,6 @@ function buildLiveListIndexRow(list){
   nameText.textContent = list.name;
   nameEl.appendChild(icon);
   nameEl.appendChild(nameText);
-  if (STUDY_PLANS_ENABLED && list.plan){ // idea 88
-    const marker = document.createElement('span');
-    marker.className = 'plan-marker'; marker.textContent = 'Plan';
-    nameEl.appendChild(marker);
-  }
   const count = Object.keys(list.talks || {}).length;
   const countEl = document.createElement('span');
   countEl.className = 'collection-row-count';
@@ -17647,7 +17664,8 @@ function buildLiveListIndexRow(list){
   row.appendChild(main);
   const actions = document.createElement('div');
   actions.className = 'collection-row-actions';
-  if (liveIsOwner(list) && count > 0 && !list.plan) actions.appendChild(buildMakePlanPill(LIVE_LIST_PREFIX + list.id));
+  if (STUDY_PLANS_ENABLED && list.plan) actions.appendChild(buildMakePlanPill(LIVE_LIST_PREFIX + list.id, true)); // idea 88
+  else if (liveIsOwner(list) && count > 0) actions.appendChild(buildMakePlanPill(LIVE_LIST_PREFIX + list.id));
   const membersBtn = document.createElement('button');
   membersBtn.type = 'button';
   membersBtn.className = 'share-btn-icon';
