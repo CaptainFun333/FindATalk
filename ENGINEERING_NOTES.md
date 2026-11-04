@@ -425,6 +425,13 @@ served live at findatalk.com; this one should never be public.
   (`.narrow-box-header .sort-toggle-btn`'s existing pattern: reduced
   padding + font-size, scoped to just the row that needs it) is needed.
 
+- **Every `.modal-overlay` has the same `z-index:200`, so which one is on
+  top is decided by DOM order, not by which opened last.** E.g.
+  `#signInModalOverlay` comes *before* `#trophyModalOverlay` in the
+  markup, so opening sign-in from Your FindATalk renders it underneath
+  the panel. Close the panel first (idea 90's reminder row does), or
+  place a new overlay's markup after anything it must open on top of.
+
 ## Talk of the Day
 
 - **The Talk of the Day is not the same worldwide: devices east of UTC
