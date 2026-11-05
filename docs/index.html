@@ -2298,6 +2298,9 @@
     border:1px solid var(--brass); border-radius:999px; padding:1px 7px 1px 5px;
   }
   .plan-chip svg{ width:11px; height:11px; }
+  .list-item-slot{ flex:1 1 0; min-width:0; display:flex; align-items:center; }
+  .list-item-slot-right{ justify-content:flex-end; }
+  .list-item-slot .list-item-read-badge, .list-item-slot .plan-chip{ margin-left:0; }
   .plan-new-tag{ flex-shrink:0; margin-left:6px; font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
   .list-item.plan-up-next{ background:color-mix(in srgb, var(--brass) 9%, transparent); }
   .plan-up-eyebrow{ font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.08em; color:var(--brass); margin-bottom:4px; }
@@ -11092,7 +11095,8 @@ function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, o
   readBadge.innerHTML = readBadgeHtml(visitCountFor(pick)); // idea 55 — ✓ Read once, Read ×N (no checkmark) from the second credited read on
   readBadge.title = 'You already opened this talk';
   readBadge.hidden = !isRead(pick);
-  titleGroup.appendChild(readBadge);
+  // Lives beside the action buttons (left slot), not on the title line; the
+  // right slot is left for a study plan's Plan mark (see rowActionSlots()).
 
   head.appendChild(titleGroup);
 
@@ -11147,6 +11151,13 @@ function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, o
   // Favorite/List/Note/Share, centered at the bottom of the tile —
   // matching the drawn-talk ticket's own icon row — rather than squeezed
   // into the header next to the title (see .list-item-actions above).
+  const slotLeft = document.createElement('div');
+  slotLeft.className = 'list-item-slot list-item-slot-left';
+  slotLeft.appendChild(readBadge);
+  const slotRight = document.createElement('div');
+  slotRight.className = 'list-item-slot list-item-slot-right';
+  actions.insertBefore(slotLeft, actions.firstChild);
+  actions.appendChild(slotRight);
   item.appendChild(actions);
 
   return item;
@@ -15303,13 +15314,13 @@ async function sharePlanBadge(badge, btnEl){
 function decoratePlanRow(row, pick, st, pending){
   const key = talkKey(pick);
   const group = row.querySelector('.list-item-title-group');
-  if (st.credits[key] && group){
+  const slots = rowActionSlots(row);
+  if (st.credits[key] && group && slots){
     const chip = document.createElement('span');
     chip.className = 'plan-chip';
     chip.innerHTML = PLAN_CHECK_SVG + '<span>Plan</span>';
     chip.title = 'Finished as part of this study plan';
-    const readBadge = group.querySelector('.list-item-read-badge');
-    group.insertBefore(chip, readBadge ? readBadge.nextSibling : null);
+    slots.right.appendChild(chip);
   }
   if (pending && group){
     const liveList = livePlanList(currentCollectionId);
@@ -15510,6 +15521,15 @@ function renderOrderHint(orderMode, canReorder, live){
     : (live ? (STUDY_PLANS_ENABLED && live.plan ? 'Order and pace set by the list owner.' : 'Order set by the list owner.') : 'Clear the search and filters to rearrange.');
 }
 
+// Every talk row keeps its Read mark beside the action buttons (left) and a
+// study plan's Plan mark on the right, instead of crowding the title line.
+// Both slots always exist so the buttons stay centered.
+function rowActionSlots(row){
+  const left = row.querySelector('.list-item-actions .list-item-slot-left');
+  const right = row.querySelector('.list-item-actions .list-item-slot-right');
+  return left && right ? { left, right } : null;
+}
+
 // Called for every row in My order mode: position number, and (when the
 // list can be rearranged) a grip plus up/down buttons.
 function decorateOrderRow(row, pick, position, canReorder, listId, total){
@@ -15519,6 +15539,7 @@ function decorateOrderRow(row, pick, position, canReorder, listId, total){
   pos.className = 'order-pos';
   pos.textContent = String(position);
   group.insertBefore(pos, group.firstChild);
+  rowActionSlots(row);
   if (!canReorder) return;
   const key = talkKey(pick);
   const tools = document.createElement('span');

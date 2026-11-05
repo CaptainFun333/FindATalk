@@ -11,6 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Fixed
+- The Read mark on a talk's card now sits beside its buttons (left side), and a study plan's Plan mark on the right, instead of crowding the title, which used to squeeze long titles into one word per line. (Website live immediately; the app needs a new build.)
 - On My Lists, a list that is a study plan now shows a **Study Plan** button where "Make it a plan" would be (tap it for the plan's settings), instead of a small "Plan" tag next to the name that could get pushed off screen by a long list name. (Website live immediately; the app needs a new build.)
 - On narrow phone screens, a short single-word talk title like "Introduction" no longer overlaps the Read and Plan marks in My order; the marks drop to a second line instead. (Website live immediately; the app needs a new build.)
 - Sorting a study plan by Recently Added or Conference Date now asks if you want to make that the plan's order, so "Up next" can follow it. (Website live immediately; the app needs a new build.)
