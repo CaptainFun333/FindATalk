@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.8.1] — 2026-11-05
+
 ### Changed
 - In **My order**, each talk's number and move controls (arrows and handle) now sit in a slim bar above the title, with "Up next" beside the number, so titles use the full card width. (Website live immediately; the app needs a new build.)
 
