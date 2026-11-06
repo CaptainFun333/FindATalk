@@ -18571,6 +18571,12 @@ function closeTopmostModal(){
   // here) — the conflict itself stays queued and reappears at the next
   // merge that checks for one, it's never silently dropped.
   if (!overlay('noteConflictModalOverlay').hidden){ overlay('noteConflictModalOverlay').hidden = true; return true; }
+  // Plan, share-compose, sign-in and streak-salvage were missing from this
+  // chain, so Android back skipped past them and navigated the screen behind.
+  if (!overlay('planModalOverlay').hidden){ closePlanModal(); return true; }
+  if (!overlay('shareComposeModalOverlay').hidden){ closeShareComposeModal(); return true; }
+  if (!overlay('signInModalOverlay').hidden){ closeSignInModal(); return true; }
+  if (!overlay('streakSalvageModalOverlay').hidden){ closeStreakSalvageModal(); return true; }
   if (!overlay('deleteAccountModalOverlay').hidden){ closeDeleteAccountModal(); return true; }
   if (!overlay('clearDataModalOverlay').hidden){ closeClearDataModal(); return true; }
   if (!overlay('settingsModalOverlay').hidden){ closeSettingsModal(); return true; }

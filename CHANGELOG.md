@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- Pressing the Android back button while the Edit plan window (or the share, sign-in, or streak-rescue windows) is open now closes that window instead of going back on the screen behind it. (Website live immediately; the app needs a new build.)
 
 ## [1.8.1] — 2026-11-05
 
