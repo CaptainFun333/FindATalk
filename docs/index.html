@@ -1140,7 +1140,7 @@
   /* Reminder-time picker, shown right under the Daily Reminder switch.
      Styled to match the app's paper/ink palette rather than the raw OS
      widget default so it doesn't look bolted on. */
-  #reminderTimeInput{
+  .reminder-time-input{
     flex-shrink:0;
     font-family:'Inter',sans-serif;
     font-size:14px;
@@ -1151,13 +1151,40 @@
     padding:7px 10px;
     -webkit-appearance:none;
   }
-  #reminderTimeInput:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
-  #reminderTimeInput:disabled{ opacity:.45; }
+  .reminder-time-input:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .reminder-time-input:disabled{ opacity:.45; }
   /* Safari/WKWebView renders the time value's own tiny AM/PM + clear
      controls in solid black by default, which reads as a stray black
      blob in dark mode — recolor to match the rest of the field. */
-  #reminderTimeInput::-webkit-datetime-edit{ color:var(--ink); }
-  #reminderTimeInput::-webkit-calendar-picker-indicator{ filter:var(--time-icon-filter, none); }
+  .reminder-time-input::-webkit-datetime-edit{ color:var(--ink); }
+  .reminder-time-input::-webkit-calendar-picker-indicator{ filter:var(--time-icon-filter, none); }
+  select.reminder-time-input{ -webkit-appearance:menulist; appearance:auto; max-width:200px; }
+  /* Settings -> Notifications: the row that opens the second-tier screen,
+     and that screen's three reminder blocks. */
+  .notif-nav-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;
+    text-align:left; cursor:pointer; font:inherit; color:inherit;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px;
+  }
+  .notif-nav-row:focus-visible, .notif-back:focus-visible{ outline:2px solid var(--brass-bright); outline-offset:2px; }
+  .notif-nav-chevron{ font-size:22px; line-height:1; color:var(--ink-soft); }
+  .notif-back{
+    background:none; border:none; cursor:pointer; padding:4px 6px 4px 0;
+    font-family:'Inter',sans-serif; font-size:14px; color:var(--accent-fill); white-space:nowrap;
+  }
+  .notif-block{ padding:14px 0; border-top:1px solid var(--line); }
+  .notif-block:first-of-type{ border-top:none; padding-top:4px; }
+  .notif-detail{ margin-top:12px; }
+  .notif-detail .settings-row + .settings-row{ margin-top:10px; }
+  .notif-block.is-off .notif-detail{ opacity:.5; }
+  .notif-preview{
+    margin-top:12px; padding:10px 12px; border-radius:var(--radius);
+    background:var(--paper-raised); border:1px solid var(--line);
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.45; color:var(--ink); white-space:pre-line;
+  }
+  .notif-preview b{ display:block; font-weight:600; font-size:12px; color:var(--ink-soft); margin-bottom:2px; }
+  .plan-reminder-note[hidden], .settings-row[hidden]{ display:none; }
 
   /* ---------- talk of the day ---------- */
   .totd-zone{ margin-bottom:36px; }
@@ -4066,38 +4093,13 @@
 
       <div class="settings-section" id="reminderSettingsSection" hidden>
         <p class="settings-label">Notifications</p>
-        <div class="settings-row">
-          <div class="settings-row-text">
-            <strong>Talk of the Day</strong>
-            <span>Want a daily nudge?</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="reminderToggle">
-            <span class="switch-track"></span>
-          </label>
-        </div>
-        <div class="settings-row" id="reminderTimeRow">
-          <div class="settings-row-text">
-            <strong>What time?</strong>
-          </div>
-          <input type="time" id="reminderTimeInput" aria-label="Reminder time">
-        </div>
-        <!-- Phase 2 (idea 45) — a second, separate opt-in from the Daily
-             Reminder above (different cadence/commitment), same
-             switch/row pattern. Streak-at-risk, new-conference, and
-             milestone notifications aren't separate toggles — they piggy-
-             back on whichever of these two is already granted, same as
-             how OS notification permission itself works app-wide. -->
-        <div class="settings-row">
-          <div class="settings-row-text">
-            <strong>Come, Follow Me</strong>
-            <span>Want a weekly nudge?</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="weeklyCfmReminderToggle">
-            <span class="switch-track"></span>
-          </label>
-        </div>
+        <button type="button" class="notif-nav-row" id="notifNavBtn">
+          <span class="settings-row-text">
+            <strong>Reminders</strong>
+            <span id="notifNavSummary">Off</span>
+          </span>
+          <span class="notif-nav-chevron" aria-hidden="true">&rsaquo;</span>
+        </button>
       </div>
 
       <div class="settings-section">
@@ -4145,6 +4147,98 @@
           <input type="file" id="backupImportInput" accept="application/json,.json" hidden>
         </div>
         <p class="backup-hint">Favorites, notes, and lists live only on this device unless you're signed in.</p>
+      </div>
+    </div>
+  </div>
+
+    <!-- Second-tier Notifications screen, opened from the Notifications row
+       in Settings. Three independent reminders, each with its own switch
+       and time: Talk of the Day, Study plan, Come, Follow Me. The previews
+       are rendered from the real schedule (see renderNotifSettings()). -->
+  <div class="modal-overlay" id="notifSettingsModalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notifSettingsTitle">
+      <div class="modal-header">
+        <button type="button" class="notif-back" id="notifSettingsBack">&lsaquo; Settings</button>
+        <h3 id="notifSettingsTitle">Notifications</h3>
+        <button type="button" class="modal-close" id="notifSettingsClose" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="notif-block" id="totdBlock">
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <strong>Talk of the Day</strong>
+            <span>A daily nudge with the featured talk</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="reminderToggle" aria-label="Talk of the Day reminder">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+        <div class="notif-detail">
+          <div class="settings-row">
+            <div class="settings-row-text"><strong>What time?</strong></div>
+            <input type="time" id="reminderTimeInput" class="reminder-time-input" aria-label="Talk of the Day time">
+          </div>
+          <div class="notif-preview" id="totdPreview"></div>
+        </div>
+      </div>
+
+      <div class="notif-block" id="planBlock">
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <strong>Study plan</strong>
+            <span>For the plans you include</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="planReminderToggle" aria-label="Study plan reminder">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+        <div class="notif-detail">
+          <div class="settings-row">
+            <div class="settings-row-text"><strong>How often?</strong></div>
+            <select id="planFreqSelect" class="reminder-time-input" aria-label="How often">
+              <option value="due">Days a talk is due</option>
+              <option value="behind">Only when I&rsquo;m behind</option>
+              <option value="week">Weekly summary</option>
+            </select>
+          </div>
+          <div class="settings-row" id="planDayRow">
+            <div class="settings-row-text"><strong>Which day?</strong></div>
+            <select id="planDaySelect" class="reminder-time-input" aria-label="Which day">
+              <option value="1">Sunday</option><option value="2">Monday</option><option value="3">Tuesday</option>
+              <option value="4">Wednesday</option><option value="5">Thursday</option><option value="6">Friday</option>
+              <option value="7">Saturday</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text"><strong>What time?</strong></div>
+            <input type="time" id="planTimeInput" class="reminder-time-input" aria-label="Study plan time">
+          </div>
+          <div class="notif-preview" id="planPreview"></div>
+          <p class="settings-sub" id="planFreqHint"></p>
+          <p class="settings-sub" id="planIncludedHint"></p>
+        </div>
+      </div>
+
+      <div class="notif-block" id="cfmBlock">
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <strong>Come, Follow Me</strong>
+            <span>Every Monday, when the new week&rsquo;s reading starts</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="weeklyCfmReminderToggle" aria-label="Come, Follow Me reminder">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+        <div class="notif-detail">
+          <div class="settings-row">
+            <div class="settings-row-text"><strong>What time?</strong></div>
+            <input type="time" id="cfmTimeInput" class="reminder-time-input" aria-label="Come, Follow Me time">
+          </div>
+          <div class="notif-preview" id="cfmPreview"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -4685,8 +4779,9 @@
       </div>
       <p class="plan-preview" id="planPreview"></p>
       <label class="plan-toggle-row" id="planReminderRow">
-        <input type="checkbox" id="planReminderInput"><span>Use this plan for my daily reminder</span>
+        <input type="checkbox" id="planReminderInput"><span>Include in my study plan reminder</span>
       </label>
+      <p class="settings-sub plan-reminder-note" id="planReminderNote" hidden></p>
       <p class="auth-error" id="planModalError" hidden></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="planStopBtn" hidden>Stop plan</button>
@@ -5133,7 +5228,7 @@ settingsModalOverlay.addEventListener('click', (e)=>{
   if (e.target === settingsModalOverlay) closeSettingsModal();
 });
 document.addEventListener('keydown', (e)=>{
-  if (e.key === 'Escape' && !settingsModalOverlay.hidden) closeSettingsModal();
+  if (e.key === 'Escape' && !settingsModalOverlay.hidden && document.getElementById('notifSettingsModalOverlay').hidden) closeSettingsModal();
 });
 
 /* ---------------------------------------------------------------
@@ -8342,6 +8437,24 @@ const WEEKLY_CFM_REMINDER_ID = 4;
 const STREAK_SALVAGE_NOTIF_ID = 5;
 const MILESTONE_NOTIF_ID_BASE = 100; // + BADGE_DEFS index, so up to 10 distinct milestone ids without colliding with anything above
 const WEEKLY_CFM_ENABLED_KEY = 'findATalkWeeklyCfmReminderEnabled';
+const CFM_REMINDER_HOUR_KEY = 'findATalkCfmReminderHour';
+const CFM_REMINDER_MINUTE_KEY = 'findATalkCfmReminderMinute';
+// Small localStorage helpers for the reminder settings. They live up here,
+// not with the daily-reminder code further down, because
+// scheduleWeeklyCfmReminder() below needs the time preference and the two
+// blocks are in different scopes.
+function readPref(key, fallback){
+  try { const v = localStorage.getItem(key); return v === null ? fallback : v; } catch(err){ return fallback; }
+}
+function writePref(key, value){ try { localStorage.setItem(key, String(value)); } catch(err){ /* ignore */ } }
+function readTimePref(hourKey, minuteKey, defHour, defMinute){
+  const h = parseInt(readPref(hourKey, ''), 10), m = parseInt(readPref(minuteKey, ''), 10);
+  return {
+    hour: Number.isInteger(h) && h >= 0 && h <= 23 ? h : defHour,
+    minute: Number.isInteger(m) && m >= 0 && m <= 59 ? m : defMinute
+  };
+}
+function getCfmReminderTime(){ return readTimePref(CFM_REMINDER_HOUR_KEY, CFM_REMINDER_MINUTE_KEY, 9, 0); }
 
 async function getGrantedLocalNotifications(){
   const cap = window.Capacitor;
@@ -8578,9 +8691,8 @@ function closeStreakSalvageModal(){
    recurring notification (own Settings toggle, #weeklyCfmReminderToggle,
    wired in initReminderSettingsToggle()), same schedule.on recurring-
    trigger mechanism scheduleDailyReminder() already uses, just with
-   `weekday` added. Monday 9:00am local, fixed (not user-configurable yet,
-   unlike the Daily Reminder's time picker) — a deliberately smaller first
-   pass; see idea 45 notes if that's wanted later. weekday:2 = Monday per
+   `weekday` added. Monday at the time picked in Settings -> Notifications
+   (9:00am by default); the day stays Monday. weekday:2 = Monday per
    Capacitor's LocalNotifications convention (1=Sunday..7=Saturday,
    confirmed against the plugin's own docs, not assumed) — matches the
    actual CFM_SCHEDULE data, where every week's `start` date is a Monday,
@@ -8592,7 +8704,7 @@ async function scheduleWeeklyCfmReminder(LocalNotifications){
       id: WEEKLY_CFM_REMINDER_ID,
       title: 'FindATalk',
       body: "Talks that support this week's Come, Follow Me are ready — tap to explore.",
-      schedule: { on: { weekday: 2, hour: 9, minute: 0 }, allowWhileIdle: true }
+      schedule: { on: { weekday: 2, ...getCfmReminderTime() }, allowWhileIdle: true }
     }]
   });
 }
@@ -11697,17 +11809,29 @@ const DAILY_REMINDER_ID = 1;
 const DAILY_REMINDER_WEEKDAY_ID_BASE = 20;
 const DAILY_REMINDER_DATED_ID_BASE = 200;
 const DAILY_REMINDER_DATED_ID_COUNT = 40;
-// Idea 88 — dated reminders that carry a study plan's next talk, one per
-// day for the next PLAN_REMINDER_ID_COUNT days (see planReminderBodies()).
+// Idea 88 — dated reminders that carry a study plan's next talk (see
+// planReminderPlan()). iOS keeps only 64 pending local notifications, and
+// the Talk of the Day's conference stretch can use ~25 of them, so the plan
+// reminder schedules just PLAN_REMINDER_ID_COUNT days ahead. Builds before
+// the split scheduled 40, so cancelling still clears the full old range.
 const PLAN_REMINDER_ID_BASE = 300;
-const PLAN_REMINDER_ID_COUNT = 40;
+const PLAN_REMINDER_ID_COUNT = 14;
+const PLAN_REMINDER_CANCEL_COUNT = 40;
+// The Study plan reminder is its own opt-in, separate from Talk of the Day.
+// Absent = never configured (off); '1' on; '0' off.
+const PLAN_REMINDER_ENABLED_KEY = 'findATalkPlanReminderEnabled';
+const PLAN_REMINDER_HOUR_KEY = 'findATalkPlanReminderHour';
+const PLAN_REMINDER_MINUTE_KEY = 'findATalkPlanReminderMinute';
+const PLAN_REMINDER_FREQ_KEY = 'findATalkPlanReminderFreq'; // due | behind | week
+const PLAN_REMINDER_WEEKDAY_KEY = 'findATalkPlanReminderWeekday'; // weekly summary day, 1=Sunday..7=Saturday
+const REMINDER_SPLIT_KEY = 'findATalkReminderSplitDone';
 const DAILY_REMINDER_BODY = 'Your talk of the day is ready to read.';
 const CONFERENCE_REMINDER_BODY = 'General Conference is today! Tune in, then count it toward your streak in FindATalk.';
 // How long before conference Saturday the stand-in schedule takes over,
 // and how many weeks past conference Sunday its dated weekend reminders
 // keep going if the app is never opened again to switch back.
 const CONFERENCE_REMINDER_LEAD_DAYS = 28;
-const CONFERENCE_REMINDER_TAIL_WEEKS = 12;
+const CONFERENCE_REMINDER_TAIL_WEEKS = 8;
 
 function getReminderTime(){
   let hour = 8, minute = 0;
@@ -11724,6 +11848,17 @@ function setReminderTime(hour, minute){
     localStorage.setItem(REMINDER_HOUR_KEY, String(hour));
     localStorage.setItem(REMINDER_MINUTE_KEY, String(minute));
   } catch(err){ /* ignore */ }
+}
+
+function getPlanReminderTime(){ return readTimePref(PLAN_REMINDER_HOUR_KEY, PLAN_REMINDER_MINUTE_KEY, 21, 0); }
+function isPlanReminderOn(){ return readPref(PLAN_REMINDER_ENABLED_KEY, null) === '1'; }
+function getPlanReminderFreq(){
+  const f = readPref(PLAN_REMINDER_FREQ_KEY, 'due');
+  return f === 'behind' || f === 'week' ? f : 'due';
+}
+function getPlanReminderWeekday(){
+  const d = parseInt(readPref(PLAN_REMINDER_WEEKDAY_KEY, '1'), 10);
+  return d >= 1 && d <= 7 ? d : 1;
 }
 
 function showNotifPermModal(){
@@ -11748,14 +11883,17 @@ function showNotifPermModal(){
 function isDailyReminderId(id){
   return id === DAILY_REMINDER_ID
     || (id >= DAILY_REMINDER_WEEKDAY_ID_BASE + 1 && id <= DAILY_REMINDER_WEEKDAY_ID_BASE + 7)
-    || (id >= DAILY_REMINDER_DATED_ID_BASE && id < DAILY_REMINDER_DATED_ID_BASE + DAILY_REMINDER_DATED_ID_COUNT)
-    || (id >= PLAN_REMINDER_ID_BASE && id < PLAN_REMINDER_ID_BASE + PLAN_REMINDER_ID_COUNT);
+    || (id >= DAILY_REMINDER_DATED_ID_BASE && id < DAILY_REMINDER_DATED_ID_BASE + DAILY_REMINDER_DATED_ID_COUNT);
 }
 async function cancelDailyReminder(LocalNotifications){
   const notifications = [{ id: DAILY_REMINDER_ID }];
   for (let weekday = 1; weekday <= 7; weekday++) notifications.push({ id: DAILY_REMINDER_WEEKDAY_ID_BASE + weekday });
   for (let i = 0; i < DAILY_REMINDER_DATED_ID_COUNT; i++) notifications.push({ id: DAILY_REMINDER_DATED_ID_BASE + i });
-  for (let i = 0; i < PLAN_REMINDER_ID_COUNT; i++) notifications.push({ id: PLAN_REMINDER_ID_BASE + i });
+  await LocalNotifications.cancel({ notifications });
+}
+async function cancelPlanReminder(LocalNotifications){
+  const notifications = [];
+  for (let i = 0; i < PLAN_REMINDER_CANCEL_COUNT; i++) notifications.push({ id: PLAN_REMINDER_ID_BASE + i });
   await LocalNotifications.cancel({ notifications });
 }
 // The Daily Reminder switch in Settings — absent means on (see
@@ -11774,6 +11912,105 @@ function nextConferenceSunday(from){
       if (sunday >= start) return sunday;
     }
   }
+}
+/* The study plan reminder, separate from the Talk of the Day one. A
+   notification's text can't be chosen at delivery time, so each one is
+   worded now, assuming no further reads; a read, a plan edit or a sync
+   merge reschedules (see scheduleReminderRefresh()). Only plans with their
+   "include" box ticked count. `freq` decides when it speaks:
+   - due: each day a plan's pace says a read is owed. Names the plan
+     furthest from its pace and counts the others.
+   - behind: only on days a plan is actually behind (done is under where its
+     pace says it should be through yesterday).
+   - week: one summary on the chosen weekday, for the next few weeks.
+   A day with nothing to say gets no notification at all. */
+function planBehindBy(plan, done, total, day){
+  if (planWeekly(plan)){
+    const weeks = Math.max(0, Math.round((planDayNum(planWeekStart(day)) - planDayNum(planWeekStart(plan.anchor.date))) / 7));
+    return Math.min(total, plan.anchor.done + plan.pace.count * weeks) - done;
+  }
+  return planExpectedThrough(plan, planAddDays(day, -1), total) - done;
+}
+function planReminderEntries(now){
+  const today = localDateSeed(now);
+  const entries = [];
+  allPlanIds().forEach(planId=>{
+    const plan = activePlan(planId);
+    if (!plan || !plan.reminder) return;
+    const st = planStatus(planId, today);
+    if (!st || st.finished || !st.upNextKey) return;
+    const talk = TALKS_BY_KEY[st.upNextKey];
+    if (!talk) return;
+    entries.push({
+      st, plan, name: planListName(planId), talk,
+      creditDays: st.keys.filter(k=> st.credits[k]).map(k=> st.credits[k]),
+      finish: plan.mode === 'date' ? plan.finishBy : planProjectedFinish(plan, st.done, st.total, today)
+    });
+  });
+  return entries;
+}
+function planReminderSort(a, b){
+  return b.gap - a.gap || (a.e.finish < b.e.finish ? -1 : a.e.finish > b.e.finish ? 1 : 0);
+}
+function planReminderPlan(now){
+  const { hour, minute } = getPlanReminderTime();
+  const freq = getPlanReminderFreq();
+  const weekday = getPlanReminderWeekday();
+  const entries = planReminderEntries(now);
+  const notifications = [];
+  const push = (d, body)=>{
+    const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, 0, 0);
+    if (at.getTime() <= now.getTime()) return false; // that day's reminder time has already gone by
+    if (notifications.length >= PLAN_REMINDER_ID_COUNT) return false;
+    notifications.push({ id: PLAN_REMINDER_ID_BASE + notifications.length, title: 'FindATalk', body, schedule: { at, allowWhileIdle: true } });
+    return true;
+  };
+  const more = (n)=> n > 1 ? `\nPlus ${n - 1} more plan${n > 2 ? 's' : ''}.` : '';
+  if (entries.length && freq === 'week'){
+    for (let i = 0; i < 28; i++){
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      if (d.getDay() + 1 !== weekday) continue;
+      const day = localDateSeed(d);
+      const rows = entries.map(e=>{
+        const credits = planWeekCredits(e.creditDays, day);
+        const gap = e.st.weekly ? e.plan.pace.count - credits : planExpectedThrough(e.plan, day, e.st.total) - e.st.done;
+        return { e, gap, credits };
+      }).sort(planReminderSort);
+      const top = rows[0];
+      const line = top.e.st.weekly
+        ? `${Math.min(top.credits, top.e.plan.pace.count)} of ${top.e.plan.pace.count} talks this week in ${top.e.name}`
+        : `${top.e.st.done} of ${top.e.st.total} talks read in ${top.e.name}`;
+      push(d, `${line}\nUp next: \u201C${top.e.talk[0]}\u201D \u00B7 ${top.e.talk[1]}${more(rows.length)}`);
+    }
+  } else if (entries.length){
+    for (let i = 0; i < PLAN_REMINDER_ID_COUNT; i++){
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      const day = localDateSeed(d);
+      const hits = [];
+      entries.forEach(e=>{
+        if (freq === 'behind'){
+          const gap = planBehindBy(e.plan, e.st.done, e.st.total, day);
+          if (gap > 0) hits.push({ e, gap });
+          return;
+        }
+        if (!planNeedsReadToday(e.plan, e.st.done, e.st.total, day, e.creditDays)) return;
+        const gap = e.st.weekly
+          ? e.plan.pace.count - planWeekCredits(e.creditDays, day)
+          : planExpectedThrough(e.plan, day, e.st.total) - e.st.done;
+        hits.push({ e, gap });
+      });
+      if (!hits.length) continue;
+      hits.sort(planReminderSort);
+      const top = hits[0];
+      const talkLine = `\u201C${top.e.talk[0]}\u201D \u00B7 ${top.e.talk[1]}`;
+      const head = freq === 'behind'
+        ? `You\u2019re ${top.gap} talk${top.gap === 1 ? '' : 's'} behind in ${top.e.name}`
+        : `Up next in ${top.e.name}`;
+      push(d, `${head}\n${talkLine}${more(hits.length)}`);
+    }
+  }
+  // The bodies carry every plan's done/next/pace, so they are the plan state.
+  return { signature: `plans|${freq}|${weekday}|${hour}:${minute}|${localDateSeed(now)}|${notifications.map(n=> n.body).join('\u0001')}`, notifications };
 }
 /* Which notifications the daily reminder should be made of right now.
    Normally that's one recurring trigger: `schedule.on` with only
@@ -11799,71 +12036,8 @@ function nextConferenceSunday(from){
    the tail runs out — the trade for not needing a server. `signature`
    identifies the plan so a foreground check can tell whether anything
    needs rescheduling. */
-/* Idea 88 — what each of the next PLAN_REMINDER_ID_COUNT days' reminder
-   should say while any plan has its reminder switched on, or null when none
-   does (the ordinary schedule then applies). A notification's text can't be
-   chosen at delivery time, so each day is worded now, assuming no further
-   reads: the next talk can't change unless something is read, and a read
-   (or a plan edit, or a sync merge) reschedules. A day where a plan needs a
-   read names the plan furthest from its pace (largest expected-minus-done;
-   a tie goes to the soonest finish) and counts the others; any other day
-   keeps the Talk of the Day text, and conference days keep the conference
-   text. */
-function planReminderBodies(now){
-  const today = localDateSeed(now);
-  const entries = [];
-  allPlanIds().forEach(planId=>{
-    const plan = activePlan(planId);
-    if (!plan || !plan.reminder) return;
-    const st = planStatus(planId, today);
-    if (!st || st.finished || !st.upNextKey) return;
-    const talk = TALKS_BY_KEY[st.upNextKey];
-    if (!talk) return;
-    entries.push({
-      st, plan, name: planListName(planId), talk,
-      creditDays: st.keys.filter(k=> st.credits[k]).map(k=> st.credits[k]),
-      finish: plan.mode === 'date' ? plan.finishBy : planProjectedFinish(plan, st.done, st.total, today)
-    });
-  });
-  if (!entries.length) return null;
-  const bodies = [];
-  for (let i = 0; i < PLAN_REMINDER_ID_COUNT; i++){
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-    const day = localDateSeed(d);
-    const due = [];
-    entries.forEach(e=>{
-      if (!planNeedsReadToday(e.plan, e.st.done, e.st.total, day, e.creditDays)) return;
-      const gap = e.st.weekly
-        ? e.plan.pace.count - planWeekCredits(e.creditDays, day)
-        : planExpectedThrough(e.plan, day, e.st.total) - e.st.done;
-      due.push({ e, gap });
-    });
-    due.sort((a, b)=> b.gap - a.gap || (a.e.finish < b.e.finish ? -1 : a.e.finish > b.e.finish ? 1 : 0));
-    let body;
-    if (isConferenceDay(d)) body = CONFERENCE_REMINDER_BODY;
-    else if (!due.length) body = DAILY_REMINDER_BODY;
-    else {
-      const top = due[0].e;
-      body = `Up next in ${top.name}\n\u201C${top.talk[0]}\u201D \u00B7 ${top.talk[1]}`;
-      if (due.length > 1) body += `\nPlus ${due.length - 1} more plan${due.length > 2 ? 's' : ''} with a talk waiting.`;
-    }
-    bodies.push({ date: d, body });
-  }
-  return bodies;
-}
 function dailyReminderPlan(now){
   const { hour, minute } = getReminderTime();
-  const planBodies = planReminderBodies(now);
-  if (planBodies){
-    const notifications = [];
-    planBodies.forEach(({ date, body })=>{
-      const at = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute, 0, 0);
-      if (at.getTime() <= now.getTime()) return; // that day's reminder time has already gone by
-      notifications.push({ id: PLAN_REMINDER_ID_BASE + notifications.length, title: 'FindATalk', body, schedule: { at, allowWhileIdle: true } });
-    });
-    // The bodies carry every plan's done/next/pace, so they are the plan state.
-    return { signature: `plans|${hour}:${minute}|${localDateSeed(now)}|${notifications.map(n=> n.body).join('\u0001')}`, notifications };
-  }
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const confSunday = nextConferenceSunday(now);
   const leadStart = new Date(confSunday.getFullYear(), confSunday.getMonth(), confSunday.getDate() - 1 - CONFERENCE_REMINDER_LEAD_DAYS);
@@ -11902,28 +12076,44 @@ function dailyReminderPlan(now){
   }
   return { signature: `conference|${hour}:${minute}|${localDateSeed(confSunday)}`, notifications };
 }
-// Clears every id either plan can use before scheduling, so switching
+// Clears every id either daily plan can use before scheduling, so switching
 // plans (or re-running the same one from a later launch, the Settings
 // toggle, or the Reminder Time picker) never leaves a stray reminder
 // behind to fire twice.
 let lastDailyReminderSignature = null;
+let lastPlanReminderSignature = null;
 async function scheduleDailyReminder(LocalNotifications){
   const plan = dailyReminderPlan(new Date());
   await cancelDailyReminder(LocalNotifications);
   await LocalNotifications.schedule({ notifications: plan.notifications });
   lastDailyReminderSignature = plan.signature;
 }
+async function schedulePlanReminder(LocalNotifications){
+  const plan = planReminderPlan(new Date());
+  await cancelPlanReminder(LocalNotifications);
+  if (plan.notifications.length) await LocalNotifications.schedule({ notifications: plan.notifications });
+  lastPlanReminderSignature = plan.signature;
+}
 /* Backgrounding doesn't reload the page, so an app left suspended can
    drift into (or out of) the conference stretch without a cold start.
-   Checked on every return to the foreground; reschedules only when the
-   plan itself has changed. */
+   Checked on every return to the foreground; reschedules only when a
+   plan itself has changed. Covers both the Talk of the Day reminder and
+   the Study plan reminder, which are independent. */
 async function refreshDailyReminderPlan(){
-  if (!isDailyReminderOn()) return;
+  const wantDaily = isDailyReminderOn(), wantPlan = isPlanReminderOn();
+  if (!wantDaily && !wantPlan) return;
   const LocalNotifications = await getGrantedLocalNotifications();
   if (!LocalNotifications) return;
-  try {
-    if (dailyReminderPlan(new Date()).signature !== lastDailyReminderSignature) await scheduleDailyReminder(LocalNotifications);
-  } catch(err){ /* not fatal */ }
+  if (wantDaily){
+    try {
+      if (dailyReminderPlan(new Date()).signature !== lastDailyReminderSignature) await scheduleDailyReminder(LocalNotifications);
+    } catch(err){ /* not fatal */ }
+  }
+  if (wantPlan){
+    try {
+      if (planReminderPlan(new Date()).signature !== lastPlanReminderSignature) await schedulePlanReminder(LocalNotifications);
+    } catch(err){ /* not fatal */ }
+  }
 }
 function watchForDailyReminderPlan(){
   onForeground(refreshDailyReminderPlan);
@@ -11933,6 +12123,7 @@ function watchForDailyReminderPlan(){
 // onLocalDataChanged(), so it is the one place that re-checks; the
 // signature comparison in refreshDailyReminderPlan() makes a no-op cheap.
 window.__dailyReminderPlan = dailyReminderPlan; // for checking in a console
+window.__planReminderPlan = planReminderPlan;
 let reminderRefreshTimer = null;
 function scheduleReminderRefresh(){
   if (!window.Capacitor) return;
@@ -11940,11 +12131,50 @@ function scheduleReminderRefresh(){
   reminderRefreshTimer = setTimeout(refreshDailyReminderPlan, 800);
 }
 
+/* One-time move to separate Talk of the Day and Study plan reminders.
+   Before the split a plan with its reminder box ticked replaced the Talk of
+   the Day text on the same schedule. Someone in that state keeps exactly
+   what they had: the plan reminder switches on at their old reminder time
+   and Talk of the Day switches off. Everyone else starts with the plan
+   reminder unconfigured. */
+function migrateReminderSplit(){
+  if (readPref(REMINDER_SPLIT_KEY, null) !== null) return;
+  writePref(REMINDER_SPLIT_KEY, '1');
+  if (!isDailyReminderOn()) return;
+  if (!allPlanIds().some(id=>{ const p = activePlan(id); return p && p.reminder; })) return;
+  const { hour, minute } = getReminderTime();
+  writePref(PLAN_REMINDER_ENABLED_KEY, '1');
+  writePref(PLAN_REMINDER_HOUR_KEY, hour);
+  writePref(PLAN_REMINDER_MINUTE_KEY, minute);
+  writePref(REMINDER_ENABLED_KEY, '0');
+}
+
+/* Saving a plan with its reminder box ticked is the first time many people
+   will meet the Study plan reminder. If it has never been configured, turn
+   it on (asking for notification permission if needed) so the ticked box
+   isn't a promise nothing keeps. A person who switched it off on purpose
+   (key '0') is left alone. */
+async function enablePlanReminderFirstTime(){
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
+  const LocalNotifications = cap.Plugins && cap.Plugins.LocalNotifications;
+  if (!LocalNotifications || readPref(PLAN_REMINDER_ENABLED_KEY, null) !== null) return;
+  try {
+    let perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
+    if (perm.display !== 'granted'){ writePref(PLAN_REMINDER_ENABLED_KEY, '0'); return; }
+    writePref(PLAN_REMINDER_ENABLED_KEY, '1');
+    await schedulePlanReminder(LocalNotifications);
+    if (window.refreshNotifSettings) window.refreshNotifSettings();
+  } catch(err){ /* not fatal */ }
+}
+
 async function setupDailyReminder(){
   const cap = window.Capacitor;
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const LocalNotifications = cap.Plugins && cap.Plugins.LocalNotifications;
   if (!LocalNotifications) return;
+  migrateReminderSplit();
 
   let alreadyPrompted = false;
   try { alreadyPrompted = localStorage.getItem(NOTIF_PROMPTED_KEY) === '1'; } catch(err){ /* ignore */ }
@@ -11962,11 +12192,10 @@ async function setupDailyReminder(){
     // Turned off in Settings stays off. This used to reschedule on every
     // launch regardless, quietly switching the reminder back on; the
     // cancel also clears one left behind by that.
-    if (!isDailyReminderOn()){
-      await cancelDailyReminder(LocalNotifications);
-      return;
-    }
-    await scheduleDailyReminder(LocalNotifications);
+    if (!isDailyReminderOn()) await cancelDailyReminder(LocalNotifications);
+    else await scheduleDailyReminder(LocalNotifications);
+    if (!isPlanReminderOn()) await cancelPlanReminder(LocalNotifications);
+    else await schedulePlanReminder(LocalNotifications);
   } catch(err){ /* permission denied, plugin unavailable, etc. — not fatal */ }
 }
 
@@ -12270,91 +12499,162 @@ function initSupportUI(){
 
 async function initReminderSettingsToggle(){
   const cap = window.Capacitor;
-  const section = document.getElementById('reminderSettingsSection');
-  const toggle = document.getElementById('reminderToggle');
-  const timeInput = document.getElementById('reminderTimeInput');
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const LocalNotifications = cap.Plugins && cap.Plugins.LocalNotifications;
   if (!LocalNotifications) return;
-  section.hidden = false;
+  const $ = (id)=> document.getElementById(id);
+  $('reminderSettingsSection').hidden = false;
 
+  const overlay = $('notifSettingsModalOverlay');
+  const totdToggle = $('reminderToggle'), totdTime = $('reminderTimeInput');
+  const planToggle = $('planReminderToggle'), planTime = $('planTimeInput');
+  const planFreq = $('planFreqSelect'), planDay = $('planDaySelect');
+  const cfmToggle = $('weeklyCfmReminderToggle'), cfmTime = $('cfmTimeInput');
   const pad2 = (n)=> String(n).padStart(2, '0');
-  const { hour, minute } = getReminderTime();
-  timeInput.value = pad2(hour) + ':' + pad2(minute);
+  const toInput = ({ hour, minute })=> pad2(hour) + ':' + pad2(minute);
+  const fmtTime = (h, m)=> `${h % 12 || 12}:${pad2(m)} ${h < 12 ? 'AM' : 'PM'}`;
+  const parseInput = (v)=>{
+    const parts = (v || '').split(':');
+    const h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+    return Number.isInteger(h) && Number.isInteger(m) ? { h, m } : null; // cleared/invalid — leave prior pref alone
+  };
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  let enabledPref = null;
-  try { enabledPref = localStorage.getItem(REMINDER_ENABLED_KEY); } catch(err){ /* ignore */ }
-
-  try {
-    const perm = await LocalNotifications.checkPermissions();
-    toggle.checked = perm.display === 'granted' && enabledPref !== '0';
-  } catch(err){ toggle.checked = false; }
-  timeInput.disabled = !toggle.checked;
-
-  toggle.addEventListener('change', async ()=>{
-    const turningOn = toggle.checked;
+  // The switches show OS permission AND the saved preference together:
+  // granted-but-switched-off reads off, and switching on asks for
+  // permission if it was never granted.
+  let granted = false;
+  async function checkGranted(){
+    try { granted = (await LocalNotifications.checkPermissions()).display === 'granted'; }
+    catch(err){ granted = false; }
+  }
+  async function ensureGranted(){
     try {
-      if (turningOn){
-        let perm = await LocalNotifications.checkPermissions();
-        if (perm.display !== 'granted'){
-          perm = await LocalNotifications.requestPermissions();
+      let perm = await LocalNotifications.checkPermissions();
+      if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
+      granted = perm.display === 'granted';
+    } catch(err){ granted = false; }
+    return granted;
+  }
+
+  const totdOn = ()=> granted && isDailyReminderOn();
+  const planOn = ()=> granted && isPlanReminderOn();
+  const cfmOn = ()=> granted && readPref(WEEKLY_CFM_ENABLED_KEY, '0') === '1';
+
+  function previewHtml(label, body){
+    return '<b>' + label.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</b>' + body.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  }
+  function renderNav(){
+    const parts = [];
+    if (totdOn()){ const t = getReminderTime(); parts.push('Talk of the Day ' + fmtTime(t.hour, t.minute)); }
+    if (planOn()){
+      const t = getPlanReminderTime();
+      parts.push('Plan ' + (getPlanReminderFreq() === 'week' ? DAY_NAMES[getPlanReminderWeekday() - 1].slice(0, 3) + ' ' : '') + fmtTime(t.hour, t.minute));
+    }
+    if (cfmOn()){ const t = getCfmReminderTime(); parts.push('Come, Follow Me Mon ' + fmtTime(t.hour, t.minute)); }
+    $('notifNavSummary').textContent = parts.length ? parts.join(' · ') : 'Off';
+  }
+  function renderNotifSettings(){
+    totdToggle.checked = totdOn();
+    planToggle.checked = planOn();
+    cfmToggle.checked = cfmOn();
+    [['totdBlock', totdOn()], ['planBlock', planOn()], ['cfmBlock', cfmOn()]].forEach(([id, isOn])=> $(id).classList.toggle('is-off', !isOn));
+    totdTime.disabled = !totdOn();
+    [planTime, planFreq, planDay].forEach(el=> el.disabled = !planOn());
+    cfmTime.disabled = !cfmOn();
+    totdTime.value = toInput(getReminderTime());
+    planTime.value = toInput(getPlanReminderTime());
+    planFreq.value = getPlanReminderFreq();
+    planDay.value = String(getPlanReminderWeekday());
+    cfmTime.value = toInput(getCfmReminderTime());
+    const freq = getPlanReminderFreq();
+    $('planDayRow').hidden = freq !== 'week';
+
+    const t = getReminderTime();
+    $('totdPreview').innerHTML = previewHtml('Daily, ' + fmtTime(t.hour, t.minute), DAILY_REMINDER_BODY);
+    const c = getCfmReminderTime();
+    $('cfmPreview').innerHTML = previewHtml('Mondays, ' + fmtTime(c.hour, c.minute), "Talks that support this week's Come, Follow Me are ready — tap to explore.");
+
+    // The plan preview is the real next notification, worded from the
+    // plans you've included.
+    const included = allPlanIds().filter(id=>{ const p = activePlan(id); return p && p.reminder; });
+    const next = planReminderPlan(new Date()).notifications[0];
+    if (next){
+      const at = next.schedule.at;
+      $('planPreview').innerHTML = previewHtml('Next: ' + DAY_NAMES[at.getDay()].slice(0, 3) + ' ' + fmtTime(at.getHours(), at.getMinutes()), next.body);
+    } else {
+      $('planPreview').textContent = included.length
+        ? 'Nothing to remind you about in the next two weeks.'
+        : 'No plans included yet. Open a study plan and tick “Include in my study plan reminder”.';
+    }
+    $('planFreqHint').textContent = freq === 'due' ? 'Quiet on days nothing is due.'
+      : freq === 'behind' ? 'Starts the day after you miss a read. Quiet while you’re on pace.'
+      : 'One notification a week, covering all included plans.';
+    $('planIncludedHint').textContent = included.length ? 'Plans included: ' + included.map(planListName).join(', ') + '.' : '';
+    renderNav();
+  }
+  async function openNotifSettings(){
+    await checkGranted();
+    renderNotifSettings();
+    overlay.hidden = false;
+  }
+  window.closeNotifSettings = ()=>{ overlay.hidden = true; renderNav(); };
+  window.refreshNotifSettings = async ()=>{ await checkGranted(); renderNotifSettings(); };
+  $('notifNavBtn').addEventListener('click', openNotifSettings);
+  $('notifSettingsBack').addEventListener('click', window.closeNotifSettings);
+  $('notifSettingsClose').addEventListener('click', ()=>{ window.closeNotifSettings(); closeSettingsModal(); });
+  overlay.addEventListener('click', (e)=>{ if (e.target === overlay) window.closeNotifSettings(); });
+  document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !overlay.hidden) window.closeNotifSettings(); });
+
+  // A switch: on asks for permission, saves the preference and schedules;
+  // off saves the preference and cancels.
+  function wireSwitch(toggle, { enableKey, schedule, cancel }){
+    toggle.addEventListener('change', async ()=>{
+      const turningOn = toggle.checked;
+      try {
+        if (turningOn){
+          if (!(await ensureGranted())){ toggle.checked = false; return; } // OS-level denial — nothing more we can do from here
+          writePref(enableKey, '1');
+          await schedule(LocalNotifications);
+        } else {
+          writePref(enableKey, '0');
+          await cancel(LocalNotifications);
         }
-        if (perm.display !== 'granted'){
-          toggle.checked = false; // OS-level denial — nothing more we can do from here
-          return;
-        }
-        await scheduleDailyReminder(LocalNotifications);
-        try { localStorage.setItem(REMINDER_ENABLED_KEY, '1'); } catch(err){ /* ignore */ }
-      } else {
-        await cancelDailyReminder(LocalNotifications);
-        try { localStorage.setItem(REMINDER_ENABLED_KEY, '0'); } catch(err){ /* ignore */ }
-      }
-    } catch(err){ /* plugin unavailable, etc. — leave the switch as the user set it */ }
-    timeInput.disabled = !toggle.checked;
+      } catch(err){ console.warn('reminder switch', err); /* plugin unavailable, etc. — leave the switch as the user set it */ }
+      renderNotifSettings();
+    });
+  }
+  wireSwitch(totdToggle, { enableKey: REMINDER_ENABLED_KEY, schedule: scheduleDailyReminder, cancel: cancelDailyReminder });
+  wireSwitch(planToggle, { enableKey: PLAN_REMINDER_ENABLED_KEY, schedule: schedulePlanReminder, cancel: cancelPlanReminder });
+  wireSwitch(cfmToggle, {
+    enableKey: WEEKLY_CFM_ENABLED_KEY,
+    schedule: scheduleWeeklyCfmReminder,
+    cancel: (LN)=> LN.cancel({ notifications: [{ id: WEEKLY_CFM_REMINDER_ID }] })
   });
 
-  timeInput.addEventListener('change', async ()=>{
-    const parts = (timeInput.value || '').split(':');
-    const h = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10);
-    if (!Number.isInteger(h) || !Number.isInteger(m)) return; // cleared/invalid — leave prior pref alone
-    setReminderTime(h, m);
-    if (!toggle.checked) return; // nothing scheduled to update yet
-    try { await scheduleDailyReminder(LocalNotifications); } catch(err){ /* ignore */ }
-  });
+  // Changing a time/frequency/day saves it and replaces the schedule in
+  // place (scheduling clears its own ids first).
+  function wireSetting(el, save, reschedule, isOn){
+    el.addEventListener('change', async ()=>{
+      if (!save()) return;
+      if (isOn()){ try { await reschedule(LocalNotifications); } catch(err){ console.warn('reminder reschedule', err); } }
+      renderNotifSettings();
+    });
+  }
+  const timeSaver = (input, hourKey, minuteKey)=> ()=>{
+    const t = parseInput(input.value);
+    if (!t) return false;
+    writePref(hourKey, t.h); writePref(minuteKey, t.m);
+    return true;
+  };
+  wireSetting(totdTime, timeSaver(totdTime, REMINDER_HOUR_KEY, REMINDER_MINUTE_KEY), scheduleDailyReminder, totdOn);
+  wireSetting(planTime, timeSaver(planTime, PLAN_REMINDER_HOUR_KEY, PLAN_REMINDER_MINUTE_KEY), schedulePlanReminder, planOn);
+  wireSetting(planFreq, ()=>{ writePref(PLAN_REMINDER_FREQ_KEY, planFreq.value); return true; }, schedulePlanReminder, planOn);
+  wireSetting(planDay, ()=>{ writePref(PLAN_REMINDER_WEEKDAY_KEY, planDay.value); return true; }, schedulePlanReminder, planOn);
+  wireSetting(cfmTime, timeSaver(cfmTime, CFM_REMINDER_HOUR_KEY, CFM_REMINDER_MINUTE_KEY), scheduleWeeklyCfmReminder, cfmOn);
 
-  // Phase 2 (idea 45) — Weekly Come Follow Me Reminder toggle. Same
-  // section, same LocalNotifications instance already resolved above,
-  // deliberately its own opt-in default-off state (WEEKLY_CFM_ENABLED_KEY)
-  // rather than tied to the Daily Reminder toggle — a different
-  // commitment someone might want independently of the daily one.
-  const weeklyCfmToggle = document.getElementById('weeklyCfmReminderToggle');
-  try {
-    const perm = await LocalNotifications.checkPermissions();
-    weeklyCfmToggle.checked = perm.display === 'granted' &&
-      localStorage.getItem(WEEKLY_CFM_ENABLED_KEY) === '1';
-  } catch(err){ weeklyCfmToggle.checked = false; }
-
-  weeklyCfmToggle.addEventListener('change', async ()=>{
-    const turningOn = weeklyCfmToggle.checked;
-    try {
-      if (turningOn){
-        let perm = await LocalNotifications.checkPermissions();
-        if (perm.display !== 'granted'){
-          perm = await LocalNotifications.requestPermissions();
-        }
-        if (perm.display !== 'granted'){
-          weeklyCfmToggle.checked = false; // OS-level denial
-          return;
-        }
-        await scheduleWeeklyCfmReminder(LocalNotifications);
-        try { localStorage.setItem(WEEKLY_CFM_ENABLED_KEY, '1'); } catch(err){ /* ignore */ }
-      } else {
-        await LocalNotifications.cancel({ notifications: [{ id: WEEKLY_CFM_REMINDER_ID }] });
-        try { localStorage.setItem(WEEKLY_CFM_ENABLED_KEY, '0'); } catch(err){ /* ignore */ }
-      }
-    } catch(err){ /* plugin unavailable, etc. — leave the switch as the user set it */ }
-  });
+  await checkGranted();
+  renderNotifSettings();
 }
 // NOTE: the actual renderTalkOfTheDay() call happens at the very end of
 // initApp(), not here — buildListItemRow() → createFavoriteButton() reads
@@ -15377,6 +15677,26 @@ function planRemindersAvailable(){
   const cap = window.Capacitor;
   return !!(cap && cap.isNativePlatform && cap.isNativePlatform());
 }
+/* What ticking the box will do, given the Study plan reminder's state in
+   Settings -> Notifications. */
+function updatePlanReminderNote(){
+  const note = document.getElementById('planReminderNote');
+  const checked = document.getElementById('planReminderInput').checked;
+  const state = readPref(PLAN_REMINDER_ENABLED_KEY, null);
+  const t = getPlanReminderTime();
+  const when = `${t.hour % 12 || 12}:${String(t.minute).padStart(2, '0')} ${t.hour < 12 ? 'AM' : 'PM'}`;
+  let text = '';
+  if (planRemindersAvailable() && checked){
+    if (state === '1'){
+      const freq = getPlanReminderFreq();
+      text = `You\u2019ll be reminded at ${when} ${freq === 'week' ? 'in your weekly summary' : freq === 'behind' ? 'when you\u2019re behind' : 'on days a talk is due'}. Change this in Settings \u203A Notifications.`;
+    } else if (state === '0') text = 'Your study plan reminder is off. Turn it on in Settings \u203A Notifications.';
+    else text = `Saving this plan turns on a study plan reminder at ${when}.`;
+  }
+  note.textContent = text;
+  note.hidden = !text;
+}
+document.getElementById('planReminderInput').addEventListener('change', updatePlanReminderNote);
 function openPlanModal(listId){
   if (!STUDY_PLANS_ENABLED) return;
   planModalListId = listId;
@@ -15400,6 +15720,7 @@ function openPlanModal(listId){
   remindRow.hidden = !planRemindersAvailable();
   const othersRemind = allPlanIds().some(id=> id !== listId && activePlan(id) && activePlan(id).reminder);
   document.getElementById('planReminderInput').checked = existing ? !!existing.reminder : !othersRemind;
+  updatePlanReminderNote();
   setPlanModalMode(existing ? existing.mode : 'date');
   planOverlay.hidden = false;
 }
@@ -15432,8 +15753,10 @@ document.getElementById('planSaveBtn').addEventListener('click', ()=>{
   const liveList = livePlanList(id);
   if (planOverlay.dataset.memberOnly){
     // Just my own reminder choice for this shared plan.
-    collectionPlans[id] = { reminder: planRemindersAvailable() && document.getElementById('planReminderInput').checked, updatedAt: Date.now() };
+    const memberReminder = planRemindersAvailable() && document.getElementById('planReminderInput').checked;
+    collectionPlans[id] = { reminder: memberReminder, updatedAt: Date.now() };
     savePlans();
+    if (memberReminder) enablePlanReminderFirstTime();
     closePlanModal();
     renderCollectionPage(id);
     return;
@@ -15456,6 +15779,7 @@ document.getElementById('planSaveBtn').addEventListener('click', ()=>{
     savePlans();
     saveLivePlan(id, livePlanPayload(shell, today, planListKeys(id).length));
   } else startOrEditPlan(id, planModalMode, finishBy, pace, reminder);
+  if (reminder) enablePlanReminderFirstTime();
   closePlanModal();
   renderCollectionsIndexPage();
   if (!wasPlan) collectionSortToggle.set('order');
@@ -18579,6 +18903,7 @@ function closeTopmostModal(){
   if (!overlay('streakSalvageModalOverlay').hidden){ closeStreakSalvageModal(); return true; }
   if (!overlay('deleteAccountModalOverlay').hidden){ closeDeleteAccountModal(); return true; }
   if (!overlay('clearDataModalOverlay').hidden){ closeClearDataModal(); return true; }
+  if (!overlay('notifSettingsModalOverlay').hidden){ closeNotifSettings(); return true; }
   if (!overlay('settingsModalOverlay').hidden){ closeSettingsModal(); return true; }
   if (!overlay('trophyModalOverlay').hidden){ closeTrophyModal(); return true; }
   if (!overlay('badgesModalOverlay').hidden){ closeBadgesModal(); return true; }

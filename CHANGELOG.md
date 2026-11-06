@@ -10,6 +10,14 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- A new **Notifications** screen in Settings with three separate reminders, each with its own switch and time: **Talk of the Day** (8:00 AM by default), **Study plan** (9:00 PM by default), and **Come, Follow Me** (Mondays, 9:00 AM by default, and now you can pick the time). Each shows a preview of exactly what the notification will say. (Needs a new app build; not on the website.)
+- Study plan reminders now let you choose **how often**: on days a talk is due, only when you're behind, or a weekly summary on the day you pick. (Needs a new app build.)
+
+### Changed
+- A study plan's reminder no longer replaces your Talk of the Day reminder. They are separate, so you can have the Talk of the Day in the morning and your study plan at night. The plan's checkbox now reads "Include in my study plan reminder", and saving your first plan with it ticked turns the study plan reminder on. If you were already using plan reminders in place of Talk of the Day, the update keeps exactly that. (Needs a new app build.)
+- Study plan reminders are now scheduled two weeks ahead instead of forty days, and the Talk of the Day's General Conference reminders eight weeks past conference instead of twelve, to stay under the phone's limit on pending notifications. Open the app now and then and they roll forward. (Needs a new app build.)
+
 ### Fixed
 - Pressing the Android back button while the Edit plan window (or the share, sign-in, or streak-rescue windows) is open now closes that window instead of going back on the screen behind it. (Website live immediately; the app needs a new build.)
 

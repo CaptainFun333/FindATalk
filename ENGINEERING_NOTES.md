@@ -293,6 +293,15 @@ served live at findatalk.com; this one should never be public.
   `purchase()` rejects "Unknown product" → the generic "Something went
   wrong starting that purchase" error the reviewer screenshotted.
 
+- **Promoted IAPs need their own unique, legible promotional image
+  (Guideline 2.3.2).** 1.7.7 was rejected because the same image was
+  uploaded for several promoted tip tiers and its text was too small.
+  The promo image (1024x1024) is App Store Connect metadata only, so the
+  fix needs no new build: give each promoted tier a distinct image with
+  large text. App Store Connect's IAP "Image (Optional)" field can only
+  be replaced, not deleted (no remove control exists), so replacing is
+  the only route.
+
 ## Sharing a generated file (Capacitor Share vs. Web Share API)
 
 - **Capacitor's native `Share` plugin has no `files` array parameter at
@@ -698,3 +707,11 @@ served live at findatalk.com; this one should never be public.
   desktop browsers, so the drag died after one step (worked in no real
   browser test until Brad tried it). It now drags with `transform` and
   only reorders on release.
+
+## Local notification budget (iOS caps pending notifications at 64)
+
+iOS keeps only 64 pending local notifications and silently drops the rest; Android has no practical cap. Everything scheduled counts: the Talk of the Day reminder (1 repeating trigger normally, but ~5 weekday triggers plus dated weekend ones, about 25, through the General Conference lead-in and an 8-week tail), the Study plan reminder (up to `PLAN_REMINDER_ID_COUNT` = 14 dated ones, IDs 300+), Come, Follow Me (1), streak at-risk/salvage (0-2), plus transient new-conference and milestone ones. Talk of the Day and the plan reminder used to be one schedule that never stacked, with 40 plan days; once they became independent that stacked to ~88 in the conference stretch. Keep the sum of the worst cases under 64 if you add schedule length. Old builds scheduled 300-339, so `cancelPlanReminder()` still clears 40 IDs (`PLAN_REMINDER_CANCEL_COUNT`).
+
+## Reminder code scoping
+
+`scheduleWeeklyCfmReminder()` and the reminder helpers (`readPref`, `readTimePref`, `getCfmReminderTime`) sit in a different scope from the daily-reminder code that is a few thousand lines lower, so a helper declared with the daily code is a ReferenceError inside the Come, Follow Me scheduler. It threw inside a try/catch that swallows errors, so the switch kept working and the notification never scheduled. The helpers now live beside `WEEKLY_CFM_ENABLED_KEY`. The reminder switch handlers log swallowed errors with `console.warn`; check there first.
