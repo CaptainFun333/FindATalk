@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.8.2] — 2026-11-16
+
 ### Added
 - Shared list links are now much shorter — a 7-talk list link drops from about 34 characters of talk codes to about 15. Links from before still open. Anyone on an older app version can't open a new-style link until they update. (Website live immediately; the app needs a new build.)
 - A new **Notifications** screen in Settings with three separate reminders, each with its own switch and time: **Talk of the Day** (8:00 AM by default), **Study plan** (9:00 PM by default), and **Come, Follow Me** (Mondays, 9:00 AM by default, and now you can pick the time). Each shows a preview of exactly what the notification will say. (Needs a new app build; not on the website.)
