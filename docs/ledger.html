@@ -283,6 +283,9 @@
   <section class="panel" id="panel-admin">
     <h2>Admin</h2>
     <p style="color:var(--ink-soft);font-size:13px;margin-top:-8px">Private. Works only for the signed-in admin account, and nothing here is ever published on this page's public tabs.</p>
+    <div class="kind-label">Upcoming Talks of the Day</div>
+    <p class="adm-note">The next 45 days, straight from the published schedule the app uses. Days with no talk are General Conference weekends.</p>
+    <div id="admin-upcoming"><p class="adm-note">Loading&hellip;</p></div>
     <div id="admin-auth"></div>
     <div id="admin-tools" hidden>
       <div class="kind-label">Fix a streak</div>
@@ -807,8 +810,32 @@ function renderAdminAuth(user) {
   box.innerHTML = `<p class="adm-note">Signed in as ${escapeHtml(user.email || '')} · <a href="#" id="admin-signout" class="src-link">Sign out</a></p>`;
   document.getElementById('admin-signout').addEventListener('click', (e) => { e.preventDefault(); adminFb.authMod.signOut(adminFb.auth); });
 }
+// Next 45 days of the published Talk of the Day schedule (data.json totdSchedule).
+async function renderUpcomingTotd() {
+  const box = document.getElementById('admin-upcoming');
+  try {
+    const data = await (await fetch('data.json', { cache: 'no-cache' })).json();
+    const byKey = {};
+    data.talks.forEach(t => { byKey[`${t[2]}|${t[3]}|${t[4]}`] = t; });
+    const today = admToday(), ty = Number(today.slice(0, 4));
+    // Thanksgiving: fourth Thursday of November.
+    const nov1 = new Date(ty, 10, 1).getDay();
+    const thanks = ymd(ty, 11, 1 + ((4 - nov1 + 7) % 7) + 21);
+    let rows = '';
+    for (let i = 0; i < 45; i++) {
+      const day = admShift(today, i), key = data.totdSchedule[day], t = key && byKey[key];
+      const label = admLabel(day, { weekday: 'short', month: 'short', day: 'numeric' });
+      const tag = day === thanks ? ' <strong>(Thanksgiving)</strong>' : i === 0 ? ' <strong>(today)</strong>' : '';
+      rows += t
+        ? `<tr><td>${escapeHtml(label)}${tag}</td><td>${escapeHtml(t[0])}</td><td>${escapeHtml(t[1])}</td><td>${t[3] === '04' ? 'Apr' : 'Oct'} ${t[2]}</td></tr>`
+        : `<tr><td>${escapeHtml(label)}${tag}</td><td colspan="3" style="color:var(--ink-soft)">${key ? 'Not in talk list' : 'No Talk of the Day (General Conference)'}</td></tr>`;
+    }
+    box.innerHTML = `<table class="palette-table"><thead><tr><th>Date</th><th>Talk</th><th>Speaker</th><th>Given</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { box.innerHTML = '<p class="error">Could not load the schedule right now.</p>'; }
+}
 async function showAdminTab() {
   document.getElementById('admin-tab').hidden = false;
+  renderUpcomingTotd();
   try { await loadAdminFirebase(); }
   catch (e) { document.getElementById('admin-auth').innerHTML = '<p class="error">Could not load sign-in right now.</p>'; }
 }
