@@ -19003,6 +19003,22 @@ if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.
     cap.Plugins.App.exitApp();
   });
 }
+/* Web browser Back button — zones and modals are plain JS state, so the
+   browser's Back used to skip straight to the previous site, ignoring
+   everything done in the app. Fix: keep one sentinel history entry on top
+   of the real one. Back pops it; we answer by stepping back one level in
+   the app (same logic as Android's back button) and re-pushing the
+   sentinel so the next Back works too. With nothing left to step back
+   out of (Home, no modal), we let Back through to leave the page.
+   Native apps skip this — they have their own backButton / edge swipe. */
+if (!(cap && cap.isNativePlatform && cap.isNativePlatform())){
+  const armBackSentinel = ()=> history.pushState({ftApp:1}, '', window.location.href);
+  if (!(history.state && history.state.ftApp)) armBackSentinel();
+  window.addEventListener('popstate', ()=>{
+    if (stepBackOneLevel()) armBackSentinel();
+    else history.back();
+  });
+}
 /* Idea 60 — iOS left-edge swipe-to-go-back, Path A from the idea 60
    write-up: a native UIScreenEdgePanGestureRecognizer (added in
    SceneDelegate.swift, not through WKWebView's own

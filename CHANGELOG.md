@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- On the website, the browser's Back button now steps back within the app (closing a pop-up, or returning from a tab to Home) instead of jumping to the previous web page. From Home it leaves the page as before. (Website live immediately; the native apps already handle Back and are unchanged.)
 
 ## [1.8.2] — 2026-11-16
 
