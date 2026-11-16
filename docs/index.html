@@ -15128,9 +15128,47 @@ function buildListShareUrl(col){
   const indexByKey = new Map(sorted.map((t, i)=> [talkKey(t), i]));
   const indices = keys.map(k=> indexByKey.get(k)).filter(i=> i !== undefined);
   const params = new URLSearchParams();
-  params.set('list', indices.join(','));
+  params.set('l', packListIndices(indices));
   params.set('name', col.name);
   return `${FINDATALK_URL}/?${params.toString()}`;
+}
+
+/* Packed list links (idea 83). Each sortedTalks() index becomes a fixed
+   number of characters from the URL-safe alphabet below (A-Z a-z 0-9 - _ —
+   all "unreserved", so nothing gets percent-encoded), instead of ~4 digits
+   plus a comma. The value starts with one digit saying how many characters
+   each index takes: 2 while every index fits in 64^2 = 4096, 3 once the
+   library grows past that, so links stay as short as they can and a bigger
+   library never silently breaks the packing. Older links (`list=3193,3057`)
+   still parse — see parseSharedListFromUrl(). Builds from before this one
+   only understand the old form, so a packed link doesn't open a list there. */
+const LIST_PACK_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+function packListIndices(indices){
+  const width = Math.max(0, ...indices) < 64 * 64 ? 2 : 3;
+  let out = String(width);
+  for (const n of indices){
+    let chunk = '';
+    for (let i = 0, v = n; i < width; i++, v = Math.floor(v / 64)) chunk = LIST_PACK_ALPHABET[v % 64] + chunk;
+    out += chunk;
+  }
+  return out;
+}
+// Inverse of packListIndices(); returns [] for anything malformed.
+function unpackListIndices(packed){
+  const width = parseInt(packed[0], 10);
+  const body = packed.slice(1);
+  if ((width !== 2 && width !== 3) || !body.length || body.length % width) return [];
+  const out = [];
+  for (let i = 0; i < body.length; i += width){
+    let n = 0;
+    for (const ch of body.slice(i, i + width)){
+      const d = LIST_PACK_ALPHABET.indexOf(ch);
+      if (d < 0) return [];
+      n = n * 64 + d;
+    }
+    out.push(n);
+  }
+  return out;
 }
 
 /* Same deep-link pattern as buildListShareUrl() above, but for a single
@@ -15165,11 +15203,13 @@ function parseSharedListFromUrl(urlString){
   let params;
   try { params = new URL(urlString).searchParams; }
   catch(err){ return null; }
+  const packed = params.get('l');
   const rawList = params.get('list');
-  if (!rawList) return null;
+  if (!packed && !rawList) return null;
   const sorted = sortedTalks();
-  const talks = rawList.split(',')
-    .map(s=> sorted[parseInt(s, 10)])
+  const indices = packed ? unpackListIndices(packed) : rawList.split(',').map(s=> parseInt(s, 10));
+  const talks = indices
+    .map(i=> sorted[i])
     .filter(Boolean);
   if (!talks.length) return null;
   return { name: params.get('name') || 'Shared List', talks };
