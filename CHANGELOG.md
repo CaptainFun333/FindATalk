@@ -10,6 +10,14 @@ this updated.
 
 ## [Unreleased]
 
+### Added
+- **Mark talks read or unread yourself.** Studied a talk somewhere else, like the Gospel Library? Press and hold a talk (or right-click on the web) and choose "Mark as read" or "Mark as unread". You can also tick several talks and tap "Mark Read" next to "Add to List". Unread is also a way to park a talk you started and want to come back to. Talks you mark yourself show the Read checkmark and count toward your lists, plans, and Unique Talks Read, but not your streak, badges, or the Talk of the Day calendar. (Website live immediately; the app needs a new build.)
+- New "Show me around" cards for Lists, Plans & Sharing and for Mark as Read or Unread. (Website live immediately; the app needs a new build.)
+
+### Changed
+- A talk now shows **Opened** until you've been away reading it for about a minute, then it switches to **Read** and your streak counts, so a Read checkmark always means the streak counted. Before, a quick 10-second trip showed Read without counting toward your streak. (Website live immediately; the app needs a new build.)
+- The "Show me around" cards for Talk of the Day and Earn Badges now match how reading is counted. (Website live immediately; the app needs a new build.)
+
 ### Fixed
 - On the website, the browser's Back button now steps back within the app (closing a pop-up, or returning from a tab to Home) instead of jumping to the previous web page. From Home it leaves the page as before. (Website live immediately; the native apps already handle Back and are unchanged.)
 

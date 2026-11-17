@@ -715,3 +715,11 @@ iOS keeps only 64 pending local notifications and silently drops the rest; Andro
 ## Reminder code scoping
 
 `scheduleWeeklyCfmReminder()` and the reminder helpers (`readPref`, `readTimePref`, `getCfmReminderTime`) sit in a different scope from the daily-reminder code that is a few thousand lines lower, so a helper declared with the daily code is a ReferenceError inside the Come, Follow Me scheduler. It threw inside a try/catch that swallows errors, so the switch kept working and the notification never scheduled. The helpers now live beside `WEEKLY_CFM_ENABLED_KEY`. The reminder switch handlers log swallowed errors with `console.warn`; check there first.
+
+## Manual read marks (read vs. verified read)
+
+`readKeys` still means "shows a Read checkmark" and now includes manual marks. A read is **verified** when `visitCounts[key] > 0` or it's in `readKeys` without a `manualReads` entry (old reads predate visit counts). Everything earned — badges, the support/rating milestone asks, the TOTD calendar check, the read-log backfill — must use `isVerifiedRead()` / `verifiedReadCount()`, never `readKeys.size`. Study-record displays (Unique Talks Read, Read/Unread filters, plans) use `readKeys`.
+
+Unreads sync through `readUpdatedAt` (a timestamp per key, same `mergeTimestampedSet()` as favorites). `markRead()` and `setManualRead()` both stamp it; without that, another device's union re-adds an unread. `manualReads` entries are pruned after a merge for keys no longer in `readKeys`.
+
+Gotcha: `refreshCount()` → `resetListPaging()` clears `listSelection` (and the CFM equivalent) without unticking the boxes, so any action that calls `onNeedRefreshCount` leaves ticked boxes with an empty selection. The bulk Mark Read handlers call the bar's own clear function afterwards for that reason.

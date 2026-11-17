@@ -2262,6 +2262,23 @@
     margin-left:8px;
   }
   .list-item-read-badge[hidden]{ display:none; }
+  /* "Opened" shares the Read badge's slot — quieter, since it hasn't counted yet. */
+  .list-item-read-badge.is-opened{ font-weight:500; font-style:italic; }
+  /* Long press / right-click a talk for Mark as read or unread. */
+  .list-item{ -webkit-touch-callout:none; }
+  .list-item a{ -webkit-touch-callout:none; }
+  .read-mark-menu{
+    position:fixed; z-index:9000; min-width:170px;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 6px 24px rgba(0,0,0,.18); padding:4px;
+  }
+  .read-mark-menu[hidden]{ display:none; }
+  .read-mark-menu button{
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    background:none; border:none; cursor:pointer; border-radius:7px;
+    font-family:'Inter',sans-serif; font-size:14px; color:var(--ink); padding:10px 12px;
+  }
+  .read-mark-menu button:hover{ background:var(--line); }
   /* Idea 88 — My order: position number, grip, and move buttons. */
   /* Idea 88 — study plans */
   .plans-zone{ max-width:620px; margin:18px auto 20px; padding:0 4px; }
@@ -3568,6 +3585,7 @@
     <div class="list-bulk-bar" id="listBulkBar" hidden>
       <span id="listBulkCount"></span>
       <button type="button" class="btn btn-ghost" id="listBulkAddBtn">+ Add to List</button>
+      <button type="button" class="btn btn-ghost" id="listBulkReadBtn" hidden></button>
       <button type="button" class="reset-link" id="listBulkClearBtn">Clear selection</button>
     </div>
     <div class="list-items" id="listItems"></div>
@@ -3608,6 +3626,7 @@
     <div class="list-bulk-bar" id="recentBulkBar" hidden>
       <span id="recentBulkCount"></span>
       <button type="button" class="btn btn-ghost" id="recentBulkAddBtn">+ Add to List</button>
+      <button type="button" class="btn btn-ghost" id="recentBulkReadBtn" hidden></button>
       <button type="button" class="reset-link" id="recentBulkClearBtn">Clear selection</button>
     </div>
     <div class="list-items" id="recentItems"></div>
@@ -3639,6 +3658,7 @@
     <div class="list-bulk-bar" id="favoritesBulkBar" hidden>
       <span id="favoritesBulkCount"></span>
       <button type="button" class="btn btn-ghost" id="favoritesBulkAddBtn">+ Add to List</button>
+      <button type="button" class="btn btn-ghost" id="favoritesBulkReadBtn" hidden></button>
       <button type="button" class="reset-link" id="favoritesBulkClearBtn">Clear selection</button>
     </div>
     <div class="list-items" id="favoritesItems"></div>
@@ -3886,6 +3906,7 @@
     <div class="list-bulk-bar" id="cfmBulkBar" hidden>
       <span id="cfmBulkCount"></span>
       <button type="button" class="btn btn-ghost" id="cfmBulkAddBtn">+ Add to List</button>
+      <button type="button" class="btn btn-ghost" id="cfmBulkReadBtn" hidden></button>
       <button type="button" class="reset-link" id="cfmBulkClearBtn">Clear selection</button>
     </div>
     </div>
@@ -6136,7 +6157,7 @@ const ONBOARDING_SCREENS = [
   {
     icon: '⭐',
     title: 'Talk of the Day',
-    copy: 'A curated talk picked just for you every day. Tap the Title to read the talk, Tap the 📅 to see past TOTDs. Open a talk daily to start your streak.'
+    copy: 'A curated talk picked just for you every day. Tap the Title to read the talk, Tap the 📅 to see past TOTDs. Read a talk for a minute or more to build your streak.'
   },
   {
     icon: '🔍',
@@ -6161,12 +6182,22 @@ const ONBOARDING_SCREENS = [
   {
     icon: '📋',
     title: 'Save & Take Notes',
-    copy: 'Add talks to your favorites, or create your own collections and save for later. Jot down what you learned on any talk. Build study groups however you want.'
+    copy: 'Add talks to your favorites, or create your own collections and save for later. Jot down what you learned on any talk.'
+  },
+  {
+    icon: '📚',
+    title: 'Lists, Plans & Sharing',
+    copy: 'Turn any list into a study plan: pick an order, and your progress shows on Home as you read. Invite family or a study group to the same list so you can all add talks.'
+  },
+  {
+    icon: '✅',
+    title: 'Mark as Read or Unread',
+    copy: 'A talk shows “Opened” until you’ve been away reading it for a minute — then it’s Read and your streak counts. Studied somewhere else? Press and hold a talk, or tick several and tap Mark Read. Marks you make keep your record accurate, but don’t count toward your streak or badges.'
   },
   {
     icon: '🏅',
     title: 'Earn Badges',
-    copy: 'Unlock badges as you build your streak and rack up talks read — from your first 7-day streak to 1,000 talks and beyond.'
+    copy: 'Unlock badges as you build your streak and read talks in the app — from your first 7-day streak to 1,000 talks and beyond.'
   },
   {
     icon: '🔐',
@@ -7113,11 +7144,24 @@ const STUDY_DAYS_ESTIMATED_KEY = 'findATalkStudyDaysEstimated';
 // like the other date records, so a Yes on one device shows as answered
 // on the others.
 const CONFERENCE_DAYS_KEY = 'findATalkConferenceDays';
+// Last-changed-at timestamp (ms) per talkKey for readKeys — every credited
+// read, manual mark AND manual unmark stamps it, so mergeBackupData() can
+// tell "unread on this device" apart from "this device hasn't seen the read
+// yet" (same job as FAVORITES_META_KEY, same mergeTimestampedSet()).
+const READ_META_KEY = 'findATalkReadMeta';
+// Talks the person marked read by hand ("I studied this somewhere else"):
+// {talkKey: "yyyy-mm-dd" they were marked}. They show a Read checkmark and
+// count toward lists, plans and Unique Talks Read, but never touch the
+// streak, visit counts, read log, badges, the community counter or the
+// Talk of the Day calendar — see isVerifiedRead() and setManualRead().
+const MANUAL_READS_KEY = 'findATalkManualReads';
 const RECENT_MAX = 50;
 let recentKeys = [];
 let favoriteKeys = new Set();
 let favoriteUpdatedAt = {};
 let readKeys = new Set();
+let readUpdatedAt = {};
+let manualReads = {};
 let visitCounts = {};
 let readLog = {};
 let readLogEstimated = {};
@@ -7136,23 +7180,20 @@ let conferenceDays = [];
    *candidate*; readKeys/the streak are actually credited once the person
    has left the app (to read/listen on the Church's own site) AND come back
    AND enough time has passed — see checkPendingRead() below, fired on
-   visibilitychange. Two separate thresholds, since they're guarding
-   against two different things:
-     - MIN_AWAY_TO_MARK_READ_MS: short, just long enough to rule out a pure
-       accidental/mis-tap. Below this, not even the low-stakes "read" flag
-       is set.
-     - MIN_AWAY_TO_COUNT_STREAK_MS: longer, meant to require plausible real
-       engagement before crediting something people build daily habits
-       around. Always >= the read threshold, so crossing the streak bar
-       always also crosses the read bar in the same check.
+   visibilitychange. One threshold, MIN_AWAY_TO_COUNT_READ_MS, guards both:
+   a talk opened and left for less than that stays "Opened" (see
+   openedState()) — it isn't a read and doesn't touch the streak. Past it,
+   the talk is read AND the day counts toward the streak, so a Read
+   checkmark always means the streak counted (it used to be two thresholds,
+   10s for Read and 60s for the streak, which left Read marks that didn't
+   count and no way to tell them apart).
    Only the most recent departure is tracked (bouncing between several
    links without ever returning just means no credit fires at all) —
    simple, and matches "they're now reading whichever they most recently
    opened." No upper bound on how long they were away: a long, legitimate
    reading session should still credit normally, so this only guards
    against being too FAST, never too slow. */
-const MIN_AWAY_TO_MARK_READ_MS = 10000; // ~10s — just enough to rule out an accidental/mis-tap
-const MIN_AWAY_TO_COUNT_STREAK_MS = 60000; // ~60s — meant to require plausible real engagement, not just a quick bounce
+const MIN_AWAY_TO_COUNT_READ_MS = 60000; // ~60s — plausible real engagement, not a quick bounce; credits the read AND the streak
 let pendingReadTalk = null;
 let pendingReadDepartedAt = 0;
 // Set by initApp() once syncReadBadge() (a nested function — see its own
@@ -7301,6 +7342,14 @@ function loadRecentAndFavorites(){
     if (raw) readKeys = new Set(JSON.parse(raw));
   } catch(err){ readKeys = new Set(); }
   try {
+    const raw = localStorage.getItem(READ_META_KEY);
+    if (raw) readUpdatedAt = JSON.parse(raw);
+  } catch(err){ readUpdatedAt = {}; }
+  try {
+    const raw = localStorage.getItem(MANUAL_READS_KEY);
+    if (raw) manualReads = JSON.parse(raw);
+  } catch(err){ manualReads = {}; }
+  try {
     const raw = localStorage.getItem(VISIT_COUNTS_KEY);
     if (raw) visitCounts = JSON.parse(raw);
   } catch(err){ visitCounts = {}; }
@@ -7339,6 +7388,10 @@ function saveFavorites(){
 function saveRead(){
   try { localStorage.setItem(READ_KEY, JSON.stringify([...readKeys])); }
   catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(READ_META_KEY, JSON.stringify(readUpdatedAt)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
+  try { localStorage.setItem(MANUAL_READS_KEY, JSON.stringify(manualReads)); }
+  catch(err){ /* storage full/unavailable — not fatal, just skip persisting */ }
   if (onLocalDataChanged) onLocalDataChanged(); // idea 61 (Stage 2)
 }
 function saveVisitCounts(){
@@ -7372,8 +7425,164 @@ function markRead(talk){
   const key = talkKey(talk);
   if (readKeys.has(key)) return; // already marked — skip the write
   readKeys.add(key);
+  readUpdatedAt[key] = Date.now(); // beats an earlier manual unread when synced
   saveRead();
 }
+// A "verified" read is one that went through the away-time gate (visitCounts
+// > 0, or a read from before visit counts existed). A manual mark alone is
+// not — it's the person's own study record, so it stays out of anything
+// earned or shared: badges, milestone asks, the Talk of the Day calendar.
+function isVerifiedRead(talk){
+  const key = talkKey(talk);
+  return readKeys.has(key) && (visitCounts[key] > 0 || !manualReads[key]);
+}
+function verifiedReadCount(){
+  const keys = new Set();
+  for (const k in visitCounts) if (visitCounts[k] > 0) keys.add(k);
+  readKeys.forEach(k=>{ if (!manualReads[k]) keys.add(k); });
+  return keys.size;
+}
+// What a talk's badge says: 'read' (has the checkmark), 'opened' (tapped
+// open but not yet away long enough to count), or null (nothing). Opened
+// only means something for a talk still in Recently Viewed.
+function openedState(talk){
+  const key = talkKey(talk);
+  if (readKeys.has(key)) return 'read';
+  return recentKeys.includes(key) ? 'opened' : null;
+}
+// Sets every talk in `talks` read or unread by hand. Manual marks are dated
+// (the day marked) but never touch the streak, visit counts, read log,
+// badges or the community counter. Unreading never reverses credit already
+// earned — visit counts, the read log, streak days and plan credits all
+// stay. Returns how many talks actually changed.
+function setManualRead(talks, read){
+  let changed = 0;
+  const now = Date.now(), today = localDateSeed();
+  talks.forEach(talk=>{
+    const key = talkKey(talk);
+    if (read === readKeys.has(key)) return;
+    changed++;
+    readUpdatedAt[key] = now;
+    if (read){
+      readKeys.add(key);
+      if (!(visitCounts[key] > 0)) manualReads[key] = today;
+      creditPlansForRead(talk, new Date()); // plans are personal study tracking, so a manual mark counts there
+    } else {
+      readKeys.delete(key);
+      delete manualReads[key];
+    }
+  });
+  if (!changed) return 0;
+  saveRead();
+  talks.forEach(refreshReadBadgesFor);
+  if (onTicketReadBadgeSync) onTicketReadBadgeSync();
+  if (onNeedRefreshCount) onNeedRefreshCount();
+  if (onNeedCfmRefresh) onNeedCfmRefresh();
+  if (onNeedCollectionRefresh) onNeedCollectionRefresh();
+  if (onNeedPlansRefresh) onNeedPlansRefresh();
+  return changed;
+}
+// Label for a bulk bar's mark button given its selection (a Map of
+// talkKey -> talk), or '' when nothing is selected. A mixed selection says
+// "Mark Read (N)" and only touches the unread ones; "Mark Unread" shows
+// only when everything selected is already read.
+function bulkReadLabel(selection){
+  if (!selection.size) return '';
+  let unread = 0;
+  selection.forEach(talk=>{ if (!isRead(talk)) unread++; });
+  return unread ? `Mark Read (${unread})` : 'Mark Unread';
+}
+function applyBulkRead(selection){
+  const talks = [...selection.values()];
+  const unread = talks.filter(t=> !isRead(t));
+  if (unread.length > 10 && !confirm(`Mark ${unread.length} talks as read? This is your own study record — it won't count toward your streak or badges.`)) return 0;
+  if (!unread.length && talks.length > 10 && !confirm(`Mark ${talks.length} talks as unread?`)) return 0;
+  return setManualRead(unread.length ? unread : talks, !!unread.length);
+}
+
+/* Long press (touch) or right-click (desktop) on any talk row opens a small
+   "Mark as read / Mark as unread" menu — a deliberate, secondary path that
+   takes no room on the card. The tick boxes + bulk bar are the discoverable
+   route. Only the action that applies is shown. A long press must not also
+   open the talk, so the click that follows the release is swallowed. */
+(function wireReadMarkMenu(){
+  const LONG_PRESS_MS = 550, MOVE_CANCEL_PX = 10;
+  let menu = null, menuTalkKey = null, pressTimer = 0, startX = 0, startY = 0, swallowClickUntil = 0;
+  function ensureMenu(){
+    if (menu) return menu;
+    menu = document.createElement('div');
+    menu.className = 'read-mark-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('role', 'menuitem');
+    btn.addEventListener('click', ()=>{
+      const talk = TALKS.find(t=> talkKey(t) === menuTalkKey);
+      const makeRead = btn.dataset.action === 'read';
+      closeMenu();
+      if (talk) setManualRead([talk], makeRead);
+    });
+    menu.appendChild(btn);
+    document.body.appendChild(menu);
+    return menu;
+  }
+  function closeMenu(){ if (menu) menu.hidden = true; menuTalkKey = null; }
+  function openMenu(item, x, y){
+    const key = item.dataset.talkKey;
+    const talk = TALKS.find(t=> talkKey(t) === key);
+    if (!talk) return;
+    const m = ensureMenu();
+    const btn = m.firstChild;
+    const read = isRead(talk);
+    btn.dataset.action = read ? 'unread' : 'read';
+    btn.textContent = read ? 'Mark as unread' : 'Mark as read';
+    menuTalkKey = key;
+    m.hidden = false;
+    const w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(8, Math.min(x, window.innerWidth - w - 8)) + 'px';
+    m.style.top = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + 'px';
+    btn.focus({ preventScroll: true });
+  }
+  function rowFrom(target){
+    return target && target.closest ? target.closest('.list-item[data-talk-key]') : null;
+  }
+  document.addEventListener('touchstart', e=>{
+    if (menu && !menu.hidden && !menu.contains(e.target)) closeMenu();
+    const item = rowFrom(e.target);
+    if (!item || e.touches.length !== 1 || e.target.closest('input, label, textarea')) return;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(()=>{
+      swallowClickUntil = Date.now() + 1200;
+      openMenu(item, startX, startY);
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+  document.addEventListener('touchmove', e=>{
+    if (!pressTimer) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - startX) > MOVE_CANCEL_PX || Math.abs(t.clientY - startY) > MOVE_CANCEL_PX){
+      clearTimeout(pressTimer); pressTimer = 0;
+    }
+  }, { passive: true });
+  ['touchend', 'touchcancel'].forEach(type=> document.addEventListener(type, ()=>{ clearTimeout(pressTimer); pressTimer = 0; }, { passive: true }));
+  document.addEventListener('click', e=>{
+    if (Date.now() < swallowClickUntil && !(menu && menu.contains(e.target))){
+      e.preventDefault(); e.stopPropagation(); swallowClickUntil = 0; return;
+    }
+    if (menu && !menu.hidden && !menu.contains(e.target)) closeMenu();
+  }, true);
+  // Desktop right-click, and the long-press Android/Chrome turns into one.
+  document.addEventListener('contextmenu', e=>{
+    const item = rowFrom(e.target);
+    if (!item || e.target.closest('input, textarea')) return;
+    e.preventDefault();
+    if (menu && !menu.hidden) return; // the touch timer already opened it
+    openMenu(item, e.clientX, e.clientY);
+  });
+  document.addEventListener('keydown', e=>{ if (e.key === 'Escape') closeMenu(); });
+  window.addEventListener('scroll', closeMenu, { passive: true, capture: true });
+})();
 // Idea 55 — unlike markRead() above (which no-ops after the first credited
 // read), this keeps incrementing on every later one. Called alongside
 // markRead() from checkPendingRead(), through the same integrity gate —
@@ -7447,6 +7656,8 @@ function recordOpened(talk){
   // the read is later confirmed — see cancelStreakRiskNotification()'s own
   // comment for why this can't wait for anything past this exact click.
   cancelStreakRiskNotification();
+  refreshReadBadgesFor(talk); // the row's badge starts saying "Opened" right away
+  if (onTicketReadBadgeSync) onTicketReadBadgeSync();
 }
 
 /* Called on every visibilitychange -> 'visible' (see watchForPendingRead()
@@ -7474,9 +7685,13 @@ function refreshReadBadgesFor(talk){
   // never hidden to begin with, so the plain `.hidden = false` there stays
   // a harmless no-op, same as before this change.
   const count = visitCountFor(talk);
+  const state = openedState(talk); // 'read' | 'opened' | null — the badge shares one slot for Opened and Read
   document.querySelectorAll(`[data-talk-key="${talkKey(talk)}"]`).forEach(el=>{
-    if (el.classList.contains('list-item-read-badge') && onReadBadgeHtml) el.innerHTML = onReadBadgeHtml(count);
-    el.hidden = false;
+    if (!el.classList.contains('list-item-read-badge')) return;
+    if (onReadBadgeHtml) el.innerHTML = onReadBadgeHtml(count, state);
+    el.classList.toggle('is-opened', state === 'opened');
+    el.title = state === 'opened' ? 'You opened this talk — read for a minute to count it' : 'You already read this talk';
+    el.hidden = !state;
   });
 }
 
@@ -7486,7 +7701,7 @@ function checkPendingRead(){
   const departedAt = pendingReadDepartedAt;
   const awayMs = Date.now() - departedAt;
   clearPendingRead();
-  if (awayMs < MIN_AWAY_TO_MARK_READ_MS) return; // back too fast to be anything but an accidental tap — no credit at all
+  if (awayMs < MIN_AWAY_TO_COUNT_READ_MS) return; // back too fast to count — the talk just stays "Opened"
   markRead(talk);
   incrementVisitCount(talk, new Date(departedAt)); // idea 55 — keeps counting past the first credited read, unlike markRead() above. Idea 80: dated by the day the talk was opened, same rule as touchStreak() below
   creditPlansForRead(talk, new Date(departedAt)); // idea 88 — study plans: the separate "Plan" chip
@@ -7516,7 +7731,6 @@ function checkPendingRead(){
   // through it instead of referencing the nested function by name.
   if (onTicketReadBadgeSync) onTicketReadBadgeSync();
   checkForNewBadges(); // reading-count badges (idea 45)
-  if (awayMs < MIN_AWAY_TO_COUNT_STREAK_MS) return; // read, but not away long enough to plausibly count as real engagement — streak stays untouched
   // Idea 70 — captured BEFORE touchStreak() runs: if `lastDate` is already
   // today, a read already got credited earlier today and this is the
   // SECOND one — the exact moment a streak salvage (if one was snapshotted
@@ -8057,7 +8271,7 @@ function dismissBadgeCelebration(){
    checkForNewBadges() runs (e.g. from the next talk they read here). */
 function silentlyBackfillBadgesFromMerge(){
   const streak = loadStreak();
-  const readingCount = readKeys.size;
+  const readingCount = verifiedReadCount();
   let changed = false;
   BADGE_DEFS.forEach(def=>{
     if (earnedBadges[def.id]) return;
@@ -8072,7 +8286,7 @@ function silentlyBackfillBadgesFromMerge(){
 }
 function checkForNewBadges(){
   const streak = loadStreak();
-  const readingCount = readKeys.size;
+  const readingCount = verifiedReadCount();
   let earnedSomething = false; // also true on a silent un-earn, so it still gets saved
   BADGE_DEFS.forEach(def=>{
     const threshold = typeof def.threshold === 'function' ? def.threshold() : def.threshold;
@@ -8191,7 +8405,7 @@ function maybeShowRatingAsk(){
   if (!ratingPlugin()) return;
   const overlay = document.getElementById('ratingAskModalOverlay');
   if (!overlay) return;
-  if (readKeys.size < RATING_MIN_READS) return;
+  if (verifiedReadCount() < RATING_MIN_READS) return;
   if (celebrationSurfaceBusy() || popupShownToday()) return;
   const state = loadRatingAsk();
   if (state.rated || state.count >= RATING_MAX_ASKS) return;
@@ -8212,7 +8426,7 @@ function closeRatingAsk(){
 function maybeShowSupportMilestoneAsk(){
   if (celebrationSurfaceBusy()) return;
   if (isActiveSupporter()) return; // muted for 365 days after any donation, per the design notes
-  const count = readKeys.size;
+  const count = verifiedReadCount();
   if (!isSupportMilestoneCount(count)) return;
   let lastAsk = 0;
   try { lastAsk = Number(localStorage.getItem(SUPPORT_MILESTONE_LAST_ASK_KEY)) || 0; } catch(err){ /* ignore */ }
@@ -8351,7 +8565,7 @@ function renderBadgesList(){
   const listEl = document.getElementById('badgesModalList');
   if (!listEl) return;
   const streak = loadStreak();
-  const readingCount = readKeys.size;
+  const readingCount = verifiedReadCount();
   // Idea 54 — "Think Celestial!" is real static markup, not a BADGE_DEFS
   // entry (it's earned by an event — finding the secret star — not a
   // progress threshold, so it doesn't fit that array's shape), built here
@@ -9356,7 +9570,7 @@ function backfillReadLogEstimates(){
   (loadStreak().activeDays || []).forEach(day=>{
     if (day >= today) return;
     const key = totdHistory[day];
-    if (!key || !readKeys.has(key)) return;
+    if (!key || !readKeys.has(key) || manualReads[key]) return;
     if ((readLog[key] || []).includes(day)) return;
     const list = readLogEstimated[key] || (readLogEstimated[key] = []);
     if (!list.includes(day)){ list.push(day); list.sort(); added = true; }
@@ -10861,7 +11075,8 @@ noteBtn.addEventListener('click', ()=>{
 // the checkmark at that point rather than keeping both. Nested here (not
 // top-level) since it needs CHECK_ICON_SVG, which only exists inside this
 // closure — same reason syncReadBadge() just below it does.
-function readBadgeHtml(count){
+function readBadgeHtml(count, state){
+  if (state === 'opened') return '<span>Opened</span>';
   return count >= 2 ? `<span>Read ×${count}</span>` : `${CHECK_ICON_SVG}<span>Read</span>`;
 }
 onReadBadgeHtml = readBadgeHtml; // registers with refreshReadBadgesFor() — see that top-level slot's own comment
@@ -10872,9 +11087,12 @@ onReadBadgeHtml = readBadgeHtml; // registers with refreshReadBadgesFor() — se
 // on every list row (see buildListItemRow()).
 const ticketReadBadge = document.getElementById('ticketReadBadge');
 function syncReadBadge(){
-  const read = !!(lastPicked && isRead(lastPicked));
-  ticketReadBadge.hidden = !read;
-  if (read){
+  const state = lastPicked ? openedState(lastPicked) : null;
+  const read = state === 'read';
+  ticketReadBadge.hidden = !state;
+  if (state === 'opened'){
+    ticketReadBadge.innerHTML = '<span>You opened this talk</span>';
+  } else if (read){
     // Idea 55 — same "only report the count once it's genuinely worth it"
     // rule as the list-row badge, but as a sentence swap instead of an
     // appended ×N (a bare number tacked onto prose reads worse than one
@@ -11015,12 +11233,15 @@ const listAgainBtn = document.getElementById('listAgainBtn');
 const listBulkBar = document.getElementById('listBulkBar');
 const listBulkCount = document.getElementById('listBulkCount');
 const listBulkAddBtn = document.getElementById('listBulkAddBtn');
+const listBulkReadBtn = document.getElementById('listBulkReadBtn');
 const listBulkClearBtn = document.getElementById('listBulkClearBtn');
 
 function syncListBulkBar(){
   const n = listSelection.size;
   listBulkBar.hidden = n === 0;
   listBulkCount.textContent = `${n} talk${n===1?'':'s'} selected`;
+  listBulkReadBtn.textContent = bulkReadLabel(listSelection);
+  listBulkReadBtn.hidden = n === 0;
 }
 function clearListSelection(){
   listSelection.clear();
@@ -11028,6 +11249,7 @@ function clearListSelection(){
   syncListBulkBar();
 }
 listBulkClearBtn.addEventListener('click', clearListSelection);
+listBulkReadBtn.addEventListener('click', ()=>{ if (applyBulkRead(listSelection)) clearListSelection(); }); // refreshing the Read/Unread counts drops the selection anyway; this unticks the boxes to match
 listBulkAddBtn.addEventListener('click', ()=>{
   if (!listSelection.size) return;
   openCollectionModalFor([...listSelection.values()], clearListSelection);
@@ -11205,9 +11427,11 @@ function buildListItemRow(pick, {selectable=false, selectionMap=listSelection, o
   const readBadge = document.createElement('span');
   readBadge.className = 'list-item-read-badge';
   readBadge.dataset.talkKey = talkKey(pick);
-  readBadge.innerHTML = readBadgeHtml(visitCountFor(pick)); // idea 55 — ✓ Read once, Read ×N (no checkmark) from the second credited read on
-  readBadge.title = 'You already opened this talk';
-  readBadge.hidden = !isRead(pick);
+  const badgeState = openedState(pick);
+  readBadge.innerHTML = readBadgeHtml(visitCountFor(pick), badgeState); // idea 55 — ✓ Read once, Read ×N (no checkmark) from the second credited read on; "Opened" until a read counts
+  readBadge.classList.toggle('is-opened', badgeState === 'opened');
+  readBadge.title = badgeState === 'opened' ? 'You opened this talk — read for a minute to count it' : 'You already read this talk';
+  readBadge.hidden = !badgeState;
   // Lives beside the action buttons (left slot), not on the title line; the
   // right slot is left for a study plan's Plan mark (see rowActionSlots()).
 
@@ -14118,6 +14342,7 @@ function wireSubsetBulkSelect(prefix){
   const bulkBar = document.getElementById(`${prefix}BulkBar`);
   const bulkCount = document.getElementById(`${prefix}BulkCount`);
   const bulkAddBtn = document.getElementById(`${prefix}BulkAddBtn`);
+  const bulkReadBtn = document.getElementById(`${prefix}BulkReadBtn`);
   const bulkClearBtn = document.getElementById(`${prefix}BulkClearBtn`);
   const selectRow = document.getElementById(`${prefix}SelectRow`);
   const selectAllBtn = document.getElementById(`${prefix}SelectAllBtn`);
@@ -14126,6 +14351,8 @@ function wireSubsetBulkSelect(prefix){
     const n = selection.size;
     bulkBar.hidden = n === 0;
     bulkCount.textContent = `${n} talk${n===1?'':'s'} selected`;
+    bulkReadBtn.textContent = bulkReadLabel(selection);
+    bulkReadBtn.hidden = n === 0;
   }
   function clear(){
     selection.clear();
@@ -14133,6 +14360,7 @@ function wireSubsetBulkSelect(prefix){
     sync();
   }
   bulkClearBtn.addEventListener('click', clear);
+  bulkReadBtn.addEventListener('click', ()=>{ if (applyBulkRead(selection)) clear(); });
   bulkAddBtn.addEventListener('click', ()=>{
     if (!selection.size) return;
     openCollectionModalFor([...selection.values()], clear);
@@ -14589,11 +14817,14 @@ let cfmCurrentSource = [];
 const cfmBulkBar = document.getElementById('cfmBulkBar');
 const cfmBulkCount = document.getElementById('cfmBulkCount');
 const cfmBulkAddBtn = document.getElementById('cfmBulkAddBtn');
+const cfmBulkReadBtn = document.getElementById('cfmBulkReadBtn');
 const cfmBulkClearBtn = document.getElementById('cfmBulkClearBtn');
 function syncCfmBulkBar(){
   const n = cfmSelection.size;
   cfmBulkBar.hidden = n === 0;
   cfmBulkCount.textContent = `${n} talk${n===1?'':'s'} selected`;
+  cfmBulkReadBtn.textContent = bulkReadLabel(cfmSelection);
+  cfmBulkReadBtn.hidden = n === 0;
 }
 function clearCfmSelection(){
   cfmSelection.clear();
@@ -14601,6 +14832,7 @@ function clearCfmSelection(){
   syncCfmBulkBar();
 }
 cfmBulkClearBtn.addEventListener('click', clearCfmSelection);
+cfmBulkReadBtn.addEventListener('click', ()=>{ if (applyBulkRead(cfmSelection)) clearCfmSelection(); });
 cfmBulkAddBtn.addEventListener('click', ()=>{
   if (!cfmSelection.size) return;
   openCollectionModalFor([...cfmSelection.values()], clearCfmSelection);
@@ -16393,6 +16625,8 @@ function exportBackupData(){
     favorites: [...favoriteKeys],
     favoriteUpdatedAt: {...favoriteUpdatedAt},
     read: [...readKeys],
+    readUpdatedAt: {...readUpdatedAt}, // manual unreads need a timestamp or another device's union re-adds them
+    manualReads: {...manualReads},
     visitCounts: {...visitCounts}, // idea 55 — authored, non-recomputable, same category as read/favorites
     readLog: JSON.parse(JSON.stringify(readLog)), // idea 80
     readLogEstimated: JSON.parse(JSON.stringify(readLogEstimated)), // idea 80 backfill
@@ -16665,9 +16899,19 @@ function mergeBackupData(data){
   // backup files simply won't have it, so this just no-ops for them
   // rather than requiring it like importBackupFile requires the rest.
   try {
-    (data.read || []).forEach(key=>{
-      if (typeof key === 'string' && !readKeys.has(key)){ readKeys.add(key); addedRead = true; }
-    });
+    // Timestamp-aware (same as favorites) so a manual unread on one device
+    // isn't undone by another device that still has the read. Backups from
+    // before this existed carry no timestamps and fall back to the old union.
+    const result = mergeTimestampedSet(readKeys, readUpdatedAt, data.read, data.readUpdatedAt);
+    if (result.changed) addedRead = true;
+    if (data.manualReads && typeof data.manualReads === 'object'){
+      Object.keys(data.manualReads).forEach(key=>{
+        const day = data.manualReads[key];
+        if (typeof day === 'string' && readKeys.has(key) && !manualReads[key]){ manualReads[key] = day; addedRead = true; }
+      });
+    }
+    // An unread elsewhere (or here) leaves no manual mark behind.
+    Object.keys(manualReads).forEach(key=>{ if (!readKeys.has(key)){ delete manualReads[key]; addedRead = true; } });
   } catch(err){ console.error('[cloud sync] read merge failed — other sections still ran', err); }
   // `visitCounts` (idea 55) is later still — same no-op-on-older-files
   // handling. Takes the max of the two sides per key, not a sum — re-
@@ -17288,7 +17532,7 @@ async function clearAllLocalDataAndSignOut(){
   clearPendingRead();
   recentKeys = []; saveRecent();
   favoriteKeys = new Set(); favoriteUpdatedAt = {}; saveFavorites();
-  readKeys = new Set(); saveRead();
+  readKeys = new Set(); readUpdatedAt = {}; manualReads = {}; saveRead();
   visitCounts = {}; saveVisitCounts();
   readLog = {}; saveReadLog();
   readLogEstimated = {}; saveReadLogEstimated();
@@ -18658,7 +18902,7 @@ function renderTotdCalendar(){
       // of the Day counts as read the same way any other talk does, via
       // recordOpened()/markRead() when its title link is actually opened.
       const talk = TALKS_BY_KEY[pickKey];
-      if (talk && isRead(talk)){
+      if (talk && isVerifiedRead(talk)){
         const check = document.createElement('span');
         check.className = 'totd-calendar-day-check';
         check.innerHTML = CHECK_ICON_SVG;
