@@ -11,7 +11,7 @@ this updated.
 ## [Unreleased]
 
 ### Added
-- **Mark talks read or unread yourself.** Studied a talk somewhere else, like the Gospel Library? Press and hold a talk (or right-click on the web) and choose "Mark as read" or "Mark as unread". You can also tick several talks and tap "Mark Read" next to "Add to List". Unread is also a way to park a talk you started and want to come back to. Talks you mark yourself show the Read checkmark and count toward your lists, plans, and Unique Talks Read, but not your streak, badges, or the Talk of the Day calendar. (Website live immediately; the app needs a new build.)
+- **Mark talks read or unread yourself.** Studied a talk somewhere else, like the Gospel Library? Press and hold a talk (or right-click on the web) and choose "Mark as read" or "Mark as unread". You can also tick several talks and tap "Mark Read" next to "Add to List". Unread is also a way to park a talk you started and want to come back to. Talks you mark yourself show the Read checkmark and count toward your lists, plans, Unique Talks Read, and the talks-read total in Your Journey, but not your streak, days studied, badges, or the Talk of the Day calendar. The same press-and-hold works on the talk you just drew. (Website live immediately; the app needs a new build.)
 - New "Show me around" cards for Lists, Plans & Sharing and for Mark as Read or Unread. (Website live immediately; the app needs a new build.)
 
 ### Changed

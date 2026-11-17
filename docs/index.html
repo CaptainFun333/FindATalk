@@ -2265,8 +2265,8 @@
   /* "Opened" shares the Read badge's slot — quieter, since it hasn't counted yet. */
   .list-item-read-badge.is-opened{ font-weight:500; font-style:italic; }
   /* Long press / right-click a talk for Mark as read or unread. */
-  .list-item{ -webkit-touch-callout:none; }
-  .list-item a{ -webkit-touch-callout:none; }
+  .list-item, .ticket{ -webkit-touch-callout:none; }
+  .list-item a, .ticket a{ -webkit-touch-callout:none; }
   .read-mark-menu{
     position:fixed; z-index:9000; min-width:170px;
     background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
@@ -5300,6 +5300,7 @@ function firstReadDay(streak){
   [readLog, readLogEstimated].forEach(log=> Object.keys(log).forEach(k=> (log[k] || []).forEach(consider)));
   studyDaysEstimated.forEach(consider);
   (streak.activeDays || []).forEach(consider);
+  Object.values(manualReads).forEach(consider);
   Object.values(earnedBadges).forEach(considerTs);
   Object.values(noteUpdatedAt).forEach(considerTs);
   Object.values(favoriteUpdatedAt).forEach(considerTs);
@@ -5422,6 +5423,7 @@ function journeyYearsWithData(streak){
   [readLog, readLogEstimated].forEach(log=> Object.keys(log).forEach(k=> (log[k] || []).forEach(addDay)));
   studyDaysEstimated.forEach(addDay);
   (streak.activeDays || []).forEach(addDay);
+  Object.values(manualReads).forEach(addDay);
   return [...years].sort((a, b)=> a - b);
 }
 // One year's numbers — shared by Your Journey and the year-end reveal
@@ -5438,6 +5440,9 @@ function journeyYearStats(year, streak){
   });
   studyDaysEstimated.forEach(d=>{ if (inYear(d)) days.add(d); });
   (streak.activeDays || []).forEach(d=>{ if (inYear(d)) days.add(d); });
+  // Talks marked read by hand count as talks read that year (the day they
+  // were marked) but not as days studied — that's a streak-side number.
+  Object.keys(manualReads).forEach(key=>{ if (readKeys.has(key) && inYear(manualReads[key])) talks.add(key); });
   let started = null;
   try { started = localStorage.getItem(READ_LOG_BACKFILLED_KEY); } catch(err){ /* ignore */ }
   const startYear = started ? Number(started.slice(0, 4)) : new Date().getFullYear();
@@ -7545,7 +7550,7 @@ function applyBulkRead(selection){
     btn.focus({ preventScroll: true });
   }
   function rowFrom(target){
-    return target && target.closest ? target.closest('.list-item[data-talk-key]') : null;
+    return target && target.closest ? target.closest('.list-item[data-talk-key], #ticket[data-talk-key]') : null;
   }
   document.addEventListener('touchstart', e=>{
     if (menu && !menu.hidden && !menu.contains(e.target)) closeMenu();
@@ -11143,6 +11148,7 @@ function goForward(){
 
 function showTicket(pick){
   lastPicked = pick;
+  document.getElementById('ticket').dataset.talkKey = talkKey(pick); // lets the long-press / right-click menu find the drawn talk
   syncFavoriteBtn();
   syncCollectionBtn();
   syncNoteBtn();
