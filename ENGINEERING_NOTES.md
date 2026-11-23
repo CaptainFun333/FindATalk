@@ -248,6 +248,12 @@ served live at findatalk.com; this one should never be public.
   not follow redirects for `/.well-known/assetlinks.json`. The manifest
   autoVerify filter lists only `findatalk.com`. (`applinks:www.findatalk.com`
   in the iOS entitlements has the same redirect problem; left as-is.)
+- **Deadline: iOS builds need Xcode 27 / the iOS 27 SDK from April 2027.**
+  App Store Connect emailed ITMS-90725 on 1.8.3 (build 20, built with the
+  iOS 26.5 SDK): delivery succeeded, but from April 2027 uploads built with
+  an older SDK are rejected. Before then, update Xcode and do a clean archive,
+  checking that the Capacitor and Firebase Swift packages still compile.
+  Releases before April 2027 are unaffected.
 
 ## In-app purchases (StoreKit / Play Billing)
 
