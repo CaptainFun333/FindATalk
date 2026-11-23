@@ -10,6 +10,10 @@ this updated.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.8.3] — 2026-11-23
+
 ### Added
 - **Share a study plan, not just a list.** When you share a list that's a study plan, the link now carries its goal (a finish date or a pace). The person who opens it sees "They're using it as a study plan… want to add it as a plan too?", and "Add as a Plan" takes them straight to Make this a study plan with that goal filled in (if the date has passed they pick a new one). Your talk order comes along, and your progress doesn't. Shared lists also now arrive with the name you gave them as the suggested name. (Website live immediately; the app needs a new build.)
 - **Mark talks read or unread yourself.** Studied a talk somewhere else, like the Gospel Library? Press and hold a talk (or right-click on the web) and choose "Mark as read" or "Mark as unread". You can also tick several talks and tap "Mark Read" next to "Add to List". Unread is also a way to park a talk you started and want to come back to. Talks you mark yourself show the Read checkmark and count toward your lists, plans, Unique Talks Read, and the talks-read total in Your Journey, but not your streak, days studied, badges, or the Talk of the Day calendar. The same press-and-hold works on the talk you just drew. (Website live immediately; the app needs a new build.)
