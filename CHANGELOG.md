@@ -10,7 +10,8 @@ this updated.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+- The scripture search box on Home is now **Search Citations** — find a book, an author, or a talk someone cited, not just scriptures and hymns. It also searches footnoted Other Sources (like "C. S. Lewis" or "The Screwtape Letters"), cited talks (by title or speaker) and Church magazines, ignoring accents and punctuation, and each match in the "N matching" list now shows what kind of source it is with your words highlighted. Scripture references like "Alma 32" work exactly as before. (Website live immediately; the app needs a new build.)
 
 ## [1.8.3] — 2026-11-23
 

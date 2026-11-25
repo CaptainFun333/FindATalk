@@ -2089,6 +2089,19 @@
      same look as their linked siblings minus anything implying a click:
      no underline, no hover color change, default cursor. */
   .cite-panel span.cite-chip.is-plain{ cursor:default; }
+  /* The 16px input font (iOS no-zoom) clips the longer hint on a phone;
+     a smaller placeholder lets "Scripture, hymn, book, author, talk" fit. */
+  #citeQuerySearch::placeholder{ font-size:14px; }
+  /* Search Citations (idea 91): type label before non-scripture matches,
+     highlighted match text, and the "+N more" expander. */
+  .row-cite-panel .cite-hit{ display:inline-flex; align-items:baseline; gap:5px; }
+  .row-cite-panel .cite-hit-type{
+    font-family:'Inter',sans-serif; font-size:9px; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--brass);
+    white-space:nowrap;
+  }
+  .row-cite-panel mark{ background:var(--tint); color:inherit; border-radius:2px; font-weight:600; }
+  .row-cite-panel button.cite-more{ font-family:'Inter',sans-serif; font-size:11px; font-weight:600; color:var(--burgundy); }
   .row-cite-panel span.row-cite-plain{
     font-family:'Source Serif 4', Georgia, serif;
     font-size:11.5px;
@@ -3539,9 +3552,9 @@
       </div>
 
       <div class="search-field">
-        <label id="citeQueryLabel" for="citeQuerySearch">Search Scriptures &amp; Hymns</label>
+        <label id="citeQueryLabel" for="citeQuerySearch">Search Citations</label>
         <div class="search-input-wrap">
-          <input type="text" id="citeQuerySearch" class="search-input" placeholder="e.g. Alma 32, I Am a Child of God…" autocomplete="off" aria-labelledby="citeQueryLabel">
+          <input type="text" id="citeQuerySearch" class="search-input" placeholder="Scripture, hymn, book, author, talk" autocomplete="off" aria-labelledby="citeQueryLabel">
           <button type="button" id="citeQueryClear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
         </div>
       </div>
@@ -6751,7 +6764,12 @@ function citationTypeTalkHref(talk, type, pos){
 function talkOtherTalkCitations(talk){
   const idxs = (CITATION_TYPE_LOOKUP[talkKey(talk)] || {}).talk;
   if (!idxs || !idxs.length) return [];
-  return idxs.map((i, pos)=>{
+  return idxs.map((i, pos)=> talkOtherTalkCitationAt(talk, i, pos));
+}
+// One Other Talks chip, split out so Search Citations can build just the
+// entries that matched instead of every entry in the talk.
+function talkOtherTalkCitationAt(talk, i, pos){
+  {
     const [text, resolvedKey, href] = CITATION_TALK_REFS[i];
     // Prefer the target talk's own real title/URL when it's in this app's
     // own dataset (true for 2275 of 2276 cases) — the raw footnote text is
@@ -6778,7 +6796,7 @@ function talkOtherTalkCitations(talk){
     const talkHref = citationTypeTalkHref(talk, 'talk', pos);
     if (talkHref) entry.talkHref = talkHref;
     return entry;
-  });
+  }
 }
 
 function talkMagazineCitations(talk){
@@ -6815,7 +6833,7 @@ function talkOtherSourceCitations(talk){
 }
 
 /* ---------------------------------------------------------------
-   "Search Scriptures & Hymns" — structured book/chapter/verse matching,
+   "Search Citations" — structured book/chapter/verse matching,
    on top of the plain substring matching matchesCiteSearch() already did.
    Two real gaps that plain substring matching can't close on its own,
    since it only ever compares against a citation's raw DISPLAY text:
@@ -10454,11 +10472,11 @@ function matchesSearch(t){
   const forms = searchWordForms(q);
   return !!(forms && forms.some(f => title.includes(f) || kickerLower.includes(f)));
 }
-/* "Search Scriptures & Hymns" — two DIFFERENT matching strategies, only
+/* "Search Citations" (idea 91; was "Search Scriptures & Hymns") — two DIFFERENT matching strategies, only
    one of which ever runs for a given query, decided by whether it's
-   recognized as a scripture book reference at all. Deliberately scoped to
-   just these two citation types, not Other Talks/Church Magazines/Other
-   Sources — matches how this was framed when proposed.
+   recognized as a scripture book reference at all. Idea 91 widened the
+   second strategy to every footnoted citation type (Other Sources, Other
+   Talks, Church Magazines) — the first stays scripture-only.
    1. Recognized as "<book>[ <chapter>[:<verse>[-<verse2>]]]" (see
       parseCiteQuery()) — matched ONLY structurally, against the
       citation's real volume/book/chapter/anchor, never against display
@@ -10473,10 +10491,13 @@ function matchesSearch(t){
       literal substring of the longer one — caught by a full-dataset sweep
       across all 101 books, not a spot check. Going structural-only once a
       book is recognized avoids that whole class of collision.
-   2. Not recognized as a book reference at all (a hymn title, a typo,
-      anything parseCiteQuery doesn't understand) — plain substring
-      against both scripture and hymn display text, same as before. This
-      is the fallback for everything structural matching can't handle.
+   2. Not recognized as a book reference at all (a hymn title, an author,
+      a typo, anything parseCiteQuery doesn't understand) — text match
+      across all five citation lists. Scripture/hymn keep the old plain
+      substring AND additionally accept the normalised match (additive
+      only). The three new lists use normalizeCiteText() on both sides and
+      match whole words in order, so "Lincoln" never hits "Lincolnshire".
+      Queries under 3 characters skip the three new lists.
 
    Idea 63 — factored the actual matching logic out into
    citeSearchMatchedCitations() below, which returns *which* citations
@@ -10486,9 +10507,86 @@ function matchesSearch(t){
    single source of truth, so the "N matching" badge (see
    appendCiteSearchMatchBadge() near buildCitationsBlock()) can never
    disagree with what actually made a talk show up in the results. */
+
+/* ---- Search Citations text normalisation (idea 91) ----
+   One shared normaliser for query AND data: lowercase, accents stripped
+   (NFD), apostrophes/quotes/periods dropped (so "Alice's" = "Alice’s"),
+   every other punctuation mark (dashes, &, commas…) becomes a space,
+   and runs of single-letter tokens are fused ("C. S. Lewis" and "C.S.
+   Lewis" both -> "cs lewis"). citeNormalize() also returns, for each
+   output character, the index it came from in the original string, so a
+   match can be highlighted in the original text. */
+function citeNormalize(str){
+  const tokens = [];
+  let cur = null;
+  const flush = ()=>{ if (cur){ tokens.push(cur); cur = null; } };
+  let idx = 0;
+  for (const ch of String(str)){
+    const at = idx; idx += ch.length;
+    const base = ch.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    for (const c of base){
+      if (/[.'’‘ʼ"“”`]/.test(c)) continue;
+      if (/[\p{L}\p{N}]/u.test(c)){
+        if (!cur) cur = {t: '', m: []};
+        cur.t += c; cur.m.push(at);
+      } else flush();
+    }
+  }
+  flush();
+  // Fuse consecutive single-letter tokens (initials).
+  const fused = [];
+  for (const tk of tokens){
+    const last = fused[fused.length - 1];
+    const oneLetter = /^\p{L}$/u.test(tk.t);
+    if (last && oneLetter && (last.initials || /^\p{L}$/u.test(last.t))){
+      last.t += tk.t; last.m.push(...tk.m); last.initials = true;
+    } else fused.push({t: tk.t, m: tk.m.slice(), initials: false});
+  }
+  let text = '', map = [];
+  fused.forEach((tk, n)=>{
+    if (n){ text += ' '; map.push(-1); }
+    text += tk.t; map.push(...tk.m);
+  });
+  return {text, map};
+}
+function normalizeCiteText(s){ return citeNormalize(s).text; }
+// Whole-word, in-order phrase test on already-normalised strings.
+function citeWholeWordMatch(hay, needle){
+  return !!needle && (' ' + hay + ' ').includes(' ' + needle + ' ');
+}
+// Lazily-built normalised haystacks, keyed by list + index, so typing
+// doesn't re-normalise ~8k strings per keystroke.
+const CITE_NORM_CACHE = new Map();
+function citeNormCached(key, getText){
+  let v = CITE_NORM_CACHE.get(key);
+  if (v === undefined){ v = normalizeCiteText(getText()); CITE_NORM_CACHE.set(key, v); }
+  return v;
+}
+let CITE_TALKS_BY_KEY = null;
+function citeTalkByKey(k){
+  if (!CITE_TALKS_BY_KEY){
+    CITE_TALKS_BY_KEY = new Map();
+    TALKS.forEach(t=> CITE_TALKS_BY_KEY.set(talkKey(t), t));
+  }
+  return CITE_TALKS_BY_KEY.get(k) || null;
+}
+// Footnote text + the resolved talk's title + its speaker, each normalised.
+function citeTalkHaystacks(i){
+  const key = 't' + i;
+  let v = CITE_NORM_CACHE.get(key);
+  if (v === undefined){
+    const [text, resolvedKey] = CITATION_TALK_REFS[i];
+    const r = resolvedKey ? citeTalkByKey(resolvedKey) : null;
+    v = [normalizeCiteText(text)];
+    if (r){ v.push(normalizeCiteText(r[0])); v.push(normalizeCiteText(r[1])); }
+    CITE_NORM_CACHE.set(key, v);
+  }
+  return v;
+}
 function citeSearchMatchedCitations(talk, rawQuery){
+  const empty = {scripture: [], hymn: [], talk: [], magazine: [], other: []};
   const q = (rawQuery || '').trim().toLowerCase();
-  if (!q) return {scripture: [], hymn: []};
+  if (!q) return empty;
 
   const parsed = parseCiteQuery(q);
   if (parsed){
@@ -10500,19 +10598,43 @@ function citeSearchMatchedCitations(talk, rawQuery){
       return citationCoversVerse(anchor, parsed.verseStart, parsed.verseEnd);
     });
     // A structurally-recognized book reference only ever matches Scripture
-    // citations, never Hymns — same scoping matchesCiteSearch() always had.
-    return {scripture: matched.map(i=> citationEntryFromIndex(i, talk)), hymn: []};
+    // citations — never Hymns or the other types.
+    return {...empty, scripture: matched.map(i=> citationEntryFromIndex(i, talk))};
   }
 
-  return {
-    scripture: talkCitations(talk).filter(c=> c.ref.toLowerCase().includes(q)),
-    hymn: talkHymnCitations(talk).filter(c=> c.ref.toLowerCase().includes(q))
+  const nq = normalizeCiteText(q);
+  const out = {
+    scripture: talkCitations(talk).filter(c=> c.ref.toLowerCase().includes(q) || (nq && normalizeCiteText(c.ref).includes(nq))),
+    hymn: talkHymnCitations(talk).filter(c=> c.ref.toLowerCase().includes(q) || (nq && normalizeCiteText(c.ref).includes(nq))),
+    talk: [], magazine: [], other: []
   };
+  if (nq.length < 3) return out;
+
+  const types = CITATION_TYPE_LOOKUP[talkKey(talk)];
+  if (!types) return out;
+  (types.other || []).forEach(i=>{
+    if (citeWholeWordMatch(citeNormCached('o' + i, ()=> CITATION_OTHER_REFS[i]), nq))
+      out.other.push({ref: CITATION_OTHER_REFS[i], href: null});
+  });
+  (types.talk || []).forEach((i, pos)=>{
+    if (citeTalkHaystacks(i).some(h=> citeWholeWordMatch(h, nq)))
+      out.talk.push(talkOtherTalkCitationAt(talk, i, pos));
+  });
+  (types.magazine || []).forEach((i, pos)=>{
+    if (citeWholeWordMatch(citeNormCached('m' + i, ()=> CITATION_MAGAZINE_REFS[i][0]), nq)){
+      const [text, href] = CITATION_MAGAZINE_REFS[i];
+      const entry = {ref: text, href: `https://www.churchofjesuschrist.org${href}`};
+      const talkHref = citationTypeTalkHref(talk, 'magazine', pos);
+      if (talkHref) entry.talkHref = talkHref;
+      out.magazine.push(entry);
+    }
+  });
+  return out;
 }
 function matchesCiteSearch(t){
   if (!filterState.citeQuery.trim()) return true;
-  const {scripture, hymn} = citeSearchMatchedCitations(t, filterState.citeQuery);
-  return scripture.length > 0 || hymn.length > 0;
+  const m = citeSearchMatchedCitations(t, filterState.citeQuery);
+  return m.scripture.length + m.hymn.length + m.talk.length + m.magazine.length + m.other.length > 0;
 }
 /* Idea 49 — Read/Unread. Deliberately NOT a DIM_CONFIG dimension: every
    other dim is a fixed property of the talk data (its topic, its speaker),
@@ -13111,14 +13233,14 @@ function buildCitationsBlock(talk, {compact=false}={}){
   return block;
 }
 
-/* Idea 63 — "Search Scriptures & Hymns" match badge. Same DOM-append
+/* Idea 63 / 91 — "Search Citations" match badge. Same DOM-append
    pattern idea 31 already uses for CFM's "N citations in range" badge:
    built and appended alongside whatever buildCitationsBlock() already
    produced, rather than changing that function itself, so every other
-   caller/context is completely unaffected. Combines Scripture + Hymn
-   matches into one badge/count rather than two, matching how the search
-   box itself treats them as one concept ("Search Scriptures & Hymns"),
-   not two separate searches.
+   caller/context is completely unaffected. Combines every matched
+   citation type (Scripture, Hymn, Other Talk, Magazine, Other Source) into
+   one badge/count, matching how the search box itself treats them as one
+   concept ("Search Citations"), not separate searches.
    Only ever meaningful on Home (filterState.citeQuery only affects
    Home's own filtering — matchesSubsetSearch(), used by Recently Viewed/
    Favorites/My Lists/My Notes/CFM, never checks it), so this is called
@@ -13127,13 +13249,40 @@ function buildCitationsBlock(talk, {compact=false}={}){
    risked showing a stale "N matching" badge on an unrelated page just
    because filterState.citeQuery happened to still hold a value from the
    last time Home's search box was used. */
+/* Sets el's text to `text` with the first whole-word match of the
+   already-normalised `needle` wrapped in <mark>. Maps the normalised
+   range back through citeNormalize()'s index map; if nothing is found,
+   falls back to plain text. */
+function appendCiteHighlighted(el, text, needle){
+  el.textContent = text;
+  if (!needle) return;
+  try {
+    const {text: nt, map} = citeNormalize(text);
+    let at = (' ' + nt + ' ').indexOf(' ' + needle + ' ');
+    if (at < 0) return;       // scripture/hymn partial matches: no highlight
+    const start = map[at], end = map[at + needle.length - 1] + 1;
+    if (!(start >= 0 && end > start)) return;
+    el.textContent = '';
+    el.append(text.slice(0, start));
+    const m = document.createElement('mark');
+    m.textContent = text.slice(start, end);
+    el.append(m, text.slice(end));
+  } catch(e){ el.textContent = text; }
+}
 function appendCiteSearchMatchBadge(row, talk){
   if (!row) return;
   const q = filterState.citeQuery.trim();
   if (!q) return;
-  const {scripture, hymn} = citeSearchMatchedCitations(talk, q);
-  const matches = [...scripture, ...hymn];
+  const found = citeSearchMatchedCitations(talk, q);
+  // Tagged with a type so the panel can label non-scripture chips.
+  const tagged = (list, type)=> list.map(c=> ({cite: c, type}));
+  const matches = [
+    ...tagged(found.scripture, ''), ...tagged(found.hymn, ''),
+    ...tagged(found.talk, 'Talk'), ...tagged(found.magazine, 'Magazine'),
+    ...tagged(found.other, 'Other source')
+  ];
   if (!matches.length) return;
+  const hl = normalizeCiteText(q);
 
   const badge = document.createElement('button');
   badge.type = 'button';
@@ -13148,7 +13297,8 @@ function appendCiteSearchMatchBadge(row, talk){
   // CFM's badge — a match with both a real link and a resolved in-talk
   // paragraph anchor becomes a button that opens the popup; anything else
   // stays a plain link/span (nothing to choose between).
-  matches.forEach(cite=>{
+  const MAX_SHOWN = 8;
+  const addChip = ({cite, type})=>{
     const {ref, href, talkHref} = cite;
     const offerChoice = href && talkHref;
     const el = document.createElement(offerChoice ? 'button' : (href ? 'a' : 'span'));
@@ -13160,9 +13310,31 @@ function appendCiteSearchMatchBadge(row, talk){
     } else {
       el.className = 'row-cite-plain';
     }
-    el.textContent = ref;
-    panel.appendChild(el);
-  });
+    appendCiteHighlighted(el, ref, hl);
+    if (type){
+      const wrap = document.createElement('span');
+      wrap.className = 'cite-hit';
+      const ty = document.createElement('span');
+      ty.className = 'cite-hit-type';
+      ty.textContent = type;
+      wrap.append(ty, el);
+      panel.appendChild(wrap);
+    } else {
+      panel.appendChild(el);
+    }
+  };
+  matches.slice(0, MAX_SHOWN).forEach(addChip);
+  if (matches.length > MAX_SHOWN){
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'cite-more';
+    more.textContent = `+${matches.length - MAX_SHOWN} more`;
+    more.addEventListener('click', ()=>{
+      more.remove();
+      matches.slice(MAX_SHOWN).forEach(addChip);
+    });
+    panel.appendChild(more);
+  }
 
   badge.addEventListener('click', ()=>{
     const wasOpen = badge.getAttribute('aria-expanded') === 'true';
@@ -19485,7 +19657,7 @@ function applyData(data){
   // Book display names ("dc-testament|dc" -> "Doctrine and Covenants") and
   // standard abbreviations ("dc-testament|dc" -> ["D&C","D & C"]) — merged
   // into data.json alongside the original citation extraction but never
-  // actually wired up until "Search Scriptures & Hymns" needed them to
+  // actually wired up until "Search Citations" needed them to
   // understand a query like "D&C 1:38", not just display a label.
   CITATION_BOOK_LABELS = data.citationBookLabels || {};
   CITATION_BOOK_ABBREVS = data.citationBookAbbrevs || {};

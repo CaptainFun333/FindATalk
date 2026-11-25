@@ -3059,7 +3059,7 @@ showing only its Scriptures pill (no empty/ghost pills). `node --check`
 clean on the extracted script throughout. Synced into the Android project
 via `npx cap sync android`.
 
-## ✅ Done: "Search Scriptures & Hymns" + filter-tile tightening
+## ✅ Done: "Search Scriptures & Hymns" (now "Search Citations", idea 91) + filter-tile tightening
 Idea 18's bullet 2 (Scripture/Hymn search) landed as a hybrid the user
 proposed after reviewing three architecture options (a new filter
 dimension, a dedicated reverse-lookup page, or extending the existing
@@ -3103,7 +3103,7 @@ cost) → all built for real together in one pass.
    Home's usage, rather than changing the shared base rule; confirmed live
    that the other four pages' pool-count styling (centered, its own
    bottom margin) is untouched.
-4. **Added the "Search Scriptures & Hymns" box** — same `search-input`/
+4. **Added the "Search Scriptures & Hymns" box** (renamed "Search Citations" by idea 91, see below) — same `search-input`/
    `search-clear` shared component the My Notes/My Lists search boxes
    already reuse, its own `filterState.citeQuery` string (parallel to the
    existing `query`), AND'd with every other active filter and with the
@@ -3388,7 +3388,7 @@ runtime-verified** — same dev-environment limitation as above; the debug
 APK from this build (`app/build/outputs/apk/debug/app-debug.apk`) is
 ready to sideload and test the "Saved to device!" path specifically.
 
-**Bug 2 — citations (and Search Scriptures & Hymns) could permanently
+**Bug 2 — citations (and Search Citations, then called Search Scriptures & Hymns) could permanently
 stop working for anyone upgrading from an older version, fixable only by
 clearing all app storage.** Root cause: adding the citation tables roughly
 tripled `data.json`'s size (~1.4MB → ~4.2MB). The talk dataset was cached
@@ -4589,3 +4589,26 @@ Stats…), each with a `.page-header` and often a list.
 
 **Easy to confuse:** chip (tag) vs pill (button); toast (fades) vs modal
 (blocks).
+
+## Idea 91 — Search Citations (2026-11-25, branch `search-citations`)
+The Home box formerly "Search Scriptures & Hymns" is now **Search Citations**
+(placeholder "Scripture, hymn, book, author, talk"; spec in
+`specs/91-search-citations.md`). `citeSearchMatchedCitations(talk, q)` in
+`docs/index.html` is still the single source of truth for the filter and the
+"N matching" badge and now returns `{scripture, hymn, talk, magazine, other}`:
+- A recognised book reference (`parseCiteQuery`) stays structural and
+  scripture-only (keeps "Eph." out of Zephaniah).
+- Anything else: scripture/hymn keep the old lowercase substring match AND
+  accept the normalised one (additive only); Other Sources, Other Talks
+  (footnote text + resolved title + speaker) and Church Magazines use
+  `normalizeCiteText()` on both sides with whole-word, in-order phrase
+  matching. Queries under 3 normalised characters skip the three new lists.
+- `citeNormalize()`: lowercase, strip accents, drop `. ' ’ " “ ”`, other
+  punctuation becomes a space, runs of single letters fuse ("C. S." = "CS");
+  it also returns an index map used to highlight the match in the original
+  text. Normalised haystacks are cached lazily (`CITE_NORM_CACHE`).
+- Badge (`appendCiteSearchMatchBadge`): union of all five lists, type labels
+  (Talk / Magazine / Other source) on non-scripture chips, `<mark>` highlight,
+  first 8 chips then a "+N more" button. Cited-talk chips come from
+  `talkOtherTalkCitationAt()` so `resolvedTalk` read credit is unchanged.
+No data.json change. Website live on merge; apps need a new build.
