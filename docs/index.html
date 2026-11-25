@@ -987,7 +987,7 @@
   .journey-reveal-grid{ margin:4px 0 10px; }
   .journey-reveal-grid .stat-value small{
     display:block; font-family:'Inter',sans-serif; font-size:9.5px; font-weight:600;
-    letter-spacing:.06em; text-transform:uppercase; color:var(--brass); margin-bottom:2px;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); /* brass fails contrast at 9px on Brass/Celestial light */ margin-bottom:2px;
   }
   .journey-reveal-note{ font-family:'Inter',sans-serif; font-size:11.5px; line-height:1.45; color:var(--ink-soft); margin:0 0 14px; }
   .journey-reveal-note[hidden]{ display:none; }
@@ -2097,11 +2097,11 @@
   .row-cite-panel .cite-hit{ display:inline-flex; align-items:baseline; gap:5px; }
   .row-cite-panel .cite-hit-type{
     font-family:'Inter',sans-serif; font-size:9px; font-weight:700;
-    letter-spacing:.06em; text-transform:uppercase; color:var(--brass);
+    letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); /* brass fails contrast at 9px on Brass/Celestial light */
     white-space:nowrap;
   }
   .row-cite-panel mark{ background:var(--tint); color:inherit; border-radius:2px; font-weight:600; }
-  .row-cite-panel button.cite-more{ font-family:'Inter',sans-serif; font-size:11px; font-weight:600; color:var(--burgundy); }
+  .row-cite-panel button.cite-more{ font-family:'Inter',sans-serif; font-size:11px; font-weight:600; color:var(--ink-soft); }
   .row-cite-panel span.row-cite-plain{
     font-family:'Source Serif 4', Georgia, serif;
     font-size:11.5px;
@@ -13275,11 +13275,13 @@ function appendCiteSearchMatchBadge(row, talk){
   if (!q) return;
   const found = citeSearchMatchedCitations(talk, q);
   // Tagged with a type so the panel can label non-scripture chips.
-  const tagged = (list, type)=> list.map(c=> ({cite: c, type}));
+  // `kind` is the group label openCiteDestModal() and the read-credit
+  // check use ('Other Talks' credits a read of cite.resolvedTalk).
+  const tagged = (list, type, kind)=> list.map(c=> ({cite: c, type, kind}));
   const matches = [
-    ...tagged(found.scripture, ''), ...tagged(found.hymn, ''),
-    ...tagged(found.talk, 'Talk'), ...tagged(found.magazine, 'Magazine'),
-    ...tagged(found.other, 'Other source')
+    ...tagged(found.scripture, '', 'Scriptures'), ...tagged(found.hymn, '', 'Hymns'),
+    ...tagged(found.talk, 'Talk', 'Other Talks'), ...tagged(found.magazine, 'Magazine', 'Church Magazines'),
+    ...tagged(found.other, 'Other source', 'Other Sources')
   ];
   if (!matches.length) return;
   const hl = normalizeCiteText(q);
@@ -13298,15 +13300,23 @@ function appendCiteSearchMatchBadge(row, talk){
   // paragraph anchor becomes a button that opens the popup; anything else
   // stays a plain link/span (nothing to choose between).
   const MAX_SHOWN = 8;
-  const addChip = ({cite, type})=>{
+  const addChip = ({cite, type, kind})=>{
     const {ref, href, talkHref} = cite;
     const offerChoice = href && talkHref;
     const el = document.createElement(offerChoice ? 'button' : (href ? 'a' : 'span'));
     if (offerChoice){
       el.type = 'button';
-      el.addEventListener('click', ()=> openCiteDestModal(cite));
+      el.addEventListener('click', ()=> openCiteDestModal(cite, kind));
     } else if (href){
       el.href = href; el.target = '_blank'; el.rel = 'noopener';
+      // Plain-link path: same read credit as buildCitationsBlock()'s.
+      if (kind === 'Other Talks' && cite.resolvedTalk){
+        el.addEventListener('click', ()=>{
+          recordOpened(cite.resolvedTalk);
+          refreshCount();
+          if (recentZone.style.display === 'block') renderRecentPage();
+        });
+      }
     } else {
       el.className = 'row-cite-plain';
     }
