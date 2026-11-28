@@ -2280,6 +2280,11 @@
   /* Long press / right-click a talk for Mark as read or unread. */
   .list-item, .ticket{ -webkit-touch-callout:none; }
   .list-item a, .ticket a{ -webkit-touch-callout:none; }
+  /* Android's long-press also starts a text selection (and its Copy/Share bar) —
+     on touch screens, rows and the menu aren't selectable. */
+  @media (hover:none){
+    .list-item, .ticket, .read-mark-menu{ -webkit-user-select:none; user-select:none; }
+  }
   .read-mark-menu{
     position:fixed; z-index:9000; min-width:170px;
     background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
@@ -7563,6 +7568,7 @@ function applyBulkRead(selection){
     btn.textContent = read ? 'Mark as unread' : 'Mark as read';
     menuTalkKey = key;
     m.hidden = false;
+    try { window.getSelection().removeAllRanges(); } catch(e){}
     const w = m.offsetWidth, h = m.offsetHeight;
     m.style.left = Math.max(8, Math.min(x, window.innerWidth - w - 8)) + 'px';
     m.style.top = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + 'px';

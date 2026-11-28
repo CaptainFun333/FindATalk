@@ -13,6 +13,9 @@ this updated.
 ### Changed
 - The scripture search box on Home is now **Search Citations** — find a book, an author, or a talk someone cited, not just scriptures and hymns. It also searches footnoted Other Sources (like "C. S. Lewis" or "The Screwtape Letters"), cited talks (by title or speaker) and Church magazines, ignoring accents and punctuation, and each match in the "N matching" list now shows what kind of source it is with your words highlighted. Scripture references like "Alma 32" work exactly as before. (Website live immediately; the app needs a new build.)
 
+### Fixed
+- Pressing and holding a talk on an Android phone no longer also highlights "Mark as unread" and pops up Copy / Share / Select all — only the Mark as read / unread menu appears. (Website live immediately; the app needs a new build.)
+
 ## [1.8.3] — 2026-11-23
 
 ### Added
